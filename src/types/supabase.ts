@@ -14,67 +14,521 @@ export type Database = {
   }
   public: {
     Tables: {
+      airwaybills: {
+        Row: {
+          arrival_airport_code: string
+          arrival_date: string | null
+          awb_number: string
+          chargeable_weight_kg: number | null
+          commodity_description: string | null
+          consignee_address: string | null
+          consignee_contact: string | null
+          consignee_name: string | null
+          consignee_npwp: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customs_clearance_date: string | null
+          customs_declaration_number: string | null
+          customs_status: Database["public"]["Enums"]["customs_status"] | null
+          delivery_date: string | null
+          delivery_order_number: string | null
+          excise_duty: number
+          flight_date: string | null
+          flight_number: string | null
+          freight_charge: number
+          gross_weight_kg: number
+          handling_fee: number
+          hawb_number: string | null
+          height_cm: number | null
+          hs_code: string | null
+          id: string
+          import_duty: number
+          import_type: Database["public"]["Enums"]["import_type"]
+          incoterm: Database["public"]["Enums"]["incoterm_type"]
+          insurance_fee: number
+          invoice_number: string | null
+          length_cm: number | null
+          notify_party: string | null
+          number_of_packages: number
+          origin_airport_code: string
+          other_charge: number
+          other_taxes: number
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          pph_import: number
+          ppn_import: number
+          shipper_address: string | null
+          shipper_name: string | null
+          status: Database["public"]["Enums"]["airwaybill_status"]
+          storage_fee: number
+          storage_location: string | null
+          total_charge: number | null
+          total_taxes: number | null
+          unloading_date: string | null
+          updated_at: string
+          updated_by: string | null
+          value_of_goods: number | null
+          volume_weight_kg: number | null
+          width_cm: number | null
+        }
+        Insert: {
+          arrival_airport_code: string
+          arrival_date?: string | null
+          awb_number: string
+          chargeable_weight_kg?: number | null
+          commodity_description?: string | null
+          consignee_address?: string | null
+          consignee_contact?: string | null
+          consignee_name?: string | null
+          consignee_npwp?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customs_clearance_date?: string | null
+          customs_declaration_number?: string | null
+          customs_status?: Database["public"]["Enums"]["customs_status"] | null
+          delivery_date?: string | null
+          delivery_order_number?: string | null
+          excise_duty?: number
+          flight_date?: string | null
+          flight_number?: string | null
+          freight_charge?: number
+          gross_weight_kg: number
+          handling_fee?: number
+          hawb_number?: string | null
+          height_cm?: number | null
+          hs_code?: string | null
+          id?: string
+          import_duty?: number
+          import_type?: Database["public"]["Enums"]["import_type"]
+          incoterm?: Database["public"]["Enums"]["incoterm_type"]
+          insurance_fee?: number
+          invoice_number?: string | null
+          length_cm?: number | null
+          notify_party?: string | null
+          number_of_packages: number
+          origin_airport_code: string
+          other_charge?: number
+          other_taxes?: number
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          pph_import?: number
+          ppn_import?: number
+          shipper_address?: string | null
+          shipper_name?: string | null
+          status?: Database["public"]["Enums"]["airwaybill_status"]
+          storage_fee?: number
+          storage_location?: string | null
+          total_charge?: number | null
+          total_taxes?: number | null
+          unloading_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          value_of_goods?: number | null
+          volume_weight_kg?: number | null
+          width_cm?: number | null
+        }
+        Update: {
+          arrival_airport_code?: string
+          arrival_date?: string | null
+          awb_number?: string
+          chargeable_weight_kg?: number | null
+          commodity_description?: string | null
+          consignee_address?: string | null
+          consignee_contact?: string | null
+          consignee_name?: string | null
+          consignee_npwp?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customs_clearance_date?: string | null
+          customs_declaration_number?: string | null
+          customs_status?: Database["public"]["Enums"]["customs_status"] | null
+          delivery_date?: string | null
+          delivery_order_number?: string | null
+          excise_duty?: number
+          flight_date?: string | null
+          flight_number?: string | null
+          freight_charge?: number
+          gross_weight_kg?: number
+          handling_fee?: number
+          hawb_number?: string | null
+          height_cm?: number | null
+          hs_code?: string | null
+          id?: string
+          import_duty?: number
+          import_type?: Database["public"]["Enums"]["import_type"]
+          incoterm?: Database["public"]["Enums"]["incoterm_type"]
+          insurance_fee?: number
+          invoice_number?: string | null
+          length_cm?: number | null
+          notify_party?: string | null
+          number_of_packages?: number
+          origin_airport_code?: string
+          other_charge?: number
+          other_taxes?: number
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          pph_import?: number
+          ppn_import?: number
+          shipper_address?: string | null
+          shipper_name?: string | null
+          status?: Database["public"]["Enums"]["airwaybill_status"]
+          storage_fee?: number
+          storage_location?: string | null
+          total_charge?: number | null
+          total_taxes?: number | null
+          unloading_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          value_of_goods?: number | null
+          volume_weight_kg?: number | null
+          width_cm?: number | null
+        }
+        Relationships: []
+      }
+      barang_keluar: {
+        Row: {
+          created_at: string | null
+          id: string
+          jumlah: number | null
+          keterangan: string | null
+          kode_barang: string | null
+          nama_barang: string
+          nomor_dokumen_pabean: string | null
+          sku: string
+          status: string
+          tanggal_keluar: string
+          tujuan: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          jumlah?: number | null
+          keterangan?: string | null
+          kode_barang?: string | null
+          nama_barang: string
+          nomor_dokumen_pabean?: string | null
+          sku: string
+          status?: string
+          tanggal_keluar: string
+          tujuan?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          jumlah?: number | null
+          keterangan?: string | null
+          kode_barang?: string | null
+          nama_barang?: string
+          nomor_dokumen_pabean?: string | null
+          sku?: string
+          status?: string
+          tanggal_keluar?: string
+          tujuan?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      barang_lini_1: {
+        Row: {
+          batas_waktu_pengambilan: string | null
+          berat: number | null
+          ceisa_document_date: string | null
+          ceisa_document_number: string | null
+          ceisa_document_type: string | null
+          ceisa_notes: string | null
+          ceisa_status: string | null
+          ceisa_sync_date: string | null
+          ceisa_sync_status: string | null
+          created_at: string | null
+          id: string
+          kode_barang: string | null
+          lama_simpan: number | null
+          lokasi: string | null
+          nama_barang: string
+          nomor_dokumen_pabean: string | null
+          sku: string
+          status: string | null
+          tanggal_masuk: string
+          tanggal_pindah_ke_lini_2: string | null
+          total_biaya: number | null
+          updated_at: string | null
+          volume: number | null
+          wms_notes: string | null
+          wms_reference_number: string | null
+          wms_sync_date: string | null
+          wms_sync_status: string | null
+        }
+        Insert: {
+          batas_waktu_pengambilan?: string | null
+          berat?: number | null
+          ceisa_document_date?: string | null
+          ceisa_document_number?: string | null
+          ceisa_document_type?: string | null
+          ceisa_notes?: string | null
+          ceisa_status?: string | null
+          ceisa_sync_date?: string | null
+          ceisa_sync_status?: string | null
+          created_at?: string | null
+          id?: string
+          kode_barang?: string | null
+          lama_simpan?: number | null
+          lokasi?: string | null
+          nama_barang: string
+          nomor_dokumen_pabean?: string | null
+          sku: string
+          status?: string | null
+          tanggal_masuk: string
+          tanggal_pindah_ke_lini_2?: string | null
+          total_biaya?: number | null
+          updated_at?: string | null
+          volume?: number | null
+          wms_notes?: string | null
+          wms_reference_number?: string | null
+          wms_sync_date?: string | null
+          wms_sync_status?: string | null
+        }
+        Update: {
+          batas_waktu_pengambilan?: string | null
+          berat?: number | null
+          ceisa_document_date?: string | null
+          ceisa_document_number?: string | null
+          ceisa_document_type?: string | null
+          ceisa_notes?: string | null
+          ceisa_status?: string | null
+          ceisa_sync_date?: string | null
+          ceisa_sync_status?: string | null
+          created_at?: string | null
+          id?: string
+          kode_barang?: string | null
+          lama_simpan?: number | null
+          lokasi?: string | null
+          nama_barang?: string
+          nomor_dokumen_pabean?: string | null
+          sku?: string
+          status?: string | null
+          tanggal_masuk?: string
+          tanggal_pindah_ke_lini_2?: string | null
+          total_biaya?: number | null
+          updated_at?: string | null
+          volume?: number | null
+          wms_notes?: string | null
+          wms_reference_number?: string | null
+          wms_sync_date?: string | null
+          wms_sync_status?: string | null
+        }
+        Relationships: []
+      }
+      barang_lini_2: {
+        Row: {
+          asal: string | null
+          batas_waktu_pengambilan: string | null
+          berat: number | null
+          created_at: string | null
+          hari_di_lini_1: number | null
+          hari_simpan: number | null
+          id: string
+          kode_barang: string | null
+          lokasi: string | null
+          nama_barang: string
+          nomor_dokumen_pabean: string | null
+          "public.barang_keluar": number | null
+          sku: string
+          status: string | null
+          tgl_keluar: string | null
+          tgl_masuk: string
+          updated_at: string | null
+          volume: number | null
+        }
+        Insert: {
+          asal?: string | null
+          batas_waktu_pengambilan?: string | null
+          berat?: number | null
+          created_at?: string | null
+          hari_di_lini_1?: number | null
+          hari_simpan?: number | null
+          id?: string
+          kode_barang?: string | null
+          lokasi?: string | null
+          nama_barang: string
+          nomor_dokumen_pabean?: string | null
+          "public.barang_keluar"?: number | null
+          sku: string
+          status?: string | null
+          tgl_keluar?: string | null
+          tgl_masuk: string
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Update: {
+          asal?: string | null
+          batas_waktu_pengambilan?: string | null
+          berat?: number | null
+          created_at?: string | null
+          hari_di_lini_1?: number | null
+          hari_simpan?: number | null
+          id?: string
+          kode_barang?: string | null
+          lokasi?: string | null
+          nama_barang?: string
+          nomor_dokumen_pabean?: string | null
+          "public.barang_keluar"?: number | null
+          sku?: string
+          status?: string | null
+          tgl_keluar?: string | null
+          tgl_masuk?: string
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Relationships: []
+      }
+      cash_book: {
+        Row: {
+          account_name: string | null
+          created_at: string | null
+          document_number: string | null
+          id: string
+          keterangan: string | null
+          nominal: number | null
+          payment_type: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          created_at?: string | null
+          document_number?: string | null
+          id?: string
+          keterangan?: string | null
+          nominal?: number | null
+          payment_type?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          created_at?: string | null
+          document_number?: string | null
+          id?: string
+          keterangan?: string | null
+          nominal?: number | null
+          payment_type?: string | null
+        }
+        Relationships: []
+      }
       chart_of_accounts: {
         Row: {
           account_code: string
           account_name: string
           account_type: string
-          balance_total: number | null
-          created_at: string
+          created_at: string | null
           credit_total: number | null
           current_balance: number | null
           debit_total: number | null
+          description: string | null
           id: string
+          is_active: boolean | null
           is_header: boolean | null
-          parent_id: string | null
-          service_type: string | null
-          total_credit: number | null
-          total_debit: number | null
-          updated_at: string
+          level: number
+          normal_balance: string | null
+          updated_at: string | null
         }
         Insert: {
           account_code: string
           account_name: string
           account_type: string
-          balance_total?: number | null
-          created_at?: string
+          created_at?: string | null
           credit_total?: number | null
           current_balance?: number | null
           debit_total?: number | null
+          description?: string | null
           id?: string
+          is_active?: boolean | null
           is_header?: boolean | null
-          parent_id?: string | null
-          service_type?: string | null
-          total_credit?: number | null
-          total_debit?: number | null
-          updated_at?: string
+          level?: number
+          normal_balance?: string | null
+          updated_at?: string | null
         }
         Update: {
           account_code?: string
           account_name?: string
           account_type?: string
-          balance_total?: number | null
-          created_at?: string
+          created_at?: string | null
           credit_total?: number | null
           current_balance?: number | null
           debit_total?: number | null
+          description?: string | null
           id?: string
+          is_active?: boolean | null
           is_header?: boolean | null
-          parent_id?: string | null
-          service_type?: string | null
-          total_credit?: number | null
-          total_debit?: number | null
-          updated_at?: string
+          level?: number
+          normal_balance?: string | null
+          updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "chart_of_accounts_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      chat_history: {
+        Row: {
+          content: string
+          created_at: string | null
+          hs_code_suggestions: Json | null
+          id: string
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          hs_code_suggestions?: Json | null
+          id?: string
+          role: string
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          hs_code_suggestions?: Json | null
+          id?: string
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      coa_category_mapping: {
+        Row: {
+          asset_account_code: string | null
+          cogs_account_code: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          revenue_account_code: string | null
+          service_category: string
+          service_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          asset_account_code?: string | null
+          cogs_account_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          revenue_account_code?: string | null
+          service_category: string
+          service_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          asset_account_code?: string | null
+          cogs_account_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          revenue_account_code?: string | null
+          service_category?: string
+          service_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       general_ledger: {
         Row: {
@@ -127,13 +581,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "general_ledger_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "general_ledger_journal_entry_id_fkey"
             columns: ["journal_entry_id"]
             isOneToOne: false
@@ -141,6 +588,223 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      hs_code_embeddings: {
+        Row: {
+          content: string
+          created_at: string | null
+          embedding: string | null
+          hs_code_id: string | null
+          id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          embedding?: string | null
+          hs_code_id?: string | null
+          id?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          embedding?: string | null
+          hs_code_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hs_code_embeddings_hs_code_id_fkey"
+            columns: ["hs_code_id"]
+            isOneToOne: false
+            referencedRelation: "hs_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hs_codes: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string
+          export_duty_rate: number | null
+          export_restriction: string | null
+          hs_code: string
+          id: string
+          import_duty_rate: number | null
+          import_restriction: string | null
+          is_active: boolean | null
+          notes: string | null
+          pph_rate: number | null
+          sub_category: string | null
+          unit: string | null
+          updated_at: string | null
+          vat_rate: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description: string
+          export_duty_rate?: number | null
+          export_restriction?: string | null
+          hs_code: string
+          id?: string
+          import_duty_rate?: number | null
+          import_restriction?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          pph_rate?: number | null
+          sub_category?: string | null
+          unit?: string | null
+          updated_at?: string | null
+          vat_rate?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string
+          export_duty_rate?: number | null
+          export_restriction?: string | null
+          hs_code?: string
+          id?: string
+          import_duty_rate?: number | null
+          import_restriction?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          pph_rate?: number | null
+          sub_category?: string | null
+          unit?: string | null
+          updated_at?: string | null
+          vat_rate?: number | null
+        }
+        Relationships: []
+      }
+      inventory_items: {
+        Row: {
+          akun_persediaan: string | null
+          asal_barang: string | null
+          berat: number | null
+          cost_per_unit: number | null
+          created_at: string | null
+          dibuat_oleh: string | null
+          harga_per_unit: number | null
+          id: string
+          item_id: string | null
+          jenis_barang: string | null
+          keterangan: string | null
+          kode_barang: string | null
+          lama_simpan: number | null
+          line: string | null
+          lokasi: string | null
+          mata_uang: string | null
+          nama_barang: string
+          nomor_batch_lot: string | null
+          nomor_dokumen_pabean: string | null
+          nomor_seri: string | null
+          qty_available: number | null
+          sku: string
+          status: string
+          sync_status: string | null
+          tanggal_masuk: string
+          tanggal_posting_ceisa: string | null
+          total_biaya: number | null
+          updated_at: string | null
+          volume: number | null
+        }
+        Insert: {
+          akun_persediaan?: string | null
+          asal_barang?: string | null
+          berat?: number | null
+          cost_per_unit?: number | null
+          created_at?: string | null
+          dibuat_oleh?: string | null
+          harga_per_unit?: number | null
+          id?: string
+          item_id?: string | null
+          jenis_barang?: string | null
+          keterangan?: string | null
+          kode_barang?: string | null
+          lama_simpan?: number | null
+          line?: string | null
+          lokasi?: string | null
+          mata_uang?: string | null
+          nama_barang: string
+          nomor_batch_lot?: string | null
+          nomor_dokumen_pabean?: string | null
+          nomor_seri?: string | null
+          qty_available?: number | null
+          sku: string
+          status: string
+          sync_status?: string | null
+          tanggal_masuk: string
+          tanggal_posting_ceisa?: string | null
+          total_biaya?: number | null
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Update: {
+          akun_persediaan?: string | null
+          asal_barang?: string | null
+          berat?: number | null
+          cost_per_unit?: number | null
+          created_at?: string | null
+          dibuat_oleh?: string | null
+          harga_per_unit?: number | null
+          id?: string
+          item_id?: string | null
+          jenis_barang?: string | null
+          keterangan?: string | null
+          kode_barang?: string | null
+          lama_simpan?: number | null
+          line?: string | null
+          lokasi?: string | null
+          mata_uang?: string | null
+          nama_barang?: string
+          nomor_batch_lot?: string | null
+          nomor_dokumen_pabean?: string | null
+          nomor_seri?: string | null
+          qty_available?: number | null
+          sku?: string
+          status?: string
+          sync_status?: string | null
+          tanggal_masuk?: string
+          tanggal_posting_ceisa?: string | null
+          total_biaya?: number | null
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      items: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          sku: string | null
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          sku?: string | null
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          sku?: string | null
+          unit?: string | null
+        }
+        Relationships: []
       }
       journal_entries: {
         Row: {
@@ -159,7 +823,11 @@ export type Database = {
           make: string | null
           model: string | null
           nama: string | null
+          reference_no: string | null
           service_type: string | null
+          source_id: string | null
+          source_table: string | null
+          stock_movement_id: string | null
           total_credit: number | null
           total_debit: number | null
           transaction_date: string | null
@@ -182,7 +850,11 @@ export type Database = {
           make?: string | null
           model?: string | null
           nama?: string | null
+          reference_no?: string | null
           service_type?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          stock_movement_id?: string | null
           total_credit?: number | null
           total_debit?: number | null
           transaction_date?: string | null
@@ -205,14 +877,352 @@ export type Database = {
           make?: string | null
           model?: string | null
           nama?: string | null
+          reference_no?: string | null
           service_type?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          stock_movement_id?: string | null
           total_credit?: number | null
           total_debit?: number | null
           transaction_date?: string | null
           updated_at?: string | null
           vehicle_type?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_stock_movement_id_fkey"
+            columns: ["stock_movement_id"]
+            isOneToOne: false
+            referencedRelation: "stock_movement"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entry_items: {
+        Row: {
+          account_id: string
+          credit: number
+          debit: number
+          description: string | null
+          id: string
+          journal_entry_id: string
+        }
+        Insert: {
+          account_id: string
+          credit?: number
+          debit?: number
+          description?: string | null
+          id?: string
+          journal_entry_id: string
+        }
+        Update: {
+          account_id?: string
+          credit?: number
+          debit?: number
+          description?: string | null
+          id?: string
+          journal_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entry_items_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kas_transaksi: {
+        Row: {
+          account_name: string
+          account_number: string
+          created_at: string
+          document_number: string
+          id: string
+          keterangan: string | null
+          nominal: number
+          nominal_signed: number | null
+          payment_type: string
+          tanggal: string
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          created_at?: string
+          document_number: string
+          id?: string
+          keterangan?: string | null
+          nominal: number
+          nominal_signed?: number | null
+          payment_type: string
+          tanggal: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          created_at?: string
+          document_number?: string
+          id?: string
+          keterangan?: string | null
+          nominal?: number
+          nominal_signed?: number | null
+          payment_type?: string
+          tanggal?: string
+          updated_at?: string
+        }
         Relationships: []
+      }
+      lots: {
+        Row: {
+          created_at: string | null
+          expiry_date: string | null
+          id: string
+          is_active: boolean | null
+          item_name: string | null
+          lot_number: string
+          manufacturing_date: string | null
+          quantity: number | null
+          rack_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_name?: string | null
+          lot_number: string
+          manufacturing_date?: string | null
+          quantity?: number | null
+          rack_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_name?: string | null
+          lot_number?: string
+          manufacturing_date?: string | null
+          quantity?: number | null
+          rack_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lots_rack_id_fkey"
+            columns: ["rack_id"]
+            isOneToOne: false
+            referencedRelation: "racks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permissions: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          module: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          module: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          module?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      permohonan_dana: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          departemen: string
+          id: string
+          jumlah: number
+          keterangan: string | null
+          nama_pemohon: string
+          status: string | null
+          tanggal_permohonan: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          departemen: string
+          id?: string
+          jumlah: number
+          keterangan?: string | null
+          nama_pemohon: string
+          status?: string | null
+          tanggal_permohonan: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          departemen?: string
+          id?: string
+          jumlah?: number
+          keterangan?: string | null
+          nama_pemohon?: string
+          status?: string | null
+          tanggal_permohonan?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      purchase_requests: {
+        Row: {
+          barcode: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          email: string | null
+          foto_barang: string | null
+          id: string
+          item_description: string | null
+          item_name: string
+          name: string
+          notes: string | null
+          quantity: number
+          request_code: string | null
+          request_date: string
+          request_number: string | null
+          requester_id: string | null
+          requester_name: string | null
+          shipping_cost: number | null
+          status: string | null
+          supplier_id: string | null
+          tax: number | null
+          total_amount: number
+          unit: string | null
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          barcode?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          email?: string | null
+          foto_barang?: string | null
+          id?: string
+          item_description?: string | null
+          item_name: string
+          name: string
+          notes?: string | null
+          quantity: number
+          request_code?: string | null
+          request_date: string
+          request_number?: string | null
+          requester_id?: string | null
+          requester_name?: string | null
+          shipping_cost?: number | null
+          status?: string | null
+          supplier_id?: string | null
+          tax?: number | null
+          total_amount: number
+          unit?: string | null
+          unit_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          barcode?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          email?: string | null
+          foto_barang?: string | null
+          id?: string
+          item_description?: string | null
+          item_name?: string
+          name?: string
+          notes?: string | null
+          quantity?: number
+          request_code?: string | null
+          request_date?: string
+          request_number?: string | null
+          requester_id?: string | null
+          requester_name?: string | null
+          shipping_cost?: number | null
+          status?: string | null
+          supplier_id?: string | null
+          tax?: number | null
+          total_amount?: number
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skema_PR_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      racks: {
+        Row: {
+          capacity: number | null
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          level: number | null
+          name: string
+          updated_at: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          capacity?: number | null
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          level?: number | null
+          name: string
+          updated_at?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          capacity?: number | null
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          level?: number | null
+          name?: string
+          updated_at?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "racks_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       roles: {
         Row: {
@@ -235,6 +1245,516 @@ export type Database = {
           id?: string
           name?: string
           permissions?: Json | null
+        }
+        Relationships: []
+      }
+      service_items: {
+        Row: {
+          category: string | null
+          coa_account_code: string | null
+          coa_account_name: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      stock: {
+        Row: {
+          barcode: string | null
+          batas_waktu_pengambilan: string | null
+          brand: string[] | null
+          category: string[] | null
+          ceisa_document_date: string | null
+          ceisa_document_number: string | null
+          ceisa_document_type: string | null
+          ceisa_notes: string | null
+          ceisa_status: string | null
+          ceisa_sync_date: string | null
+          ceisa_sync_status: string | null
+          closing_stock: number | null
+          coa_account_code: string | null
+          coa_account_name: string | null
+          country_of_origin: string | null
+          created_at: string | null
+          created_by: string | null
+          date: string | null
+          description: string | null
+          deskripsi: string | null
+          dimensions: string | null
+          harga_beli_setelah_ppn: number | null
+          harga_jual_setelah_ppn: number | null
+          hs_code: string | null
+          hs_code_description: string | null
+          id: string
+          image: string | null
+          item_code: string | null
+          item_id: string | null
+          item_name: string
+          jenis_barang: string
+          kode_barang: string | null
+          location: string | null
+          lot_id: string | null
+          material: string | null
+          min_stock: number | null
+          model: string | null
+          nominal_barang: number | null
+          nomor_dokumen_pabean: string | null
+          opening_stock: number | null
+          part_number: string | null
+          plate_number: string | null
+          ppn_beli: number | null
+          ppn_jual: number | null
+          ppn_type: string
+          purchase_price: number
+          quantity: number
+          rack_id: string | null
+          requester_id: string | null
+          selling_price: number | null
+          sku: string | null
+          specifications: string | null
+          status_pengambilan: string | null
+          stock_code: string | null
+          stock_in: number | null
+          stock_out: number | null
+          sub_kategori: string | null
+          supplier_name: string | null
+          tanggal_masuk_barang: string | null
+          unit: string | null
+          updated_at: string | null
+          vehicle_type: string | null
+          volume: string | null
+          warehouse_id: string | null
+          warehouse_location: string
+          weight: number | null
+          weight_unit: string | null
+          wms_notes: string | null
+          wms_reference_number: string | null
+          wms_sync_date: string | null
+          wms_sync_status: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          barcode?: string | null
+          batas_waktu_pengambilan?: string | null
+          brand?: string[] | null
+          category?: string[] | null
+          ceisa_document_date?: string | null
+          ceisa_document_number?: string | null
+          ceisa_document_type?: string | null
+          ceisa_notes?: string | null
+          ceisa_status?: string | null
+          ceisa_sync_date?: string | null
+          ceisa_sync_status?: string | null
+          closing_stock?: number | null
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          country_of_origin?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string | null
+          description?: string | null
+          deskripsi?: string | null
+          dimensions?: string | null
+          harga_beli_setelah_ppn?: number | null
+          harga_jual_setelah_ppn?: number | null
+          hs_code?: string | null
+          hs_code_description?: string | null
+          id?: string
+          image?: string | null
+          item_code?: string | null
+          item_id?: string | null
+          item_name: string
+          jenis_barang: string
+          kode_barang?: string | null
+          location?: string | null
+          lot_id?: string | null
+          material?: string | null
+          min_stock?: number | null
+          model?: string | null
+          nominal_barang?: number | null
+          nomor_dokumen_pabean?: string | null
+          opening_stock?: number | null
+          part_number?: string | null
+          plate_number?: string | null
+          ppn_beli?: number | null
+          ppn_jual?: number | null
+          ppn_type?: string
+          purchase_price?: number
+          quantity: number
+          rack_id?: string | null
+          requester_id?: string | null
+          selling_price?: number | null
+          sku?: string | null
+          specifications?: string | null
+          status_pengambilan?: string | null
+          stock_code?: string | null
+          stock_in?: number | null
+          stock_out?: number | null
+          sub_kategori?: string | null
+          supplier_name?: string | null
+          tanggal_masuk_barang?: string | null
+          unit?: string | null
+          updated_at?: string | null
+          vehicle_type?: string | null
+          volume?: string | null
+          warehouse_id?: string | null
+          warehouse_location?: string
+          weight?: number | null
+          weight_unit?: string | null
+          wms_notes?: string | null
+          wms_reference_number?: string | null
+          wms_sync_date?: string | null
+          wms_sync_status?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          barcode?: string | null
+          batas_waktu_pengambilan?: string | null
+          brand?: string[] | null
+          category?: string[] | null
+          ceisa_document_date?: string | null
+          ceisa_document_number?: string | null
+          ceisa_document_type?: string | null
+          ceisa_notes?: string | null
+          ceisa_status?: string | null
+          ceisa_sync_date?: string | null
+          ceisa_sync_status?: string | null
+          closing_stock?: number | null
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          country_of_origin?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string | null
+          description?: string | null
+          deskripsi?: string | null
+          dimensions?: string | null
+          harga_beli_setelah_ppn?: number | null
+          harga_jual_setelah_ppn?: number | null
+          hs_code?: string | null
+          hs_code_description?: string | null
+          id?: string
+          image?: string | null
+          item_code?: string | null
+          item_id?: string | null
+          item_name?: string
+          jenis_barang?: string
+          kode_barang?: string | null
+          location?: string | null
+          lot_id?: string | null
+          material?: string | null
+          min_stock?: number | null
+          model?: string | null
+          nominal_barang?: number | null
+          nomor_dokumen_pabean?: string | null
+          opening_stock?: number | null
+          part_number?: string | null
+          plate_number?: string | null
+          ppn_beli?: number | null
+          ppn_jual?: number | null
+          ppn_type?: string
+          purchase_price?: number
+          quantity?: number
+          rack_id?: string | null
+          requester_id?: string | null
+          selling_price?: number | null
+          sku?: string | null
+          specifications?: string | null
+          status_pengambilan?: string | null
+          stock_code?: string | null
+          stock_in?: number | null
+          stock_out?: number | null
+          sub_kategori?: string | null
+          supplier_name?: string | null
+          tanggal_masuk_barang?: string | null
+          unit?: string | null
+          updated_at?: string | null
+          vehicle_type?: string | null
+          volume?: string | null
+          warehouse_id?: string | null
+          warehouse_location?: string
+          weight?: number | null
+          weight_unit?: string | null
+          wms_notes?: string | null
+          wms_reference_number?: string | null
+          wms_sync_date?: string | null
+          wms_sync_status?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_stock_coa"
+            columns: ["coa_account_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "stock_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_rack_id_fkey"
+            columns: ["rack_id"]
+            isOneToOne: false
+            referencedRelation: "racks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_balances: {
+        Row: {
+          account_id: string | null
+          id: string
+          item_id: string
+          period: string | null
+          total_value: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          id?: string
+          item_id: string
+          period?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          id?: string
+          item_id?: string
+          period?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_balances_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movement: {
+        Row: {
+          cost_per_unit: number | null
+          created_at: string | null
+          from_line: string | null
+          id: string
+          item_id: string
+          movement_date: string | null
+          movement_type: string | null
+          qty: number
+          reference_no: string | null
+          remarks: string | null
+          to_line: string | null
+          total_value: number | null
+        }
+        Insert: {
+          cost_per_unit?: number | null
+          created_at?: string | null
+          from_line?: string | null
+          id?: string
+          item_id: string
+          movement_date?: string | null
+          movement_type?: string | null
+          qty: number
+          reference_no?: string | null
+          remarks?: string | null
+          to_line?: string | null
+          total_value?: number | null
+        }
+        Update: {
+          cost_per_unit?: number | null
+          created_at?: string | null
+          from_line?: string | null
+          id?: string
+          item_id?: string
+          movement_date?: string | null
+          movement_type?: string | null
+          qty?: number
+          reference_no?: string | null
+          remarks?: string | null
+          to_line?: string | null
+          total_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movement_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          created_at: string | null
+          destination: string | null
+          id: string
+          item_name: string | null
+          movement_type: string | null
+          qty: number | null
+          sku: string | null
+          source: string | null
+          total_cost: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          destination?: string | null
+          id?: string
+          item_name?: string | null
+          movement_type?: string | null
+          qty?: number | null
+          sku?: string | null
+          source?: string | null
+          total_cost?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          destination?: string | null
+          id?: string
+          item_name?: string | null
+          movement_type?: string | null
+          qty?: number | null
+          sku?: string | null
+          source?: string | null
+          total_cost?: number | null
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          category: string | null
+          city: string | null
+          contact_person: string | null
+          country: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          email: string | null
+          id: string
+          is_pkp: string | null
+          name: string | null
+          payment_terms: string | null
+          phone_number: string | null
+          status: string | null
+          supplier_code: string
+          supplier_name: string
+          tax_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          category?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          email?: string | null
+          id?: string
+          is_pkp?: string | null
+          name?: string | null
+          payment_terms?: string | null
+          phone_number?: string | null
+          status?: string | null
+          supplier_code?: string
+          supplier_name: string
+          tax_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          category?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          email?: string | null
+          id?: string
+          is_pkp?: string | null
+          name?: string | null
+          payment_terms?: string | null
+          phone_number?: string | null
+          status?: string | null
+          supplier_code?: string
+          supplier_name?: string
+          tax_id?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -297,40 +1817,264 @@ export type Database = {
       }
       users: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
+          department: string | null
           email: string
           full_name: string | null
           id: string
+          is_active: boolean | null
+          last_login: string | null
+          phone_number: string | null
           role: string
           updated_at: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
+          department?: string | null
           email: string
           full_name?: string | null
           id: string
+          is_active?: boolean | null
+          last_login?: string | null
+          phone_number?: string | null
           role?: string
           updated_at?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
+          department?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          phone_number?: string | null
           role?: string
           updated_at?: string | null
         }
         Relationships: []
       }
+      warehouses: {
+        Row: {
+          address: string | null
+          city: string | null
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          manager_name: string | null
+          name: string
+          phone: string | null
+          postal_code: string | null
+          province: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_name?: string | null
+          name: string
+          phone?: string | null
+          postal_code?: string | null
+          province?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_name?: string | null
+          name?: string
+          phone?: string | null
+          postal_code?: string | null
+          province?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      zones: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          warehouse_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zones_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      v_report_barang_lama: {
+        Row: {
+          batas_waktu_pengambilan: string | null
+          created_at: string | null
+          id: string | null
+          lama_penyimpanan: number | null
+          lokasi: string | null
+          nama_barang: string | null
+          sisa_hari: number | null
+          status_pengambilan: string | null
+          tanggal_masuk_barang: string | null
+        }
+        Relationships: []
+      }
+      v_report_perpindahan_lini: {
+        Row: {
+          created_at: string | null
+          hari_di_lini_1: number | null
+          hari_di_lini_2: number | null
+          id: string | null
+          nama_barang: string | null
+          sku: string | null
+          status: string | null
+          tanggal_masuk_lini_1: string | null
+          tanggal_masuk_lini_2: string | null
+          tanggal_pindah_ke_lini_2: string | null
+          total_hari_penyimpanan: number | null
+        }
+        Relationships: []
+      }
+      vw_purchase_requests: {
+        Row: {
+          item_name: string | null
+          name: string | null
+          request_code: string | null
+          request_date: string | null
+          status: string | null
+          total_amount: number | null
+        }
+        Insert: {
+          item_name?: string | null
+          name?: string | null
+          request_code?: string | null
+          request_date?: never
+          status?: string | null
+          total_amount?: number | null
+        }
+        Update: {
+          item_name?: string | null
+          name?: string | null
+          request_code?: string | null
+          request_date?: never
+          status?: string | null
+          total_amount?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      gen_stock_code: { Args: never; Returns: string }
+      generate_supplier_code: {
+        Args: { pad_len?: number; prefix?: string }
+        Returns: string
+      }
+      get_coa_mapping: {
+        Args: { p_service_category: string; p_service_type: string }
+        Returns: {
+          asset_account_code: string
+          asset_account_name: string
+          cogs_account_code: string
+          cogs_account_name: string
+          revenue_account_code: string
+          revenue_account_name: string
+        }[]
+      }
+      get_hari_di_gudang: { Args: { tanggal_masuk: string }; Returns: number }
+      get_hari_di_lini: { Args: { tanggal_masuk: string }; Returns: number }
+      get_service_types_by_category: {
+        Args: { p_category: string }
+        Returns: {
+          description: string
+          revenue_account_code: string
+          service_type: string
+        }[]
+      }
+      match_hs_codes: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          description: string
+          hs_code: string
+          id: string
+          similarity: number
+          sub_category: string
+        }[]
+      }
+      recalc_journal_totals: { Args: { p_je_id: string }; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      airwaybill_status:
+        | "ARRIVED"
+        | "IN_CUSTOMS"
+        | "CLEARED"
+        | "DELIVERED"
+        | "CANCELLED"
+      customs_status: "PENDING" | "RELEASED" | "HOLD" | "CLEARED" | "REJECTED"
+      import_type:
+        | "DIRECT"
+        | "CONSOLIDATED"
+        | "COURIER"
+        | "PERSONAL_GOODS"
+        | "SAMPLE"
+        | "OTHER"
+      incoterm_type:
+        | "EXW"
+        | "FCA"
+        | "FOB"
+        | "CFR"
+        | "CIF"
+        | "CPT"
+        | "CIP"
+        | "DAP"
+        | "DPU"
+        | "DDP"
+        | "OTHER"
+      payment_status: "UNPAID" | "PARTIALLY_PAID" | "PAID" | "INVOICE_SENT"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -457,6 +2201,37 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      airwaybill_status: [
+        "ARRIVED",
+        "IN_CUSTOMS",
+        "CLEARED",
+        "DELIVERED",
+        "CANCELLED",
+      ],
+      customs_status: ["PENDING", "RELEASED", "HOLD", "CLEARED", "REJECTED"],
+      import_type: [
+        "DIRECT",
+        "CONSOLIDATED",
+        "COURIER",
+        "PERSONAL_GOODS",
+        "SAMPLE",
+        "OTHER",
+      ],
+      incoterm_type: [
+        "EXW",
+        "FCA",
+        "FOB",
+        "CFR",
+        "CIF",
+        "CPT",
+        "CIP",
+        "DAP",
+        "DPU",
+        "DDP",
+        "OTHER",
+      ],
+      payment_status: ["UNPAID", "PARTIALLY_PAID", "PAID", "INVOICE_SENT"],
+    },
   },
 } as const

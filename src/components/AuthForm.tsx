@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useToast } from './ui/use-toast';
 
 export default function AuthForm() {
@@ -13,7 +14,12 @@ export default function AuthForm() {
   const [loading, setLoading] = useState(false);
 
   const [signInData, setSignInData] = useState({ email: '', password: '' });
-  const [signUpData, setSignUpData] = useState({ email: '', password: '', fullName: '' });
+  const [signUpData, setSignUpData] = useState({ 
+    email: '', 
+    password: '', 
+    fullName: '',
+    role: 'read_only'
+  });
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +38,7 @@ export default function AuthForm() {
     e.preventDefault();
     setLoading(true);
     try {
-      await signUp(signUpData.email, signUpData.password, signUpData.fullName);
+      await signUp(signUpData.email, signUpData.password, signUpData.fullName, signUpData.role);
       toast({ title: 'Success', description: 'Account created! Please check your email.' });
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -117,6 +123,26 @@ export default function AuthForm() {
                     onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
                     required
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-role">Role</Label>
+                  <Select 
+                    value={signUpData.role} 
+                    onValueChange={(value) => setSignUpData({ ...signUpData, role: value })}
+                  >
+                    <SelectTrigger id="signup-role">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                      <SelectItem value="accounting_manager">Accounting Manager</SelectItem>
+                      <SelectItem value="accounting_staff">Accounting Staff</SelectItem>
+                      <SelectItem value="warehouse_manager">Warehouse Manager</SelectItem>
+                      <SelectItem value="warehouse_staff">Warehouse Staff</SelectItem>
+                      <SelectItem value="customs_specialist">Customs Specialist</SelectItem>
+                      <SelectItem value="read_only">Read Only</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Creating account...' : 'Sign Up'}

@@ -1,0 +1,781 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useToast } from './ui/use-toast';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import Header from './Header';
+import Navigation from './Navigation';
+
+interface COAAccount {
+  id?: string;
+  account_code: string;
+  account_name: string;
+  account_type: string;
+  level: number;
+  is_header: boolean;
+  normal_balance: string;
+  description?: string;
+  is_active: boolean;
+}
+
+interface COAMapping {
+  id?: string;
+  service_category: string;
+  service_type: string;
+  revenue_account_code?: string;
+  cogs_account_code?: string;
+  asset_account_code?: string;
+  description?: string;
+  is_active: boolean;
+}
+
+export default function COAManagement() {
+  const { toast } = useToast();
+  const [coaAccounts, setCoaAccounts] = useState<COAAccount[]>([]);
+  const [coaMappings, setCoaMappings] = useState<COAMapping[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isCoaDialogOpen, setIsCoaDialogOpen] = useState(false);
+  const [isMappingDialogOpen, setIsMappingDialogOpen] = useState(false);
+  const [editingCoa, setEditingCoa] = useState<COAAccount | null>(null);
+  const [editingMapping, setEditingMapping] = useState<COAMapping | null>(null);
+
+  const [coaForm, setCoaForm] = useState<COAAccount>({
+    account_code: '',
+    account_name: '',
+    account_type: 'Aset',
+    level: 1,
+    is_header: false,
+    normal_balance: 'Debit',
+    description: '',
+    is_active: true,
+  });
+
+  const [mappingForm, setMappingForm] = useState<COAMapping>({
+    service_category: '',
+    service_type: '',
+    revenue_account_code: '',
+    cogs_account_code: '',
+    asset_account_code: '',
+    description: '',
+    is_active: true,
+  });
+
+  useEffect(() => {
+    fetchCoaAccounts();
+    fetchCoaMappings();
+
+    const coaChannel = supabase
+      .channel('coa-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chart_of_accounts' }, () => {
+        fetchCoaAccounts();
+      })
+      .subscribe();
+
+    const mappingChannel = supabase
+      .channel('mapping-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'coa_category_mapping' }, () => {
+        fetchCoaMappings();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(coaChannel);
+      supabase.removeChannel(mappingChannel);
+    };
+  }, []);
+
+  const fetchCoaAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chart_of_accounts')
+        .select('*')
+        .order('account_code');
+
+      if (error) throw error;
+      setCoaAccounts(data || []);
+    } catch (error) {
+      console.error('Error fetching COA accounts:', error);
+      toast({
+        title: 'Error',
+        description: 'Gagal memuat data COA',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const fetchCoaMappings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('coa_category_mapping')
+        .select('*')
+        .order('service_category, service_type');
+
+      if (error) throw error;
+      setCoaMappings(data || []);
+    } catch (error) {
+      console.error('Error fetching COA mappings:', error);
+      toast({
+        title: 'Error',
+        description: 'Gagal memuat data mapping',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSaveCoa = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (editingCoa?.id) {
+        const { error } = await supabase
+          .from('chart_of_accounts')
+          .update(coaForm)
+          .eq('id', editingCoa.id);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Berhasil',
+          description: 'Akun COA berhasil diupdate',
+        });
+      } else {
+        const { error } = await supabase
+          .from('chart_of_accounts')
+          .insert([coaForm]);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Berhasil',
+          description: 'Akun COA berhasil ditambahkan',
+        });
+      }
+
+      setIsCoaDialogOpen(false);
+      resetCoaForm();
+      fetchCoaAccounts();
+    } catch (error: any) {
+      console.error('Error saving COA:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Gagal menyimpan akun COA',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSaveMapping = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (editingMapping?.id) {
+        const { error } = await supabase
+          .from('coa_category_mapping')
+          .update(mappingForm)
+          .eq('id', editingMapping.id);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Berhasil',
+          description: 'Mapping berhasil diupdate',
+        });
+      } else {
+        const { error } = await supabase
+          .from('coa_category_mapping')
+          .insert([mappingForm]);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Berhasil',
+          description: 'Mapping berhasil ditambahkan',
+        });
+      }
+
+      setIsMappingDialogOpen(false);
+      resetMappingForm();
+      fetchCoaMappings();
+    } catch (error: any) {
+      console.error('Error saving mapping:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Gagal menyimpan mapping',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteCoa = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus akun COA ini?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('chart_of_accounts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Berhasil',
+        description: 'Akun COA berhasil dihapus',
+      });
+
+      fetchCoaAccounts();
+    } catch (error: any) {
+      console.error('Error deleting COA:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Gagal menghapus akun COA',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteMapping = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus mapping ini?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('coa_category_mapping')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Berhasil',
+        description: 'Mapping berhasil dihapus',
+      });
+
+      fetchCoaMappings();
+    } catch (error: any) {
+      console.error('Error deleting mapping:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Gagal menghapus mapping',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const resetCoaForm = () => {
+    setCoaForm({
+      account_code: '',
+      account_name: '',
+      account_type: 'Aset',
+      level: 1,
+      is_header: false,
+      normal_balance: 'Debit',
+      description: '',
+      is_active: true,
+    });
+    setEditingCoa(null);
+  };
+
+  const resetMappingForm = () => {
+    setMappingForm({
+      service_category: '',
+      service_type: '',
+      revenue_account_code: '',
+      cogs_account_code: '',
+      asset_account_code: '',
+      description: '',
+      is_active: true,
+    });
+    setEditingMapping(null);
+  };
+
+  const openEditCoa = (coa: COAAccount) => {
+    setEditingCoa(coa);
+    setCoaForm(coa);
+    setIsCoaDialogOpen(true);
+  };
+
+  const openEditMapping = (mapping: COAMapping) => {
+    setEditingMapping(mapping);
+    setMappingForm(mapping);
+    setIsMappingDialogOpen(true);
+  };
+
+  const filteredCoaAccounts = coaAccounts.filter(
+    (coa) =>
+      coa.account_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      coa.account_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredMappings = coaMappings.filter(
+    (mapping) =>
+      mapping.service_category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      mapping.service_type.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Header />
+      <Navigation />
+
+      <div className="p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">COA Management</h1>
+            <p className="text-slate-600">Kelola Chart of Accounts dan Mapping Rules</p>
+          </div>
+
+          <Tabs defaultValue="coa" className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="coa">Chart of Accounts</TabsTrigger>
+              <TabsTrigger value="mapping">Mapping Rules</TabsTrigger>
+            </TabsList>
+
+            {/* COA Tab */}
+            <TabsContent value="coa" className="space-y-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <Input
+                      placeholder="Cari kode atau nama akun..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  <Dialog open={isCoaDialogOpen} onOpenChange={setIsCoaDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button onClick={resetCoaForm} className="bg-blue-600 hover:bg-blue-700">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Tambah Akun COA
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingCoa ? 'Edit Akun COA' : 'Tambah Akun COA Baru'}
+                        </DialogTitle>
+                      </DialogHeader>
+
+                      <form onSubmit={handleSaveCoa} className="space-y-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="account_code">Kode Akun *</Label>
+                            <Input
+                              id="account_code"
+                              value={coaForm.account_code}
+                              onChange={(e) => setCoaForm({ ...coaForm, account_code: e.target.value })}
+                              placeholder="Contoh: 1-1100"
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="account_name">Nama Akun *</Label>
+                            <Input
+                              id="account_name"
+                              value={coaForm.account_name}
+                              onChange={(e) => setCoaForm({ ...coaForm, account_name: e.target.value })}
+                              placeholder="Contoh: Kas di Tangan"
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="account_type">Tipe Akun *</Label>
+                            <Select
+                              value={coaForm.account_type}
+                              onValueChange={(value) => setCoaForm({ ...coaForm, account_type: value })}
+                            >
+                              <SelectTrigger id="account_type">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Aset">Aset</SelectItem>
+                                <SelectItem value="Kewajiban">Kewajiban</SelectItem>
+                                <SelectItem value="Ekuitas">Ekuitas</SelectItem>
+                                <SelectItem value="Pendapatan">Pendapatan</SelectItem>
+                                <SelectItem value="Beban Pokok Penjualan">Beban Pokok Penjualan</SelectItem>
+                                <SelectItem value="Beban Operasional">Beban Operasional</SelectItem>
+                                <SelectItem value="Lain-lain">Lain-lain</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="level">Level *</Label>
+                            <Select
+                              value={coaForm.level.toString()}
+                              onValueChange={(value) => setCoaForm({ ...coaForm, level: parseInt(value) })}
+                            >
+                              <SelectTrigger id="level">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">Level 1 (Header Utama)</SelectItem>
+                                <SelectItem value="2">Level 2 (Sub Header)</SelectItem>
+                                <SelectItem value="3">Level 3 (Detail)</SelectItem>
+                                <SelectItem value="4">Level 4 (Sub Detail)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="normal_balance">Normal Balance *</Label>
+                            <Select
+                              value={coaForm.normal_balance}
+                              onValueChange={(value) => setCoaForm({ ...coaForm, normal_balance: value })}
+                            >
+                              <SelectTrigger id="normal_balance">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Debit">Debit</SelectItem>
+                                <SelectItem value="Kredit">Kredit</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="is_header">Tipe Akun</Label>
+                            <Select
+                              value={coaForm.is_header ? 'true' : 'false'}
+                              onValueChange={(value) => setCoaForm({ ...coaForm, is_header: value === 'true' })}
+                            >
+                              <SelectTrigger id="is_header">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="false">Detail Account</SelectItem>
+                                <SelectItem value="true">Header Account</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="description">Deskripsi</Label>
+                            <Input
+                              id="description"
+                              value={coaForm.description || ''}
+                              onChange={(e) => setCoaForm({ ...coaForm, description: e.target.value })}
+                              placeholder="Deskripsi akun (opsional)"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setIsCoaDialogOpen(false);
+                              resetCoaForm();
+                            }}
+                          >
+                            Batal
+                          </Button>
+                          <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                            {editingCoa ? 'Update' : 'Simpan'}
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Kode Akun</TableHead>
+                        <TableHead>Nama Akun</TableHead>
+                        <TableHead>Tipe</TableHead>
+                        <TableHead>Level</TableHead>
+                        <TableHead>Balance</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCoaAccounts.map((coa) => (
+                        <TableRow key={coa.id}>
+                          <TableCell className="font-mono font-semibold">{coa.account_code}</TableCell>
+                          <TableCell className={coa.is_header ? 'font-bold' : ''}>
+                            {coa.account_name}
+                          </TableCell>
+                          <TableCell>{coa.account_type}</TableCell>
+                          <TableCell>Level {coa.level}</TableCell>
+                          <TableCell>{coa.normal_balance}</TableCell>
+                          <TableCell>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs ${
+                                coa.is_active
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}
+                            >
+                              {coa.is_active ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openEditCoa(coa)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteCoa(coa.id!)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Mapping Tab */}
+            <TabsContent value="mapping" className="space-y-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <Input
+                      placeholder="Cari kategori atau jenis layanan..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  <Dialog open={isMappingDialogOpen} onOpenChange={setIsMappingDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button onClick={resetMappingForm} className="bg-green-600 hover:bg-green-700">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Tambah Mapping
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingMapping ? 'Edit Mapping Rule' : 'Tambah Mapping Rule Baru'}
+                        </DialogTitle>
+                      </DialogHeader>
+
+                      <form onSubmit={handleSaveMapping} className="space-y-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="service_category">Kategori Layanan *</Label>
+                            <Input
+                              id="service_category"
+                              value={mappingForm.service_category}
+                              onChange={(e) =>
+                                setMappingForm({ ...mappingForm, service_category: e.target.value })
+                              }
+                              placeholder="Contoh: Jasa Cargo"
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="service_type">Jenis Layanan *</Label>
+                            <Input
+                              id="service_type"
+                              value={mappingForm.service_type}
+                              onChange={(e) =>
+                                setMappingForm({ ...mappingForm, service_type: e.target.value })
+                              }
+                              placeholder="Contoh: Cargo Udara Domestik"
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="revenue_account_code">Akun Pendapatan</Label>
+                            <Select
+                              value={mappingForm.revenue_account_code || ''}
+                              onValueChange={(value) =>
+                                setMappingForm({ ...mappingForm, revenue_account_code: value })
+                              }
+                            >
+                              <SelectTrigger id="revenue_account_code">
+                                <SelectValue placeholder="Pilih akun pendapatan" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {coaAccounts
+                                  .filter((coa) => coa.account_type === 'Pendapatan' && !coa.is_header)
+                                  .map((coa) => (
+                                    <SelectItem key={coa.id} value={coa.account_code}>
+                                      {coa.account_code} - {coa.account_name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="cogs_account_code">Akun HPP/Beban</Label>
+                            <Select
+                              value={mappingForm.cogs_account_code || ''}
+                              onValueChange={(value) =>
+                                setMappingForm({ ...mappingForm, cogs_account_code: value })
+                              }
+                            >
+                              <SelectTrigger id="cogs_account_code">
+                                <SelectValue placeholder="Pilih akun HPP/Beban" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {coaAccounts
+                                  .filter(
+                                    (coa) =>
+                                      coa.account_type === 'Beban Pokok Penjualan' && !coa.is_header
+                                  )
+                                  .map((coa) => (
+                                    <SelectItem key={coa.id} value={coa.account_code}>
+                                      {coa.account_code} - {coa.account_name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="asset_account_code">Akun Aset (Persediaan)</Label>
+                            <Select
+                              value={mappingForm.asset_account_code || ''}
+                              onValueChange={(value) =>
+                                setMappingForm({ ...mappingForm, asset_account_code: value })
+                              }
+                            >
+                              <SelectTrigger id="asset_account_code">
+                                <SelectValue placeholder="Pilih akun aset" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {coaAccounts
+                                  .filter((coa) => coa.account_type === 'Aset' && !coa.is_header)
+                                  .map((coa) => (
+                                    <SelectItem key={coa.id} value={coa.account_code}>
+                                      {coa.account_code} - {coa.account_name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="mapping_description">Deskripsi</Label>
+                            <Input
+                              id="mapping_description"
+                              value={mappingForm.description || ''}
+                              onChange={(e) =>
+                                setMappingForm({ ...mappingForm, description: e.target.value })
+                              }
+                              placeholder="Deskripsi mapping (opsional)"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setIsMappingDialogOpen(false);
+                              resetMappingForm();
+                            }}
+                          >
+                            Batal
+                          </Button>
+                          <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                            {editingMapping ? 'Update' : 'Simpan'}
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Kategori</TableHead>
+                        <TableHead>Jenis Layanan</TableHead>
+                        <TableHead>Akun Pendapatan</TableHead>
+                        <TableHead>Akun HPP</TableHead>
+                        <TableHead>Akun Aset</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredMappings.map((mapping) => (
+                        <TableRow key={mapping.id}>
+                          <TableCell className="font-semibold">{mapping.service_category}</TableCell>
+                          <TableCell>{mapping.service_type}</TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {mapping.revenue_account_code || '-'}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {mapping.cogs_account_code || '-'}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {mapping.asset_account_code || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs ${
+                                mapping.is_active
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}
+                            >
+                              {mapping.is_active ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openEditMapping(mapping)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteMapping(mapping.id!)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </div>
+  );
+}

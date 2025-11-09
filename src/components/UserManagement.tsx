@@ -29,15 +29,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from './ui/card';
 import { useToast } from './ui/use-toast';
-import { Search, Trash2, LogOut } from 'lucide-react';
+import { Search, Trash2, ArrowLeft, Users, Shield, Eye, UserCheck, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function UserManagement() {
-  const { userProfile, signOut } = useAuth();
+  const { userProfile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
@@ -57,14 +67,23 @@ export default function UserManagement() {
   }, []);
 
   useEffect(() => {
-    const filtered = users.filter(
-      (user) =>
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.role.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = users;
+
+    if (roleFilter !== 'ALL') {
+      filtered = filtered.filter((user) => user.role === roleFilter);
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (user) =>
+          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.role.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
     setFilteredUsers(filtered);
-  }, [searchTerm, users]);
+  }, [searchTerm, roleFilter, users]);
 
   const fetchUsers = async () => {
     try {
@@ -123,102 +142,256 @@ export default function UserManagement() {
     }
   };
 
+  const handleBack = () => {
+    navigate('/dashboard');
+  };
+
   const isAdmin = userProfile?.role === 'admin';
 
+  const summaryData = {
+    total: users.length,
+    admins: users.filter((user) => user.role === 'admin').length,
+    editors: users.filter((user) => user.role === 'editor').length,
+    viewers: users.filter((user) => user.role === 'viewer').length,
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="border-b bg-white">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">User Management</h1>
-            <p className="text-sm text-slate-600">
-              Logged in as {userProfile?.email} ({userProfile?.role})
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Header with gradient */}
+      <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
+        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleBack}
+              className="text-white hover:bg-white/20"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">User Management</h1>
+                <p className="text-sm text-blue-100">Kelola pengguna dan role akses</p>
+              </div>
+            </div>
           </div>
-          <Button variant="outline" onClick={signOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search by name, email, or role..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="border-none shadow-lg bg-purple-400/90 text-white hover:shadow-xl transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardDescription className="text-white/90">Total Users</CardDescription>
+                <Users className="h-8 w-8 text-white/80" />
+              </div>
+              <CardTitle className="text-4xl font-bold">{summaryData.total}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center text-sm text-white/90">
+                <UserCheck className="mr-2 h-4 w-4" />
+                Total pengguna
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-lg bg-emerald-400/90 text-white hover:shadow-xl transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardDescription className="text-white/90">Admins</CardDescription>
+                <Shield className="h-8 w-8 text-white/80" />
+              </div>
+              <CardTitle className="text-4xl font-bold">{summaryData.admins}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center text-sm text-white/90">
+                <Shield className="mr-2 h-4 w-4" />
+                Administrator
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-lg bg-pink-400/90 text-white hover:shadow-xl transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardDescription className="text-white/90">Editors</CardDescription>
+                <Users className="h-8 w-8 text-white/80" />
+              </div>
+              <CardTitle className="text-4xl font-bold">{summaryData.editors}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center text-sm text-white/90">
+                <Users className="mr-2 h-4 w-4" />
+                Editor
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-lg bg-blue-400/90 text-white hover:shadow-xl transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardDescription className="text-white/90">Viewers</CardDescription>
+                <Eye className="h-8 w-8 text-white/80" />
+              </div>
+              <CardTitle className="text-4xl font-bold">{summaryData.viewers}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center text-sm text-white/90">
+                <Eye className="mr-2 h-4 w-4" />
+                Viewer
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters and Table */}
+        <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+          <div className="p-6 border-b bg-gradient-to-r from-indigo-50 via-blue-50 to-cyan-50">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <Filter className="h-5 w-5 text-indigo-600" />
+                </div>
+                <span className="text-lg">Filter & Pencarian</span>
+              </div>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Cari berdasarkan nama, email, atau role..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                </div>
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="w-[200px] border-slate-300 focus:border-purple-500 focus:ring-purple-500">
+                    <SelectValue placeholder="Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Semua Role</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="editor">Editor</SelectItem>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
 
           {loading ? (
-            <div className="p-8 text-center text-slate-500">Loading users...</div>
+            <div className="p-8 text-center text-slate-500">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <p className="mt-2">Memuat data users...</p>
+            </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Created</TableHead>
-                  {isAdmin && <TableHead className="text-right">Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.full_name || 'N/A'}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      {isAdmin && user.id !== userProfile?.id ? (
-                        <Select
-                          value={user.role}
-                          onValueChange={(value) => updateUserRole(user.id, value as UserRole)}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="editor">Editor</SelectItem>
-                            <SelectItem value="viewer">Viewer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant={getRoleBadgeVariant(user.role)}>
-                          {user.role}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gradient-to-r from-slate-100 to-blue-100 hover:from-slate-100 hover:to-blue-100">
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-indigo-600" />
+                        Name
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-blue-600" />
+                        Email
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-purple-600" />
+                        Role
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-emerald-600" />
+                        Created
+                      </div>
+                    </TableHead>
                     {isAdmin && (
-                      <TableCell className="text-right">
-                        {user.id !== userProfile?.id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteUserId(user.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        )}
-                      </TableCell>
+                      <TableHead className="font-semibold text-slate-700 text-center">
+                        <div className="flex items-center gap-2 justify-center">
+                          <Trash2 className="h-4 w-4 text-slate-600" />
+                          Actions
+                        </div>
+                      </TableHead>
                     )}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow 
+                      key={user.id}
+                      className="hover:bg-indigo-50 transition-colors border-b border-slate-100"
+                    >
+                      <TableCell className="font-medium text-slate-900">
+                        {user.full_name || 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-slate-700">{user.email}</TableCell>
+                      <TableCell>
+                        {isAdmin && user.id !== userProfile?.id ? (
+                          <Select
+                            value={user.role}
+                            onValueChange={(value) => updateUserRole(user.id, value as UserRole)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="editor">Editor</SelectItem>
+                              <SelectItem value="viewer">Viewer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant={getRoleBadgeVariant(user.role)}>
+                            {user.role}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-slate-700">
+                        {new Date(user.created_at).toLocaleDateString('id-ID')}
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-center">
+                          {user.id !== userProfile?.id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteUserId(user.id)}
+                              className="hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
 
           {!loading && filteredUsers.length === 0 && (
-            <div className="p-8 text-center text-slate-500">No users found</div>
+            <div className="p-12 text-center">
+              <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
+                <Users className="h-12 w-12 text-slate-300" />
+              </div>
+              <p className="text-slate-500 font-medium text-lg">Tidak ada users ditemukan</p>
+              <p className="text-sm text-slate-400 mt-1">Coba ubah filter atau pencarian</p>
+            </div>
           )}
         </div>
       </div>
