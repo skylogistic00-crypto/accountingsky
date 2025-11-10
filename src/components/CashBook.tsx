@@ -467,22 +467,6 @@ export default function CashBook() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="document_number">Document Number *</Label>
-                      <Input
-                        id="document_number"
-                        value={formData.document_number}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            document_number: e.target.value,
-                          })
-                        }
-                        placeholder="Contoh: KAS-001"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
                       <Label htmlFor="payment_type">Payment Type *</Label>
                       <Select
                         value={formData.payment_type}

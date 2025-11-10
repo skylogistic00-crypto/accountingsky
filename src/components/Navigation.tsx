@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, ShoppingCart, Package, Warehouse, Building2, ArrowUpFromLine, Layers, Plane, Receipt, BookOpen, BarChart3 } from 'lucide-react';
+import { Home, Users, ShoppingCart, Package, Warehouse, Building2, ArrowUpFromLine, Layers, Plane, Receipt, BookOpen, BarChart3, DollarSign, PackageX, Link2, LayoutDashboard } from 'lucide-react';
 
 export default function Navigation() {
   const location = useLocation();
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Home },
+    { path: '/financial-dashboard', label: 'Dashboard Keuangan', icon: LayoutDashboard },
     { path: '/users', label: 'User Management', icon: Users },
     { path: '/purchase-request', label: 'Purchase Request', icon: ShoppingCart },
     { path: '/supplier', label: 'Suppliers', icon: Package },
@@ -14,8 +15,11 @@ export default function Navigation() {
     { path: '/barang-lini', label: 'Barang Lini', icon: Layers },
     { path: '/barang-keluar', label: 'Barang Keluar', icon: ArrowUpFromLine },
     { path: '/air-waybill', label: 'Air Waybill', icon: Plane },
+    { path: '/sales', label: 'Penjualan', icon: DollarSign },
+    { path: '/internal-usage', label: 'Pemakaian Internal', icon: PackageX },
     { path: '/cash-book', label: 'Cash Book', icon: Receipt },
     { path: '/coa-management', label: 'COA Management', icon: BookOpen },
+    { path: '/coa-mapping', label: 'COA Mapping', icon: Link2 },
     { path: '/report-barang-lama', label: 'Report Barang Lama', icon: BarChart3 },
   ];
 

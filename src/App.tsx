@@ -19,6 +19,14 @@ import CashBook from './components/CashBook';
 import AdminSetup from './components/AdminSetup';
 import COAManagement from './components/COAManagement';
 import BarangLamaReport from './components/BarangLamaReport';
+import SalesForm from './components/SalesForm';
+import InternalUsageForm from './components/InternalUsageForm';
+import COAMappingManager from './components/COAMappingManager';
+import IntegratedFinancialReport from './components/IntegratedFinancialReport';
+import ProfitLossReport from './components/ProfitLossReport';
+import BalanceSheetReport from './components/BalanceSheetReport';
+import FinancialDashboard from './components/FinancialDashboard';
+import CashFlowReport from './components/CashFlowReport';
 import { Toaster } from './components/ui/toaster';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -190,6 +198,90 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <BarangLamaReport />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sales"
+        element={
+          <ProtectedRoute>
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <SalesForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/internal-usage"
+        element={
+          <ProtectedRoute>
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <InternalUsageForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coa-mapping"
+        element={
+          <ProtectedRoute>
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <COAMappingManager />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/financial-dashboard"
+        element={
+          <ProtectedRoute>
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <FinancialDashboard />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profit-loss"
+        element={
+          <ProtectedRoute>
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <ProfitLossReport />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/balance-sheet"
+        element={
+          <ProtectedRoute>
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <BalanceSheetReport />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cash-flow"
+        element={
+          <ProtectedRoute>
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <CashFlowReport />
+            </div>
           </ProtectedRoute>
         }
       />

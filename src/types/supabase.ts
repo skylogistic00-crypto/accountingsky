@@ -530,6 +530,66 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      departments: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       general_ledger: {
         Row: {
           account_id: string | null
@@ -678,11 +738,106 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_usage: {
+        Row: {
+          coa_account_code: string
+          coa_account_name: string
+          coa_expense_code: string | null
+          coa_inventory_code: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          department_name: string | null
+          id: string
+          item_id: string | null
+          item_name: string
+          notes: string | null
+          purpose: string
+          quantity: number
+          stock_after: number
+          stock_before: number
+          total_cost: number
+          unit_cost: number
+          updated_at: string | null
+          usage_date: string
+          usage_location: string | null
+          verified_by: string | null
+          verified_by_name: string | null
+        }
+        Insert: {
+          coa_account_code: string
+          coa_account_name: string
+          coa_expense_code?: string | null
+          coa_inventory_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          department_name?: string | null
+          id?: string
+          item_id?: string | null
+          item_name: string
+          notes?: string | null
+          purpose: string
+          quantity: number
+          stock_after: number
+          stock_before: number
+          total_cost: number
+          unit_cost: number
+          updated_at?: string | null
+          usage_date?: string
+          usage_location?: string | null
+          verified_by?: string | null
+          verified_by_name?: string | null
+        }
+        Update: {
+          coa_account_code?: string
+          coa_account_name?: string
+          coa_expense_code?: string | null
+          coa_inventory_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          department_name?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string
+          notes?: string | null
+          purpose?: string
+          quantity?: number
+          stock_after?: number
+          stock_before?: number
+          total_cost?: number
+          unit_cost?: number
+          updated_at?: string | null
+          usage_date?: string
+          usage_location?: string | null
+          verified_by?: string | null
+          verified_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_usage_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_usage_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           akun_persediaan: string | null
           asal_barang: string | null
           berat: number | null
+          coa_cogs_code: string | null
+          coa_inventory_code: string | null
           cost_per_unit: number | null
           created_at: string | null
           dibuat_oleh: string | null
@@ -714,6 +869,8 @@ export type Database = {
           akun_persediaan?: string | null
           asal_barang?: string | null
           berat?: number | null
+          coa_cogs_code?: string | null
+          coa_inventory_code?: string | null
           cost_per_unit?: number | null
           created_at?: string | null
           dibuat_oleh?: string | null
@@ -745,6 +902,8 @@ export type Database = {
           akun_persediaan?: string | null
           asal_barang?: string | null
           berat?: number | null
+          coa_cogs_code?: string | null
+          coa_inventory_code?: string | null
           cost_per_unit?: number | null
           created_at?: string | null
           dibuat_oleh?: string | null
@@ -812,8 +971,8 @@ export type Database = {
           account_name: string | null
           code_booking: string | null
           created_at: string | null
+          created_by: string | null
           credit: number | null
-          date: string | null
           debit: number | null
           description: string | null
           entry_date: string | null
@@ -823,7 +982,6 @@ export type Database = {
           make: string | null
           model: string | null
           nama: string | null
-          reference_no: string | null
           service_type: string | null
           source_id: string | null
           source_table: string | null
@@ -831,6 +989,7 @@ export type Database = {
           total_credit: number | null
           total_debit: number | null
           transaction_date: string | null
+          transaction_id: string | null
           updated_at: string | null
           vehicle_type: string | null
         }
@@ -839,8 +998,8 @@ export type Database = {
           account_name?: string | null
           code_booking?: string | null
           created_at?: string | null
+          created_by?: string | null
           credit?: number | null
-          date?: string | null
           debit?: number | null
           description?: string | null
           entry_date?: string | null
@@ -850,7 +1009,6 @@ export type Database = {
           make?: string | null
           model?: string | null
           nama?: string | null
-          reference_no?: string | null
           service_type?: string | null
           source_id?: string | null
           source_table?: string | null
@@ -858,6 +1016,7 @@ export type Database = {
           total_credit?: number | null
           total_debit?: number | null
           transaction_date?: string | null
+          transaction_id?: string | null
           updated_at?: string | null
           vehicle_type?: string | null
         }
@@ -866,8 +1025,8 @@ export type Database = {
           account_name?: string | null
           code_booking?: string | null
           created_at?: string | null
+          created_by?: string | null
           credit?: number | null
-          date?: string | null
           debit?: number | null
           description?: string | null
           entry_date?: string | null
@@ -877,7 +1036,6 @@ export type Database = {
           make?: string | null
           model?: string | null
           nama?: string | null
-          reference_no?: string | null
           service_type?: string | null
           source_id?: string | null
           source_table?: string | null
@@ -885,6 +1043,7 @@ export type Database = {
           total_credit?: number | null
           total_debit?: number | null
           transaction_date?: string | null
+          transaction_id?: string | null
           updated_at?: string | null
           vehicle_type?: string | null
         }
@@ -951,7 +1110,7 @@ export type Database = {
           account_name: string
           account_number: string
           created_at?: string
-          document_number: string
+          document_number?: string
           id?: string
           keterangan?: string | null
           nominal: number
@@ -972,6 +1131,27 @@ export type Database = {
           payment_type?: string
           tanggal?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      locations: {
+        Row: {
+          code: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          id?: string
+          is_active?: boolean
+          name?: string
         }
         Relationships: []
       }
@@ -1248,38 +1428,152 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_transactions: {
+        Row: {
+          coa_account_code: string | null
+          coa_account_name: string | null
+          coa_cash_code: string | null
+          coa_cogs_code: string | null
+          coa_inventory_code: string | null
+          coa_revenue_code: string | null
+          coa_tax_code: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_id: string | null
+          customer_name: string | null
+          id: string
+          item_id: string | null
+          item_name: string
+          notes: string | null
+          payment_method: string
+          quantity: number
+          stock_after: number | null
+          stock_before: number | null
+          subtotal: number
+          tax_amount: number | null
+          tax_percentage: number | null
+          total_amount: number
+          transaction_date: string
+          transaction_type: string
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          coa_cash_code?: string | null
+          coa_cogs_code?: string | null
+          coa_inventory_code?: string | null
+          coa_revenue_code?: string | null
+          coa_tax_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          id?: string
+          item_id?: string | null
+          item_name: string
+          notes?: string | null
+          payment_method: string
+          quantity: number
+          stock_after?: number | null
+          stock_before?: number | null
+          subtotal: number
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          total_amount: number
+          transaction_date?: string
+          transaction_type: string
+          unit_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          coa_cash_code?: string | null
+          coa_cogs_code?: string | null
+          coa_inventory_code?: string | null
+          coa_revenue_code?: string | null
+          coa_tax_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string
+          notes?: string | null
+          payment_method?: string
+          quantity?: number
+          stock_after?: number | null
+          stock_before?: number | null
+          subtotal?: number
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          total_amount?: number
+          transaction_date?: string
+          transaction_type?: string
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_transactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_items: {
         Row: {
           category: string | null
-          coa_account_code: string | null
-          coa_account_name: string | null
+          coa_expense_code: string | null
+          coa_revenue_code: string | null
           created_at: string | null
           description: string | null
           id: string
           is_active: boolean | null
-          name: string
+          item_name: string
+          jenis_penjualan: string | null
+          price: number
+          unit: string | null
           updated_at: string | null
         }
         Insert: {
           category?: string | null
-          coa_account_code?: string | null
-          coa_account_name?: string | null
+          coa_expense_code?: string | null
+          coa_revenue_code?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
-          name: string
+          item_name: string
+          jenis_penjualan?: string | null
+          price: number
+          unit?: string | null
           updated_at?: string | null
         }
         Update: {
           category?: string | null
-          coa_account_code?: string | null
-          coa_account_name?: string | null
+          coa_expense_code?: string | null
+          coa_revenue_code?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
-          name?: string
+          item_name?: string
+          jenis_penjualan?: string | null
+          price?: number
+          unit?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1317,6 +1611,7 @@ export type Database = {
           item_id: string | null
           item_name: string
           jenis_barang: string
+          jenis_penjualan: string | null
           kode_barang: string | null
           location: string | null
           lot_id: string | null
@@ -1391,6 +1686,7 @@ export type Database = {
           item_id?: string | null
           item_name: string
           jenis_barang: string
+          jenis_penjualan?: string | null
           kode_barang?: string | null
           location?: string | null
           lot_id?: string | null
@@ -1465,6 +1761,7 @@ export type Database = {
           item_id?: string | null
           item_name?: string
           jenis_barang?: string
+          jenis_penjualan?: string | null
           kode_barang?: string | null
           location?: string | null
           lot_id?: string | null
@@ -1599,43 +1896,55 @@ export type Database = {
           cost_per_unit: number | null
           created_at: string | null
           from_line: string | null
+          from_location_id: string | null
           id: string
           item_id: string
+          movement_at: string
           movement_date: string | null
-          movement_type: string | null
+          movement_type: string
           qty: number
           reference_no: string | null
           remarks: string | null
           to_line: string | null
+          to_location_id: string | null
           total_value: number | null
+          unit_cost: number | null
         }
         Insert: {
           cost_per_unit?: number | null
           created_at?: string | null
           from_line?: string | null
+          from_location_id?: string | null
           id?: string
           item_id: string
+          movement_at?: string
           movement_date?: string | null
-          movement_type?: string | null
+          movement_type: string
           qty: number
           reference_no?: string | null
           remarks?: string | null
           to_line?: string | null
+          to_location_id?: string | null
           total_value?: number | null
+          unit_cost?: number | null
         }
         Update: {
           cost_per_unit?: number | null
           created_at?: string | null
           from_line?: string | null
+          from_location_id?: string | null
           id?: string
           item_id?: string
+          movement_at?: string
           movement_date?: string | null
-          movement_type?: string | null
+          movement_type?: string
           qty?: number
           reference_no?: string | null
           remarks?: string | null
           to_line?: string | null
+          to_location_id?: string | null
           total_value?: number | null
+          unit_cost?: number | null
         }
         Relationships: [
           {
@@ -1754,6 +2063,51 @@ export type Database = {
           supplier_code?: string
           supplier_name?: string
           tax_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      tax_transactions: {
+        Row: {
+          amount: number
+          coa_tax_code: string
+          coa_tax_name: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          related_doc_no: string | null
+          related_transaction_id: string | null
+          tax_type: string
+          transaction_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          coa_tax_code: string
+          coa_tax_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          related_doc_no?: string | null
+          related_transaction_id?: string | null
+          tax_type: string
+          transaction_date?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          coa_tax_code?: string
+          coa_tax_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          related_doc_no?: string | null
+          related_transaction_id?: string | null
+          tax_type?: string
+          transaction_date?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -2030,6 +2384,7 @@ export type Database = {
           service_type: string
         }[]
       }
+      kas_autonumber: { Args: never; Returns: string }
       match_hs_codes: {
         Args: {
           match_count?: number

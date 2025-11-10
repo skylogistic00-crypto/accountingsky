@@ -1,64 +1,21 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import { supabase } from "../lib/supabase";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Textarea } from "./ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "./ui/table";
-import { useToast } from "./ui/use-toast";
-import { 
-  Barcode, 
-  Sparkles, 
-  Loader2, 
-  ArrowLeft, 
-  Plus, 
-  Package, 
-  TrendingUp, 
-  AlertCircle,
-  Search,
-  Filter,
-  Box,
-  DollarSign,
-  Tag,
-  Layers,
-  Hash,
-  ShoppingCart,
-  Receipt,
-  FileText,
-  Eye
-} from "lucide-react";
-import { Badge } from "./ui/badge";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2, Upload, Sparkles, Check, ChevronsUpDown, ArrowLeft, Package, Plus, Filter, Search, Tag, Layers, Box, Hash, DollarSign, ShoppingCart, Receipt, FileText, Eye, TrendingUp, AlertCircle, Barcode } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 
 interface StockForm {
   item_name: string;
@@ -161,6 +118,7 @@ export default function StockForm() {
   const [coaAccounts, setCoaAccounts] = useState<any[]>([]);
   const [categoryMappings, setCategoryMappings] = useState<any[]>([]);
   const [serviceCategories, setServiceCategories] = useState<string[]>([]);
+  const [jenisBarangOpen, setJenisBarangOpen] = useState(false);
 
   const stockCategories = [
     "Bahan baku",
@@ -400,6 +358,8 @@ export default function StockForm() {
     }
 
     try {
+      console.log('Fetching lots for rack:', rackId);
+      
       const { data, error } = await supabase
         .from("lots")
         .select("id, lot_number")
@@ -407,10 +367,29 @@ export default function StockForm() {
         .eq("is_active", true)
         .order("lot_number");
 
+      console.log('Lots data:', data);
+      console.log('Lots error:', error);
+
       if (error) throw error;
-      setLots(data || []);
+      
+      if (!data || data.length === 0) {
+        setLots([]);
+        toast({
+          title: "Info",
+          description: "Tidak ada lot tersedia untuk rak ini. Silakan tambahkan lot terlebih dahulu.",
+          variant: "default",
+        });
+      } else {
+        setLots(data);
+      }
     } catch (error) {
       console.error("Error fetching lots:", error);
+      setLots([]);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data lot",
+        variant: "destructive",
+      });
     }
   };
 
@@ -421,8 +400,6 @@ export default function StockForm() {
         .select("account_code, account_name, account_type")
         .eq("is_active", true)
         .eq("is_header", false)
-        .eq("account_type", "Aset")
-        .ilike("account_name", "%persediaan%")
         .order("account_code");
 
       if (error) throw error;
@@ -459,7 +436,7 @@ export default function StockForm() {
       
       const { data, error } = await supabase
         .from('coa_category_mapping')
-        .select('service_type, revenue_account_code, description')
+        .select('service_type, revenue_account_code, asset_account_code, description')
         .eq('service_category', category)
         .eq('is_active', true);
 
@@ -467,17 +444,21 @@ export default function StockForm() {
       console.log('Service types error:', error);
 
       if (error) throw error;
-      setCategoryMappings(data || []);
       
+      // If no data found, show a helpful message but don't block the form
       if (!data || data.length === 0) {
+        setCategoryMappings([]);
         toast({
           title: "Info",
-          description: `Tidak ada jenis layanan untuk kategori "${category}"`,
+          description: `Tidak ada mapping COA untuk kategori "${category}". Anda masih bisa input manual.`,
           variant: "default",
         });
+      } else {
+        setCategoryMappings(data);
       }
     } catch (error) {
       console.error("Error fetching service types:", error);
+      setCategoryMappings([]);
       toast({
         title: "Error",
         description: "Gagal memuat jenis layanan",
@@ -491,54 +472,41 @@ export default function StockForm() {
     fetchServiceTypesByCategory(value);
   };
 
-  const handleServiceTypeChange = async (value: string) => {
-    setFormData({ ...formData, jenis_barang: value });
+  const handleServiceTypeChange = (value: string) => {
+    const selectedMapping = categoryMappings.find(m => m.service_type === value);
     
-    // Auto-fetch COA mapping
-    if (formData.category && value) {
-      try {
-        const { data, error } = await supabase
-          .rpc('get_coa_mapping', { 
-            p_service_category: formData.category, 
-            p_service_type: value 
-          });
+    if (selectedMapping) {
+      // For "Persediaan" category, use asset_account_code
+      // For other categories, use revenue_account_code
+      const coaCode = selectedMapping.asset_account_code || selectedMapping.revenue_account_code || '';
+      
+      setFormData({
+        ...formData,
+        jenis_barang: value,
+        coa_account_code: coaCode,
+        coa_account_name: ''
+      });
 
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          const mapping = data[0];
-          // For inventory items, use asset_account_code, for services use revenue_account_code
-          const accountCode = mapping.asset_account_code || mapping.revenue_account_code;
-          const accountName = mapping.asset_account_name || mapping.revenue_account_name;
-          
-          setFormData(prev => ({ 
-            ...prev, 
-            coa_account_code: accountCode || "",
-            coa_account_name: accountName || ""
-          }));
-          
-          toast({
-            title: "COA Auto-Selected",
-            description: `${accountCode} - ${accountName}`,
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching COA mapping:", error);
+      if (coaCode) {
+        fetchCOAName(coaCode);
       }
+    } else {
+      setFormData({
+        ...formData,
+        jenis_barang: value
+      });
     }
-    
-    // Also fetch deskripsi options
-    fetchDeskripsiOptions(value);
-    
+
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
-    
+
     const newTimeout = setTimeout(() => {
       autoDetectHSCode(value);
     }, 800);
-    
+
     setSearchTimeout(newTimeout);
+    setJenisBarangOpen(false);
   };
 
   const handleWarehouseChange = (value: string) => {
@@ -733,6 +701,25 @@ export default function StockForm() {
     return basePrice + (basePrice * ppn / 100);
   };
 
+  const fetchCOAName = async (accountCode: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("chart_of_accounts")
+        .select("account_name")
+        .eq("account_code", accountCode)
+        .single();
+
+      if (error) throw error;
+      
+      setFormData(prev => ({
+        ...prev,
+        coa_account_name: data?.account_name || ""
+      }));
+    } catch (error) {
+      console.error("Error fetching COA name:", error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -889,6 +876,13 @@ export default function StockForm() {
   const showPartNumber = formData.category === "Suku cadang";
   const showBrand = formData.category === "Barang habis pakai" || formData.category === "Unit disewakan";
   const showVehicleFields = formData.category === "Unit disewakan";
+  
+  // Check if the selected category is a service category
+  const isServiceCategory = serviceCategories.includes(formData.category);
+  
+  // Check if the selected category is "Persediaan" or "Beban"
+  const isInventoryCategory = formData.category === "Persediaan" || formData.category === "Beban";
+  
   const showPriceFields = !formData.category || 
     (formData.category !== "Suku cadang" && 
      formData.category !== "Barang habis pakai" && 
@@ -988,29 +982,58 @@ export default function StockForm() {
                     <div className="space-y-2">
                       <Label htmlFor="jenis_barang">Jenis Layanan/Barang *</Label>
                       <div className="relative">
-                        <Select
-                          value={formData.jenis_barang}
-                          onValueChange={(value) => handleServiceTypeChange(value)}
-                          disabled={!formData.category}
-                          required
-                        >
-                          <SelectTrigger id="jenis_barang">
-                            <SelectValue placeholder={formData.category ? "Pilih jenis layanan/barang" : "Pilih kategori terlebih dahulu"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categoryMappings.map((mapping) => (
-                              <SelectItem key={mapping.service_type} value={mapping.service_type}>
-                                {mapping.service_type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {categoryMappings.length > 0 ? (
+                          <Select
+                            value={formData.jenis_barang}
+                            onValueChange={(value) => handleServiceTypeChange(value)}
+                            disabled={!formData.category}
+                            required
+                          >
+                            <SelectTrigger id="jenis_barang" className="w-full">
+                              <SelectValue placeholder={formData.category ? "Pilih jenis layanan/barang" : "Pilih kategori terlebih dahulu"} />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[300px]">
+                              {categoryMappings.map((mapping) => (
+                                <SelectItem 
+                                  key={mapping.service_type} 
+                                  value={mapping.service_type}
+                                >
+                                  {mapping.service_type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            id="jenis_barang"
+                            value={formData.jenis_barang}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setFormData({ ...formData, jenis_barang: value });
+                              
+                              if (searchTimeout) {
+                                clearTimeout(searchTimeout);
+                              }
+                              
+                              const newTimeout = setTimeout(() => {
+                                autoDetectHSCode(value);
+                              }, 800);
+                              
+                              setSearchTimeout(newTimeout);
+                            }}
+                            placeholder={formData.category ? "Ketik jenis layanan/barang" : "Pilih kategori terlebih dahulu"}
+                            disabled={!formData.category}
+                            required
+                          />
+                        )}
                         {autoDetecting && (
                           <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-blue-500" />
                         )}
                       </div>
                       <p className="text-xs text-gray-500">
-                        COA akan terisi otomatis saat Anda memilih
+                        {categoryMappings.length > 0 
+                          ? "COA akan terisi otomatis saat Anda memilih"
+                          : "Tidak ada mapping COA, input manual"}
                       </p>
                     </div>
 
@@ -1444,21 +1467,25 @@ export default function StockForm() {
 
                 {/* Inventory & Pricing */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold border-b pb-2">Inventory & Harga</h3>
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    {isServiceCategory && !isInventoryCategory ? "Harga Jasa" : "Inventory & Harga"}
+                  </h3>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="nominal_barang">Jumlah Stok *</Label>
-                      <Input
-                        id="nominal_barang"
-                        type="number"
-                        min="0"
-                        value={formData.nominal_barang}
-                        onChange={(e) =>
-                          setFormData({ ...formData, nominal_barang: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
+                    {(!isServiceCategory || isInventoryCategory) && (
+                      <div className="space-y-2">
+                        <Label htmlFor="nominal_barang">Jumlah Stok *</Label>
+                        <Input
+                          id="nominal_barang"
+                          type="number"
+                          min="0"
+                          value={formData.nominal_barang}
+                          onChange={(e) =>
+                            setFormData({ ...formData, nominal_barang: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="ppn_type">Status PPN *</Label>
@@ -1479,117 +1506,170 @@ export default function StockForm() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="purchase_price">Harga Beli *</Label>
-                      <Input
-                        id="purchase_price"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.purchase_price}
-                        onChange={(e) =>
-                          setFormData({ ...formData, purchase_price: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="selling_price">Harga Jual *</Label>
-                      <Input
-                        id="selling_price"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.selling_price}
-                        onChange={(e) =>
-                          setFormData({ ...formData, selling_price: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-
-                    {formData.ppn_type === "PKP" && (
+                    {isServiceCategory && !isInventoryCategory ? (
+                      // For service categories (excluding Persediaan and Beban), show only service price
                       <>
                         <div className="space-y-2">
-                          <Label htmlFor="ppn_beli">PPN Beli (%)</Label>
+                          <Label htmlFor="selling_price">Harga Jasa *</Label>
                           <Input
-                            id="ppn_beli"
+                            id="selling_price"
                             type="number"
                             step="0.01"
                             min="0"
-                            max="100"
-                            value={formData.ppn_beli}
+                            value={formData.selling_price}
                             onChange={(e) =>
-                              setFormData({ ...formData, ppn_beli: e.target.value })
+                              setFormData({ ...formData, selling_price: e.target.value })
                             }
+                            required
+                          />
+                        </div>
+
+                        {formData.ppn_type === "PKP" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label htmlFor="ppn_jual">PPN Jasa (%)</Label>
+                              <Input
+                                id="ppn_jual"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max="100"
+                                value={formData.ppn_jual}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, ppn_jual: e.target.value })
+                                }
+                              />
+                            </div>
+
+                            <div className="space-y-2 md:col-span-2">
+                              <Label>Harga Jasa Setelah PPN</Label>
+                              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                                <p className="text-lg font-semibold text-green-700">
+                                  {formatToRupiah(calculatePriceWithPPN(formData.selling_price, formData.ppn_jual || "11"))}
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      // For non-service categories OR Persediaan/Beban, show purchase and selling prices
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="purchase_price">Harga Beli *</Label>
+                          <Input
+                            id="purchase_price"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={formData.purchase_price}
+                            onChange={(e) =>
+                              setFormData({ ...formData, purchase_price: e.target.value })
+                            }
+                            required
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="ppn_jual">PPN Jual (%)</Label>
+                          <Label htmlFor="selling_price">Harga Jual *</Label>
                           <Input
-                            id="ppn_jual"
+                            id="selling_price"
                             type="number"
                             step="0.01"
                             min="0"
-                            max="100"
-                            value={formData.ppn_jual}
+                            value={formData.selling_price}
                             onChange={(e) =>
-                              setFormData({ ...formData, ppn_jual: e.target.value })
+                              setFormData({ ...formData, selling_price: e.target.value })
                             }
+                            required
                           />
                         </div>
 
-                        <div className="space-y-2">
-                          <Label>Harga Beli Setelah PPN</Label>
-                          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                            <p className="text-lg font-semibold text-blue-700">
-                              {formatToRupiah(calculatePriceWithPPN(formData.purchase_price, formData.ppn_beli || "11"))}
-                            </p>
-                          </div>
-                        </div>
+                        {formData.ppn_type === "PKP" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label htmlFor="ppn_beli">PPN Beli (%)</Label>
+                              <Input
+                                id="ppn_beli"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max="100"
+                                value={formData.ppn_beli}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, ppn_beli: e.target.value })
+                                }
+                              />
+                            </div>
 
-                        <div className="space-y-2">
-                          <Label>Harga Jual Setelah PPN</Label>
-                          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                            <p className="text-lg font-semibold text-green-700">
-                              {formatToRupiah(calculatePriceWithPPN(formData.selling_price, formData.ppn_jual || "11"))}
-                            </p>
-                          </div>
-                        </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="ppn_jual">PPN Jual (%)</Label>
+                              <Input
+                                id="ppn_jual"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max="100"
+                                value={formData.ppn_jual}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, ppn_jual: e.target.value })
+                                }
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Harga Beli Setelah PPN</Label>
+                              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                <p className="text-lg font-semibold text-blue-700">
+                                  {formatToRupiah(calculatePriceWithPPN(formData.purchase_price, formData.ppn_beli || "11"))}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Harga Jual Setelah PPN</Label>
+                              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                                <p className="text-lg font-semibold text-green-700">
+                                  {formatToRupiah(calculatePriceWithPPN(formData.selling_price, formData.ppn_jual || "11"))}
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 grid md:grid-cols-2 gap-3">
-                    <div>
-                      <span className="text-sm text-slate-600">
-                        Total Harga Beli{formData.ppn_type === "PKP" ? " (Setelah PPN)" : ""}:
-                      </span>
-                      <p className="text-lg font-bold text-blue-600">
-                        {formatToRupiah(
-                          (formData.ppn_type === "PKP" 
-                            ? calculatePriceWithPPN(formData.purchase_price, formData.ppn_beli || "11")
-                            : parseFloat(formData.purchase_price)) *
-                            parseInt(formData.nominal_barang || "0"),
-                        )}
-                      </p>
+                  {(!isServiceCategory || isInventoryCategory) && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 grid md:grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-sm text-slate-600">
+                          Total Harga Beli{formData.ppn_type === "PKP" ? " (Setelah PPN)" : ""}:
+                        </span>
+                        <p className="text-lg font-bold text-blue-600">
+                          {formatToRupiah(
+                            (formData.ppn_type === "PKP" 
+                              ? calculatePriceWithPPN(formData.purchase_price, formData.ppn_beli || "11")
+                              : parseFloat(formData.purchase_price)) *
+                              parseInt(formData.nominal_barang || "0"),
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-slate-600">
+                          Total Harga Jual{formData.ppn_type === "PKP" ? " (Setelah PPN)" : ""}:
+                        </span>
+                        <p className="text-lg font-bold text-green-600">
+                          {formatToRupiah(
+                            (formData.ppn_type === "PKP" 
+                              ? calculatePriceWithPPN(formData.selling_price, formData.ppn_jual || "11")
+                              : parseFloat(formData.selling_price)) *
+                              parseInt(formData.nominal_barang || "0"),
+                          )}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-sm text-slate-600">
-                        Total Harga Jual{formData.ppn_type === "PKP" ? " (Setelah PPN)" : ""}:
-                      </span>
-                      <p className="text-lg font-bold text-green-600">
-                        {formatToRupiah(
-                          (formData.ppn_type === "PKP" 
-                            ? calculatePriceWithPPN(formData.selling_price, formData.ppn_jual || "11")
-                            : parseFloat(formData.selling_price)) *
-                            parseInt(formData.nominal_barang || "0"),
-                        )}
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Submit Buttons */}

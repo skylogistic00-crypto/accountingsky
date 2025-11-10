@@ -1,190 +1,288 @@
-# Chart of Accounts (COA) - PT. Solusi Logistik Nusantara
+# 📘 PANDUAN MAPPING COA & LOGIKA JURNAL OTOMATIS
 
-## 📊 Sistem Pemetaan Otomatis COA
+## 🎯 OVERVIEW
 
-Sistem ini dirancang untuk **otomatis memilih akun COA** berdasarkan kategori layanan/produk yang dipilih, meminimalisir kesalahan input manual dan mempercepat proses pencatatan.
-
----
-
-## 🎯 Cara Kerja Sistem
-
-### 1. **Pilih Kategori Layanan/Produk**
-Saat user memilih kategori (contoh: "Jasa Cargo"), sistem akan menampilkan jenis-jenis layanan yang tersedia.
-
-### 2. **Pilih Jenis Layanan/Barang**
-Saat user memilih jenis (contoh: "Cargo Udara Domestik"), sistem **otomatis mengisi**:
-- **Akun Pendapatan** (untuk penjualan/invoice)
-- **Akun HPP/Beban Pokok** (untuk pembelian/biaya)
-- **Akun Aset** (untuk persediaan)
-
-### 3. **Pencatatan Otomatis**
-Transaksi akan tercatat ke akun yang tepat tanpa perlu input manual.
+Sistem ini menggunakan **mapping COA** yang tersimpan di tabel master (`inventory_items`, `service_items`) untuk otomatis membuat jurnal yang benar setiap kali ada transaksi.
 
 ---
 
-## 📋 Tabel Pemetaan Lengkap
+## 🗂️ MAPPING COA DI TABEL MASTER
 
-### A. JASA CARGO
+### 1️⃣ **inventory_items** (Barang)
+Setiap barang memiliki 2 akun COA:
 
-| Jenis Layanan | Akun Pendapatan | Akun HPP/Beban | Deskripsi |
-|---------------|-----------------|----------------|-----------|
-| **Cargo Udara Domestik** | 4-1110 | 5-1110 | Pengiriman cargo via udara dalam negeri |
-| **Cargo Udara Internasional** | 4-1120 | 5-1110 | Pengiriman cargo via udara internasional |
-| **Cargo Laut (LCL)** | 4-1210 | 5-1110 | Pengiriman cargo via laut Less than Container Load |
-| **Cargo Laut (FCL)** | 4-1220 | 5-1110 | Pengiriman cargo via laut Full Container Load |
-| **Cargo Darat** | 4-1300 | 5-1110 | Pengiriman cargo via darat/truk |
+| Kolom | Fungsi | Contoh |
+|-------|--------|--------|
+| `coa_inventory_code` | Akun Persediaan (Asset) | 1-1410 - Persediaan Bahan Kemasan |
+| `coa_cogs_code` | Akun HPP (COGS) | 5-1500 - Biaya Bahan Kemasan |
 
-### B. JASA TAMBAHAN
-
-| Jenis Layanan | Akun Pendapatan | Akun HPP/Beban | Deskripsi |
-|---------------|-----------------|----------------|-----------|
-| **Asuransi Pengiriman** | 4-1410 | 5-1130 | Layanan asuransi untuk pengiriman barang |
-| **Packing Kayu** | 4-1420 | 5-1140 | Jasa packing dengan kayu untuk keamanan barang |
-| **Packing Kardus** | 4-1420 | 5-1140 | Jasa packing dengan kardus |
-| **Packing Bubble Wrap** | 4-1420 | 5-1140 | Jasa packing dengan bubble wrap |
-
-### C. JASA GUDANG
-
-| Jenis Layanan | Akun Pendapatan | Akun HPP/Beban | Deskripsi |
-|---------------|-----------------|----------------|-----------|
-| **Sewa Gudang** | 4-2110 | 5-2130 | Pendapatan dari sewa ruang gudang |
-| **Jasa Penyimpanan (Storage)** | 4-2120 | 5-2120 | Jasa penyimpanan barang di gudang |
-| **Jasa Bongkar Muat** | 4-2210 | 5-1120 | Jasa penanganan bongkar muat barang |
-| **Jasa Penanganan Barang** | 4-2210 | 5-1120 | Jasa penanganan dan handling barang |
-
-### D. PERSEDIAAN (Inventory)
-
-| Jenis Barang | Akun Aset | Deskripsi |
-|--------------|-----------|-----------|
-| **Pembelian Kardus** | 1-1400 | Pembelian bahan kemasan kardus |
-| **Pembelian Bubble Wrap** | 1-1400 | Pembelian bahan kemasan bubble wrap |
-| **Pembelian Kayu Packing** | 1-1400 | Pembelian bahan kemasan kayu |
-| **Pembelian Lakban** | 1-1400 | Pembelian bahan kemasan lakban |
-| **Pembelian Plastik Wrapping** | 1-1400 | Pembelian bahan kemasan plastik |
+**Cara Setting:**
+- Buka `/coa-mapping` → Tab "Inventory Items"
+- Pilih akun untuk setiap barang
 
 ---
 
-## 💡 Contoh Penggunaan
+### 2️⃣ **service_items** (Jasa)
+Setiap jasa memiliki 2 akun COA:
 
-### Contoh 1: Faktur Penjualan Jasa Cargo Udara
-1. **Pilih Kategori**: "Jasa Cargo"
-2. **Pilih Jenis**: "Cargo Udara Domestik"
-3. **Sistem Otomatis Mengisi**:
-   - Akun Pendapatan: `4-1110 - Pend. Cargo Udara Domestik`
+| Kolom | Fungsi | Contoh |
+|-------|--------|--------|
+| `coa_revenue_code` | Akun Pendapatan (Revenue) | 4-2100 - Pendapatan Jasa Storage |
+| `coa_expense_code` | Akun Beban (Expense, optional) | 6-5400 - Konsultan IT |
 
-### Contoh 2: Pembelian Biaya Angkut ke Agen
-1. **Pilih Kategori**: "Jasa Cargo"
-2. **Pilih Jenis**: "Cargo Udara Domestik"
-3. **Sistem Otomatis Mengisi**:
-   - Akun Beban: `5-1110 - Biaya Angkut Udara`
-
-### Contoh 3: Pembelian Kardus untuk Packing
-1. **Pilih Kategori**: "Persediaan"
-2. **Pilih Jenis**: "Pembelian Kardus"
-3. **Sistem Otomatis Mengisi**:
-   - Akun Aset: `1-1400 - Persediaan Bahan Kemasan/Packaging`
+**Cara Setting:**
+- Buka `/coa-mapping` → Tab "Service Items"
+- Pilih akun untuk setiap jasa
 
 ---
 
-## 🔧 Fitur Teknis
+## 🔄 LOGIKA JURNAL OTOMATIS
 
-### Database Functions
-- `get_coa_mapping(category, type)` - Mendapatkan mapping COA untuk kategori dan jenis tertentu
-- `get_service_types_by_category(category)` - Mendapatkan semua jenis layanan dalam kategori
+### 1️⃣ **PENJUALAN BARANG** (Sales Form - Type: Barang)
 
-### Tabel Database
-- `coa_category_mapping` - Tabel pemetaan kategori ke akun COA
-- `chart_of_accounts` - Master Chart of Accounts
+**Sumber Data COA:**
+- Kas/Piutang: Hardcoded (1-1100 atau 1-1200)
+- Pendapatan: `inventory_items.coa_revenue_code` ❌ **SALAH!**
+- HPP: `inventory_items.coa_cogs_code` ✅
+- Persediaan: `inventory_items.coa_inventory_code` ✅
+- Pajak: Hardcoded (2-1250 - Utang PPN)
 
-### Integrasi
-- ✅ **Stock Form** - Auto-select COA saat input stok
-- ✅ **Cash Book** - Auto-select COA saat entry transaksi kas
-- 🔄 **Purchase Request** - (Coming soon)
-- 🔄 **Invoice/Sales** - (Coming soon)
+**Jurnal yang Dibuat:**
+```
+Dr Kas/Piutang (1-1100/1-1200) ............. Rp 111.000
+  Cr Pendapatan Penjualan (user pilih) ..... Rp 100.000
+  Cr Utang Pajak (2-1250) .................. Rp 11.000
 
----
+Dr Harga Pokok Penjualan (coa_cogs_code) ... Rp 50.000
+  Cr Persediaan (coa_inventory_code) ....... Rp 50.000
+```
 
-## 📊 Struktur COA Lengkap
-
-### 1. ASET (1-0000)
-- **1-1000**: Aset Lancar
-  - 1-1100: Kas di Tangan
-  - 1-1200: Kas di Bank
-  - 1-1300: Piutang Usaha
-  - **1-1400: Persediaan Bahan Kemasan/Packaging** ⭐
-  - 1-1700: Piutang Pajak (PPN Masukan)
-
-### 2. KEWAJIBAN (2-0000)
-- **2-1000**: Kewajiban Lancar
-  - 2-1500: Hutang Pajak (PPN Keluaran, PPh 21, 23, 25)
-
-### 3. EKUITAS (3-0000)
-- Modal dan laba ditahan
-
-### 4. PENDAPATAN (4-0000) ⭐
-- **4-1000**: Pendapatan Jasa Cargo
-  - **4-1110**: Pend. Cargo Udara Domestik
-  - **4-1120**: Pend. Cargo Udara Internasional
-  - **4-1210**: Pend. Cargo Laut (LCL)
-  - **4-1220**: Pend. Cargo Laut (FCL)
-  - **4-1300**: Pend. Cargo Darat
-- **4-1400**: Pendapatan Layanan Tambahan
-  - **4-1410**: Pend. Asuransi Pengiriman
-  - **4-1420**: Pend. Jasa Packing/Kemasan
-- **4-2000**: Pendapatan Jasa Gudang
-  - **4-2110**: Pend. Sewa Gudang
-  - **4-2120**: Pend. Jasa Penyimpanan (Storage)
-  - **4-2210**: Pend. Jasa Penanganan Barang
-
-### 5. BEBAN POKOK PENJUALAN (5-0000) ⭐
-- **5-1000**: HPP Jasa Cargo
-  - **5-1110**: Biaya Angkut (Udara/Laut/Darat)
-  - **5-1120**: Biaya Bongkar Muat
-  - **5-1130**: Biaya Asuransi Kirim
-  - **5-1140**: Biaya Kemasan
-- **5-2000**: HPP Jasa Gudang
-  - **5-2110**: Biaya TKL Gudang
-  - **5-2120**: Biaya Listrik & Air Gudang
-  - **5-2130**: Biaya Sewa Gedung
-
-### 6. BEBAN OPERASIONAL (6-0000)
-- Gaji, sewa kantor, utilitas, dll.
-
-### 7. PENDAPATAN & BEBAN LAIN-LAIN (7-0000)
-- Bunga bank, selisih kurs, dll.
+**PERBAIKAN YANG DIPERLUKAN:**
+- Pendapatan harus diambil dari **user input** (dropdown COA Revenue)
+- Bukan dari `inventory_items` karena barang tidak punya akun pendapatan
 
 ---
 
-## ✅ Keunggulan Sistem
+### 2️⃣ **PENJUALAN JASA** (Sales Form - Type: Jasa)
 
-1. ✅ **Otomatis** - Tidak perlu hafal kode akun
-2. ✅ **Akurat** - Mengurangi kesalahan input manual
-3. ✅ **Cepat** - Proses pencatatan lebih efisien
-4. ✅ **Konsisten** - Semua transaksi tercatat dengan standar yang sama
-5. ✅ **Audit Trail** - Mudah dilacak dan diaudit
-6. ✅ **Kompatibel** - Sesuai SAK ETAP/EMKM dan perpajakan Indonesia
+**Sumber Data COA:**
+- Kas/Piutang: Hardcoded (1-1100 atau 1-1200)
+- Pendapatan: `service_items.coa_revenue_code` ✅
+- Pajak: Hardcoded (2-1250 - Utang PPN)
+
+**Jurnal yang Dibuat:**
+```
+Dr Kas/Piutang (1-1100/1-1200) ............. Rp 111.000
+  Cr Pendapatan Jasa (coa_revenue_code) .... Rp 100.000
+  Cr Utang Pajak (2-1250) .................. Rp 11.000
+```
+
+**STATUS:** ✅ Sudah benar!
 
 ---
 
-## 🚀 Cara Menambah Mapping Baru
+### 3️⃣ **PEMBELIAN BARANG** (Purchase Form - Belum Ada)
 
-Untuk menambah kategori atau jenis layanan baru:
+**Sumber Data COA:**
+- Persediaan: `inventory_items.coa_inventory_code` ✅
+- PPN Masukan: Hardcoded (1-1720 - Piutang Pajak)
+- Kas/Bank: Hardcoded (1-1100)
 
-```sql
-INSERT INTO coa_category_mapping 
-  (service_category, service_type, revenue_account_code, cogs_account_code, description) 
-VALUES 
-  ('Kategori Baru', 'Jenis Baru', '4-XXXX', '5-XXXX', 'Deskripsi');
+**Jurnal yang Dibuat:**
+```
+Dr Persediaan (coa_inventory_code) ......... Rp 100.000
+Dr PPN Masukan (1-1720) .................... Rp 11.000
+  Cr Kas/Bank (1-1100) .................... Rp 111.000
 ```
 
 ---
 
-## 📞 Support
+### 4️⃣ **PEMBELIAN JASA** (Purchase Form - Belum Ada)
 
-Jika ada pertanyaan atau butuh penambahan mapping, silakan hubungi tim accounting atau IT support.
+**Sumber Data COA:**
+- Biaya Jasa: `service_items.coa_expense_code` ✅
+- PPN Masukan: Hardcoded (1-1720 - Piutang Pajak)
+- Kas/Bank: Hardcoded (1-1100)
+
+**Jurnal yang Dibuat:**
+```
+Dr Biaya Jasa (coa_expense_code) ........... Rp 100.000
+Dr PPN Masukan (1-1720) .................... Rp 11.000
+  Cr Kas/Bank (1-1100) .................... Rp 111.000
+```
 
 ---
 
-**Dibuat untuk**: PT. Solusi Logistik Nusantara  
-**Tanggal**: 2024  
-**Versi**: 1.0
+### 5️⃣ **PEMAKAIAN INTERNAL** (Internal Usage Form)
+
+**Sumber Data COA:**
+- Beban Operasional: User pilih dari dropdown (Expense accounts)
+- Persediaan: `inventory_items.coa_inventory_code` ✅
+
+**Jurnal yang Dibuat:**
+```
+Dr Beban Operasional (user pilih) .......... Rp 50.000
+  Cr Persediaan (coa_inventory_code) ....... Rp 50.000
+```
+
+**STATUS:** ✅ Sudah benar!
+
+---
+
+### 6️⃣ **PENGELUARAN OPERASIONAL** (Expense Form - Dihapus)
+
+**Sumber Data COA:**
+- Biaya Operasional: User pilih dari dropdown
+- Kas/Bank: Hardcoded (1-1100)
+- PPN Masukan (optional): Hardcoded (1-1720)
+
+**Jurnal yang Dibuat:**
+```
+Dr Biaya Operasional (user pilih) .......... Rp 100.000
+Dr PPN Masukan (1-1720) .................... Rp 11.000 (jika ada)
+  Cr Kas/Bank (1-1100) .................... Rp 111.000
+```
+
+---
+
+### 7️⃣ **PEMBAYARAN PAJAK** (Tax Payment Form - Belum Ada)
+
+**Sumber Data COA:**
+- Kewajiban Pajak: `tax_transactions.coa_tax_code` ✅
+- Kas/Bank: Hardcoded (1-1100)
+
+**Jurnal yang Dibuat:**
+```
+Dr Kewajiban Pajak (coa_tax_code) .......... Rp 11.000
+  Cr Kas/Bank (1-1100) .................... Rp 11.000
+```
+
+---
+
+## 🔧 PERBAIKAN YANG DIPERLUKAN
+
+### **SalesForm.tsx - Penjualan Barang**
+
+**MASALAH SAAT INI:**
+- Akun Pendapatan diambil dari user input (dropdown COA)
+- Seharusnya untuk **Barang**, tidak ada akun pendapatan di `inventory_items`
+
+**SOLUSI:**
+1. Untuk **Penjualan Barang**: User tetap pilih akun pendapatan dari dropdown
+2. Untuk **Penjualan Jasa**: Otomatis ambil dari `service_items.coa_revenue_code`
+
+**UPDATE LOGIC:**
+```typescript
+// Saat user pilih Jasa
+const handleServiceChange = async (serviceId: string) => {
+  const { data } = await supabase
+    .from("service_items")
+    .select("id, item_name, price, coa_revenue_code, coa_revenue_name")
+    .eq("id", serviceId)
+    .single();
+  
+  if (data) {
+    setFormData(prev => ({
+      ...prev,
+      item_id: serviceId,
+      item_name: data.item_name,
+      unit_price: data.price,
+      coa_account_code: data.coa_revenue_code, // Auto-fill
+      coa_account_name: data.coa_revenue_name,
+    }));
+  }
+};
+
+// Saat user pilih Barang
+const handleItemChange = async (itemId: string) => {
+  const { data } = await supabase
+    .from("inventory_items")
+    .select("id, item_name, qty_available, cost_per_unit, coa_inventory_code, coa_cogs_code")
+    .eq("id", itemId)
+    .single();
+  
+  if (data) {
+    setFormData(prev => ({
+      ...prev,
+      item_id: itemId,
+      item_name: data.item_name,
+      stock_current: data.qty_available,
+      cost_per_unit: data.cost_per_unit,
+      // User tetap harus pilih akun pendapatan manual
+    }));
+  }
+};
+```
+
+---
+
+## 📊 TABEL REFERENSI COA
+
+### **Akun Kas/Bank (Asset)**
+| Kode | Nama | Digunakan Untuk |
+|------|------|-----------------|
+| 1-1100 | Kas | Pembayaran Tunai |
+| 1-1110 | Bank BCA | Pembayaran Transfer |
+| 1-1200 | Piutang Usaha | Pembayaran Piutang |
+
+### **Akun Pajak**
+| Kode | Nama | Digunakan Untuk |
+|------|------|-----------------|
+| 1-1720 | Piutang Pajak (PPN Masukan) | Pembelian dengan PPN |
+| 2-1250 | Hutang PPN (PPN Keluaran) | Penjualan dengan PPN |
+| 2-1210 | Hutang PPh 21 | Gaji Karyawan |
+| 2-1220 | Hutang PPh 23 | Jasa Profesional |
+
+### **Akun Persediaan (Asset)**
+| Kode | Nama | Digunakan Untuk |
+|------|------|-----------------|
+| 1-1410 | Persediaan Bahan Kemasan | Kardus, Bubble Wrap, dll |
+| 1-1420 | Persediaan Alat Tulis | ATK |
+
+### **Akun Pendapatan (Revenue)**
+| Kode | Nama | Digunakan Untuk |
+|------|------|-----------------|
+| 4-1100 | Pendapatan Penjualan Barang | Penjualan Barang |
+| 4-2100 | Pendapatan Jasa Storage | Penjualan Jasa |
+
+### **Akun HPP (COGS)**
+| Kode | Nama | Digunakan Untuk |
+|------|------|-----------------|
+| 5-1100 | Biaya Freight/Ongkos Kirim | HPP Barang |
+| 5-1500 | Biaya Bahan Kemasan | HPP Kemasan |
+
+### **Akun Beban (Expense)**
+| Kode | Nama | Digunakan Untuk |
+|------|------|-----------------|
+| 6-5400 | Konsultan IT | Biaya Jasa IT |
+| 6-6100 | Biaya Listrik | Biaya Operasional |
+| 6-6200 | Biaya Telepon & Internet | Biaya Operasional |
+
+---
+
+## ✅ CHECKLIST IMPLEMENTASI
+
+- [x] Tabel `inventory_items` memiliki `coa_inventory_code` dan `coa_cogs_code`
+- [x] Tabel `service_items` memiliki `coa_revenue_code` dan `coa_expense_code`
+- [x] Tabel `sales_transactions` menyimpan semua kode COA terkait
+- [x] Tabel `internal_usage` menyimpan kode COA terkait
+- [x] Komponen `COAMappingManager` untuk setting mapping
+- [ ] **UPDATE SalesForm**: Auto-fill COA untuk Jasa
+- [ ] **UPDATE SalesForm**: Ambil `coa_inventory_code` dan `coa_cogs_code` saat pilih Barang
+- [ ] **CREATE PurchaseForm**: Form pembelian barang/jasa
+- [ ] **CREATE TaxPaymentForm**: Form pembayaran pajak
+- [ ] **UPDATE InternalUsageForm**: Ambil `coa_inventory_code` dari `inventory_items`
+
+---
+
+## 🚀 NEXT STEPS
+
+1. **Update SalesForm** agar mengambil COA dari tabel master
+2. **Buat PurchaseForm** untuk pembelian barang/jasa
+3. **Buat TaxPaymentForm** untuk pembayaran pajak
+4. **Update InternalUsageForm** agar mengambil `coa_inventory_code`
+5. **Testing** semua jurnal otomatis
+
+---
+
+**Sistem ini akan memastikan setiap transaksi otomatis membuat jurnal yang benar sesuai mapping COA! 🎯**
