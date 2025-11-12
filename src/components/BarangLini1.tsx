@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "./ui/table";
 import { useToast } from "./ui/use-toast";
-import { Pencil, Trash2, Plus, Calculator, ArrowRight, PackageCheck } from "lucide-react";
+import { Pencil, Trash2, Plus, Calculator, ArrowRight, PackageCheck, Eye, Filter } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,56 +28,62 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Textarea } from "./ui/textarea";
+import { Checkbox } from "./ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover";
 
 interface BarangLini1 {
-  nama_barang: string;
+  stock_id: string;
+  item_name: string;
+  item_arrival_date: string;
   sku: string;
-  kode_barang: string;
-  nomor_dokumen_pabean: string;
-  tanggal_masuk: string;
-  batas_waktu_pengambilan: string;
-  lama_simpan: string;
-  berat: string;
-  volume: string;
-  lokasi: string;
+  awb: string;
+  storage_duration: number;
   status: string;
-  total_biaya: string;
-  wms_reference_number: string;
-  ceisa_document_number: string;
-  ceisa_document_type: string;
-  ceisa_document_date: string;
-  ceisa_status: string;
-  wms_notes: string;
-  ceisa_notes: string;
+  total_price: string;
 }
 
 export default function BarangLini1() {
   const { toast } = useToast();
   const [items, setItems] = useState<any[]>([]);
   const [stockItems, setStockItems] = useState<any[]>([]);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [filteredStockItems, setFilteredStockItems] = useState<any[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [selectedStock, setSelectedStock] = useState<any>(null);
   const [formData, setFormData] = useState<BarangLini1>({
-    nama_barang: "",
+    stock_id: "",
+    item_name: "",
+    item_arrival_date: "",
     sku: "",
-    kode_barang: "",
-    nomor_dokumen_pabean: "",
-    tanggal_masuk: new Date().toISOString().split("T")[0],
-    batas_waktu_pengambilan: "",
-    lama_simpan: "",
-    berat: "",
-    volume: "",
-    lokasi: "",
-    status: "aktif",
-    total_biaya: "",
-    wms_reference_number: "",
-    ceisa_document_number: "",
-    ceisa_document_type: "",
-    ceisa_document_date: "",
-    ceisa_status: "",
-    wms_notes: "",
-    ceisa_notes: "",
+    awb: "",
+    storage_duration: 0,
+    status: "Lini 1",
+    total_price: "",
   });
+
+  // Column visibility state
+  const [visibleColumns, setVisibleColumns] = useState({
+    tanggal_masuk: true,
+    nama_barang: true,
+    sku: true,
+    awb: true,
+    lama_simpan: true,
+    status: true,
+    harga_total: true,
+  });
+
+  const toggleColumn = (column: string) => {
+    setVisibleColumns(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
+  };
 
   useEffect(() => {
     fetchItems();
@@ -101,64 +107,100 @@ export default function BarangLini1() {
 
   const fetchStockItems = async () => {
     try {
+      console.log("🔍 Fetching stock items...");
       const { data, error } = await supabase
         .from("stock")
-        .select("*")
-        .order("item_name", { ascending: true });
+        .select("id, item_name, sku, item_arrival_date, airwaybills")
+        .not("item_arrival_date", "is", null)
+        .order("item_arrival_date", { ascending: false });
 
       if (error) {
-        console.error("Error fetching stock:", error);
-        toast({
-          title: "Warning",
-          description: "Gagal memuat data stock: " + error.message,
-          variant: "destructive",
-        });
-        return;
+        console.error("❌ Error fetching stock:", error);
+        throw error;
       }
       
-      console.log("Stock items loaded:", data?.length || 0);
+      console.log("✅ Stock items fetched:", data);
       setStockItems(data || []);
+      
+      // Extract unique dates
+      const dates = [...new Set(data?.map(item => item.item_arrival_date).filter(Boolean))];
+      console.log("📅 Available dates:", dates);
+      setAvailableDates(dates);
       
       if (!data || data.length === 0) {
         toast({
           title: "Info",
-          description: "Belum ada data stock tersedia",
+          description: "Tidak ada data stock dengan tanggal masuk barang.",
         });
       }
     } catch (error: any) {
-      console.error("Error fetching stock items:", error);
+      console.error("❌ Error fetching stock items:", error);
       toast({
         title: "Error",
-        description: "Gagal memuat data stock",
+        description: "Gagal memuat data stock: " + error.message,
         variant: "destructive",
       });
     }
   };
 
-  const handleStockSelect = (stockId: string) => {
-    console.log("Selected stock ID:", stockId);
-    const selectedStock = stockItems.find(item => item.id === stockId);
-    console.log("Selected stock:", selectedStock);
+  const handleDateSelect = (date: string) => {
+    console.log("📅 Selected date:", date);
+    setSelectedDate(date);
     
-    if (selectedStock) {
+    // Filter stock items by selected date
+    const filtered = stockItems.filter(item => item.item_arrival_date === date);
+    console.log("📦 Filtered stock items:", filtered);
+    setFilteredStockItems(filtered);
+    
+    // Reset stock selection
+    setSelectedStock(null);
+    setFormData({
+      stock_id: "",
+      item_name: "",
+      item_arrival_date: date,
+      sku: "",
+      awb: "",
+      storage_duration: 0,
+      status: "Lini 1",
+      total_price: "",
+    });
+  };
+
+  const handleStockSelect = (stockId: string) => {
+    console.log("🎯 Selected stock ID:", stockId);
+    const stock = filteredStockItems.find(item => item.id === stockId);
+    console.log("📦 Found stock:", stock);
+    
+    if (stock) {
+      setSelectedStock(stock);
+      
+      // Calculate storage duration
+      let storageDuration = 0;
+      if (stock.item_arrival_date) {
+        const arrivalDate = new Date(stock.item_arrival_date);
+        const today = new Date();
+        const diffTime = today.getTime() - arrivalDate.getTime();
+        storageDuration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        console.log("📅 Storage duration calculated:", storageDuration, "days");
+      }
+      
       setFormData({
-        ...formData,
-        nama_barang: selectedStock.item_name || "",
-        sku: selectedStock.barcode || "",
-        berat: selectedStock.weight?.toString() || "",
-        volume: selectedStock.volume?.toString() || "",
-        lokasi: selectedStock.warehouse_id || "",
+        stock_id: stock.id,
+        item_name: stock.item_name || "",
+        item_arrival_date: stock.item_arrival_date || "",
+        sku: stock.sku || "",
+        awb: stock.airwaybills || "",
+        storage_duration: storageDuration,
+        status: "Lini 1",
+        total_price: "",
       });
       
-      toast({
-        title: "Data Diisi Otomatis",
-        description: `Data dari stock ${selectedStock.item_name} berhasil dimuat`,
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Stock tidak ditemukan",
-        variant: "destructive",
+      console.log("✅ Form data updated:", {
+        item_name: stock.item_name,
+        item_arrival_date: stock.item_arrival_date,
+        sku: stock.sku,
+        awb: stock.airwaybills,
+        storage_duration: storageDuration
       });
     }
   };
@@ -171,7 +213,26 @@ export default function BarangLini1() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setItems(data || []);
+      
+      // Fetch stock data for each item based on SKU (which is barcode in stock table)
+      const itemsWithStockData = await Promise.all(
+        (data || []).map(async (item) => {
+          // Get stock data by barcode
+          const { data: stockData } = await supabase
+            .from("stock")
+            .select("berat, volume")
+            .eq("barcode", item.sku)
+            .single();
+          
+          return {
+            ...item,
+            berat: item.berat || stockData?.berat || null,
+            volume: item.volume || stockData?.volume || null,
+          };
+        })
+      );
+      
+      setItems(itemsWithStockData);
     } catch (error) {
       console.error("Error fetching items:", error);
       toast({
@@ -187,25 +248,14 @@ export default function BarangLini1() {
 
     try {
       const itemData = {
-        nama_barang: formData.nama_barang,
+        stock_id: formData.stock_id || null,
+        item_name: formData.item_name,
+        item_arrival_date: formData.item_arrival_date,
         sku: formData.sku,
-        kode_barang: formData.kode_barang || null,
-        nomor_dokumen_pabean: formData.nomor_dokumen_pabean || null,
-        tanggal_masuk: formData.tanggal_masuk,
-        batas_waktu_pengambilan: formData.batas_waktu_pengambilan || null,
-        lama_simpan: formData.lama_simpan ? parseInt(formData.lama_simpan) : null,
-        berat: formData.berat ? parseFloat(formData.berat) : null,
-        volume: formData.volume ? parseFloat(formData.volume) : null,
-        lokasi: formData.lokasi || null,
+        awb: formData.awb || null,
+        storage_duration: formData.storage_duration,
         status: formData.status,
-        total_biaya: formData.total_biaya ? parseFloat(formData.total_biaya) : null,
-        wms_reference_number: formData.wms_reference_number || null,
-        ceisa_document_number: formData.ceisa_document_number || null,
-        ceisa_document_type: formData.ceisa_document_type || null,
-        ceisa_document_date: formData.ceisa_document_date || null,
-        ceisa_status: formData.ceisa_status || null,
-        wms_notes: formData.wms_notes || null,
-        ceisa_notes: formData.ceisa_notes || null,
+        total_price: formData.total_price ? parseFloat(formData.total_price) : null,
       };
 
       if (editingItem) {
@@ -246,26 +296,16 @@ export default function BarangLini1() {
   const handleEdit = (item: any) => {
     setEditingItem(item);
     setFormData({
-      nama_barang: item.nama_barang,
-      sku: item.sku,
-      kode_barang: item.kode_barang || "",
-      nomor_dokumen_pabean: item.nomor_dokumen_pabean || "",
-      tanggal_masuk: item.tanggal_masuk,
-      batas_waktu_pengambilan: item.batas_waktu_pengambilan || "",
-      lama_simpan: item.lama_simpan?.toString() || "",
-      berat: item.berat?.toString() || "",
-      volume: item.volume?.toString() || "",
-      lokasi: item.lokasi || "",
-      status: item.status,
-      total_biaya: item.total_biaya?.toString() || "",
-      wms_reference_number: item.wms_reference_number || "",
-      ceisa_document_number: item.ceisa_document_number || "",
-      ceisa_document_type: item.ceisa_document_type || "",
-      ceisa_document_date: item.ceisa_document_date || "",
-      ceisa_status: item.ceisa_status || "",
-      wms_notes: item.wms_notes || "",
-      ceisa_notes: item.ceisa_notes || "",
+      stock_id: item.id,
+      item_name: item.item_name || "",
+      item_arrival_date: item.item_arrival_date || "",
+      sku: item.sku || "",
+      awb: item.awb || "",
+      storage_duration: item.storage_duration || 0,
+      status: item.status || "Lini 1",
+      total_price: item.total_price || "",
     });
+    setSelectedStock(null);
     setIsDialogOpen(true);
   };
 
@@ -366,34 +406,155 @@ export default function BarangLini1() {
 
   const resetForm = () => {
     setFormData({
-      nama_barang: "",
+      stock_id: "",
+      item_name: "",
+      item_arrival_date: "",
       sku: "",
-      kode_barang: "",
-      nomor_dokumen_pabean: "",
-      tanggal_masuk: new Date().toISOString().split("T")[0],
-      batas_waktu_pengambilan: "",
-      lama_simpan: "",
-      berat: "",
-      volume: "",
-      lokasi: "",
-      status: "aktif",
-      total_biaya: "",
-      wms_reference_number: "",
-      ceisa_document_number: "",
-      ceisa_document_type: "",
-      ceisa_document_date: "",
-      ceisa_status: "",
-      wms_notes: "",
-      ceisa_notes: "",
+      awb: "",
+      storage_duration: 0,
+      status: "Lini 1",
+      total_price: "",
     });
+    setSelectedStock(null);
+    setSelectedDate("");
+    setFilteredStockItems([]);
     setEditingItem(null);
   };
 
-  const formatCurrency = (value: number) => {
+  const formatRupiah = (value: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(value);
+  };
+
+  const DetailDialog = ({ item }: { item: any }) => {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="sm">
+            <Eye className="w-4 h-4 text-indigo-600" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-indigo-600">
+              Detail Barang Lini 1: {item.nama_barang}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 mt-4">
+            {/* Basic Information */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">Informasi Dasar</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Nama Barang</p>
+                  <p className="font-medium">{item.nama_barang || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">SKU</p>
+                  <p className="font-medium font-mono text-indigo-600">{item.sku || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">AWB (Air Waybill)</p>
+                  <p className="font-medium">{item.awb || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Tanggal Masuk Barang</p>
+                  <p className="font-medium">
+                    {item.item_arrival_date ? new Date(item.item_arrival_date).toLocaleDateString("id-ID") : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Lama Simpan</p>
+                  <p className="font-medium">{item.storage_duration ? `${item.storage_duration} hari` : "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Status</p>
+                  <p className="font-medium">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      item.status === "Lini 1" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
+                    }`}>
+                      {item.status || "-"}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Harga Total</p>
+                  <p className="font-medium text-green-600">{item.total_price ? formatRupiah(item.total_price) : "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Kode Barang</p>
+                  <p className="font-medium">{item.kode_barang || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Nomor Dokumen Pabean</p>
+                  <p className="font-medium">{item.nomor_dokumen_pabean || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Batas Waktu Pengambilan</p>
+                  <p className="font-medium">
+                    {item.batas_waktu_pengambilan ? new Date(item.batas_waktu_pengambilan).toLocaleDateString("id-ID") : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Berat</p>
+                  <p className="font-medium">{item.berat ? `${item.berat} kg` : "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Volume</p>
+                  <p className="font-medium">{item.volume ? `${item.volume} m³` : "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Lokasi</p>
+                  <p className="font-medium">{item.lokasi || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* WMS & CEISA Information */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">Informasi WMS & CEISA</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Nomor Referensi WMS</p>
+                  <p className="font-medium">{item.wms_reference_number || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Nomor Dokumen CEISA</p>
+                  <p className="font-medium">{item.ceisa_document_number || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Jenis Dokumen CEISA</p>
+                  <p className="font-medium">{item.ceisa_document_type || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Tanggal Dokumen CEISA</p>
+                  <p className="font-medium">
+                    {item.ceisa_document_date ? new Date(item.ceisa_document_date).toLocaleDateString("id-ID") : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Status CEISA</p>
+                  <p className="font-medium">{item.ceisa_status || "-"}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-slate-500">Catatan WMS</p>
+                  <p className="font-medium">{item.wms_notes || "-"}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-slate-500">Catatan CEISA</p>
+                  <p className="font-medium">{item.ceisa_notes || "-"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   return (
@@ -401,437 +562,408 @@ export default function BarangLini1() {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-slate-900">Barang Lini 1</h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="w-4 h-4 mr-2" />
-                Tambah Barang
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingItem ? "Edit Barang" : "Tambah Barang Baru"}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="stock_select">Pilih dari Stock (Opsional)</Label>
-                    <Select onValueChange={handleStockSelect}>
-                      <SelectTrigger id="stock_select">
-                        <SelectValue placeholder="-- Pilih barang dari stock --" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {stockItems.map((stock) => (
-                          <SelectItem key={stock.id} value={stock.id}>
-                            {stock.item_name} - {stock.barcode}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500">
-                      Pilih barang dari stock untuk mengisi data otomatis
-                    </p>
-                  </div>
-
+          <div className="flex gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filter Kolom
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64">
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">Pilih Kolom yang Ditampilkan</h4>
                   <div className="space-y-2">
-                    <Label htmlFor="sku">SKU *</Label>
-                    <Input
-                      id="sku"
-                      value={formData.sku}
-                      onChange={(e) =>
-                        setFormData({ ...formData, sku: e.target.value })
-                      }
-                      required
-                      disabled={!!editingItem}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="nama_barang">Nama Barang *</Label>
-                    <Input
-                      id="nama_barang"
-                      value={formData.nama_barang}
-                      onChange={(e) =>
-                        setFormData({ ...formData, nama_barang: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="kode_barang">Kode Barang</Label>
-                    <Input
-                      id="kode_barang"
-                      value={formData.kode_barang}
-                      onChange={(e) =>
-                        setFormData({ ...formData, kode_barang: e.target.value })
-                      }
-                      placeholder="Masukkan kode barang"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="nomor_dokumen_pabean">Nomor Dokumen Pabean</Label>
-                    <Input
-                      id="nomor_dokumen_pabean"
-                      value={formData.nomor_dokumen_pabean}
-                      onChange={(e) =>
-                        setFormData({ ...formData, nomor_dokumen_pabean: e.target.value })
-                      }
-                      placeholder="Masukkan nomor dokumen pabean"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="tanggal_masuk">Tanggal Masuk *</Label>
-                    <Input
-                      id="tanggal_masuk"
-                      type="date"
-                      value={formData.tanggal_masuk}
-                      onChange={(e) =>
-                        setFormData({ ...formData, tanggal_masuk: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="batas_waktu_pengambilan">Batas Waktu Pengambilan</Label>
-                    <Input
-                      id="batas_waktu_pengambilan"
-                      type="date"
-                      value={formData.batas_waktu_pengambilan}
-                      onChange={(e) =>
-                        setFormData({ ...formData, batas_waktu_pengambilan: e.target.value })
-                      }
-                    />
-                    <p className="text-xs text-gray-500">
-                      Tanggal batas waktu untuk pengambilan barang
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="lama_simpan">Lama Simpan (hari)</Label>
-                    <Input
-                      id="lama_simpan"
-                      type="number"
-                      value={formData.lama_simpan}
-                      onChange={(e) =>
-                        setFormData({ ...formData, lama_simpan: e.target.value })
-                      }
-                      placeholder="Contoh: 30"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="berat">Berat (kg)</Label>
-                    <Input
-                      id="berat"
-                      type="number"
-                      step="0.01"
-                      value={formData.berat}
-                      onChange={(e) =>
-                        setFormData({ ...formData, berat: e.target.value })
-                      }
-                      placeholder="Contoh: 10.5"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="volume">Volume (m³)</Label>
-                    <Input
-                      id="volume"
-                      type="number"
-                      step="0.01"
-                      value={formData.volume}
-                      onChange={(e) =>
-                        setFormData({ ...formData, volume: e.target.value })
-                      }
-                      placeholder="Contoh: 2.5"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="lokasi">Lokasi</Label>
-                    <Input
-                      id="lokasi"
-                      value={formData.lokasi}
-                      onChange={(e) =>
-                        setFormData({ ...formData, lokasi: e.target.value })
-                      }
-                      placeholder="Contoh: Gudang A - Rak 1"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status *</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, status: value })
-                      }
-                    >
-                      <SelectTrigger id="status">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="aktif">Aktif</SelectItem>
-                        <SelectItem value="dipindahkan">Dipindahkan</SelectItem>
-                        <SelectItem value="diambil">Diambil</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="total_biaya">Total Biaya</Label>
-                    <Input
-                      id="total_biaya"
-                      type="number"
-                      value={formData.total_biaya}
-                      onChange={(e) =>
-                        setFormData({ ...formData, total_biaya: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  {/* WMS/CEISA Section */}
-                  <div className="md:col-span-2 border-t pt-4 mt-4">
-                    <h3 className="text-lg font-semibold mb-4">Informasi WMS/CEISA</h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="wms_reference_number">Nomor Referensi WMS</Label>
-                        <Input
-                          id="wms_reference_number"
-                          value={formData.wms_reference_number}
-                          onChange={(e) =>
-                            setFormData({ ...formData, wms_reference_number: e.target.value })
-                          }
-                          placeholder="WMS-2024-XXXX"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="ceisa_document_number">Nomor Dokumen CEISA</Label>
-                        <Input
-                          id="ceisa_document_number"
-                          value={formData.ceisa_document_number}
-                          onChange={(e) =>
-                            setFormData({ ...formData, ceisa_document_number: e.target.value })
-                          }
-                          placeholder="000000-XXXXXX-XXXXXXXX"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="ceisa_document_type">Jenis Dokumen CEISA</Label>
-                        <Select
-                          value={formData.ceisa_document_type}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, ceisa_document_type: value })
-                          }
-                        >
-                          <SelectTrigger id="ceisa_document_type">
-                            <SelectValue placeholder="Pilih jenis dokumen" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="BC 2.3">BC 2.3 - Pemberitahuan Impor Barang</SelectItem>
-                            <SelectItem value="BC 4.0">BC 4.0 - Pemberitahuan Ekspor Barang</SelectItem>
-                            <SelectItem value="BC 2.5">BC 2.5 - Pemberitahuan Impor Barang Khusus</SelectItem>
-                            <SelectItem value="BC 3.0">BC 3.0 - Pemberitahuan Ekspor Barang Khusus</SelectItem>
-                            <SelectItem value="BC 1.1">BC 1.1 - Pemberitahuan Pabean</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="ceisa_document_date">Tanggal Dokumen CEISA</Label>
-                        <Input
-                          id="ceisa_document_date"
-                          type="date"
-                          value={formData.ceisa_document_date}
-                          onChange={(e) =>
-                            setFormData({ ...formData, ceisa_document_date: e.target.value })
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="ceisa_status">Status CEISA</Label>
-                        <Select
-                          value={formData.ceisa_status}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, ceisa_status: value })
-                          }
-                        >
-                          <SelectTrigger id="ceisa_status">
-                            <SelectValue placeholder="Pilih status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Draft">Draft</SelectItem>
-                            <SelectItem value="Submitted">Submitted</SelectItem>
-                            <SelectItem value="Approved">Approved</SelectItem>
-                            <SelectItem value="Rejected">Rejected</SelectItem>
-                            <SelectItem value="Completed">Completed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="wms_notes">Catatan WMS</Label>
-                        <Textarea
-                          id="wms_notes"
-                          value={formData.wms_notes}
-                          onChange={(e) =>
-                            setFormData({ ...formData, wms_notes: e.target.value })
-                          }
-                          placeholder="Catatan tambahan untuk WMS"
-                          rows={2}
-                        />
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="ceisa_notes">Catatan CEISA</Label>
-                        <Textarea
-                          id="ceisa_notes"
-                          value={formData.ceisa_notes}
-                          onChange={(e) =>
-                            setFormData({ ...formData, ceisa_notes: e.target.value })
-                          }
-                          placeholder="Catatan tambahan untuk CEISA"
-                          rows={2}
-                        />
-                      </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="col_tanggal_masuk"
+                        checked={visibleColumns.tanggal_masuk}
+                        onCheckedChange={() => toggleColumn('tanggal_masuk')}
+                      />
+                      <label htmlFor="col_tanggal_masuk" className="text-sm cursor-pointer">
+                        Tanggal Barang Masuk
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="col_nama_barang"
+                        checked={visibleColumns.nama_barang}
+                        onCheckedChange={() => toggleColumn('nama_barang')}
+                      />
+                      <label htmlFor="col_nama_barang" className="text-sm cursor-pointer">
+                        Nama Barang
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="col_sku"
+                        checked={visibleColumns.sku}
+                        onCheckedChange={() => toggleColumn('sku')}
+                      />
+                      <label htmlFor="col_sku" className="text-sm cursor-pointer">
+                        SKU
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="col_awb"
+                        checked={visibleColumns.awb}
+                        onCheckedChange={() => toggleColumn('awb')}
+                      />
+                      <label htmlFor="col_awb" className="text-sm cursor-pointer">
+                        AWB
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="col_lama_simpan"
+                        checked={visibleColumns.lama_simpan}
+                        onCheckedChange={() => toggleColumn('lama_simpan')}
+                      />
+                      <label htmlFor="col_lama_simpan" className="text-sm cursor-pointer">
+                        Lama Simpan
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="col_status"
+                        checked={visibleColumns.status}
+                        onCheckedChange={() => toggleColumn('status')}
+                      />
+                      <label htmlFor="col_status" className="text-sm cursor-pointer">
+                        Lini 1/2
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="col_harga_total"
+                        checked={visibleColumns.harga_total}
+                        onCheckedChange={() => toggleColumn('harga_total')}
+                      />
+                      <label htmlFor="col_harga_total" className="text-sm cursor-pointer">
+                        Harga Total
+                      </label>
                     </div>
                   </div>
                 </div>
+              </PopoverContent>
+            </Popover>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => {
+                  resetForm();
+                  fetchStockItems();
+                }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Tambah Barang Lini 1
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingItem ? "Edit Barang Lini 1" : "Tambah Barang Lini 1"}
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-4">
+                    {/* Step 1: Select Date */}
+                    <div className="space-y-2">
+                      <Label htmlFor="date_select">1. Pilih Tanggal Barang Masuk *</Label>
+                      {availableDates.length === 0 ? (
+                        <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+                          ⚠️ Tidak ada data stock dengan tanggal masuk barang.
+                        </div>
+                      ) : (
+                        <>
+                          <Select 
+                            value={selectedDate} 
+                            onValueChange={handleDateSelect}
+                            disabled={!!editingItem}
+                          >
+                            <SelectTrigger id="date_select">
+                              <SelectValue placeholder="-- Pilih tanggal --" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableDates.map((date) => (
+                                <SelectItem key={date} value={date}>
+                                  {new Date(date).toLocaleDateString("id-ID", {
+                                    weekday: "long",
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric"
+                                  })}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-slate-500">
+                            Total {availableDates.length} tanggal tersedia
+                          </p>
+                        </>
+                      )}
+                    </div>
 
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsDialogOpen(false);
-                      resetForm();
-                    }}
-                  >
-                    Batal
-                  </Button>
-                  <Button type="submit">
-                    {editingItem ? "Update" : "Simpan"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                    {/* Step 2: Select SKU based on date */}
+                    {selectedDate && (
+                      <div className="space-y-2">
+                        <Label htmlFor="sku_select">2. Pilih SKU *</Label>
+                        {filteredStockItems.length === 0 ? (
+                          <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+                            ⚠️ Tidak ada SKU tersedia untuk tanggal ini.
+                          </div>
+                        ) : (
+                          <>
+                            <Select 
+                              value={formData.stock_id} 
+                              onValueChange={handleStockSelect}
+                              disabled={!!editingItem}
+                            >
+                              <SelectTrigger id="sku_select">
+                                <SelectValue placeholder="-- Pilih SKU --" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {filteredStockItems.map((stock) => (
+                                  <SelectItem key={stock.id} value={stock.id}>
+                                    SKU: {stock.sku} - {stock.item_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-slate-500">
+                              {filteredStockItems.length} SKU tersedia pada tanggal ini
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Show details after SKU selected */}
+                    {selectedStock && (
+                      <>
+                        <div className="border-t pt-4 mt-4">
+                          <h3 className="text-sm font-semibold text-slate-700 mb-3">Detail Barang</h3>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="item_arrival_date">Tanggal Barang Masuk</Label>
+                          <Input
+                            id="item_arrival_date"
+                            type="date"
+                            value={formData.item_arrival_date}
+                            disabled
+                            className="bg-gray-50"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="sku">SKU</Label>
+                          <Input
+                            id="sku"
+                            value={formData.sku}
+                            disabled
+                            className="bg-gray-50 font-mono"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="item_name">Nama Barang</Label>
+                          <Input
+                            id="item_name"
+                            value={formData.item_name}
+                            disabled
+                            className="bg-gray-50"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="awb">AWB (Air Waybill)</Label>
+                          <Input
+                            id="awb"
+                            value={formData.awb}
+                            disabled
+                            className="bg-gray-50"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="storage_duration">Lama Simpan (hari)</Label>
+                          <Input
+                            id="storage_duration"
+                            type="number"
+                            value={formData.storage_duration}
+                            disabled
+                            className="bg-gray-50"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="status">Status *</Label>
+                          <Select
+                            value={formData.status}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, status: value })
+                            }
+                          >
+                            <SelectTrigger id="status">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Lini 1">Lini 1</SelectItem>
+                              <SelectItem value="Lini 2">Lini 2</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="total_price">Harga Total</Label>
+                          <Input
+                            id="total_price"
+                            type="number"
+                            step="0.01"
+                            value={formData.total_price}
+                            onChange={(e) =>
+                              setFormData({ ...formData, total_price: e.target.value })
+                            }
+                            placeholder="Masukkan harga total"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsDialogOpen(false);
+                        resetForm();
+                      }}
+                    >
+                      Batal
+                    </Button>
+                    <Button type="submit" disabled={!selectedStock}>
+                      {editingItem ? "Update" : "Simpan"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div className="border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nama Barang</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Tanggal Masuk</TableHead>
-                <TableHead>Lama Simpan</TableHead>
-                <TableHead>Berat (kg)</TableHead>
-                <TableHead>Volume (m³)</TableHead>
-                <TableHead>Lokasi</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Total Biaya</TableHead>
+                {visibleColumns.tanggal_masuk && <TableHead>Tanggal Barang Masuk</TableHead>}
+                {visibleColumns.nama_barang && <TableHead>Nama Barang</TableHead>}
+                {visibleColumns.sku && <TableHead>SKU</TableHead>}
+                {visibleColumns.awb && <TableHead>AWB</TableHead>}
+                {visibleColumns.lama_simpan && <TableHead>Lama Simpan</TableHead>}
+                {visibleColumns.status && <TableHead>Lini 1/2</TableHead>}
+                {visibleColumns.harga_total && <TableHead>Harga Total</TableHead>}
                 <TableHead className="text-center">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-slate-500">
+                  <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 1} className="text-center text-slate-500">
                     Belum ada data barang
                   </TableCell>
                 </TableRow>
               ) : (
-                items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.nama_barang}</TableCell>
-                    <TableCell>{item.sku}</TableCell>
-                    <TableCell>
-                      {new Date(item.tanggal_masuk).toLocaleDateString("id-ID")}
-                    </TableCell>
-                    <TableCell>{item.lama_simpan || "-"} hari</TableCell>
-                    <TableCell>{item.berat || "-"}</TableCell>
-                    <TableCell>{item.volume || "-"}</TableCell>
-                    <TableCell>{item.lokasi || "-"}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          item.status === "aktif"
-                            ? "bg-green-100 text-green-800"
-                            : item.status === "dipindahkan"
-                            ? "bg-blue-100 text-blue-800"
-                            : item.status === "diambil"
-                            ? "bg-gray-100 text-gray-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {item.status === "aktif" ? "Aktif" : item.status === "dipindahkan" ? "Dipindahkan" : "Diambil"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {item.total_biaya ? formatCurrency(item.total_biaya) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-center gap-2 flex-wrap">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleHitungUlangSewa(item)}
-                          disabled={item.status !== "aktif"}
-                          className="text-blue-600 hover:bg-blue-50"
-                        >
-                          <Calculator className="w-4 h-4 mr-1" />
-                          Hitung Ulang Sewa
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePindahkanLini2(item)}
-                          disabled={item.status !== "aktif"}
-                          className="text-purple-600 hover:bg-purple-50"
-                        >
-                          <ArrowRight className="w-4 h-4 mr-1" />
-                          Pindahkan ke Lini 2
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleBarangDiambil(item)}
-                          disabled={item.status !== "aktif"}
-                          className="text-green-600 hover:bg-green-50"
-                        >
-                          <PackageCheck className="w-4 h-4 mr-1" />
-                          Barang Diambil Supplier
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(item)}
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(item.id)}
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                items.map((item) => {
+                  // Calculate lama simpan (days from item_arrival_date to today)
+                  let lamaSimpan = "-";
+                  
+                  if (item.item_arrival_date) {
+                    try {
+                      const tanggalMasuk = new Date(item.item_arrival_date);
+                      const today = new Date();
+                      
+                      if (!isNaN(tanggalMasuk.getTime())) {
+                        today.setHours(0, 0, 0, 0);
+                        tanggalMasuk.setHours(0, 0, 0, 0);
+                        const diffTime = today.getTime() - tanggalMasuk.getTime();
+                        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        lamaSimpan = days >= 0 ? `${days} hari` : "0 hari";
+                      }
+                    } catch (error) {
+                      console.error("Error calculating lama simpan:", error);
+                    }
+                  }
+
+                  return (
+                    <TableRow key={item.id}>
+                      {visibleColumns.tanggal_masuk && (
+                        <TableCell>
+                          {item.item_arrival_date 
+                            ? new Date(item.item_arrival_date).toLocaleDateString("id-ID")
+                            : "-"}
+                        </TableCell>
+                      )}
+                      {visibleColumns.nama_barang && (
+                        <TableCell className="font-medium">{item.item_name || item.nama_barang}</TableCell>
+                      )}
+                      {visibleColumns.sku && (
+                        <TableCell className="font-mono text-indigo-600">{item.sku}</TableCell>
+                      )}
+                      {visibleColumns.awb && (
+                        <TableCell>{item.awb || "-"}</TableCell>
+                      )}
+                      {visibleColumns.lama_simpan && (
+                        <TableCell>
+                          <span className="font-semibold text-blue-600">
+                            {lamaSimpan}
+                          </span>
+                        </TableCell>
+                      )}
+                      {visibleColumns.status && (
+                        <TableCell>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              item.status === "Lini 1"
+                                ? "bg-blue-100 text-blue-800"
+                                : item.status === "Lini 2"
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {item.status || "-"}
+                          </span>
+                        </TableCell>
+                      )}
+                      {visibleColumns.harga_total && (
+                        <TableCell>
+                          {item.total_price ? formatRupiah(item.total_price) : "-"}
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <div className="flex justify-center gap-2">
+                          <DetailDialog item={item} />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(item)}
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(item.id)}
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

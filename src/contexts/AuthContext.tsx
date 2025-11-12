@@ -55,11 +55,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from("users")
-        .select("*")
+        .select(
+          `
+        *,
+        roles:roles!users_role_id_fkey (
+          role_id,
+          role_name,
+          description,
+          permissions
+        )
+      `,
+        )
         .eq("id", userId)
         .single();
 
       if (error) throw error;
+
+      console.log("👤 User Profile with Role:", data);
       setUserProfile(data);
     } catch (error) {
       console.error("Error fetching user profile:", error);

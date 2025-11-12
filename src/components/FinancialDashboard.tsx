@@ -31,92 +31,35 @@ export default function FinancialDashboard() {
     setLoading(true);
 
     try {
-      const now = new Date();
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-      const today = now.toISOString().split("T")[0];
+      // Fetch data from vw_dashboard_summary view
+      const { data: summaryData, error: summaryError } = await supabase
+        .from("vw_dashboard_summary")
+        .select("account_type, total_balance");
 
-      // Fetch journal entries for current month
-      const { data: monthlyEntries, error: monthlyError } = await supabase
-        .from("journal_entries")
-        .select("account_code, debit, credit")
-        .gte("transaction_date", firstDayOfMonth)
-        .lte("transaction_date", today);
+      if (summaryError) throw summaryError;
 
-      if (monthlyError) throw monthlyError;
-
-      // Fetch all journal entries for total assets
-      const { data: allEntries, error: allError } = await supabase
-        .from("journal_entries")
-        .select("account_code, debit, credit")
-        .lte("transaction_date", today);
-
-      if (allError) throw allError;
-
-      // Fetch COA accounts
-      const { data: coaAccounts, error: coaError } = await supabase
-        .from("chart_of_accounts")
-        .select("account_code, account_type, normal_balance")
-        .eq("is_active", true);
-
-      if (coaError) throw coaError;
-
-      // Create account type map
-      const accountTypeMap: { [key: string]: { type: string; normalBalance: string } } = {};
-      coaAccounts?.forEach((acc) => {
-        accountTypeMap[acc.account_code] = {
-          type: acc.account_type,
-          normalBalance: acc.normal_balance,
-        };
-      });
-
-      // Calculate monthly revenue and expenses
+      // Initialize values
       let totalRevenue = 0;
       let totalExpense = 0;
-
-      const monthlyBalances: { [key: string]: number } = {};
-      monthlyEntries?.forEach((entry) => {
-        if (!monthlyBalances[entry.account_code]) {
-          monthlyBalances[entry.account_code] = 0;
-        }
-        monthlyBalances[entry.account_code] += entry.debit - entry.credit;
-      });
-
-      Object.keys(monthlyBalances).forEach((accountCode) => {
-        const accountInfo = accountTypeMap[accountCode];
-        if (!accountInfo) return;
-
-        const balance = monthlyBalances[accountCode];
-        const finalBalance = accountInfo.normalBalance === "Kredit" ? -balance : balance;
-
-        if (accountInfo.type === "Pendapatan") {
-          totalRevenue += finalBalance;
-        } else if (
-          accountInfo.type === "Beban Pokok Penjualan" ||
-          accountInfo.type === "Beban Operasional"
-        ) {
-          totalExpense += finalBalance;
-        }
-      });
-
-      // Calculate total assets
       let totalAssets = 0;
-      const allBalances: { [key: string]: number } = {};
-      allEntries?.forEach((entry) => {
-        if (!allBalances[entry.account_code]) {
-          allBalances[entry.account_code] = 0;
-        }
-        allBalances[entry.account_code] += entry.debit - entry.credit;
-      });
 
-      Object.keys(allBalances).forEach((accountCode) => {
-        const accountInfo = accountTypeMap[accountCode];
-        if (!accountInfo) return;
-
-        const balance = allBalances[accountCode];
-        const finalBalance = accountInfo.normalBalance === "Kredit" ? -balance : balance;
-
-        if (accountInfo.type === "Aset") {
-          totalAssets += finalBalance;
+      // Map data from view based on normalized account_type
+      summaryData?.forEach((item) => {
+        const balance = item.total_balance || 0;
+        const normalizedType = (item.account_type || "").trim().toLowerCase();
+        
+        switch (normalizedType) {
+          case "pendapatan":
+            totalRevenue = balance;
+            break;
+          case "beban pokok penjualan":
+          case "beban operasional":
+          case "beban":
+            totalExpense += balance;
+            break;
+          case "aset":
+            totalAssets = balance;
+            break;
         }
       });
 

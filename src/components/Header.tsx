@@ -19,7 +19,6 @@ import {
 } from "./ui/select";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "./ui/use-toast";
-import { Package } from "lucide-react";
 
 export default function Header() {
   const { user, signIn, signUp, signOut } = useAuth();
@@ -96,13 +95,17 @@ export default function Header() {
     <>
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Package className="h-8 w-8 text-blue-600" />
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.jpg"
+              alt="Sakti Kargo Yaksa"
+              className="h-12 w-auto"
+            />
             <div>
-              <h1 className="text-xl font-bold text-slate-900">
-                Sky Logistics
+              <h1 className="text-xl font-bold text-slate-900 [text-shadow:_1px_1px_3px_rgba(0,0,0,0.35)]">
+                Sakti Kargo Yaksa
               </h1>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 hidden sm:inline [text-shadow:_1px_1px_3px_rgba(0,0,0,0.35)]">
                 Freight & Finance Management
               </p>
             </div>
@@ -111,9 +114,13 @@ export default function Header() {
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                <span className="text-sm text-slate-600 hidden sm:inline">
-                  {user.email}
+                <span
+                  className="text-l font-bold text-slate-900 tracking-wide 
+                  [text-shadow:_1px_1px_2px_rgba(0,0,0,0.25)] hidden sm:inline"
+                >
+                  Hallo {user.user_metadata?.full_name || user.email}
                 </span>
+
                 <Button onClick={handleSignOut} variant="outline" size="sm">
                   Sign Out
                 </Button>

@@ -20,7 +20,7 @@ import {
 } from "./ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useToast } from "./ui/use-toast";
-import { Pencil, Trash2, Plus, Package, ArrowLeft } from "lucide-react";
+import { Pencil, Trash2, Plus, Package, ArrowLeft, ArrowRight, UserCheck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,38 +31,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { useNavigate } from "react-router-dom";
 
-interface BarangLini1Form {
-  id?: string;
-  nama_barang: string;
-  sku: string;
-  kode_barang: string;
-  nomor_dokumen_pabean: string;
-  tanggal_masuk: string;
-  lama_simpan: string;
-  berat: string;
-  volume: string;
-  lokasi: string;
-  status: string;
-  total_biaya: string;
-}
-
-interface BarangLini2Form {
-  id?: string;
-  sku: string;
-  nama_barang: string;
-  kode_barang: string;
-  nomor_dokumen_pabean: string;
-  asal: string;
-  lokasi: string;
-  tgl_masuk: string;
-  tgl_keluar: string;
-  hari_simpan: string;
-  hari_di_lini_1: string;
-  berat: string;
-  volume: string;
-  status: string;
-}
-
 export default function BarangLini() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -70,45 +38,34 @@ export default function BarangLini() {
   
   // Lini 1 states
   const [lini1Items, setLini1Items] = useState<any[]>([]);
+  const [stockItems, setStockItems] = useState<any[]>([]);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const [isLini1DialogOpen, setIsLini1DialogOpen] = useState(false);
-  const [editingLini1Item, setEditingLini1Item] = useState<any>(null);
-  const [lini1FormData, setLini1FormData] = useState<BarangLini1Form>({
-    nama_barang: "",
-    sku: "",
-    kode_barang: "",
-    nomor_dokumen_pabean: "",
-    tanggal_masuk: new Date().toISOString().split("T")[0],
-    lama_simpan: "",
-    berat: "",
-    volume: "",
-    lokasi: "",
-    status: "Tersedia",
-    total_biaya: "",
-  });
+  const [selectedStockItems, setSelectedStockItems] = useState<any[]>([]);
 
   // Lini 2 states
   const [lini2Items, setLini2Items] = useState<any[]>([]);
+  const [lini2ItemsWithStock, setLini2ItemsWithStock] = useState<any[]>([]);
   const [isLini2DialogOpen, setIsLini2DialogOpen] = useState(false);
-  const [editingLini2Item, setEditingLini2Item] = useState<any>(null);
-  const [lini2FormData, setLini2FormData] = useState<BarangLini2Form>({
+  const [lini2FormData, setLini2FormData] = useState({
+    item_name: "",
     sku: "",
-    nama_barang: "",
-    kode_barang: "",
-    nomor_dokumen_pabean: "",
-    asal: "",
-    lokasi: "",
-    tgl_masuk: new Date().toISOString().split("T")[0],
-    tgl_keluar: "",
-    hari_simpan: "",
-    hari_di_lini_1: "",
-    berat: "",
-    volume: "",
-    status: "Aktif",
+    awb: "",
+    item_arrival_date: "",
+    item_arrival_date_lini_2: new Date().toISOString().split("T")[0],
+    storage_duration: 0,
+    storage_duration_lini_2: 0,
+    status: "Lini 2",
+    total_price: "",
+    total_price_lini_2: "",
+    final_price: "",
   });
 
   useEffect(() => {
     fetchLini1Items();
     fetchLini2Items();
+    fetchStockItems();
 
     const channel1 = supabase
       .channel("barang_lini_1_changes")
@@ -138,6 +95,108 @@ export default function BarangLini() {
     };
   }, []);
 
+  const fetchStockItems = async () => {
+    try {
+      console.log("🔍 Fetching stock items...");
+      
+      const { data, error } = await supabase
+        .from("stock")
+        .select("id, item_name, sku, item_arrival_date, airwaybills, item_quantity, unit, warehouses, zones, racks, lots")
+        .not("item_arrival_date", "is", null)
+        .order("item_arrival_date", { ascending: false });
+
+      console.log("📦 Stock data received:", data);
+      console.log("❌ Error (if any):", error);
+
+      if (error) throw error;
+      
+      setStockItems(data || []);
+      
+      // Extract unique dates
+      const dates = [...new Set(data?.map(item => item.item_arrival_date).filter(Boolean))];
+      console.log("📅 Available dates:", dates);
+      setAvailableDates(dates);
+    } catch (error) {
+      console.error("❌ Error fetching stock items:", error);
+      toast({
+        title: "Error",
+        description: "Gagal mengambil data stock: " + (error as any).message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDateSelect = (date: string) => {
+    setSelectedDate(date);
+    
+    // Filter stock items by selected date
+    const filtered = stockItems.filter(item => item.item_arrival_date === date);
+    setSelectedStockItems(filtered);
+  };
+
+  const handleAddAllToLini1 = async () => {
+    if (selectedStockItems.length === 0) {
+      toast({
+        title: "Error",
+        description: "Tidak ada barang yang dipilih",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const itemsToInsert = selectedStockItems.map(stock => {
+        let storageDuration = 0;
+        if (stock.item_arrival_date) {
+          const arrivalDate = new Date(stock.item_arrival_date);
+          const today = new Date();
+          const diffTime = today.getTime() - arrivalDate.getTime();
+          storageDuration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        const totalPrice = storageDuration * 5000;
+
+        return {
+          stock_id: stock.id,
+          item_name: stock.item_name,
+          sku: stock.sku,
+          awb: stock.airwaybills || null,
+          item_arrival_date: stock.item_arrival_date,
+          item_quantity: stock.item_quantity || null,
+          unit: stock.unit || null,
+          warehouses: stock.warehouses || null,
+          zones: stock.zones || null,
+          racks: stock.racks || null,
+          lots: stock.lots || null,
+          storage_duration: storageDuration,
+          status: "Lini 1",
+          total_price: totalPrice,
+        };
+      });
+
+      const { error } = await supabase.from("barang_lini_1").insert(itemsToInsert);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${itemsToInsert.length} barang berhasil ditambahkan ke Lini 1`,
+      });
+
+      setIsLini1DialogOpen(false);
+      setSelectedDate("");
+      setSelectedStockItems([]);
+      fetchLini1Items();
+    } catch (error: any) {
+      console.error("Error adding items:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Gagal menambahkan barang",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Lini 1 functions
   const fetchLini1Items = async () => {
     try {
@@ -151,67 +210,6 @@ export default function BarangLini() {
     } catch (error) {
       console.error("Error fetching lini 1 items:", error);
     }
-  };
-
-  const handleLini1Submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const itemData = {
-        nama_barang: lini1FormData.nama_barang,
-        sku: lini1FormData.sku,
-        kode_barang: lini1FormData.kode_barang || null,
-        nomor_dokumen_pabean: lini1FormData.nomor_dokumen_pabean || null,
-        tanggal_masuk: lini1FormData.tanggal_masuk,
-        lama_simpan: lini1FormData.lama_simpan ? parseInt(lini1FormData.lama_simpan) : null,
-        berat: lini1FormData.berat ? parseFloat(lini1FormData.berat) : null,
-        volume: lini1FormData.volume ? parseFloat(lini1FormData.volume) : null,
-        lokasi: lini1FormData.lokasi || null,
-        status: lini1FormData.status,
-        total_biaya: lini1FormData.total_biaya ? parseFloat(lini1FormData.total_biaya) : null,
-      };
-
-      if (editingLini1Item) {
-        const { error } = await supabase
-          .from("barang_lini_1")
-          .update(itemData)
-          .eq("id", editingLini1Item.id);
-
-        if (error) throw error;
-        toast({ title: "Success", description: "Data barang berhasil diupdate" });
-      } else {
-        const { error } = await supabase.from("barang_lini_1").insert(itemData);
-        if (error) throw error;
-        toast({ title: "Success", description: "Data barang berhasil ditambahkan" });
-      }
-
-      resetLini1Form();
-      setIsLini1DialogOpen(false);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Gagal menyimpan data",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleLini1Edit = (item: any) => {
-    setEditingLini1Item(item);
-    setLini1FormData({
-      nama_barang: item.nama_barang,
-      sku: item.sku,
-      kode_barang: item.kode_barang || "",
-      nomor_dokumen_pabean: item.nomor_dokumen_pabean || "",
-      tanggal_masuk: item.tanggal_masuk,
-      lama_simpan: item.lama_simpan?.toString() || "",
-      berat: item.berat?.toString() || "",
-      volume: item.volume?.toString() || "",
-      lokasi: item.lokasi || "",
-      status: item.status,
-      total_biaya: item.total_biaya?.toString() || "",
-    });
-    setIsLini1DialogOpen(true);
   };
 
   const handleLini1Delete = async (id: string) => {
@@ -230,23 +228,6 @@ export default function BarangLini() {
     }
   };
 
-  const resetLini1Form = () => {
-    setLini1FormData({
-      nama_barang: "",
-      sku: "",
-      kode_barang: "",
-      nomor_dokumen_pabean: "",
-      tanggal_masuk: new Date().toISOString().split("T")[0],
-      lama_simpan: "",
-      berat: "",
-      volume: "",
-      lokasi: "",
-      status: "Tersedia",
-      total_biaya: "",
-    });
-    setEditingLini1Item(null);
-  };
-
   // Lini 2 functions
   const fetchLini2Items = async () => {
     try {
@@ -256,9 +237,197 @@ export default function BarangLini() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      
+      // Fetch stock data for each item based on SKU
+      const itemsWithStock = await Promise.all(
+        (data || []).map(async (item) => {
+          const { data: stockData } = await supabase
+            .from("stock")
+            .select("quantity, unit, warehouses, zones, racks, lots")
+            .eq("sku", item.sku)
+            .single();
+
+          return {
+            ...item,
+            stock_quantity: stockData?.quantity || item.item_quantity,
+            stock_unit: stockData?.unit || item.unit,
+            stock_warehouses: stockData?.warehouses || item.warehouses,
+            stock_zones: stockData?.zones || item.zones,
+            stock_racks: stockData?.racks || item.racks,
+            stock_lots: stockData?.lots || item.lots,
+          };
+        })
+      );
+
       setLini2Items(data || []);
+      setLini2ItemsWithStock(itemsWithStock);
     } catch (error) {
       console.error("Error fetching lini 2 items:", error);
+    }
+  };
+
+  const handlePindahkanLini2 = async (item: any) => {
+    if (!confirm(`Pindahkan ${item.item_name} ke Lini 2?`)) return;
+
+    try {
+      console.log("Starting move to Lini 2 for item:", item);
+
+      let storageDurationLini1 = 0;
+      if (item.item_arrival_date) {
+        const arrivalDate = new Date(item.item_arrival_date);
+        const today = new Date();
+        const diffTime = today.getTime() - arrivalDate.getTime();
+        storageDurationLini1 = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+
+      const biayaLini1 = storageDurationLini1 * 5000;
+
+      console.log("Calculated values:", {
+        storageDurationLini1,
+        biayaLini1
+      });
+
+      // Update Lini 1
+      const { error: updateLini1Error } = await supabase
+        .from("barang_lini_1")
+        .update({ 
+          total_price: biayaLini1,
+          storage_duration: storageDurationLini1,
+          status: "Lini 2" 
+        })
+        .eq("id", item.id);
+
+      if (updateLini1Error) {
+        console.error("Error updating Lini 1:", updateLini1Error);
+        throw updateLini1Error;
+      }
+
+      console.log("Lini 1 updated successfully");
+
+      // Prepare data for Lini 2 - Include stock-related fields
+      const dataToInsert = {
+        item_name: item.item_name,
+        sku: item.sku,
+        awb: item.awb || null,
+        item_arrival_date: item.item_arrival_date || null,
+        item_arrival_date_lini_2: new Date().toISOString(),
+        storage_duration: storageDurationLini1,
+        storage_duration_lini_2: 0,
+        status: "Lini 2",
+        total_price: biayaLini1,
+        total_price_lini_2: 0,
+        final_price: biayaLini1 + 0,
+        item_quantity: item.item_quantity || null,
+        unit: item.unit || null,
+        warehouses: item.warehouses || null,
+        zones: item.zones || null,
+        racks: item.racks || null,
+        lots: item.lots || null,
+      };
+
+      console.log("Data to insert into Lini 2:", dataToInsert);
+
+      // Insert to Lini 2
+      const { data: insertedData, error: insertError } = await supabase
+        .from("barang_lini_2")
+        .insert(dataToInsert)
+        .select();
+
+      if (insertError) {
+        console.error("Error inserting to Lini 2:", insertError);
+        throw insertError;
+      }
+
+      console.log("Successfully inserted to Lini 2:", insertedData);
+
+      toast({
+        title: "Berhasil",
+        description: `${item.item_name} berhasil dipindahkan ke Lini 2`,
+      });
+
+      fetchLini1Items();
+      fetchLini2Items();
+    } catch (error: any) {
+      console.error("Error moving to lini 2:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Gagal memindahkan barang ke Lini 2",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDiambilSupplier = async (item: any) => {
+    if (!confirm(`Tandai ${item.item_name} sebagai diambil oleh supplier?`)) return;
+
+    try {
+      // Delete dari Lini 1
+      const { error } = await supabase
+        .from("barang_lini_1")
+        .delete()
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berhasil",
+        description: `${item.item_name} telah diambil oleh supplier`,
+      });
+
+      fetchLini1Items();
+    } catch (error: any) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Gagal mengupdate status barang",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDiambilSupplierLini2 = async (item: any) => {
+    if (!confirm(`Tandai ${item.item_name} sebagai diambil oleh supplier?`)) return;
+
+    try {
+      // Calculate current lama simpan lini 2
+      let lamaSimpanLini2 = 0;
+      if (item.item_arrival_date_lini_2) {
+        const arrivalDateLini2 = new Date(item.item_arrival_date_lini_2);
+        const today = new Date();
+        const diffTime = today.getTime() - arrivalDateLini2.getTime();
+        lamaSimpanLini2 = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+
+      const biayaLini1 = item.total_price || 0;
+      const biayaLini2 = lamaSimpanLini2 * 2000;
+      const totalBiaya = biayaLini1 + biayaLini2;
+
+      // Update status and save calculated prices
+      const { error } = await supabase
+        .from("barang_lini_2")
+        .update({ 
+          status: "Diambil",
+          storage_duration_lini_2: lamaSimpanLini2,
+          total_price_lini_2: biayaLini2,
+          final_price: totalBiaya
+        })
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berhasil",
+        description: `${item.item_name} telah diambil oleh supplier`,
+      });
+
+      fetchLini2Items();
+    } catch (error: any) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Gagal mengupdate status barang",
+        variant: "destructive",
+      });
     }
   };
 
@@ -266,65 +435,70 @@ export default function BarangLini() {
     e.preventDefault();
 
     try {
-      const itemData = {
-        sku: lini2FormData.sku,
-        nama_barang: lini2FormData.nama_barang,
-        kode_barang: lini2FormData.kode_barang || null,
-        nomor_dokumen_pabean: lini2FormData.nomor_dokumen_pabean || null,
-        asal: lini2FormData.asal || null,
-        lokasi: lini2FormData.lokasi || null,
-        tgl_masuk: lini2FormData.tgl_masuk,
-        tgl_keluar: lini2FormData.tgl_keluar || null,
-        hari_simpan: lini2FormData.hari_simpan ? parseInt(lini2FormData.hari_simpan) : null,
-        hari_di_lini_1: lini2FormData.hari_di_lini_1 ? parseInt(lini2FormData.hari_di_lini_1) : null,
-        berat: lini2FormData.berat ? parseFloat(lini2FormData.berat) : null,
-        volume: lini2FormData.volume ? parseFloat(lini2FormData.volume) : null,
-        status: lini2FormData.status,
-      };
-
-      if (editingLini2Item) {
-        const { error } = await supabase
-          .from("barang_lini_2")
-          .update(itemData)
-          .eq("id", editingLini2Item.id);
-
-        if (error) throw error;
-        toast({ title: "Success", description: "Data barang berhasil diupdate" });
-      } else {
-        const { error } = await supabase.from("barang_lini_2").insert(itemData);
-        if (error) throw error;
-        toast({ title: "Success", description: "Data barang berhasil ditambahkan" });
+      // Calculate storage duration lini 2 if date is provided
+      let storageDurationLini2 = lini2FormData.storage_duration_lini_2;
+      if (lini2FormData.item_arrival_date_lini_2) {
+        const arrivalDateLini2 = new Date(lini2FormData.item_arrival_date_lini_2);
+        const today = new Date();
+        const diffTime = today.getTime() - arrivalDateLini2.getTime();
+        storageDurationLini2 = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       }
 
-      resetLini2Form();
+      // Calculate prices
+      const totalPrice = parseFloat(lini2FormData.total_price) || 0;
+      const totalPriceLini2 = storageDurationLini2 * 2000;
+      const finalPrice = totalPrice + totalPriceLini2;
+
+      const dataToInsert = {
+        item_name: lini2FormData.item_name,
+        sku: lini2FormData.sku,
+        awb: lini2FormData.awb || null,
+        item_arrival_date: lini2FormData.item_arrival_date || null,
+        item_arrival_date_lini_2: lini2FormData.item_arrival_date_lini_2,
+        storage_duration: lini2FormData.storage_duration,
+        storage_duration_lini_2: storageDurationLini2,
+        status: lini2FormData.status,
+        total_price: totalPrice || null,
+        total_price_lini_2: totalPriceLini2,
+        final_price: finalPrice,
+      };
+
+      const { error } = await supabase.from("barang_lini_2").insert(dataToInsert);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berhasil",
+        description: "Barang berhasil ditambahkan ke Lini 2",
+      });
+
       setIsLini2DialogOpen(false);
+      resetLini2Form();
+      fetchLini2Items();
     } catch (error: any) {
+      console.error("Error adding lini 2 item:", error);
       toast({
         title: "Error",
-        description: error.message || "Gagal menyimpan data",
+        description: error.message || "Gagal menambahkan barang",
         variant: "destructive",
       });
     }
   };
 
-  const handleLini2Edit = (item: any) => {
-    setEditingLini2Item(item);
+  const resetLini2Form = () => {
     setLini2FormData({
-      sku: item.sku,
-      nama_barang: item.nama_barang,
-      kode_barang: item.kode_barang || "",
-      nomor_dokumen_pabean: item.nomor_dokumen_pabean || "",
-      asal: item.asal || "",
-      lokasi: item.lokasi || "",
-      tgl_masuk: item.tgl_masuk,
-      tgl_keluar: item.tgl_keluar || "",
-      hari_simpan: item.hari_simpan?.toString() || "",
-      hari_di_lini_1: item.hari_di_lini_1?.toString() || "",
-      berat: item.berat?.toString() || "",
-      volume: item.volume?.toString() || "",
-      status: item.status,
+      item_name: "",
+      sku: "",
+      awb: "",
+      item_arrival_date: "",
+      item_arrival_date_lini_2: new Date().toISOString().split("T")[0],
+      storage_duration: 0,
+      storage_duration_lini_2: 0,
+      status: "Lini 2",
+      total_price: "",
+      total_price_lini_2: "",
+      final_price: "",
     });
-    setIsLini2DialogOpen(true);
   };
 
   const handleLini2Delete = async (id: string) => {
@@ -341,25 +515,6 @@ export default function BarangLini() {
         variant: "destructive",
       });
     }
-  };
-
-  const resetLini2Form = () => {
-    setLini2FormData({
-      sku: "",
-      nama_barang: "",
-      kode_barang: "",
-      nomor_dokumen_pabean: "",
-      asal: "",
-      lokasi: "",
-      tgl_masuk: new Date().toISOString().split("T")[0],
-      tgl_keluar: "",
-      hari_simpan: "",
-      hari_di_lini_1: "",
-      berat: "",
-      volume: "",
-      status: "Aktif",
-    });
-    setEditingLini2Item(null);
   };
 
   const formatCurrency = (value: number) => {
@@ -450,185 +605,103 @@ export default function BarangLini() {
                 <div className="flex justify-end mb-4">
                   <Dialog open={isLini1DialogOpen} onOpenChange={setIsLini1DialogOpen}>
                     <DialogTrigger asChild>
-                      <Button onClick={resetLini1Form} className="bg-indigo-600 hover:bg-indigo-700">
+                      <Button onClick={() => {
+                        setSelectedDate("");
+                        setSelectedStockItems([]);
+                        fetchStockItems();
+                      }}>
                         <Plus className="w-4 h-4 mr-2" />
                         Tambah Barang Lini 1
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
-                        <DialogTitle>
-                          {editingLini1Item ? "Edit Barang Lini 1" : "Tambah Barang Lini 1"}
-                        </DialogTitle>
+                        <DialogTitle>Tambah Barang ke Lini 1</DialogTitle>
                       </DialogHeader>
-                      <form onSubmit={handleLini1Submit} className="space-y-4">
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="nama_barang">Nama Barang *</Label>
-                            <Input
-                              id="nama_barang"
-                              value={lini1FormData.nama_barang}
-                              onChange={(e) =>
-                                setLini1FormData({ ...lini1FormData, nama_barang: e.target.value })
-                              }
-                              required
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="sku">SKU *</Label>
-                            <Input
-                              id="sku"
-                              value={lini1FormData.sku}
-                              onChange={(e) =>
-                                setLini1FormData({ ...lini1FormData, sku: e.target.value })
-                              }
-                              required
-                              disabled={!!editingLini1Item}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="kode_barang">Kode Barang</Label>
-                            <Input
-                              id="kode_barang"
-                              value={lini1FormData.kode_barang}
-                              onChange={(e) =>
-                                setLini1FormData({ ...lini1FormData, kode_barang: e.target.value })
-                              }
-                              placeholder="Masukkan kode barang"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="nomor_dokumen_pabean">Nomor Dokumen Pabean</Label>
-                            <Input
-                              id="nomor_dokumen_pabean"
-                              value={lini1FormData.nomor_dokumen_pabean}
-                              onChange={(e) =>
-                                setLini1FormData({ ...lini1FormData, nomor_dokumen_pabean: e.target.value })
-                              }
-                              placeholder="Masukkan nomor dokumen pabean"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="tanggal_masuk">Tanggal Masuk *</Label>
-                            <Input
-                              id="tanggal_masuk"
-                              type="date"
-                              value={lini1FormData.tanggal_masuk}
-                              onChange={(e) =>
-                                setLini1FormData({ ...lini1FormData, tanggal_masuk: e.target.value })
-                              }
-                              required
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="lama_simpan">Lama Simpan (hari)</Label>
-                            <Input
-                              id="lama_simpan"
-                              type="number"
-                              value={lini1FormData.lama_simpan}
-                              onChange={(e) =>
-                                setLini1FormData({ ...lini1FormData, lama_simpan: e.target.value })
-                              }
-                              placeholder="0"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="berat">Berat (kg)</Label>
-                            <Input
-                              id="berat"
-                              type="number"
-                              step="0.01"
-                              value={lini1FormData.berat}
-                              onChange={(e) =>
-                                setLini1FormData({ ...lini1FormData, berat: e.target.value })
-                              }
-                              placeholder="0.00"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="volume">Volume (m³)</Label>
-                            <Input
-                              id="volume"
-                              type="number"
-                              step="0.001"
-                              value={lini1FormData.volume}
-                              onChange={(e) =>
-                                setLini1FormData({ ...lini1FormData, volume: e.target.value })
-                              }
-                              placeholder="0.000"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="lokasi">Lokasi</Label>
-                            <Input
-                              id="lokasi"
-                              value={lini1FormData.lokasi}
-                              onChange={(e) =>
-                                setLini1FormData({ ...lini1FormData, lokasi: e.target.value })
-                              }
-                              placeholder="Contoh: Gudang A - Rak 1"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="status">Status *</Label>
-                            <Select
-                              value={lini1FormData.status}
-                              onValueChange={(value) =>
-                                setLini1FormData({ ...lini1FormData, status: value })
-                              }
-                            >
-                              <SelectTrigger id="status">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Tersedia">Tersedia</SelectItem>
-                                <SelectItem value="Dalam Proses">Dalam Proses</SelectItem>
-                                <SelectItem value="Keluar">Keluar</SelectItem>
-                                <SelectItem value="Rusak">Rusak</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="total_biaya">Total Biaya (Rp)</Label>
-                            <Input
-                              id="total_biaya"
-                              type="number"
-                              step="0.01"
-                              value={lini1FormData.total_biaya}
-                              onChange={(e) =>
-                                setLini1FormData({ ...lini1FormData, total_biaya: e.target.value })
-                              }
-                              placeholder="0.00"
-                            />
-                          </div>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="date_select">Pilih Tanggal Barang Masuk *</Label>
+                          {availableDates.length === 0 ? (
+                            <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+                              ⚠️ Tidak ada data stock dengan tanggal masuk barang.
+                            </div>
+                          ) : (
+                            <>
+                              <Select value={selectedDate} onValueChange={handleDateSelect}>
+                                <SelectTrigger id="date_select">
+                                  <SelectValue placeholder="-- Pilih tanggal --" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableDates.map((date) => (
+                                    <SelectItem key={date} value={date}>
+                                      {new Date(date).toLocaleDateString("id-ID", {
+                                        weekday: "long",
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric"
+                                      })}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <p className="text-xs text-slate-500">
+                                Total {availableDates.length} tanggal tersedia
+                              </p>
+                            </>
+                          )}
                         </div>
 
-                        <div className="flex justify-end gap-2 pt-4">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                              setIsLini1DialogOpen(false);
-                              resetLini1Form();
-                            }}
-                          >
-                            Batal
-                          </Button>
-                          <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-                            {editingLini1Item ? "Update" : "Simpan"}
-                          </Button>
-                        </div>
-                      </form>
+                        {selectedDate && selectedStockItems.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <h3 className="text-sm font-semibold text-slate-700">
+                                Barang yang akan ditambahkan ({selectedStockItems.length} item)
+                              </h3>
+                              <Button onClick={handleAddAllToLini1}>
+                                Tambahkan Semua ke Lini 1
+                              </Button>
+                            </div>
+                            <div className="border rounded-lg overflow-hidden">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="bg-slate-50">
+                                    <TableHead>Nama Barang</TableHead>
+                                    <TableHead>SKU</TableHead>
+                                    <TableHead>AWB</TableHead>
+                                    <TableHead>Tanggal Masuk</TableHead>
+                                    <TableHead>Jumlah</TableHead>
+                                    <TableHead>Satuan</TableHead>
+                                    <TableHead>Gudang</TableHead>
+                                    <TableHead>Zona</TableHead>
+                                    <TableHead>Rak</TableHead>
+                                    <TableHead>Lot</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {selectedStockItems.map((stock) => (
+                                    <TableRow key={stock.id}>
+                                      <TableCell className="font-medium">{stock.item_name}</TableCell>
+                                      <TableCell className="font-mono text-indigo-600">{stock.sku}</TableCell>
+                                      <TableCell>{stock.airwaybills || "-"}</TableCell>
+                                      <TableCell>
+                                        {stock.item_arrival_date 
+                                          ? new Date(stock.item_arrival_date).toLocaleDateString("id-ID")
+                                          : "-"}
+                                      </TableCell>
+                                      <TableCell className="font-semibold">{stock.item_quantity || "-"}</TableCell>
+                                      <TableCell>{stock.unit || "-"}</TableCell>
+                                      <TableCell>{stock.warehouses || "-"}</TableCell>
+                                      <TableCell>{stock.zones || "-"}</TableCell>
+                                      <TableCell>{stock.racks || "-"}</TableCell>
+                                      <TableCell>{stock.lots || "-"}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -639,11 +712,15 @@ export default function BarangLini() {
                       <TableRow className="bg-gradient-to-r from-slate-100 to-blue-100 hover:from-slate-100 hover:to-blue-100">
                         <TableHead className="font-semibold text-slate-700">Nama Barang</TableHead>
                         <TableHead className="font-semibold text-slate-700">SKU</TableHead>
+                        <TableHead className="font-semibold text-slate-700">AWB</TableHead>
                         <TableHead className="font-semibold text-slate-700">Tanggal Masuk</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Jumlah</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Satuan</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Gudang</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Zona</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Rak</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Lot</TableHead>
                         <TableHead className="font-semibold text-slate-700">Lama Simpan</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Berat (kg)</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Volume (m³)</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Lokasi</TableHead>
                         <TableHead className="font-semibold text-slate-700">Status</TableHead>
                         <TableHead className="font-semibold text-slate-700">Total Biaya</TableHead>
                         <TableHead className="text-right font-semibold text-slate-700">Aksi</TableHead>
@@ -652,7 +729,7 @@ export default function BarangLini() {
                     <TableBody>
                       {lini1Items.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center text-slate-500 py-12">
+                          <TableCell colSpan={14} className="text-center text-slate-500 py-12">
                             <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
                               <Package className="h-12 w-12 text-slate-300" />
                             </div>
@@ -661,57 +738,80 @@ export default function BarangLini() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        lini1Items.map((item) => (
-                          <TableRow key={item.id} className="hover:bg-indigo-50 transition-colors">
-                            <TableCell className="font-medium">{item.nama_barang}</TableCell>
-                            <TableCell>{item.sku}</TableCell>
-                            <TableCell>
-                              {new Date(item.tanggal_masuk).toLocaleDateString("id-ID")}
-                            </TableCell>
-                            <TableCell>{item.lama_simpan || "-"} hari</TableCell>
-                            <TableCell>{item.berat || "-"}</TableCell>
-                            <TableCell>{item.volume || "-"}</TableCell>
-                            <TableCell>{item.lokasi || "-"}</TableCell>
-                            <TableCell>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  item.status === "Tersedia"
-                                    ? "bg-green-100 text-green-800"
-                                    : item.status === "Dalam Proses"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : item.status === "Keluar"
-                                    ? "bg-gray-100 text-gray-800"
-                                    : "bg-red-100 text-red-800"
-                                }`}
-                              >
-                                {item.status}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              {item.total_biaya ? formatCurrency(item.total_biaya) : "-"}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleLini1Edit(item)}
-                                  className="hover:bg-blue-50"
+                        lini1Items.map((item) => {
+                          const lamaSimpan = item.storage_duration || 0;
+                          const lamaSimpanText = lamaSimpan >= 0 ? `${lamaSimpan} hari` : "0 hari";
+                          const totalPrice = item.total_price || 0;
+
+                          return (
+                            <TableRow key={item.id} className="hover:bg-indigo-50 transition-colors">
+                              <TableCell className="font-medium">{item.item_name}</TableCell>
+                              <TableCell className="font-mono text-indigo-600">{item.sku}</TableCell>
+                              <TableCell>{item.awb || "-"}</TableCell>
+                              <TableCell>
+                                {item.item_arrival_date 
+                                  ? new Date(item.item_arrival_date).toLocaleDateString("id-ID")
+                                  : "-"}
+                              </TableCell>
+                              <TableCell className="font-semibold">{item.item_quantity || "-"}</TableCell>
+                              <TableCell>{item.unit || "-"}</TableCell>
+                              <TableCell>{item.warehouses || "-"}</TableCell>
+                              <TableCell>{item.zones || "-"}</TableCell>
+                              <TableCell>{item.racks || "-"}</TableCell>
+                              <TableCell>{item.lots || "-"}</TableCell>
+                              <TableCell>
+                                <span className="font-semibold text-blue-600">{lamaSimpanText}</span>
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    item.status === "Lini 2"
+                                      ? "bg-purple-100 text-purple-800"
+                                      : "bg-blue-100 text-blue-800"
+                                  }`}
                                 >
-                                  <Pencil className="w-4 h-4 text-blue-600" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleLini1Delete(item.id)}
-                                  className="hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4 text-red-600" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
+                                  {item.status}
+                                </span>
+                              </TableCell>
+                              <TableCell className="font-bold text-emerald-600">
+                                {formatCurrency(totalPrice)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handlePindahkanLini2(item)}
+                                    disabled={item.status === "Lini 2"}
+                                    className="text-purple-600 hover:bg-purple-50 disabled:opacity-50"
+                                    title="Dipindahkan Ke Lini 2"
+                                  >
+                                    <ArrowRight className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDiambilSupplier(item)}
+                                    disabled={item.status === "Lini 2"}
+                                    className="text-green-600 hover:bg-green-50 disabled:opacity-50"
+                                    title="Diambil oleh Supplier"
+                                  >
+                                    <UserCheck className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleLini1Delete(item.id)}
+                                    className="hover:bg-red-50"
+                                    title="Hapus Data"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>
@@ -723,23 +823,33 @@ export default function BarangLini() {
                 <div className="flex justify-end mb-4">
                   <Dialog open={isLini2DialogOpen} onOpenChange={setIsLini2DialogOpen}>
                     <DialogTrigger asChild>
-                      <Button onClick={resetLini2Form} className="bg-emerald-600 hover:bg-emerald-700">
+                      <Button onClick={resetLini2Form}>
                         <Plus className="w-4 h-4 mr-2" />
                         Tambah Barang Lini 2
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
-                        <DialogTitle>
-                          {editingLini2Item ? "Edit Barang Lini 2" : "Tambah Barang Lini 2"}
-                        </DialogTitle>
+                        <DialogTitle>Tambah Barang ke Lini 2</DialogTitle>
                       </DialogHeader>
                       <form onSubmit={handleLini2Submit} className="space-y-4">
-                        <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="sku2">SKU *</Label>
+                            <Label htmlFor="item_name">Nama Barang *</Label>
                             <Input
-                              id="sku2"
+                              id="item_name"
+                              value={lini2FormData.item_name}
+                              onChange={(e) =>
+                                setLini2FormData({ ...lini2FormData, item_name: e.target.value })
+                              }
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="sku">SKU *</Label>
+                            <Input
+                              id="sku"
                               value={lini2FormData.sku}
                               onChange={(e) =>
                                 setLini2FormData({ ...lini2FormData, sku: e.target.value })
@@ -749,162 +859,117 @@ export default function BarangLini() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="nama_barang2">Nama Barang *</Label>
+                            <Label htmlFor="awb">AWB</Label>
                             <Input
-                              id="nama_barang2"
-                              value={lini2FormData.nama_barang}
+                              id="awb"
+                              value={lini2FormData.awb}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, nama_barang: e.target.value })
+                                setLini2FormData({ ...lini2FormData, awb: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="item_arrival_date">Tanggal Masuk Barang</Label>
+                            <Input
+                              id="item_arrival_date"
+                              type="date"
+                              value={lini2FormData.item_arrival_date}
+                              onChange={(e) =>
+                                setLini2FormData({ ...lini2FormData, item_arrival_date: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="item_arrival_date_lini_2">Tanggal Masuk Barang Lini 2 *</Label>
+                            <Input
+                              id="item_arrival_date_lini_2"
+                              type="date"
+                              value={lini2FormData.item_arrival_date_lini_2}
+                              onChange={(e) =>
+                                setLini2FormData({ ...lini2FormData, item_arrival_date_lini_2: e.target.value })
                               }
                               required
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="kode_barang2">Kode Barang</Label>
+                            <Label htmlFor="storage_duration">Lama Simpan Lini 1 (hari)</Label>
                             <Input
-                              id="kode_barang2"
-                              value={lini2FormData.kode_barang}
-                              onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, kode_barang: e.target.value })
-                              }
-                              placeholder="Masukkan kode barang"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="nomor_dokumen_pabean2">Nomor Dokumen Pabean</Label>
-                            <Input
-                              id="nomor_dokumen_pabean2"
-                              value={lini2FormData.nomor_dokumen_pabean}
-                              onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, nomor_dokumen_pabean: e.target.value })
-                              }
-                              placeholder="Masukkan nomor dokumen pabean"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="asal">Asal</Label>
-                            <Input
-                              id="asal"
-                              value={lini2FormData.asal}
-                              onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, asal: e.target.value })
-                              }
-                              placeholder="Contoh: Lini 1, Supplier A"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="lokasi2">Lokasi</Label>
-                            <Input
-                              id="lokasi2"
-                              value={lini2FormData.lokasi}
-                              onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, lokasi: e.target.value })
-                              }
-                              placeholder="Contoh: Gudang B - Rak 2"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="tgl_masuk">Tgl Masuk *</Label>
-                            <Input
-                              id="tgl_masuk"
-                              type="date"
-                              value={lini2FormData.tgl_masuk}
-                              onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, tgl_masuk: e.target.value })
-                              }
-                              required
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="tgl_keluar">Tgl Keluar</Label>
-                            <Input
-                              id="tgl_keluar"
-                              type="date"
-                              value={lini2FormData.tgl_keluar}
-                              onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, tgl_keluar: e.target.value })
-                              }
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="hari_simpan">Hari Simpan</Label>
-                            <Input
-                              id="hari_simpan"
+                              id="storage_duration"
                               type="number"
-                              value={lini2FormData.hari_simpan}
+                              value={lini2FormData.storage_duration}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, hari_simpan: e.target.value })
+                                setLini2FormData({ ...lini2FormData, storage_duration: parseInt(e.target.value) || 0 })
                               }
-                              placeholder="0"
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="hari_di_lini_1">Hari di Lini 1</Label>
+                            <Label htmlFor="storage_duration_lini_2">Lama Simpan Lini 2 (hari)</Label>
                             <Input
-                              id="hari_di_lini_1"
+                              id="storage_duration_lini_2"
                               type="number"
-                              value={lini2FormData.hari_di_lini_1}
+                              value={lini2FormData.storage_duration_lini_2}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, hari_di_lini_1: e.target.value })
+                                setLini2FormData({ ...lini2FormData, storage_duration_lini_2: parseInt(e.target.value) || 0 })
                               }
-                              placeholder="0"
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="berat2">Berat (kg)</Label>
-                            <Input
-                              id="berat2"
-                              type="number"
-                              step="0.01"
-                              value={lini2FormData.berat}
-                              onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, berat: e.target.value })
-                              }
-                              placeholder="0.00"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="volume2">Volume (m³)</Label>
-                            <Input
-                              id="volume2"
-                              type="number"
-                              step="0.001"
-                              value={lini2FormData.volume}
-                              onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, volume: e.target.value })
-                              }
-                              placeholder="0.000"
-                            />
-                          </div>
-
-                          <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="status2">Status *</Label>
+                            <Label htmlFor="status">Status *</Label>
                             <Select
                               value={lini2FormData.status}
                               onValueChange={(value) =>
                                 setLini2FormData({ ...lini2FormData, status: value })
                               }
                             >
-                              <SelectTrigger id="status2">
+                              <SelectTrigger id="status">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Aktif">Aktif</SelectItem>
-                                <SelectItem value="Dalam Proses">Dalam Proses</SelectItem>
-                                <SelectItem value="Keluar">Keluar</SelectItem>
-                                <SelectItem value="Selesai">Selesai</SelectItem>
+                                <SelectItem value="Lini 2">Lini 2</SelectItem>
+                                <SelectItem value="Diambil">Diambil</SelectItem>
                               </SelectContent>
                             </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="total_price">Total Biaya di Lini 1</Label>
+                            <Input
+                              id="total_price"
+                              type="number"
+                              step="0.01"
+                              value={lini2FormData.total_price}
+                              onChange={(e) =>
+                                setLini2FormData({ ...lini2FormData, total_price: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="total_price_lini_2">Total Biaya di Lini 2</Label>
+                            <Input
+                              id="total_price_lini_2"
+                              type="number"
+                              step="0.01"
+                              value={lini2FormData.total_price_lini_2}
+                              onChange={(e) =>
+                                setLini2FormData({ ...lini2FormData, total_price_lini_2: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2 col-span-2">
+                            <Label>Total Biaya (Final)</Label>
+                            <div className="text-2xl font-bold text-emerald-600">
+                              {formatCurrency(
+                                (parseFloat(lini2FormData.total_price) || 0) +
+                                (parseFloat(lini2FormData.total_price_lini_2) || 0)
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -919,9 +984,7 @@ export default function BarangLini() {
                           >
                             Batal
                           </Button>
-                          <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
-                            {editingLini2Item ? "Update" : "Simpan"}
-                          </Button>
+                          <Button type="submit">Simpan</Button>
                         </div>
                       </form>
                     </DialogContent>
@@ -933,23 +996,28 @@ export default function BarangLini() {
                     <TableHeader>
                       <TableRow className="bg-gradient-to-r from-slate-100 to-emerald-100 hover:from-slate-100 hover:to-emerald-100">
                         <TableHead className="font-semibold text-slate-700">SKU</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Nama Barang</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Asal</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Lokasi</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Tgl Masuk</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Tgl Keluar</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Hari Simpan</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Hari di Lini 1</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Berat (kg)</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Volume (m³)</TableHead>
                         <TableHead className="font-semibold text-slate-700">Status</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Nama Barang</TableHead>
+                        <TableHead className="font-semibold text-slate-700">AWB</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Tanggal Masuk (L1)</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Tanggal Masuk L2</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Lama Simpan L2</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Harga Total (L1)</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Harga Total L2</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Harga Final</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Jumlah</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Satuan</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Gudang</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Zona</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Rak</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Lot</TableHead>
                         <TableHead className="text-right font-semibold text-slate-700">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {lini2Items.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={12} className="text-center text-slate-500 py-12">
+                          <TableCell colSpan={17} className="text-center text-slate-500 py-12">
                             <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
                               <Package className="h-12 w-12 text-slate-300" />
                             </div>
@@ -958,61 +1026,85 @@ export default function BarangLini() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        lini2Items.map((item) => (
-                          <TableRow key={item.id} className="hover:bg-emerald-50 transition-colors">
-                            <TableCell className="font-medium">{item.sku}</TableCell>
-                            <TableCell>{item.nama_barang}</TableCell>
-                            <TableCell>{item.asal || "-"}</TableCell>
-                            <TableCell>{item.lokasi || "-"}</TableCell>
-                            <TableCell>
-                              {new Date(item.tgl_masuk).toLocaleDateString("id-ID")}
-                            </TableCell>
-                            <TableCell>
-                              {item.tgl_keluar
-                                ? new Date(item.tgl_keluar).toLocaleDateString("id-ID")
-                                : "-"}
-                            </TableCell>
-                            <TableCell>{item.hari_simpan || "-"}</TableCell>
-                            <TableCell>{item.hari_di_lini_1 || "-"}</TableCell>
-                            <TableCell>{item.berat || "-"}</TableCell>
-                            <TableCell>{item.volume || "-"}</TableCell>
-                            <TableCell>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  item.status === "Aktif"
-                                    ? "bg-green-100 text-green-800"
-                                    : item.status === "Dalam Proses"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : item.status === "Keluar"
-                                    ? "bg-gray-100 text-gray-800"
-                                    : "bg-purple-100 text-purple-800"
-                                }`}
-                              >
-                                {item.status}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleLini2Edit(item)}
-                                  className="hover:bg-emerald-50"
+                        lini2ItemsWithStock.map((item) => {
+                          const lamaSimpanLini2 = item.storage_duration_lini_2 || 0;
+                          const lamaSimpanLini2Text = lamaSimpanLini2 >= 0 ? `${lamaSimpanLini2} hari` : "0 hari";
+                          const biayaLini1 = item.total_price || 0;
+                          const biayaLini2 = item.total_price_lini_2 || 0;
+                          const totalBiaya = item.final_price || 0;
+
+                          return (
+                            <TableRow key={item.id} className="hover:bg-emerald-50 transition-colors">
+                              <TableCell className="font-mono text-indigo-600">{item.sku}</TableCell>
+                              <TableCell>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    item.status === "Diambil"
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-emerald-100 text-emerald-800"
+                                  }`}
                                 >
-                                  <Pencil className="w-4 h-4 text-emerald-600" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleLini2Delete(item.id)}
-                                  className="hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4 text-red-600" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
+                                  {item.status}
+                                </span>
+                              </TableCell>
+                              <TableCell className="font-medium">{item.item_name || item.nama_barang}</TableCell>
+                              <TableCell>{item.awb || "-"}</TableCell>
+                              <TableCell>
+                                {item.item_arrival_date
+                                  ? new Date(item.item_arrival_date).toLocaleDateString("id-ID")
+                                  : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {item.item_arrival_date_lini_2
+                                  ? new Date(item.item_arrival_date_lini_2).toLocaleDateString("id-ID")
+                                  : "-"}
+                              </TableCell>
+                              <TableCell>
+                                <span className="font-semibold text-purple-600">
+                                  {lamaSimpanLini2Text}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                {formatCurrency(biayaLini1)}
+                              </TableCell>
+                              <TableCell>
+                                {formatCurrency(biayaLini2)}
+                              </TableCell>
+                              <TableCell className="font-bold text-emerald-600">
+                                {formatCurrency(totalBiaya)}
+                              </TableCell>
+                              <TableCell>{item.stock_quantity || "-"}</TableCell>
+                              <TableCell>{item.stock_unit || "-"}</TableCell>
+                              <TableCell>{item.stock_warehouses || "-"}</TableCell>
+                              <TableCell>{item.stock_zones || "-"}</TableCell>
+                              <TableCell>{item.stock_racks || "-"}</TableCell>
+                              <TableCell>{item.stock_lots || "-"}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDiambilSupplierLini2(item)}
+                                    disabled={item.status === "Diambil"}
+                                    className="text-green-600 hover:bg-green-50 disabled:opacity-50"
+                                    title="Diambil oleh Supplier"
+                                  >
+                                    <UserCheck className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleLini2Delete(item.id)}
+                                    className="hover:bg-red-50"
+                                    title="Hapus Data"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>

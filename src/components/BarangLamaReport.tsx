@@ -13,14 +13,19 @@ import Header from './Header';
 import Navigation from './Navigation';
 
 interface BarangLama {
-  lokasi: string;
   id: string;
+  sku: string;
   nama_barang: string;
-  tanggal_masuk_barang: string;
-  batas_waktu_pengambilan: string | null;
-  lama_penyimpanan: number;
-  status_pengambilan: string;
-  sisa_hari: number | null;
+  tanggal_masuk_lini_1: string;
+  tanggal_masuk_lini_2: string;
+  tanggal_diambil: string;
+  lama_simpan: number;
+  hari_di_lini_1: number;
+  berat: number;
+  volume: number;
+  total_biaya_lini_1: number;
+  total_biaya_lini_2: number;
+  status: string;
   created_at: string;
 }
 
@@ -28,13 +33,15 @@ interface PerpindahanLini {
   id: string;
   sku: string;
   nama_barang: string;
+  kode_barang: string;
+  nomor_dokumen_pabean: string;
   tanggal_masuk_lini_1: string;
-  tanggal_pindah_ke_lini_2: string | null;
-  tanggal_masuk_lini_2: string;
+  tanggal_pindah_lini_2: string;
   hari_di_lini_1: number;
-  hari_di_lini_2: number;
-  total_hari_penyimpanan: number;
-  status: string;
+  berat: number;
+  volume: number;
+  lokasi: string;
+  total_biaya_lini_1: number;
   created_at: string;
 }
 
@@ -43,8 +50,6 @@ export default function BarangLamaReport() {
   const [barangLama, setBarangLama] = useState<BarangLama[]>([]);
   const [perpindahanLini, setPerpindahanLini] = useState<PerpindahanLini[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterLokasi, setFilterLokasi] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,15 +58,10 @@ export default function BarangLamaReport() {
 
     const channel = supabase
       .channel('report-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stock' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'barang_diambil' }, () => {
         fetchBarangLama();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'barang_lini_1' }, () => {
-        fetchBarangLama();
-        fetchPerpindahanLini();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'barang_lini_2' }, () => {
-        fetchBarangLama();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perpindahan_lini' }, () => {
         fetchPerpindahanLini();
       })
       .subscribe();
@@ -74,12 +74,15 @@ export default function BarangLamaReport() {
   const fetchBarangLama = async () => {
     try {
       setLoading(true);
+      // Fetch data dari barang_diambil yang statusnya "Diambil"
       const { data, error } = await supabase
-        .from('v_report_barang_lama')
+        .from('barang_diambil')
         .select('*')
-        .order('lama_penyimpanan', { ascending: false });
+        .eq('status', 'Diambil')
+        .order('tanggal_diambil', { ascending: false });
 
       if (error) throw error;
+      
       setBarangLama(data || []);
     } catch (error) {
       console.error('Error fetching barang lama:', error);
@@ -96,11 +99,12 @@ export default function BarangLamaReport() {
   const fetchPerpindahanLini = async () => {
     try {
       const { data, error } = await supabase
-        .from('v_report_perpindahan_lini')
+        .from('perpindahan_lini')
         .select('*')
-        .order('tanggal_masuk_lini_2', { ascending: false });
+        .order('tanggal_pindah_lini_2', { ascending: false });
 
       if (error) throw error;
+      
       setPerpindahanLini(data || []);
     } catch (error) {
       console.error('Error fetching perpindahan lini:', error);
@@ -112,58 +116,56 @@ export default function BarangLamaReport() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Terlambat':
-        return <Badge variant="destructive" className="flex items-center gap-1">
-          <AlertTriangle className="w-3 h-3" />
-          Terlambat
-        </Badge>;
-      case 'Mendekati Batas':
-        return <Badge variant="default" className="bg-yellow-500 flex items-center gap-1">
-          <Clock className="w-3 h-3" />
-          Mendekati Batas
-        </Badge>;
-      default:
-        return <Badge variant="default" className="bg-green-500 flex items-center gap-1">
-          <CheckCircle className="w-3 h-3" />
-          Normal
-        </Badge>;
-    }
-  };
-
   const filteredBarangLama = barangLama.filter((item) => {
-    const matchSearch = item.nama_barang.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchLokasi = filterLokasi === 'all' || item.lokasi === filterLokasi;
-    const matchStatus = filterStatus === 'all' || item.status_pengambilan === filterStatus;
-    return matchSearch && matchLokasi && matchStatus;
+    const matchSearch = 
+      item.nama_barang.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchSearch;
   });
 
-  const filteredPerpindahan = perpindahanLini.filter((item) =>
-    item.nama_barang.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPerpindahan = perpindahanLini.filter((item) => {
+    const matchSearch = 
+      item.nama_barang.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchSearch;
+  });
 
   const exportToCSV = (data: any[], filename: string) => {
-    const headers = Object.keys(data[0] || {});
-    const csv = [
-      headers.join(','),
-      ...data.map(row => headers.map(header => JSON.stringify(row[header] || '')).join(','))
-    ].join('\n');
+    if (data.length === 0) {
+      toast({
+        title: 'Tidak ada data',
+        description: 'Tidak ada data untuk diekspor',
+        variant: 'destructive',
+      });
+      return;
+    }
 
+    const headers = Object.keys(data[0]).join(',');
+    const rows = data.map(row => Object.values(row).join(',')).join('\n');
+    const csv = `${headers}\n${rows}`;
+    
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const stats = {
     total: barangLama.length,
-    terlambat: barangLama.filter(b => b.status_pengambilan === 'Terlambat').length,
-    mendekati: barangLama.filter(b => b.status_pengambilan === 'Mendekati Batas').length,
-    normal: barangLama.filter(b => b.status_pengambilan === 'Normal').length,
+    lebih30Hari: barangLama.filter(b => b.lama_simpan > 30).length,
+    lebih60Hari: barangLama.filter(b => b.lama_simpan > 60).length,
+    lebih90Hari: barangLama.filter(b => b.lama_simpan > 90).length,
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
   };
 
   return (
@@ -182,7 +184,7 @@ export default function BarangLamaReport() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-slate-600">Total Barang</CardTitle>
+                <CardTitle className="text-sm font-medium text-slate-600">Total Barang di Lini 2</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.total}</div>
@@ -190,26 +192,26 @@ export default function BarangLamaReport() {
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-red-600">Terlambat</CardTitle>
+                <CardTitle className="text-sm font-medium text-yellow-600">&gt; 30 Hari</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{stats.terlambat}</div>
+                <div className="text-2xl font-bold text-yellow-600">{stats.lebih30Hari}</div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-yellow-600">Mendekati Batas</CardTitle>
+                <CardTitle className="text-sm font-medium text-orange-600">&gt; 60 Hari</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{stats.mendekati}</div>
+                <div className="text-2xl font-bold text-orange-600">{stats.lebih60Hari}</div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-green-600">Normal</CardTitle>
+                <CardTitle className="text-sm font-medium text-red-600">&gt; 90 Hari</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{stats.normal}</div>
+                <div className="text-2xl font-bold text-red-600">{stats.lebih90Hari}</div>
               </CardContent>
             </Card>
           </div>
@@ -226,11 +228,11 @@ export default function BarangLamaReport() {
                 <CardHeader>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                      <CardTitle>Report Barang Lama di Gudang</CardTitle>
-                      <CardDescription>Monitoring lama penyimpanan dan batas waktu pengambilan</CardDescription>
+                      <CardTitle>Barang Lama di Lini 2</CardTitle>
+                      <CardDescription>Barang yang sudah diambil supplier dari Lini 2</CardDescription>
                     </div>
                     <Button 
-                      onClick={() => exportToCSV(filteredBarangLama, 'report_barang_lama')}
+                      onClick={() => exportToCSV(filteredBarangLama, 'report_barang_lama_lini2')}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <Download className="w-4 h-4 mr-2" />
@@ -239,97 +241,97 @@ export default function BarangLamaReport() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-col md:flex-row gap-4 mb-6">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                      <Input
-                        placeholder="Cari nama barang..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    <Select value={filterLokasi} onValueChange={setFilterLokasi}>
-                      <SelectTrigger className="w-full md:w-48">
-                        <SelectValue placeholder="Filter Lokasi" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Semua Lokasi</SelectItem>
-                        <SelectItem value="Stock Gudang">Stock Gudang</SelectItem>
-                        <SelectItem value="Lini 1">Lini 1</SelectItem>
-                        <SelectItem value="Lini 2">Lini 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger className="w-full md:w-48">
-                        <SelectValue placeholder="Filter Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Semua Status</SelectItem>
-                        <SelectItem value="Normal">Normal</SelectItem>
-                        <SelectItem value="Mendekati Batas">Mendekati Batas</SelectItem>
-                        <SelectItem value="Terlambat">Terlambat</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="relative mb-6">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <Input
+                      placeholder="Cari SKU atau nama barang..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
 
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Lokasi</TableHead>
+                          <TableHead>SKU</TableHead>
                           <TableHead>Nama Barang</TableHead>
-                          <TableHead>Tanggal Masuk</TableHead>
-                          <TableHead>Lama Simpan</TableHead>
-                          <TableHead>Batas Waktu</TableHead>
-                          <TableHead>Sisa Hari</TableHead>
+                          <TableHead>Tgl Masuk Lini 1</TableHead>
+                          <TableHead>Tgl Masuk Lini 2</TableHead>
+                          <TableHead>Hari di Lini 1</TableHead>
+                          <TableHead>Hari di Lini 2</TableHead>
+                          <TableHead>Total Biaya Lini 1</TableHead>
+                          <TableHead>Total Biaya Lini 2</TableHead>
+                          <TableHead>Total Biaya</TableHead>
                           <TableHead>Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {loading ? (
                           <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8">
+                            <TableCell colSpan={10} className="text-center py-8">
                               Loading...
                             </TableCell>
                           </TableRow>
                         ) : filteredBarangLama.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8 text-slate-500">
-                              Tidak ada data
+                            <TableCell colSpan={10} className="text-center py-8 text-slate-500">
+                              Tidak ada barang yang sudah diambil dari Lini 2
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredBarangLama.map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell>
-                                <Badge variant="outline">{item.lokasi}</Badge>
-                              </TableCell>
-                              <TableCell className="font-medium">{item.nama_barang}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-4 h-4 text-slate-400" />
-                                  {new Date(item.tanggal_masuk_barang).toLocaleDateString('id-ID')}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <span className="font-semibold">{item.lama_penyimpanan}</span> hari
-                              </TableCell>
-                              <TableCell>
-                                {item.batas_waktu_pengambilan 
-                                  ? new Date(item.batas_waktu_pengambilan).toLocaleDateString('id-ID')
-                                  : '-'}
-                              </TableCell>
-                              <TableCell>
-                                {item.sisa_hari !== null ? (
-                                  <span className={item.sisa_hari < 0 ? 'text-red-600 font-semibold' : ''}>
-                                    {item.sisa_hari} hari
+                          filteredBarangLama.map((item) => {
+                            const totalBiaya = (item.total_biaya_lini_1 || 0) + (item.total_biaya_lini_2 || 0);
+                            return (
+                              <TableRow key={item.id}>
+                                <TableCell className="font-mono text-sm">{item.sku}</TableCell>
+                                <TableCell className="font-medium">{item.nama_barang}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-slate-400" />
+                                    {item.tanggal_masuk_lini_1 
+                                      ? new Date(item.tanggal_masuk_lini_1).toLocaleDateString('id-ID')
+                                      : '-'}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-blue-400" />
+                                    {item.tanggal_masuk_lini_2
+                                      ? new Date(item.tanggal_masuk_lini_2).toLocaleDateString('id-ID')
+                                      : '-'}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="font-semibold text-slate-600">
+                                    {item.hari_di_lini_1 || '-'} hari
                                   </span>
-                                ) : '-'}
-                              </TableCell>
-                              <TableCell>{getStatusBadge(item.status_pengambilan)}</TableCell>
-                            </TableRow>
-                          ))
+                                </TableCell>
+                                <TableCell>
+                                  <span className="font-semibold text-blue-600">
+                                    {item.lama_simpan || '-'} hari
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  {item.total_biaya_lini_1 ? formatCurrency(item.total_biaya_lini_1) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  {item.total_biaya_lini_2 ? formatCurrency(item.total_biaya_lini_2) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <span className="font-bold text-green-600">
+                                    {formatCurrency(totalBiaya)}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                                    Diambil
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
                         )}
                       </TableBody>
                     </Table>
@@ -344,8 +346,8 @@ export default function BarangLamaReport() {
                 <CardHeader>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                      <CardTitle>Report Perpindahan Lini</CardTitle>
-                      <CardDescription>Tracking perpindahan barang dari Lini 1 ke Lini 2</CardDescription>
+                      <CardTitle>Perpindahan Barang Lini 1 ke Lini 2</CardTitle>
+                      <CardDescription>Riwayat perpindahan barang dari Lini 1 ke Lini 2</CardDescription>
                     </div>
                     <Button 
                       onClick={() => exportToCSV(filteredPerpindahan, 'report_perpindahan_lini')}
@@ -373,19 +375,23 @@ export default function BarangLamaReport() {
                         <TableRow>
                           <TableHead>SKU</TableHead>
                           <TableHead>Nama Barang</TableHead>
-                          <TableHead>Masuk Lini 1</TableHead>
-                          <TableHead>Pindah ke Lini 2</TableHead>
+                          <TableHead>Tgl Masuk Lini 1</TableHead>
+                          <TableHead>Tgl Masuk Lini 2</TableHead>
                           <TableHead>Hari di Lini 1</TableHead>
-                          <TableHead>Hari di Lini 2</TableHead>
-                          <TableHead>Total Hari</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead>Total Biaya</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredPerpindahan.length === 0 ? (
+                        {loading ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8 text-slate-500">
-                              Tidak ada data perpindahan
+                            <TableCell colSpan={6} className="text-center py-8">
+                              Loading...
+                            </TableCell>
+                          </TableRow>
+                        ) : filteredPerpindahan.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                              Tidak ada data perpindahan barang
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -394,28 +400,28 @@ export default function BarangLamaReport() {
                               <TableCell className="font-mono text-sm">{item.sku}</TableCell>
                               <TableCell className="font-medium">{item.nama_barang}</TableCell>
                               <TableCell>
-                                {item.tanggal_masuk_lini_1 
-                                  ? new Date(item.tanggal_masuk_lini_1).toLocaleDateString('id-ID')
-                                  : '-'}
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4 text-slate-400" />
+                                  {item.tanggal_masuk_lini_1 
+                                    ? new Date(item.tanggal_masuk_lini_1).toLocaleDateString('id-ID')
+                                    : '-'}
+                                </div>
                               </TableCell>
                               <TableCell>
-                                {item.tanggal_pindah_ke_lini_2 
-                                  ? new Date(item.tanggal_pindah_ke_lini_2).toLocaleDateString('id-ID')
-                                  : new Date(item.tanggal_masuk_lini_2).toLocaleDateString('id-ID')}
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4 text-blue-400" />
+                                  {new Date(item.tanggal_pindah_lini_2).toLocaleDateString('id-ID')}
+                                </div>
                               </TableCell>
                               <TableCell>
-                                <span className="font-semibold">{item.hari_di_lini_1}</span> hari
+                                <span className="font-semibold text-blue-600">
+                                  {item.hari_di_lini_1 || '-'} hari
+                                </span>
                               </TableCell>
                               <TableCell>
-                                <span className="font-semibold">{item.hari_di_lini_2}</span> hari
-                              </TableCell>
-                              <TableCell>
-                                <span className="font-bold text-blue-600">{item.total_hari_penyimpanan}</span> hari
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={item.status === 'Aktif' ? 'default' : 'secondary'}>
-                                  {item.status}
-                                </Badge>
+                                <span className="font-bold text-green-600">
+                                  {item.total_biaya_lini_1 ? formatCurrency(item.total_biaya_lini_1) : '-'}
+                                </span>
                               </TableCell>
                             </TableRow>
                           ))

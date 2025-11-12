@@ -28,24 +28,20 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Download, Filter, FileText, TrendingUp, TrendingDown } from "lucide-react";
 
-interface AccountBalance {
+interface LabaRugiDetail {
   account_code: string;
   account_name: string;
   account_type: string;
-  debit: number;
-  credit: number;
-  balance: number;
+  display_amount: number;
 }
 
 export default function ProfitLossReport() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
-  const [revenues, setRevenues] = useState<AccountBalance[]>([]);
-  const [cogs, setCogs] = useState<AccountBalance[]>([]);
-  const [expenses, setExpenses] = useState<AccountBalance[]>([]);
-  const [otherIncome, setOtherIncome] = useState<AccountBalance[]>([]);
-  const [otherExpenses, setOtherExpenses] = useState<AccountBalance[]>([]);
+  const [revenues, setRevenues] = useState<LabaRugiDetail[]>([]);
+  const [cogs, setCogs] = useState<LabaRugiDetail[]>([]);
+  const [expenses, setExpenses] = useState<LabaRugiDetail[]>([]);
   
   const [filterType, setFilterType] = useState<"month" | "year" | "custom">("month");
   const [dateFrom, setDateFrom] = useState(
@@ -74,94 +70,39 @@ export default function ProfitLossReport() {
     setLoading(true);
 
     try {
-      // Fetch journal entries for the period
-      const { data: journalEntries, error: journalError } = await supabase
-        .from("journal_entries")
-        .select("account_code, debit, credit")
+      // Fetch data from vw_laba_rugi_detail view
+      const { data: labaRugiData, error: labaRugiError } = await supabase
+        .from("vw_laba_rugi_detail")
+        .select("account_code, account_name, account_type, display_amount")
         .gte("transaction_date", dateFrom)
-        .lte("transaction_date", dateTo);
-
-      if (journalError) throw journalError;
-
-      // Validate journal balance
-      const totalDebit = journalEntries?.reduce((sum, entry) => sum + entry.debit, 0) || 0;
-      const totalCredit = journalEntries?.reduce((sum, entry) => sum + entry.credit, 0) || 0;
-      
-      if (Math.abs(totalDebit - totalCredit) > 0.01) {
-        toast({
-          title: "⚠️ Data tidak seimbang",
-          description: `Total Debit (${formatRupiah(totalDebit)}) ≠ Total Kredit (${formatRupiah(totalCredit)}). Periksa jurnal manual di menu Journal Entries.`,
-          variant: "destructive",
-        });
-      }
-
-      // Fetch all COA accounts
-      const { data: coaAccounts, error: coaError } = await supabase
-        .from("chart_of_accounts")
-        .select("account_code, account_name, account_type, normal_balance")
-        .eq("is_active", true)
+        .lte("transaction_date", dateTo)
         .order("account_code");
 
-      if (coaError) throw coaError;
+      if (labaRugiError) throw labaRugiError;
 
-      // Calculate balances per account
-      const balances: { [key: string]: { debit: number; credit: number } } = {};
-      
-      journalEntries?.forEach((entry) => {
-        if (!balances[entry.account_code]) {
-          balances[entry.account_code] = { debit: 0, credit: 0 };
-        }
-        balances[entry.account_code].debit += entry.debit;
-        balances[entry.account_code].credit += entry.credit;
-      });
+      // Categorize accounts by account_type
+      const revenueAccounts: LabaRugiDetail[] = [];
+      const cogsAccounts: LabaRugiDetail[] = [];
+      const expenseAccounts: LabaRugiDetail[] = [];
 
-      // Categorize accounts
-      const revenueAccounts: AccountBalance[] = [];
-      const cogsAccounts: AccountBalance[] = [];
-      const expenseAccounts: AccountBalance[] = [];
-      const otherIncomeAccounts: AccountBalance[] = [];
-      const otherExpenseAccounts: AccountBalance[] = [];
-
-      coaAccounts?.forEach((acc) => {
-        const accountBalance = balances[acc.account_code];
-        if (!accountBalance || (accountBalance.debit === 0 && accountBalance.credit === 0)) return;
-
-        const netBalance = accountBalance.debit - accountBalance.credit;
-        const finalBalance = acc.normal_balance === "Kredit" ? -netBalance : netBalance;
-
-        const balance: AccountBalance = {
-          account_code: acc.account_code,
-          account_name: acc.account_name,
-          account_type: acc.account_type,
-          debit: accountBalance.debit,
-          credit: accountBalance.credit,
-          balance: finalBalance,
-        };
-
-        if (acc.account_type === "Pendapatan") {
-          revenueAccounts.push(balance);
-        } else if (acc.account_type === "Beban Pokok Penjualan") {
-          cogsAccounts.push(balance);
-        } else if (acc.account_type === "Beban Operasional") {
-          expenseAccounts.push(balance);
-        } else if (acc.account_type === "Pendapatan & Beban Lain-lain") {
-          if (acc.account_code.startsWith("7-1")) {
-            otherIncomeAccounts.push(balance);
-          } else if (acc.account_code.startsWith("7-2")) {
-            otherExpenseAccounts.push(balance);
-          }
+      labaRugiData?.forEach((item) => {
+        const normalizedType = (item.account_type || "").trim().toLowerCase();
+        
+        if (normalizedType === "pendapatan") {
+          revenueAccounts.push(item);
+        } else if (normalizedType === "beban pokok penjualan") {
+          cogsAccounts.push(item);
+        } else if (normalizedType === "beban operasional") {
+          expenseAccounts.push(item);
         }
       });
 
       setRevenues(revenueAccounts);
       setCogs(cogsAccounts);
       setExpenses(expenseAccounts);
-      setOtherIncome(otherIncomeAccounts);
-      setOtherExpenses(otherExpenseAccounts);
 
-      // Success notification
       toast({
-        title: "✅ Laporan diperbarui otomatis",
+        title: "✅ Laporan diperbarui",
         description: `Data laporan periode ${dateFrom} s/d ${dateTo} berhasil dimuat`,
       });
     } catch (error: any) {
@@ -179,57 +120,48 @@ export default function ProfitLossReport() {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
-  const totalRevenue = revenues.reduce((sum, acc) => sum + acc.balance, 0);
-  const totalCOGS = cogs.reduce((sum, acc) => sum + acc.balance, 0);
+  // Calculate totals using display_amount
+  const totalRevenue = revenues.reduce((sum, acc) => sum + (acc.display_amount || 0), 0);
+  const totalCOGS = cogs.reduce((sum, acc) => sum + (acc.display_amount || 0), 0);
   const grossProfit = totalRevenue - totalCOGS;
-  const totalExpenses = expenses.reduce((sum, acc) => sum + acc.balance, 0);
-  const operatingProfit = grossProfit - totalExpenses;
-  const totalOtherIncome = otherIncome.reduce((sum, acc) => sum + acc.balance, 0);
-  const totalOtherExpenses = otherExpenses.reduce((sum, acc) => sum + acc.balance, 0);
-  const netProfit = operatingProfit + totalOtherIncome - totalOtherExpenses;
+  const totalExpenses = expenses.reduce((sum, acc) => sum + (acc.display_amount || 0), 0);
+  const netProfit = totalRevenue - (totalCOGS + totalExpenses);
 
   const exportToCSV = () => {
     const csv = [
       ["LAPORAN LABA RUGI"],
       [`Periode: ${dateFrom} s/d ${dateTo}`],
       [""],
-      ["Akun", "Debit", "Kredit", "Saldo"],
+      ["Akun", "Saldo"],
       [""],
       ["PENDAPATAN"],
       ...revenues.map((acc) => [
         `${acc.account_code} - ${acc.account_name}`,
-        acc.debit.toFixed(2),
-        acc.credit.toFixed(2),
-        acc.balance.toFixed(2),
+        acc.display_amount.toFixed(0),
       ]),
-      ["", "", "Total Pendapatan", totalRevenue.toFixed(2)],
+      ["", `Total Pendapatan: ${totalRevenue.toFixed(0)}`],
       [""],
       ["BEBAN POKOK PENJUALAN"],
       ...cogs.map((acc) => [
         `${acc.account_code} - ${acc.account_name}`,
-        acc.debit.toFixed(2),
-        acc.credit.toFixed(2),
-        acc.balance.toFixed(2),
+        acc.display_amount.toFixed(0),
       ]),
-      ["", "", "Total HPP", totalCOGS.toFixed(2)],
-      ["", "", "LABA KOTOR", grossProfit.toFixed(2)],
+      ["", `Total HPP: ${totalCOGS.toFixed(0)}`],
+      ["", `LABA KOTOR: ${grossProfit.toFixed(0)}`],
       [""],
       ["BEBAN OPERASIONAL"],
       ...expenses.map((acc) => [
         `${acc.account_code} - ${acc.account_name}`,
-        acc.debit.toFixed(2),
-        acc.credit.toFixed(2),
-        acc.balance.toFixed(2),
+        acc.display_amount.toFixed(0),
       ]),
-      ["", "", "Total Beban Operasional", totalExpenses.toFixed(2)],
-      ["", "", "LABA OPERASIONAL", operatingProfit.toFixed(2)],
+      ["", `Total Beban Operasional: ${totalExpenses.toFixed(0)}`],
       [""],
-      ["LABA BERSIH", "", "", netProfit.toFixed(2)],
+      ["LABA BERSIH", netProfit.toFixed(0)],
     ]
       .map((row) => row.join(","))
       .join("\n");
@@ -324,26 +256,34 @@ export default function ProfitLossReport() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead>Akun</TableHead>
-                      <TableHead className="text-right">Debit</TableHead>
-                      <TableHead className="text-right">Kredit</TableHead>
+                      <TableHead>Kode Akun</TableHead>
+                      <TableHead>Nama Akun</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {revenues.map((acc) => (
-                      <TableRow key={acc.account_code}>
-                        <TableCell className="font-medium">
-                          {acc.account_code} - {acc.account_name}
+                    {revenues.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-slate-500">
+                          Tidak ada data pendapatan
                         </TableCell>
-                        <TableCell className="text-right">{formatRupiah(acc.debit)}</TableCell>
-                        <TableCell className="text-right">{formatRupiah(acc.credit)}</TableCell>
-                        <TableCell className="text-right font-semibold">{formatRupiah(acc.balance)}</TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      revenues.map((acc) => (
+                        <TableRow key={acc.account_code}>
+                          <TableCell className="font-mono">{acc.account_code}</TableCell>
+                          <TableCell className="font-medium">{acc.account_name}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatRupiah(acc.display_amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                     <TableRow className="bg-green-50 font-bold">
-                      <TableCell colSpan={3}>Total Pendapatan</TableCell>
-                      <TableCell className="text-right text-green-700">{formatRupiah(totalRevenue)}</TableCell>
+                      <TableCell colSpan={2}>Total Pendapatan</TableCell>
+                      <TableCell className="text-right text-green-700">
+                        {formatRupiah(totalRevenue)}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -357,26 +297,34 @@ export default function ProfitLossReport() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead>Akun</TableHead>
-                      <TableHead className="text-right">Debit</TableHead>
-                      <TableHead className="text-right">Kredit</TableHead>
+                      <TableHead>Kode Akun</TableHead>
+                      <TableHead>Nama Akun</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {cogs.map((acc) => (
-                      <TableRow key={acc.account_code}>
-                        <TableCell className="font-medium">
-                          {acc.account_code} - {acc.account_name}
+                    {cogs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-slate-500">
+                          Tidak ada data beban pokok penjualan
                         </TableCell>
-                        <TableCell className="text-right">{formatRupiah(acc.debit)}</TableCell>
-                        <TableCell className="text-right">{formatRupiah(acc.credit)}</TableCell>
-                        <TableCell className="text-right font-semibold">{formatRupiah(acc.balance)}</TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      cogs.map((acc) => (
+                        <TableRow key={acc.account_code}>
+                          <TableCell className="font-mono">{acc.account_code}</TableCell>
+                          <TableCell className="font-medium">{acc.account_name}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatRupiah(acc.display_amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                     <TableRow className="bg-orange-50 font-bold">
-                      <TableCell colSpan={3}>Total Beban Pokok Penjualan</TableCell>
-                      <TableCell className="text-right text-orange-700">{formatRupiah(totalCOGS)}</TableCell>
+                      <TableCell colSpan={2}>Total Beban Pokok Penjualan</TableCell>
+                      <TableCell className="text-right text-orange-700">
+                        {formatRupiah(totalCOGS)}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -385,8 +333,12 @@ export default function ProfitLossReport() {
               {/* LABA KOTOR */}
               <div className="border-2 border-blue-500 rounded-lg p-4 bg-blue-50">
                 <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-blue-700">LABA KOTOR</span>
-                  <span className="text-2xl font-bold text-blue-700">{formatRupiah(grossProfit)}</span>
+                  <span className="text-xl font-bold text-blue-700">
+                    LABA KOTOR = Total Pendapatan - Total Beban Pokok Penjualan
+                  </span>
+                  <span className="text-2xl font-bold text-blue-700">
+                    {formatRupiah(grossProfit)}
+                  </span>
                 </div>
               </div>
 
@@ -398,26 +350,34 @@ export default function ProfitLossReport() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead>Akun</TableHead>
-                      <TableHead className="text-right">Debit</TableHead>
-                      <TableHead className="text-right">Kredit</TableHead>
+                      <TableHead>Kode Akun</TableHead>
+                      <TableHead>Nama Akun</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {expenses.map((acc) => (
-                      <TableRow key={acc.account_code}>
-                        <TableCell className="font-medium">
-                          {acc.account_code} - {acc.account_name}
+                    {expenses.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-slate-500">
+                          Tidak ada data beban operasional
                         </TableCell>
-                        <TableCell className="text-right">{formatRupiah(acc.debit)}</TableCell>
-                        <TableCell className="text-right">{formatRupiah(acc.credit)}</TableCell>
-                        <TableCell className="text-right font-semibold">{formatRupiah(acc.balance)}</TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      expenses.map((acc) => (
+                        <TableRow key={acc.account_code}>
+                          <TableCell className="font-mono">{acc.account_code}</TableCell>
+                          <TableCell className="font-medium">{acc.account_name}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatRupiah(acc.display_amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                     <TableRow className="bg-red-50 font-bold">
-                      <TableCell colSpan={3}>Total Beban Operasional</TableCell>
-                      <TableCell className="text-right text-red-700">{formatRupiah(totalExpenses)}</TableCell>
+                      <TableCell colSpan={2}>Total Beban Operasional</TableCell>
+                      <TableCell className="text-right text-red-700">
+                        {formatRupiah(totalExpenses)}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -433,7 +393,7 @@ export default function ProfitLossReport() {
                       <TrendingDown className="h-8 w-8 text-red-600" />
                     )}
                     <span className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                      LABA BERSIH = Pendapatan - Beban
+                      LABA BERSIH = Total Pendapatan - (Total Beban Pokok Penjualan + Total Beban Operasional)
                     </span>
                   </div>
                   <span className={`text-3xl font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>

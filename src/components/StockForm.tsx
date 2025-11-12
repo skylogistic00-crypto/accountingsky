@@ -1,46 +1,70 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Upload, Sparkles, Check, ChevronsUpDown, ArrowLeft, Package, Plus, Filter, Search, Tag, Layers, Box, Hash, DollarSign, ShoppingCart, Receipt, FileText, Eye, TrendingUp, AlertCircle, Barcode } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Plus,
+  Loader2,
+  Pencil,
+  Trash2,
+  Package,
+  ArrowLeft,
+  Search,
+  Filter,
+  Eye,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-interface StockForm {
+interface StockItem {
+  id: string;
   item_name: string;
-  category: string;
-  warehouse_id: string;
-  zone_id: string;
-  rack_id: string;
-  lot_id: string;
-  jenis_barang: string;
-  deskripsi: string;
-  unit: string;
-  barcode: string;
-  supplier_name: string;
-  nominal_barang: string;
-  ppn_type: string;
-  purchase_price: string;
-  selling_price: string;
-  ppn_beli: string;
-  ppn_jual: string;
-  hs_code: string;
-  hs_code_description: string;
-  tanggal_masuk_barang: string;
-  batas_waktu_pengambilan: string;
+  service_category: string;
+  service_type: string;
+  description: string;
   coa_account_code: string;
   coa_account_name: string;
+  item_arrival_date: string;
+  unit: string;
+  sku: string;
+  weight: string;
+  volume: string;
+  supplier_name: string;
+  warehouses: string;
+  zones: string;
+  racks: string;
+  lots: string;
   wms_reference_number: string;
   ceisa_document_number: string;
   ceisa_document_type: string;
@@ -48,55 +72,113 @@ interface StockForm {
   ceisa_status: string;
   wms_notes: string;
   ceisa_notes: string;
+  item_quantity: number;
+  ppn_status: string;
+  purchase_price: number;
+  selling_price: number;
+  ppn_on_purchase: number;
+  ppn_on_sale: number;
+  purchase_price_after_ppn: number;
+  selling_price_after_ppn: number;
+  airwaybills: string;
+  hs_code: string;
+  hs_category: string;
+  hs_sub_category: string;
+  hs_description: string;
 }
 
-interface HSCodeSuggestion {
+interface CategoryMapping {
+  service_category: string;
+  service_type: string;
+  description: string;
+}
+
+interface COAAccount {
+  account_code: string;
+  account_name: string;
+}
+
+interface Warehouse {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Zone {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Rack {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Lot {
+  id: string;
+  lot_number: string;
+}
+
+interface HSCode {
+  id: string;
   hs_code: string;
   description: string;
   category: string;
   sub_category: string;
-  similarity: number;
 }
 
+const CEISA_DOCUMENT_TYPES = [
+  "BC 2.0 – Pemberitahuan Impor Barang",
+  "BC 2.3 – Pemberitahuan Impor Barang untuk ditimbun di Tempat Penimbunan Berikat",
+  "BC 2.5 – Pemberitahuan Impor Barang dari Tempat Penimbunan Berikat",
+  "BC 2.7 – Pemberitahuan Pengeluaran untuk diangkut dari Tempat Penimbunan Berikat ke Tempat Penimbunan Berikat lainnya",
+  "BC 2.8 – Pemberitahuan Impor Barang dari Pusat Logistik Berikat",
+  "BC 3.0 – Pemberitahuan Ekspor Barang",
+  "BC 3.3 – Pemberitahuan Ekspor Barang melalui/dari Pusat Logistik Berikat",
+  "BC 4.0 – Pemberitahuan Pemasukan Barang asal Tempat Lain dalam Daerah Pabean ke Tempat Penimbunan Berikat",
+];
+
+const CEISA_STATUS_OPTIONS = ["Approved", "Rejected", "Completed"];
+
 export default function StockForm() {
-  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [autoDetecting, setAutoDetecting] = useState(false);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [stockItems, setStockItems] = useState<any[]>([]);
-  const [filteredStockItems, setFilteredStockItems] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [hsSuggestions, setHsSuggestions] = useState<HSCodeSuggestion[]>([]);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [formData, setFormData] = useState<StockForm>({
+  const [items, setItems] = useState<StockItem[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<string[]>([]);
+  const [descriptions, setDescriptions] = useState<string[]>([]);
+  const [coaAccounts, setCOAAccounts] = useState<COAAccount[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [racks, setRacks] = useState<Rack[]>([]);
+  const [lots, setLots] = useState<Lot[]>([]);
+  const [hsCategories, setHsCategories] = useState<string[]>([]);
+  const [hsSubCategories, setHsSubCategories] = useState<HSCode[]>([]);
+  const [hsDescriptions, setHsDescriptions] = useState<HSCode[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const [formData, setFormData] = useState({
     item_name: "",
-    category: "",
-    warehouse_id: "",
-    zone_id: "",
-    rack_id: "",
-    lot_id: "",
-    jenis_barang: "",
-    deskripsi: "",
-    unit: "",
-    barcode: "",
-    supplier_name: "",
-    nominal_barang: "0",
-    ppn_type: "Non-PKP",
-    purchase_price: "0",
-    selling_price: "0",
-    ppn_beli: "11",
-    ppn_jual: "11",
-    hs_code: "",
-    hs_code_description: "",
-    tanggal_masuk_barang: "",
-    batas_waktu_pengambilan: "",
+    service_category: "",
+    service_type: "",
+    description: "",
     coa_account_code: "",
     coa_account_name: "",
+    item_arrival_date: "",
+    unit: "",
+    sku: "",
+    weight: "",
+    volume: "",
+    supplier_name: "",
+    warehouses: "",
+    zones: "",
+    racks: "",
+    lots: "",
     wms_reference_number: "",
     ceisa_document_number: "",
     ceisa_document_type: "",
@@ -104,193 +186,507 @@ export default function StockForm() {
     ceisa_status: "",
     wms_notes: "",
     ceisa_notes: "",
+    item_quantity: 0,
+    ppn_status: "No",
+    purchase_price: 0,
+    selling_price: 0,
+    ppn_on_purchase: 0,
+    ppn_on_sale: 0,
+    purchase_price_after_ppn: 0,
+    selling_price_after_ppn: 0,
+    airwaybills: "",
+    hs_code: "",
+    hs_category: "",
+    hs_sub_category: "",
+    hs_description: "",
   });
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const [jenisBarangFilter, setJenisBarangFilter] = useState('ALL');
-  const [jenisBarangOptions, setJenisBarangOptions] = useState<string[]>([]);
-  const [deskripsiOptions, setDeskripsiOptions] = useState<string[]>([]);
-  const [subKategoriOptions, setSubKategoriOptions] = useState<string[]>([]);
-  const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [zones, setZones] = useState<any[]>([]);
-  const [racks, setRacks] = useState<any[]>([]);
-  const [lots, setLots] = useState<any[]>([]);
-  const [coaAccounts, setCoaAccounts] = useState<any[]>([]);
-  const [categoryMappings, setCategoryMappings] = useState<any[]>([]);
-  const [serviceCategories, setServiceCategories] = useState<string[]>([]);
-  const [jenisBarangOpen, setJenisBarangOpen] = useState(false);
-
-  const stockCategories = [
-    "Bahan baku",
-    "Bahan dalam proses (WIP)",
-    "Barang jadi",
-    "Barang dagangan",
-    "Paket / bundle",
-    "Suku cadang",
-    "MRO (perlengkapan operasional)",
-    "Barang habis pakai",
-    "Kemasan",
-    "Makanan",
-    "Minuman",
-    "Unit disewakan",
-    "Unit demo / pinjaman",
-    "Retur",
-    "Barang cacat / rusak",
-    "Barang kedaluwarsa",
-    "Barang dalam perjalanan",
-    "Barang titipan (konsinyasi)",
-    "Barang milik pihak ketiga"
-  ];
 
   useEffect(() => {
-    fetchSuppliers();
     fetchStockItems();
-    fetchJenisBarangOptions();
+    fetchCategories();
+    fetchCOAAccounts();
     fetchWarehouses();
-    fetchCoaAccounts();
-    fetchServiceCategories();
-
-    const channel = supabase
-      .channel('stock-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stock' }, () => {
-        fetchStockItems();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    fetchZones();
+    fetchRacks();
+    fetchLots();
+    fetchHSCategories();
   }, []);
 
   useEffect(() => {
-    let filtered = stockItems;
-
-    if (categoryFilter !== 'ALL') {
-      filtered = filtered.filter((item) => 
-        item.category && item.category.includes(categoryFilter)
-      );
+    if (formData.service_category) {
+      fetchServiceTypes(formData.service_category);
     }
+  }, [formData.service_category]);
 
-    if (jenisBarangFilter !== 'ALL') {
-      filtered = filtered.filter((item) => 
-        item.jenis_barang === jenisBarangFilter
-      );
+  useEffect(() => {
+    if (formData.service_type) {
+      fetchDescriptions(formData.service_type);
     }
+  }, [formData.service_type]);
 
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (item) =>
-          item.item_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.jenis_barang?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    if (formData.coa_account_code) {
+      const account = coaAccounts.find(
+        (acc) => acc.account_code === formData.coa_account_code,
       );
+      if (account) {
+        setFormData((prev) => ({
+          ...prev,
+          coa_account_name: account.account_name,
+        }));
+      }
     }
+  }, [formData.coa_account_code, coaAccounts]);
 
-    setFilteredStockItems(filtered);
-  }, [searchTerm, categoryFilter, jenisBarangFilter, stockItems]);
+  useEffect(() => {
+    if (formData.ppn_status === "Yes") {
+      calculatePPNPrices();
+    }
+  }, [
+    formData.purchase_price,
+    formData.selling_price,
+    formData.ppn_on_purchase,
+    formData.ppn_on_sale,
+    formData.ppn_status,
+  ]);
+
+  useEffect(() => {
+    if (formData.hs_category) {
+      fetchHSSubCategories(formData.hs_category);
+    }
+  }, [formData.hs_category]);
+
+  useEffect(() => {
+    if (formData.hs_category && formData.hs_sub_category) {
+      fetchHSDescriptions(formData.hs_category, formData.hs_sub_category);
+    }
+  }, [formData.hs_category, formData.hs_sub_category]);
+
+  const calculatePPNPrices = () => {
+    const purchaseAfterPPN =
+      formData.purchase_price * (1 + formData.ppn_on_purchase / 100);
+    const sellingAfterPPN =
+      formData.selling_price * (1 + formData.ppn_on_sale / 100);
+
+    setFormData((prev) => ({
+      ...prev,
+      purchase_price_after_ppn: purchaseAfterPPN,
+      selling_price_after_ppn: sellingAfterPPN,
+    }));
+  };
+
+  const formatRupiah = (value: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const DetailDialog = ({ item }: { item: StockItem }) => {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="sm">
+            <Eye className="w-4 h-4 text-indigo-600" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-indigo-600">
+              Detail Stock: {item.item_name}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            {/* Basic Information */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                Informasi Dasar
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Nama Barang</p>
+                  <p className="font-medium">{item.item_name || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">SKU</p>
+                  <p className="font-medium font-mono text-indigo-600">
+                    {item.sku || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Kategori Layanan/Produk
+                  </p>
+                  <p className="font-medium">{item.service_category || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Jenis Layanan/Produk</p>
+                  <p className="font-medium">{item.service_type || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Deskripsi</p>
+                  <p className="font-medium">{item.description || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Tanggal Masuk Barang</p>
+                  <p className="font-medium">
+                    {item.item_arrival_date
+                      ? new Date(item.item_arrival_date).toLocaleDateString(
+                          "id-ID",
+                        )
+                      : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Satuan</p>
+                  <p className="font-medium">{item.unit || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Jumlah</p>
+                  <p className="font-medium">{item.item_quantity || 0}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Berat</p>
+                  <p className="font-medium">
+                    {item.weight ? `${item.weight} kg` : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Volume</p>
+                  <p className="font-medium">
+                    {item.volume ? `${item.volume} m³` : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Nama Supplier</p>
+                  <p className="font-medium">{item.supplier_name || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* COA Information */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                Informasi COA
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Kode Akun COA</p>
+                  <p className="font-medium">{item.coa_account_code || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Nama Akun COA</p>
+                  <p className="font-medium">{item.coa_account_name || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* AWB & HS Code Information */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                Informasi AWB & HS Code
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">AWB (Air Waybill)</p>
+                  <p className="font-medium">{item.airwaybills || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">HS Code</p>
+                  <p className="font-medium font-mono text-indigo-600">
+                    {item.hs_code || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">HS Category</p>
+                  <p className="font-medium">{item.hs_category || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">HS Sub Category</p>
+                  <p className="font-medium">{item.hs_sub_category || "-"}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-slate-500">HS Description</p>
+                  <p className="font-medium">{item.hs_description || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Warehouse Information */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                Informasi Gudang
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Gudang</p>
+                  <p className="font-medium">{item.warehouses || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Zona</p>
+                  <p className="font-medium">{item.zones || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Rak</p>
+                  <p className="font-medium">{item.racks || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Lot</p>
+                  <p className="font-medium">{item.lots || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* WMS & CEISA Information */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                Informasi WMS & CEISA
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Nomor Referensi WMS</p>
+                  <p className="font-medium">
+                    {item.wms_reference_number || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Nomor Referensi CEISA
+                  </p>
+                  <p className="font-medium">
+                    {item.ceisa_document_number || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Jenis Dokumen CEISA</p>
+                  <p className="font-medium">
+                    {item.ceisa_document_type || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Tanggal Dokumen CEISA
+                  </p>
+                  <p className="font-medium">
+                    {item.ceisa_document_date
+                      ? new Date(item.ceisa_document_date).toLocaleDateString(
+                          "id-ID",
+                        )
+                      : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Status CEISA</p>
+                  <p className="font-medium">{item.ceisa_status || "-"}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-slate-500">Catatan WMS</p>
+                  <p className="font-medium">{item.wms_notes || "-"}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-slate-500">Catatan CEISA</p>
+                  <p className="font-medium">{item.ceisa_notes || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing Information */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                Informasi Harga
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Status PPN</p>
+                  <p className="font-medium">{item.ppn_status || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Harga Beli</p>
+                  <p className="font-medium text-green-600">
+                    {formatRupiah(item.purchase_price || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Harga Jual</p>
+                  <p className="font-medium text-blue-600">
+                    {formatRupiah(item.selling_price || 0)}
+                  </p>
+                </div>
+                {item.ppn_status === "Yes" && (
+                  <>
+                    <div>
+                      <p className="text-sm text-slate-500">PPN Beli (%)</p>
+                      <p className="font-medium">
+                        {item.ppn_on_purchase || 0}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">PPN Jual (%)</p>
+                      <p className="font-medium">{item.ppn_on_sale || 0}%</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">
+                        Harga Beli Setelah PPN
+                      </p>
+                      <p className="font-medium text-green-600">
+                        {formatRupiah(item.purchase_price_after_ppn || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">
+                        Harga Jual Setelah PPN
+                      </p>
+                      <p className="font-medium text-blue-600">
+                        {formatRupiah(item.selling_price_after_ppn || 0)}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
 
   const fetchStockItems = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
-        .from('stock')
-        .select(`
-          *,
-          warehouses:warehouse_id(name, code),
-          zones:zone_id(name, code),
-          racks:rack_id(name, code),
-          lots:lot_id(lot_number)
-        `)
-        .order('created_at', { ascending: false });
+        .from("stock")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setStockItems(data || []);
-      setFilteredStockItems(data || []);
+      setItems(data || []);
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } finally {
-      setLoading(false);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
-  const fetchSuppliers = async () => {
+  const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
-        .from("suppliers")
-        .select("id, supplier_name")
-        .eq("status", "ACTIVE")
-        .order("supplier_name");
+        .from("chart_of_accounts")
+        .select("account_name")
+        .eq("is_active", true)
+        .eq("level", 2)
+        .order("account_code");
 
       if (error) throw error;
-      setSuppliers(data || []);
-    } catch (error) {
-      console.error("Error fetching suppliers:", error);
+
+      const uniqueCategories = [
+        ...new Set(data?.map((item) => item.account_name) || []),
+      ];
+      setCategories(uniqueCategories);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
-  const fetchJenisBarangOptions = async () => {
+  const fetchServiceTypes = async (category: string) => {
     try {
+      // Find the parent account code for the selected category
+      const { data: parentData, error: parentError } = await supabase
+        .from("chart_of_accounts")
+        .select("account_code")
+        .eq("account_name", category)
+        .eq("level", 2)
+        .single();
+
+      if (parentError) throw parentError;
+
+      // Get child accounts (level 3) that belong to this parent
+      const parentCode = parentData.account_code.split("-")[0];
       const { data, error } = await supabase
-        .from("hs_codes")
-        .select("category")
-        .order("category");
+        .from("chart_of_accounts")
+        .select("account_name")
+        .eq("is_active", true)
+        .eq("level", 3)
+        .like("account_code", `${parentCode}-%`)
+        .order("account_code");
 
       if (error) throw error;
-      
-      // Get unique categories
-      const uniqueCategories = Array.from(new Set(data?.map(item => item.category).filter(Boolean))) as string[];
-      setJenisBarangOptions(uniqueCategories);
-    } catch (error) {
-      console.error("Error fetching jenis barang options:", error);
+
+      const types = data?.map((item) => item.account_name) || [];
+      setServiceTypes(types);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
-  const fetchDeskripsiOptions = async (jenisBarang: string) => {
-    if (!jenisBarang) {
-      setDeskripsiOptions([]);
-      return;
-    }
-
+  const fetchDescriptions = async (serviceType: string) => {
     try {
       const { data, error } = await supabase
-        .from("hs_codes")
-        .select("description")
-        .eq("category", jenisBarang)
-        .order("description");
+        .from("vw_coa_accounts_by_service")
+        .select("description, account_name, account_code")
+        .eq("kategori_layanan", formData.service_category)
+        .eq("jenis_layanan", serviceType);
 
       if (error) throw error;
-      
-      // Get unique descriptions
-      const uniqueDescriptions = Array.from(new Set(data?.map(item => item.description).filter(Boolean))) as string[];
-      setDeskripsiOptions(uniqueDescriptions);
-    } catch (error) {
-      console.error("Error fetching deskripsi options:", error);
-    }
-  };
 
-  const fetchSubKategoriOptions = async (deskripsi: string) => {
-    if (!deskripsi) {
-      setFormData(prev => ({ ...prev, sub_kategori: "" }));
-      return;
-    }
+      const descs =
+        data?.map((item) => item.description || item.account_name) || [];
+      setDescriptions(descs);
 
-    try {
-      const { data, error } = await supabase
-        .from("hs_codes")
-        .select("sub_category")
-        .eq("description", deskripsi)
-        .limit(1);
-
-      if (error) throw error;
-      
-      // Auto-fill sub kategori with the first result
-      if (data && data.length > 0 && data[0].sub_category) {
-        setFormData(prev => ({ ...prev, sub_kategori: data[0].sub_category }));
+      // Auto-fill description if only one result
+      if (data && data.length === 1) {
+        const autoFillValue = data[0].description || data[0].account_name;
+        setFormData((prev) => ({
+          ...prev,
+          description: autoFillValue,
+          coa_account_code: data[0].account_code,
+          coa_account_name: data[0].account_name,
+        }));
       } else {
-        setFormData(prev => ({ ...prev, sub_kategori: "" }));
+        // Reset description if more than one option
+        setFormData((prev) => ({
+          ...prev,
+          description: "",
+          coa_account_code: "",
+          coa_account_name: "",
+        }));
       }
-    } catch (error) {
-      console.error("Error fetching sub kategori:", error);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchCOAAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("chart_of_accounts")
+        .select("account_code, account_name")
+        .eq("is_active", true)
+        .order("account_code");
+
+      if (error) throw error;
+      setCOAAccounts(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -304,419 +700,142 @@ export default function StockForm() {
 
       if (error) throw error;
       setWarehouses(data || []);
-    } catch (error) {
-      console.error("Error fetching warehouses:", error);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
-  const fetchZones = async (warehouseId: string) => {
-    if (!warehouseId) {
-      setZones([]);
-      return;
-    }
-
+  const fetchZones = async () => {
     try {
       const { data, error } = await supabase
         .from("zones")
         .select("id, name, code")
-        .eq("warehouse_id", warehouseId)
         .eq("is_active", true)
         .order("name");
 
       if (error) throw error;
       setZones(data || []);
-    } catch (error) {
-      console.error("Error fetching zones:", error);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
-  const fetchRacks = async (zoneId: string) => {
-    if (!zoneId) {
-      setRacks([]);
-      return;
-    }
-
+  const fetchRacks = async () => {
     try {
       const { data, error } = await supabase
         .from("racks")
         .select("id, name, code")
-        .eq("zone_id", zoneId)
         .eq("is_active", true)
         .order("name");
 
       if (error) throw error;
       setRacks(data || []);
-    } catch (error) {
-      console.error("Error fetching racks:", error);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
-  const fetchLots = async (rackId: string) => {
-    if (!rackId) {
-      setLots([]);
-      return;
-    }
-
+  const fetchLots = async () => {
     try {
-      console.log('Fetching lots for rack:', rackId);
-      
       const { data, error } = await supabase
         .from("lots")
         .select("id, lot_number")
-        .eq("rack_id", rackId)
         .eq("is_active", true)
         .order("lot_number");
 
-      console.log('Lots data:', data);
-      console.log('Lots error:', error);
-
       if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        setLots([]);
-        toast({
-          title: "Info",
-          description: "Tidak ada lot tersedia untuk rak ini. Silakan tambahkan lot terlebih dahulu.",
-          variant: "default",
-        });
-      } else {
-        setLots(data);
-      }
-    } catch (error) {
-      console.error("Error fetching lots:", error);
-      setLots([]);
+      setLots(data || []);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Gagal memuat data lot",
+        description: error.message,
         variant: "destructive",
       });
     }
   };
 
-  const fetchCoaAccounts = async () => {
+  const fetchHSCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from("chart_of_accounts")
-        .select("account_code, account_name, account_type")
-        .eq("is_active", true)
-        .eq("is_header", false)
-        .order("account_code");
-
-      if (error) throw error;
-      setCoaAccounts(data || []);
-    } catch (error) {
-      console.error("Error fetching COA accounts:", error);
-    }
-  };
-
-  const fetchServiceCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("coa_category_mapping")
-        .select("service_category")
-        .eq("is_active", true);
-
-      if (error) throw error;
-      
-      const uniqueCategories = Array.from(new Set(data?.map(item => item.service_category).filter(Boolean))) as string[];
-      setServiceCategories(uniqueCategories);
-    } catch (error) {
-      console.error("Error fetching service categories:", error);
-    }
-  };
-
-  const fetchServiceTypesByCategory = async (category: string) => {
-    if (!category) {
-      setCategoryMappings([]);
-      return;
-    }
-
-    try {
-      console.log('Fetching service types for category:', category);
-      
-      const { data, error } = await supabase
-        .from('coa_category_mapping')
-        .select('service_type, revenue_account_code, asset_account_code, description')
-        .eq('service_category', category)
-        .eq('is_active', true);
-
-      console.log('Service types data:', data);
-      console.log('Service types error:', error);
-
-      if (error) throw error;
-      
-      // If no data found, show a helpful message but don't block the form
-      if (!data || data.length === 0) {
-        setCategoryMappings([]);
-        toast({
-          title: "Info",
-          description: `Tidak ada mapping COA untuk kategori "${category}". Anda masih bisa input manual.`,
-          variant: "default",
-        });
-      } else {
-        setCategoryMappings(data);
-      }
-    } catch (error) {
-      console.error("Error fetching service types:", error);
-      setCategoryMappings([]);
-      toast({
-        title: "Error",
-        description: "Gagal memuat jenis layanan",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCategoryChange = (value: string) => {
-    setFormData({ ...formData, category: value, jenis_barang: "", coa_account_code: "", coa_account_name: "" });
-    fetchServiceTypesByCategory(value);
-  };
-
-  const handleServiceTypeChange = (value: string) => {
-    const selectedMapping = categoryMappings.find(m => m.service_type === value);
-    
-    if (selectedMapping) {
-      // For "Persediaan" category, use asset_account_code
-      // For other categories, use revenue_account_code
-      const coaCode = selectedMapping.asset_account_code || selectedMapping.revenue_account_code || '';
-      
-      setFormData({
-        ...formData,
-        jenis_barang: value,
-        coa_account_code: coaCode,
-        coa_account_name: ''
-      });
-
-      if (coaCode) {
-        fetchCOAName(coaCode);
-      }
-    } else {
-      setFormData({
-        ...formData,
-        jenis_barang: value
-      });
-    }
-
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-
-    const newTimeout = setTimeout(() => {
-      autoDetectHSCode(value);
-    }, 800);
-
-    setSearchTimeout(newTimeout);
-    setJenisBarangOpen(false);
-  };
-
-  const handleWarehouseChange = (value: string) => {
-    setFormData({ 
-      ...formData, 
-      warehouse_id: value, 
-      zone_id: "", 
-      rack_id: "", 
-      lot_id: "" 
-    });
-    fetchZones(value);
-  };
-
-  const handleZoneChange = (value: string) => {
-    setFormData({ 
-      ...formData, 
-      zone_id: value, 
-      rack_id: "", 
-      lot_id: "" 
-    });
-    fetchRacks(value);
-  };
-
-  const handleRackChange = (value: string) => {
-    setFormData({ 
-      ...formData, 
-      rack_id: value, 
-      lot_id: "" 
-    });
-    fetchLots(value);
-  };
-
-  const handleBack = () => {
-    if (isDialogOpen) {
-      setIsDialogOpen(false);
-    }
-    navigate('/dashboard');
-  };
-
-  const autoDetectHSCode = async (jenisBarang: string) => {
-    if (!jenisBarang || jenisBarang.length < 3) {
-      setFormData(prev => ({ ...prev, hs_code: "", hs_code_description: "" }));
-      return;
-    }
-
-    setAutoDetecting(true);
-    try {
-      const searchTerm = jenisBarang.toLowerCase();
-      
       const { data, error } = await supabase
         .from("hs_codes")
-        .select("hs_code, description, category, sub_category")
-        .or(`description.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%,sub_category.ilike.%${searchTerm}%`)
-        .limit(1);
-
-      if (error) {
-        console.error('Query error:', error);
-        throw error;
-      }
-
-      if (data && data.length > 0) {
-        const match = data[0];
-        setFormData(prev => ({
-          ...prev,
-          hs_code: match.hs_code,
-          hs_code_description: match.description,
-        }));
-        
-        toast({
-          title: "HS Code terdeteksi!",
-          description: `${match.hs_code} - ${match.description}`,
-        });
-      } else {
-        setFormData(prev => ({ ...prev, hs_code: "", hs_code_description: "" }));
-      }
-    } catch (error: any) {
-      console.error('Auto-detect error:', error);
-    } finally {
-      setAutoDetecting(false);
-    }
-  };
-
-  const handleJenisBarangChange = (value: string) => {
-    setFormData({ ...formData, jenis_barang: value, deskripsi: "", sub_kategori: "" });
-    
-    // Fetch deskripsi options based on selected jenis barang
-    fetchDeskripsiOptions(value);
-    
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-    
-    const newTimeout = setTimeout(() => {
-      autoDetectHSCode(value);
-    }, 800);
-    
-    setSearchTimeout(newTimeout);
-  };
-
-  const handleDeskripsiChange = (value: string) => {
-    setFormData({ ...formData, deskripsi: value, sub_kategori: "" });
-    
-    // Fetch sub kategori options based on selected deskripsi
-    fetchSubKategoriOptions(value);
-  };
-
-  const getHSCodeSuggestions = async () => {
-    if (!formData.jenis_barang) {
-      toast({
-        title: "Info",
-        description: "Masukkan jenis barang untuk mendapatkan saran HS Code",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setAiLoading(true);
-    try {
-      const searchText = `${formData.jenis_barang} ${formData.category || ''}`.trim();
-
-      const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
-        'supabase-functions-generate-embedding',
-        {
-          body: { text: searchText },
-        }
-      );
-
-      if (embeddingError) throw embeddingError;
-
-      const { data: searchData, error: searchError } = await supabase.functions.invoke(
-        'supabase-functions-search-hs-codes',
-        {
-          body: { 
-            embedding: embeddingData.embedding,
-            limit: 5 
-          },
-        }
-      );
-
-      if (searchError) throw searchError;
-
-      setHsSuggestions(searchData.results || []);
-      
-      if (searchData.results && searchData.results.length > 0) {
-        toast({
-          title: "Saran HS Code ditemukan!",
-          description: `${searchData.results.length} kode HS yang cocok`,
-        });
-      } else {
-        toast({
-          title: "Tidak ada hasil",
-          description: "Coba ubah deskripsi barang",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error('AI search error:', error);
-      toast({
-        title: "Error",
-        description: "Gagal mendapatkan saran HS Code",
-        variant: "destructive",
-      });
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const selectHSCode = (suggestion: HSCodeSuggestion) => {
-    setFormData({
-      ...formData,
-      hs_code: suggestion.hs_code,
-      hs_code_description: suggestion.description,
-    });
-    toast({
-      title: "HS Code dipilih",
-      description: `${suggestion.hs_code} - ${suggestion.description}`,
-    });
-  };
-
-  const formatToRupiah = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const calculatePriceWithPPN = (price: string, ppnRate: string) => {
-    const basePrice = parseFloat(price) || 0;
-    const ppn = parseFloat(ppnRate) || 0;
-    return basePrice + (basePrice * ppn / 100);
-  };
-
-  const fetchCOAName = async (accountCode: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("chart_of_accounts")
-        .select("account_name")
-        .eq("account_code", accountCode)
-        .single();
+        .select("category")
+        .eq("is_active", true)
+        .order("category");
 
       if (error) throw error;
-      
-      setFormData(prev => ({
-        ...prev,
-        coa_account_name: data?.account_name || ""
-      }));
-    } catch (error) {
-      console.error("Error fetching COA name:", error);
+
+      const uniqueCategories = [
+        ...new Set(data?.map((item) => item.category).filter(Boolean) || []),
+      ];
+      setHsCategories(uniqueCategories);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchHSSubCategories = async (category: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("hs_codes")
+        .select("id, hs_code, sub_category, description")
+        .eq("category", category)
+        .eq("is_active", true)
+        .order("sub_category");
+
+      if (error) throw error;
+      setHsSubCategories(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchHSDescriptions = async (category: string, subCategory: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("hs_codes")
+        .select("id, hs_code, description")
+        .eq("category", category)
+        .eq("sub_category", subCategory)
+        .eq("is_active", true)
+        .order("hs_code");
+
+      if (error) throw error;
+      setHsDescriptions(data || []);
+
+      // Auto-fill hs_description if only one result
+      if (data && data.length === 1) {
+        setFormData((prev) => ({
+          ...prev,
+          hs_description: data[0].description,
+          hs_code: data[0].hs_code,
+        }));
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -725,87 +844,33 @@ export default function StockForm() {
     setLoading(true);
 
     try {
-      const stockData: any = {
-        item_name: formData.item_name,
-        category: formData.category ? [formData.category] : null,
-        warehouse_id: formData.warehouse_id || null,
-        zone_id: formData.zone_id || null,
-        rack_id: formData.rack_id || null,
-        lot_id: formData.lot_id || null,
-        jenis_barang: formData.jenis_barang,
-        deskripsi: formData.deskripsi || null,
-        description: formData.deskripsi || null,
-        unit: formData.unit || null,
-        barcode: formData.barcode || null,
-        supplier_name: formData.supplier_name || null,
-        nominal_barang: parseInt(formData.nominal_barang) || 0,
-        ppn_type: formData.ppn_type || null,
-        purchase_price: parseFloat(formData.purchase_price) || 0,
-        selling_price: parseFloat(formData.selling_price) || 0,
-        ppn_beli: formData.ppn_type === "PKP" ? parseFloat(formData.ppn_beli || "11") : null,
-        ppn_jual: formData.ppn_type === "PKP" ? parseFloat(formData.ppn_jual || "11") : null,
-        hs_code: formData.hs_code || null,
-        hs_code_description: formData.hs_code_description || null,
-        tanggal_masuk_barang: formData.tanggal_masuk_barang || null,
-        batas_waktu_pengambilan: formData.batas_waktu_pengambilan || null,
-        coa_account_code: formData.coa_account_code || null,
-        coa_account_name: formData.coa_account_name || null,
-        wms_reference_number: formData.wms_reference_number || null,
-        ceisa_document_number: formData.ceisa_document_number || null,
-        ceisa_document_type: formData.ceisa_document_type || null,
-        ceisa_document_date: formData.ceisa_document_date || null,
-        ceisa_status: formData.ceisa_status || null,
-        wms_notes: formData.wms_notes || null,
-        ceisa_notes: formData.ceisa_notes || null,
-      };
+      if (editingId) {
+        const { error } = await supabase
+          .from("stock")
+          .update(formData)
+          .eq("id", editingId);
 
-      const { error } = await supabase.from("stock").insert(stockData);
+        if (error) throw error;
 
-      if (error) throw error;
+        toast({
+          title: "✅ Berhasil",
+          description: "Data stock berhasil diupdate",
+        });
+      } else {
+        const { error } = await supabase.from("stock").insert([formData]);
 
-      toast({
-        title: "Success",
-        description: "Stock item berhasil ditambahkan",
-      });
+        if (error) throw error;
 
-      // Reset form
-      setFormData({
-        item_name: "",
-        category: "",
-        warehouse_id: "",
-        zone_id: "",
-        rack_id: "",
-        lot_id: "",
-        jenis_barang: "",
-        deskripsi: "",
-        unit: "",
-        barcode: "",
-        supplier_name: "",
-        nominal_barang: "0",
-        ppn_type: "Non-PKP",
-        purchase_price: "0",
-        selling_price: "0",
-        ppn_beli: "11",
-        ppn_jual: "11",
-        hs_code: "",
-        hs_code_description: "",
-        tanggal_masuk_barang: "",
-        batas_waktu_pengambilan: "",
-        coa_account_code: "",
-        coa_account_name: "",
-        wms_reference_number: "",
-        ceisa_document_number: "",
-        ceisa_document_type: "",
-        ceisa_document_date: "",
-        ceisa_status: "",
-        wms_notes: "",
-        ceisa_notes: "",
-      });
-      setHsSuggestions([]);
-      setIsDialogOpen(false);
+        toast({
+          title: "✅ Berhasil",
+          description: "Data stock berhasil ditambahkan",
+        });
+      }
+
+      resetForm();
       fetchStockItems();
+      setShowForm(false);
     } catch (error: any) {
-      console.error("Submit error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -816,88 +881,104 @@ export default function StockForm() {
     }
   };
 
-  const openDetailDialog = async (item: any) => {
-    setSelectedItem(item);
-    
-    // Fetch warehouse, zone, rack, and lot details
-    let locationDetails = {
-      warehouse: null,
-      zone: null,
-      rack: null,
-      lot: null
-    };
+  const handleEdit = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("stock")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+
+      setFormData(data);
+      setEditingId(id);
+      setShowForm(true);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
 
     try {
-      if (item.warehouse_id) {
-        const { data: warehouseData } = await supabase
-          .from("warehouses")
-          .select("name, code")
-          .eq("id", item.warehouse_id)
-          .single();
-        locationDetails.warehouse = warehouseData;
-      }
+      const { error } = await supabase.from("stock").delete().eq("id", id);
 
-      if (item.zone_id) {
-        const { data: zoneData } = await supabase
-          .from("zones")
-          .select("name, code")
-          .eq("id", item.zone_id)
-          .single();
-        locationDetails.zone = zoneData;
-      }
+      if (error) throw error;
 
-      if (item.rack_id) {
-        const { data: rackData } = await supabase
-          .from("racks")
-          .select("name, code")
-          .eq("id", item.rack_id)
-          .single();
-        locationDetails.rack = rackData;
-      }
+      toast({
+        title: "✅ Berhasil",
+        description: "Data stock berhasil dihapus",
+      });
 
-      if (item.lot_id) {
-        const { data: lotData } = await supabase
-          .from("lots")
-          .select("lot_number")
-          .eq("id", item.lot_id)
-          .single();
-        locationDetails.lot = lotData;
-      }
-
-      setSelectedItem({ ...item, locationDetails });
-    } catch (error) {
-      console.error("Error fetching location details:", error);
-      setSelectedItem(item);
+      fetchStockItems();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
-
-    setIsDetailDialogOpen(true);
   };
 
-  const showPartNumber = formData.category === "Suku cadang";
-  const showBrand = formData.category === "Barang habis pakai" || formData.category === "Unit disewakan";
-  const showVehicleFields = formData.category === "Unit disewakan";
-  
-  // Check if the selected category is a service category
-  const isServiceCategory = serviceCategories.includes(formData.category);
-  
-  // Check if the selected category is "Persediaan" or "Beban"
-  const isInventoryCategory = formData.category === "Persediaan" || formData.category === "Beban";
-  
-  const showPriceFields = !formData.category || 
-    (formData.category !== "Suku cadang" && 
-     formData.category !== "Barang habis pakai" && 
-     formData.category !== "Unit disewakan");
-  const isPKP = formData.ppn_type === "PKP";
-
-  const summaryData = {
-    total: stockItems.length,
-    totalValue: stockItems.reduce((sum, item) => sum + (item.selling_price * item.nominal_barang || 0), 0),
-    lowStock: stockItems.filter((item) => item.nominal_barang < 10).length,
-    categories: new Set(stockItems.flatMap(item => item.category || [])).size,
+  const resetForm = () => {
+    setFormData({
+      item_name: "",
+      service_category: "",
+      service_type: "",
+      description: "",
+      coa_account_code: "",
+      coa_account_name: "",
+      item_arrival_date: "",
+      unit: "",
+      sku: "",
+      weight: "",
+      volume: "",
+      supplier_name: "",
+      warehouses: "",
+      zones: "",
+      racks: "",
+      lots: "",
+      wms_reference_number: "",
+      ceisa_document_number: "",
+      ceisa_document_type: "",
+      ceisa_document_date: "",
+      ceisa_status: "",
+      wms_notes: "",
+      ceisa_notes: "",
+      item_quantity: 0,
+      ppn_status: "No",
+      purchase_price: 0,
+      selling_price: 0,
+      ppn_on_purchase: 0,
+      ppn_on_sale: 0,
+      purchase_price_after_ppn: 0,
+      selling_price_after_ppn: 0,
+      airwaybills: "",
+      hs_code: "",
+      hs_category: "",
+      hs_sub_category: "",
+      hs_description: "",
+    });
+    setEditingId(null);
   };
 
-  const uniqueCategories = Array.from(new Set(stockItems.flatMap(item => item.category || []).filter(Boolean)));
-  const uniqueJenisBarang = Array.from(new Set(stockItems.map(item => item.jenis_barang).filter(Boolean)));
+  const handleBack = () => {
+    navigate("/dashboard");
+  };
+
+  const filteredItems = items.filter(
+    (item) =>
+      item.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.warehouses &&
+        item.warehouses.toLowerCase().includes(searchTerm.toLowerCase())),
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -905,9 +986,9 @@ export default function StockForm() {
       <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
         <div className="container mx-auto px-4 py-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleBack}
               className="text-white hover:bg-white/20"
             >
@@ -918,364 +999,439 @@ export default function StockForm() {
                 <Package className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Stock Management</h1>
-                <p className="text-sm text-blue-100">Kelola inventori dan stok barang</p>
+                <h1 className="text-2xl font-bold text-white">
+                  Stock Management
+                </h1>
+                <p className="text-sm text-blue-100">
+                  Kelola data stock barang Anda
+                </p>
               </div>
             </div>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-white text-indigo-600 hover:bg-blue-50 shadow-md">
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Stock
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Tambahkan Stock Baru</DialogTitle>
-                <DialogDescription>
-                  Isi detail stock item baru
-                </DialogDescription>
-              </DialogHeader>
+          <Button
+            onClick={() => {
+              resetForm();
+              setShowForm(!showForm);
+            }}
+            className="bg-white text-indigo-600 hover:bg-blue-50 shadow-md"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {showForm ? "Tutup Form" : "Tambah Stock"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Form Input */}
+        {showForm && (
+          <Card className="mb-6 bg-white shadow-lg rounded-xl border border-slate-200">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 via-blue-50 to-cyan-50">
+              <CardTitle className="text-xl">
+                {editingId ? "✏️ Edit Stock" : "+ Tambah Stock"}
+              </CardTitle>
+              <CardDescription>
+                {editingId
+                  ? "Perbarui informasi stock"
+                  : "Tambahkan stock baru ke sistem"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Basic Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Informasi Dasar</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="item_name">Nama Barang *</Label>
+                  <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                    Informasi Dasar
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Nama Barang *</Label>
                       <Input
-                        id="item_name"
                         value={formData.item_name}
                         onChange={(e) =>
-                          setFormData({ ...formData, item_name: e.target.value })
+                          setFormData({
+                            ...formData,
+                            item_name: e.target.value,
+                          })
                         }
-                        placeholder="Masukkan nama barang"
                         required
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Kategori Layanan/Produk *</Label>
+                    <div>
+                      <Label>Kategori Layanan/Produk *</Label>
                       <Select
-                        value={formData.category}
-                        onValueChange={(value) => handleCategoryChange(value)}
-                        required
+                        value={formData.service_category}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            service_category: value,
+                            service_type: "",
+                            description: "",
+                          })
+                        }
                       >
-                        <SelectTrigger id="category">
-                          <SelectValue placeholder="Pilih kategori layanan/produk" />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kategori" />
                         </SelectTrigger>
                         <SelectContent>
-                          {serviceCategories.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-gray-500">
-                        Pilih kategori untuk auto-select COA
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="jenis_barang">Jenis Layanan/Barang *</Label>
-                      <div className="relative">
-                        {categoryMappings.length > 0 ? (
-                          <Select
-                            value={formData.jenis_barang}
-                            onValueChange={(value) => handleServiceTypeChange(value)}
-                            disabled={!formData.category}
-                            required
-                          >
-                            <SelectTrigger id="jenis_barang" className="w-full">
-                              <SelectValue placeholder={formData.category ? "Pilih jenis layanan/barang" : "Pilih kategori terlebih dahulu"} />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[300px]">
-                              {categoryMappings.map((mapping) => (
-                                <SelectItem 
-                                  key={mapping.service_type} 
-                                  value={mapping.service_type}
-                                >
-                                  {mapping.service_type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            id="jenis_barang"
-                            value={formData.jenis_barang}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setFormData({ ...formData, jenis_barang: value });
-                              
-                              if (searchTimeout) {
-                                clearTimeout(searchTimeout);
-                              }
-                              
-                              const newTimeout = setTimeout(() => {
-                                autoDetectHSCode(value);
-                              }, 800);
-                              
-                              setSearchTimeout(newTimeout);
-                            }}
-                            placeholder={formData.category ? "Ketik jenis layanan/barang" : "Pilih kategori terlebih dahulu"}
-                            disabled={!formData.category}
-                            required
-                          />
-                        )}
-                        {autoDetecting && (
-                          <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-blue-500" />
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {categoryMappings.length > 0 
-                          ? "COA akan terisi otomatis saat Anda memilih"
-                          : "Tidak ada mapping COA, input manual"}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="deskripsi">Deskripsi</Label>
-                      <Select
-                        value={formData.deskripsi}
-                        onValueChange={(value) => handleDeskripsiChange(value)}
-                        disabled={!formData.jenis_barang}
-                      >
-                        <SelectTrigger id="deskripsi">
-                          <SelectValue placeholder={formData.jenis_barang ? "Pilih deskripsi" : "Pilih jenis barang terlebih dahulu"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {deskripsiOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
+                          {categories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="coa_account_code">Kode Akun COA *</Label>
+                    <div>
+                      <Label>Jenis Layanan/Produk *</Label>
+                      <Select
+                        value={formData.service_type}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            service_type: value,
+                            description: "",
+                          })
+                        }
+                        disabled={!formData.service_category}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih jenis" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {serviceTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label>Deskripsi</Label>
+                      <Select
+                        value={formData.description}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, description: value })
+                        }
+                        disabled={!formData.service_type}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih deskripsi" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {descriptions.map((desc, idx) => (
+                            <SelectItem key={idx} value={desc}>
+                              {desc}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label>Kode Akun COA *</Label>
                       <Select
                         value={formData.coa_account_code}
-                        onValueChange={(value) => {
-                          const selectedAccount = coaAccounts.find(acc => acc.account_code === value);
-                          setFormData({ 
-                            ...formData, 
-                            coa_account_code: value,
-                            coa_account_name: selectedAccount?.account_name || ""
-                          });
-                        }}
-                        required
-                      >
-                        <SelectTrigger id="coa_account_code">
-                          <SelectValue placeholder="Pilih akun COA" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {coaAccounts.map((account) => (
-                            <SelectItem key={account.account_code} value={account.account_code}>
-                              {account.account_code} - {account.account_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-gray-500">
-                        Pilih akun dari Chart of Accounts untuk pencatatan
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="coa_account_name">Nama Akun COA</Label>
-                      <Input
-                        id="coa_account_name"
-                        value={formData.coa_account_name}
-                        readOnly
-                        className="bg-gray-50"
-                        placeholder="Nama akun akan terisi otomatis"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="tanggal_masuk_barang">Tanggal Masuk Barang *</Label>
-                      <Input
-                        id="tanggal_masuk_barang"
-                        type="date"
-                        value={formData.tanggal_masuk_barang}
-                        onChange={(e) =>
-                          setFormData({ ...formData, tanggal_masuk_barang: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="batas_waktu_pengambilan">Batas Waktu Pengambilan</Label>
-                      <Input
-                        id="batas_waktu_pengambilan"
-                        type="date"
-                        value={formData.batas_waktu_pengambilan}
-                        onChange={(e) =>
-                          setFormData({ ...formData, batas_waktu_pengambilan: e.target.value })
-                        }
-                      />
-                      <p className="text-xs text-gray-500">
-                        Tanggal batas waktu untuk pengambilan barang
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="unit">Satuan *</Label>
-                      <Select
-                        value={formData.unit}
                         onValueChange={(value) =>
-                          setFormData({ ...formData, unit: value })
+                          setFormData({ ...formData, coa_account_code: value })
                         }
-                        required
                       >
-                        <SelectTrigger id="unit">
-                          <SelectValue placeholder="Pilih satuan" />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kode akun" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pcs">Pcs (Pieces)</SelectItem>
-                          <SelectItem value="box">Box</SelectItem>
-                          <SelectItem value="kg">Kg (Kilogram)</SelectItem>
-                          <SelectItem value="liter">Liter</SelectItem>
-                          <SelectItem value="meter">Meter</SelectItem>
-                          <SelectItem value="unit">Unit</SelectItem>
-                          <SelectItem value="set">Set</SelectItem>
-                          <SelectItem value="pack">Pack</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="barcode">Barcode</Label>
-                      <div className="relative">
-                        <Input
-                          id="barcode"
-                          value={formData.barcode}
-                          onChange={(e) =>
-                            setFormData({ ...formData, barcode: e.target.value })
-                          }
-                          placeholder="Scan atau masukkan barcode"
-                          className="pr-10"
-                        />
-                        <Barcode className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="supplier_name">Supplier *</Label>
-                      <Select
-                        value={formData.supplier_name}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, supplier_name: value })
-                        }
-                        required
-                      >
-                        <SelectTrigger id="supplier_name">
-                          <SelectValue placeholder="Pilih supplier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {suppliers.map((supplier) => (
+                          {coaAccounts.map((acc) => (
                             <SelectItem
-                              key={supplier.id}
-                              value={supplier.supplier_name}
+                              key={acc.account_code}
+                              value={acc.account_code}
                             >
-                              {supplier.supplier_name}
+                              {acc.account_code} - {acc.account_name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div>
+                      <Label>Nama Akun COA</Label>
+                      <Input
+                        value={formData.coa_account_name}
+                        disabled
+                        className="bg-slate-50"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Tanggal Masuk Barang *</Label>
+                      <Input
+                        type="date"
+                        value={formData.item_arrival_date}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            item_arrival_date: e.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label>SKU *</Label>
+                      <Input
+                        value={formData.sku}
+                        onChange={(e) =>
+                          setFormData({ ...formData, sku: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Satuan *</Label>
+                      <Input
+                        value={formData.unit}
+                        onChange={(e) =>
+                          setFormData({ ...formData, unit: e.target.value })
+                        }
+                        placeholder="pcs, kg, box, dll"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Berat (kg)</Label>
+                      <Input
+                        value={formData.weight}
+                        onChange={(e) =>
+                          setFormData({ ...formData, weight: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Volume (m³)</Label>
+                      <Input
+                        value={formData.volume}
+                        onChange={(e) =>
+                          setFormData({ ...formData, volume: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Nama Supplier</Label>
+                      <Input
+                        value={formData.supplier_name}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            supplier_name: e.target.value,
+                          })
+                        }
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* Warehouse Location */}
+                {/* AWB & HS Code Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold border-b pb-2">Lokasi Gudang</h3>
+                  <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                    Informasi AWB & HS Code
+                  </h3>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="warehouse_id">Nama Gudang *</Label>
+                    <div>
+                      <Label>AWB (Air Waybill)</Label>
+                      <Input
+                        value={formData.airwaybills}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            airwaybills: e.target.value,
+                          })
+                        }
+                        placeholder="Nomor AWB"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>HS Category</Label>
                       <Select
-                        value={formData.warehouse_id}
-                        onValueChange={(value) => handleWarehouseChange(value)}
-                        required
+                        value={formData.hs_category}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            hs_category: value,
+                            hs_sub_category: "",
+                            hs_description: "",
+                            hs_code: "",
+                          })
+                        }
                       >
-                        <SelectTrigger id="warehouse_id">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kategori HS" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hsCategories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label>HS Sub Category</Label>
+                      <Select
+                        value={formData.hs_sub_category}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, hs_sub_category: value })
+                        }
+                        disabled={!formData.hs_category}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih sub kategori HS" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hsSubCategories.map((sub) => (
+                            <SelectItem
+                              key={sub.id}
+                              value={sub.sub_category || ""}
+                            >
+                              {sub.sub_category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label>HS Description</Label>
+                      <Select
+                        value={formData.hs_description}
+                        onValueChange={(value) => {
+                          const selectedHS = hsDescriptions.find(
+                            (hs) => hs.description === value,
+                          );
+                          setFormData({
+                            ...formData,
+                            hs_description: value,
+                            hs_code: selectedHS?.hs_code || "",
+                          });
+                        }}
+                        disabled={!formData.hs_sub_category}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih deskripsi HS" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hsDescriptions.map((desc) => (
+                            <SelectItem key={desc.id} value={desc.description}>
+                              {desc.hs_code} - {desc.description}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label>HS Code</Label>
+                      <Input
+                        value={formData.hs_code}
+                        disabled
+                        className="bg-slate-50"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Warehouse Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                    Informasi Gudang
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Gudang</Label>
+                      <Select
+                        value={formData.warehouses}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, warehouses: value })
+                        }
+                      >
+                        <SelectTrigger>
                           <SelectValue placeholder="Pilih gudang" />
                         </SelectTrigger>
                         <SelectContent>
-                          {warehouses.map((warehouse) => (
-                            <SelectItem key={warehouse.id} value={warehouse.id}>
-                              {warehouse.name} ({warehouse.code})
+                          {warehouses.map((wh) => (
+                            <SelectItem key={wh.id} value={wh.name}>
+                              {wh.code} - {wh.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="zone_id">Nama Zona *</Label>
+                    <div>
+                      <Label>Zona</Label>
                       <Select
-                        value={formData.zone_id}
-                        onValueChange={(value) => handleZoneChange(value)}
-                        disabled={!formData.warehouse_id}
-                        required
+                        value={formData.zones}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, zones: value })
+                        }
                       >
-                        <SelectTrigger id="zone_id">
-                          <SelectValue placeholder={formData.warehouse_id ? "Pilih zona" : "Pilih gudang terlebih dahulu"} />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih zona" />
                         </SelectTrigger>
                         <SelectContent>
                           {zones.map((zone) => (
-                            <SelectItem key={zone.id} value={zone.id}>
-                              {zone.name} ({zone.code})
+                            <SelectItem key={zone.id} value={zone.name}>
+                              {zone.code} - {zone.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="rack_id">Nama Rak *</Label>
+                    <div>
+                      <Label>Rak</Label>
                       <Select
-                        value={formData.rack_id}
-                        onValueChange={(value) => handleRackChange(value)}
-                        disabled={!formData.zone_id}
-                        required
+                        value={formData.racks}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, racks: value })
+                        }
                       >
-                        <SelectTrigger id="rack_id">
-                          <SelectValue placeholder={formData.zone_id ? "Pilih rak" : "Pilih zona terlebih dahulu"} />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih rak" />
                         </SelectTrigger>
                         <SelectContent>
                           {racks.map((rack) => (
-                            <SelectItem key={rack.id} value={rack.id}>
-                              {rack.name} ({rack.code})
+                            <SelectItem key={rack.id} value={rack.name}>
+                              {rack.code} - {rack.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="lot_id">Nama Lot *</Label>
+                    <div>
+                      <Label>Lot</Label>
                       <Select
-                        value={formData.lot_id}
+                        value={formData.lots}
                         onValueChange={(value) =>
-                          setFormData({ ...formData, lot_id: value })
+                          setFormData({ ...formData, lots: value })
                         }
-                        disabled={!formData.rack_id}
-                        required
                       >
-                        <SelectTrigger id="lot_id">
-                          <SelectValue placeholder={formData.rack_id ? "Pilih lot" : "Pilih rak terlebih dahulu"} />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih lot" />
                         </SelectTrigger>
                         <SelectContent>
                           {lots.map((lot) => (
-                            <SelectItem key={lot.id} value={lot.id}>
+                            <SelectItem key={lot.id} value={lot.lot_number}>
                               {lot.lot_number}
                             </SelectItem>
                           ))}
@@ -1285,484 +1441,289 @@ export default function StockForm() {
                   </div>
                 </div>
 
-                {/* WMS/CEISA Section */}
-                <div className="md:col-span-2 border-t pt-4 mt-4">
-                  <h3 className="text-lg font-semibold mb-4">Informasi WMS/CEISA</h3>
+                {/* WMS & CEISA Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                    Informasi WMS & CEISA
+                  </h3>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="wms_reference_number">Nomor Referensi WMS</Label>
+                    <div>
+                      <Label>Nomor Referensi WMS</Label>
                       <Input
-                        id="wms_reference_number"
                         value={formData.wms_reference_number}
                         onChange={(e) =>
-                          setFormData({ ...formData, wms_reference_number: e.target.value })
+                          setFormData({
+                            ...formData,
+                            wms_reference_number: e.target.value,
+                          })
                         }
-                        placeholder="WMS-2024-XXXX"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ceisa_document_number">Nomor Dokumen CEISA</Label>
+                    <div>
+                      <Label>Nomor Referensi CEISA</Label>
                       <Input
-                        id="ceisa_document_number"
                         value={formData.ceisa_document_number}
                         onChange={(e) =>
-                          setFormData({ ...formData, ceisa_document_number: e.target.value })
+                          setFormData({
+                            ...formData,
+                            ceisa_document_number: e.target.value,
+                          })
                         }
-                        placeholder="000000-XXXXXX-XXXXXXXX"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ceisa_document_type">Jenis Dokumen CEISA</Label>
+                    <div>
+                      <Label>Jenis Dokumen CEISA</Label>
                       <Select
                         value={formData.ceisa_document_type}
                         onValueChange={(value) =>
-                          setFormData({ ...formData, ceisa_document_type: value })
+                          setFormData({
+                            ...formData,
+                            ceisa_document_type: value,
+                          })
                         }
                       >
-                        <SelectTrigger id="ceisa_document_type">
+                        <SelectTrigger>
                           <SelectValue placeholder="Pilih jenis dokumen" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="BC 2.3">BC 2.3 - Pemberitahuan Impor Barang</SelectItem>
-                          <SelectItem value="BC 4.0">BC 4.0 - Pemberitahuan Ekspor Barang</SelectItem>
-                          <SelectItem value="BC 2.5">BC 2.5 - Pemberitahuan Impor Barang Khusus</SelectItem>
-                          <SelectItem value="BC 3.0">BC 3.0 - Pemberitahuan Ekspor Barang Khusus</SelectItem>
-                          <SelectItem value="BC 1.1">BC 1.1 - Pemberitahuan Pabean</SelectItem>
+                          {CEISA_DOCUMENT_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ceisa_document_date">Tanggal Dokumen CEISA</Label>
+                    <div>
+                      <Label>Tanggal Dokumen CEISA</Label>
                       <Input
-                        id="ceisa_document_date"
                         type="date"
                         value={formData.ceisa_document_date}
                         onChange={(e) =>
-                          setFormData({ ...formData, ceisa_document_date: e.target.value })
+                          setFormData({
+                            ...formData,
+                            ceisa_document_date: e.target.value,
+                          })
                         }
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ceisa_status">Status CEISA</Label>
+                    <div>
+                      <Label>Status CEISA</Label>
                       <Select
                         value={formData.ceisa_status}
                         onValueChange={(value) =>
                           setFormData({ ...formData, ceisa_status: value })
                         }
                       >
-                        <SelectTrigger id="ceisa_status">
+                        <SelectTrigger>
                           <SelectValue placeholder="Pilih status" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Draft">Draft</SelectItem>
-                          <SelectItem value="Submitted">Submitted</SelectItem>
-                          <SelectItem value="Approved">Approved</SelectItem>
-                          <SelectItem value="Rejected">Rejected</SelectItem>
-                          <SelectItem value="Completed">Completed</SelectItem>
+                          {CEISA_STATUS_OPTIONS.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="wms_notes">Catatan WMS</Label>
-                      <Textarea
-                        id="wms_notes"
-                        value={formData.wms_notes}
+                    <div>
+                      <Label>Jumlah *</Label>
+                      <Input
+                        type="number"
+                        value={formData.item_quantity}
                         onChange={(e) =>
-                          setFormData({ ...formData, wms_notes: e.target.value })
-                        }
-                        placeholder="Catatan tambahan untuk WMS"
-                        rows={2}
-                      />
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="ceisa_notes">Catatan CEISA</Label>
-                      <Textarea
-                        id="ceisa_notes"
-                        value={formData.ceisa_notes}
-                        onChange={(e) =>
-                          setFormData({ ...formData, ceisa_notes: e.target.value })
-                        }
-                        placeholder="Catatan tambahan untuk CEISA"
-                        rows={2}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* HS Code Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <h3 className="text-lg font-semibold">HS Code (Harmonized System)</h3>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={getHSCodeSuggestions}
-                      disabled={aiLoading}
-                    >
-                      {aiLoading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Mencari...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Saran AI
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  {(formData.hs_code || formData.hs_code_description) && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-start gap-2">
-                        <Badge variant="default" className="mt-1">
-                          {formData.hs_code}
-                        </Badge>
-                        <div className="flex-1">
-                          <p className="text-sm text-green-900 font-medium">Terdeteksi Otomatis</p>
-                          <p className="text-sm text-green-700">{formData.hs_code_description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {hsSuggestions.length > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-                      <p className="text-sm font-medium text-blue-900">Saran HS Code dari AI:</p>
-                      <div className="space-y-2">
-                        {hsSuggestions.map((suggestion) => (
-                          <div
-                            key={suggestion.hs_code}
-                            className="bg-white p-3 rounded border cursor-pointer hover:border-blue-500 transition-colors"
-                            onClick={() => selectHSCode(suggestion)}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <Badge variant="default" className="mb-1">
-                                  {suggestion.hs_code}
-                                </Badge>
-                                <p className="text-sm text-gray-700">{suggestion.description}</p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {suggestion.category} → {suggestion.sub_category}
-                                </p>
-                              </div>
-                              <Badge variant="outline">
-                                {(suggestion.similarity * 100).toFixed(0)}%
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Inventory & Pricing */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold border-b pb-2">
-                    {isServiceCategory && !isInventoryCategory ? "Harga Jasa" : "Inventory & Harga"}
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {(!isServiceCategory || isInventoryCategory) && (
-                      <div className="space-y-2">
-                        <Label htmlFor="nominal_barang">Jumlah Stok *</Label>
-                        <Input
-                          id="nominal_barang"
-                          type="number"
-                          min="0"
-                          value={formData.nominal_barang}
-                          onChange={(e) =>
-                            setFormData({ ...formData, nominal_barang: e.target.value })
-                          }
-                          required
-                        />
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="ppn_type">Status PPN *</Label>
-                      <Select
-                        value={formData.ppn_type}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, ppn_type: value })
+                          setFormData({
+                            ...formData,
+                            item_quantity: parseFloat(e.target.value),
+                          })
                         }
                         required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Catatan WMS</Label>
+                      <Textarea
+                        value={formData.wms_notes}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            wms_notes: e.target.value,
+                          })
+                        }
+                        rows={2}
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Catatan CEISA</Label>
+                      <Textarea
+                        value={formData.ceisa_notes}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            ceisa_notes: e.target.value,
+                          })
+                        }
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pricing Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                    Informasi Harga
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Status PPN *</Label>
+                      <Select
+                        value={formData.ppn_status}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, ppn_status: value })
+                        }
                       >
-                        <SelectTrigger id="ppn_type">
+                        <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="PKP">PKP</SelectItem>
-                          <SelectItem value="Non-PKP">Non-PKP</SelectItem>
+                          <SelectItem value="Yes">Yes</SelectItem>
+                          <SelectItem value="No">No</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
-                    {isServiceCategory && !isInventoryCategory ? (
-                      // For service categories (excluding Persediaan and Beban), show only service price
+                    <div>
+                      <Label>Harga Beli *</Label>
+                      <Input
+                        type="number"
+                        value={formData.purchase_price}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            purchase_price: parseFloat(e.target.value),
+                          })
+                        }
+                        required
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        {formatRupiah(formData.purchase_price)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label>Harga Jual *</Label>
+                      <Input
+                        type="number"
+                        value={formData.selling_price}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            selling_price: parseFloat(e.target.value),
+                          })
+                        }
+                        required
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        {formatRupiah(formData.selling_price)}
+                      </p>
+                    </div>
+
+                    {formData.ppn_status === "Yes" && (
                       <>
-                        <div className="space-y-2">
-                          <Label htmlFor="selling_price">Harga Jasa *</Label>
+                        <div>
+                          <Label>PPN Beli (%)</Label>
                           <Input
-                            id="selling_price"
                             type="number"
-                            step="0.01"
-                            min="0"
-                            value={formData.selling_price}
+                            value={formData.ppn_on_purchase}
                             onChange={(e) =>
-                              setFormData({ ...formData, selling_price: e.target.value })
+                              setFormData({
+                                ...formData,
+                                ppn_on_purchase: parseFloat(e.target.value),
+                              })
                             }
-                            required
                           />
                         </div>
 
-                        {formData.ppn_type === "PKP" && (
-                          <>
-                            <div className="space-y-2">
-                              <Label htmlFor="ppn_jual">PPN Jasa (%)</Label>
-                              <Input
-                                id="ppn_jual"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                max="100"
-                                value={formData.ppn_jual}
-                                onChange={(e) =>
-                                  setFormData({ ...formData, ppn_jual: e.target.value })
-                                }
-                              />
-                            </div>
-
-                            <div className="space-y-2 md:col-span-2">
-                              <Label>Harga Jasa Setelah PPN</Label>
-                              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                                <p className="text-lg font-semibold text-green-700">
-                                  {formatToRupiah(calculatePriceWithPPN(formData.selling_price, formData.ppn_jual || "11"))}
-                                </p>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      // For non-service categories OR Persediaan/Beban, show purchase and selling prices
-                      <>
-                        <div className="space-y-2">
-                          <Label htmlFor="purchase_price">Harga Beli *</Label>
+                        <div>
+                          <Label>PPN Jual (%)</Label>
                           <Input
-                            id="purchase_price"
                             type="number"
-                            step="0.01"
-                            min="0"
-                            value={formData.purchase_price}
+                            value={formData.ppn_on_sale}
                             onChange={(e) =>
-                              setFormData({ ...formData, purchase_price: e.target.value })
+                              setFormData({
+                                ...formData,
+                                ppn_on_sale: parseFloat(e.target.value),
+                              })
                             }
-                            required
                           />
                         </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="selling_price">Harga Jual *</Label>
+                        <div>
+                          <Label>Harga Beli Setelah PPN</Label>
                           <Input
-                            id="selling_price"
                             type="number"
-                            step="0.01"
-                            min="0"
-                            value={formData.selling_price}
-                            onChange={(e) =>
-                              setFormData({ ...formData, selling_price: e.target.value })
-                            }
-                            required
+                            value={formData.purchase_price_after_ppn}
+                            disabled
+                            className="bg-slate-50"
                           />
+                          <p className="text-xs text-slate-500 mt-1">
+                            {formatRupiah(formData.purchase_price_after_ppn)}
+                          </p>
                         </div>
 
-                        {formData.ppn_type === "PKP" && (
-                          <>
-                            <div className="space-y-2">
-                              <Label htmlFor="ppn_beli">PPN Beli (%)</Label>
-                              <Input
-                                id="ppn_beli"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                max="100"
-                                value={formData.ppn_beli}
-                                onChange={(e) =>
-                                  setFormData({ ...formData, ppn_beli: e.target.value })
-                                }
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="ppn_jual">PPN Jual (%)</Label>
-                              <Input
-                                id="ppn_jual"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                max="100"
-                                value={formData.ppn_jual}
-                                onChange={(e) =>
-                                  setFormData({ ...formData, ppn_jual: e.target.value })
-                                }
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Harga Beli Setelah PPN</Label>
-                              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                                <p className="text-lg font-semibold text-blue-700">
-                                  {formatToRupiah(calculatePriceWithPPN(formData.purchase_price, formData.ppn_beli || "11"))}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Harga Jual Setelah PPN</Label>
-                              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                                <p className="text-lg font-semibold text-green-700">
-                                  {formatToRupiah(calculatePriceWithPPN(formData.selling_price, formData.ppn_jual || "11"))}
-                                </p>
-                              </div>
-                            </div>
-                          </>
-                        )}
+                        <div>
+                          <Label>Harga Jual Setelah PPN</Label>
+                          <Input
+                            type="number"
+                            value={formData.selling_price_after_ppn}
+                            disabled
+                            className="bg-slate-50"
+                          />
+                          <p className="text-xs text-slate-500 mt-1">
+                            {formatRupiah(formData.selling_price_after_ppn)}
+                          </p>
+                        </div>
                       </>
                     )}
                   </div>
+                </div>
 
-                  {(!isServiceCategory || isInventoryCategory) && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 grid md:grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-sm text-slate-600">
-                          Total Harga Beli{formData.ppn_type === "PKP" ? " (Setelah PPN)" : ""}:
-                        </span>
-                        <p className="text-lg font-bold text-blue-600">
-                          {formatToRupiah(
-                            (formData.ppn_type === "PKP" 
-                              ? calculatePriceWithPPN(formData.purchase_price, formData.ppn_beli || "11")
-                              : parseFloat(formData.purchase_price)) *
-                              parseInt(formData.nominal_barang || "0"),
-                          )}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-slate-600">
-                          Total Harga Jual{formData.ppn_type === "PKP" ? " (Setelah PPN)" : ""}:
-                        </span>
-                        <p className="text-lg font-bold text-green-600">
-                          {formatToRupiah(
-                            (formData.ppn_type === "PKP" 
-                              ? calculatePriceWithPPN(formData.selling_price, formData.ppn_jual || "11")
-                              : parseFloat(formData.selling_price)) *
-                              parseInt(formData.nominal_barang || "0"),
-                          )}
-                        </p>
-                      </div>
-                    </div>
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {loading ? (
+                      <Loader2 className="animate-spin mr-2" />
+                    ) : (
+                      <Plus className="mr-2" />
+                    )}
+                    {editingId ? "Update Stock" : "Tambah Stock"}
+                  </Button>
+                  {editingId && (
+                    <Button type="button" variant="outline" onClick={resetForm}>
+                      Batal
+                    </Button>
                   )}
                 </div>
-
-                {/* Submit Buttons */}
-                <div className="flex gap-4 pt-6">
-                  <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? 'Menyimpan...' : 'Simpan Stock Item'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                    className="flex-1"
-                  >
-                    Batal
-                  </Button>
-                </div>
               </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Summary Cards with icons */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="border-none shadow-lg bg-purple-400/90 text-white hover:shadow-xl transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Total Value</CardDescription>
-                <DollarSign className="h-8 w-8 text-white/80" />
-              </div>
-              <CardTitle className="text-4xl font-bold">
-                {formatToRupiah(summaryData.totalValue).replace('Rp', '').trim().split(',')[0]}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center text-sm text-white/90">
-                <TrendingUp className="mr-2 h-4 w-4" />
-                Nilai inventori
-              </div>
             </CardContent>
           </Card>
+        )}
 
-          <Card className="border-none shadow-lg bg-emerald-400/90 text-white hover:shadow-xl transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Total Items</CardDescription>
-                <Box className="h-8 w-8 text-white/80" />
-              </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.total}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center text-sm text-white/90">
-                <Package className="mr-2 h-4 w-4" />
-                Total stock items
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none shadow-lg bg-pink-400/90 text-white hover:shadow-xl transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Low Stock</CardDescription>
-                <AlertCircle className="h-8 w-8 text-white/80" />
-              </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.lowStock}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center text-sm text-white/90">
-                <AlertCircle className="mr-2 h-4 w-4" />
-                Items &lt; 10 unit
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none shadow-lg bg-blue-400/90 text-white hover:shadow-xl transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Categories</CardDescription>
-                <Package className="h-8 w-8 text-white/80" />
-              </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.categories}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center text-sm text-white/90">
-                <Package className="mr-2 h-4 w-4" />
-                Kategori berbeda
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters and Table */}
+        {/* Table Data Stock */}
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
           <div className="p-6 border-b bg-gradient-to-r from-indigo-50 via-blue-50 to-cyan-50">
             <div className="flex flex-col gap-4">
@@ -1770,438 +1731,122 @@ export default function StockForm() {
                 <div className="p-2 bg-indigo-100 rounded-lg">
                   <Filter className="h-5 w-5 text-indigo-600" />
                 </div>
-                <span className="text-lg">Filter & Pencarian</span>
+                <span className="text-lg">Data Stock</span>
               </div>
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    placeholder="Cari berdasarkan nama, item, atau barcode..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-[200px] border-slate-300 focus:border-purple-500 focus:ring-purple-500">
-                    <SelectValue placeholder="Kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Semua Kategori</SelectItem>
-                    {uniqueCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={jenisBarangFilter} onValueChange={setJenisBarangFilter}>
-                  <SelectTrigger className="w-[200px] border-slate-300 focus:border-blue-500 focus:ring-blue-500">
-                    <SelectValue placeholder="Jenis Barang" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Semua Jenis</SelectItem>
-                    {uniqueJenisBarang.map((jenis) => (
-                      <SelectItem key={jenis} value={jenis}>{jenis}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Cari berdasarkan nama barang, SKU, atau gudang..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+                />
               </div>
             </div>
           </div>
 
-          {loading ? (
-            <div className="p-8 text-center text-slate-500">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-              <p className="mt-2">Memuat data stock...</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gradient-to-r from-slate-100 to-blue-100 hover:from-slate-100 hover:to-blue-100">
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-indigo-600" />
-                        Nama Barang
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gradient-to-r from-slate-100 to-blue-100 hover:from-slate-100 hover:to-blue-100">
+                  <TableHead className="font-semibold text-slate-700">
+                    Nama Barang
+                  </TableHead>
+                  <TableHead className="font-semibold text-slate-700">
+                    SKU
+                  </TableHead>
+                  <TableHead className="font-semibold text-slate-700">
+                    Tanggal Masuk
+                  </TableHead>
+                  <TableHead className="font-semibold text-slate-700">
+                    Gudang
+                  </TableHead>
+                  <TableHead className="font-semibold text-slate-700">
+                    Jumlah
+                  </TableHead>
+                  <TableHead className="font-semibold text-slate-700">
+                    Satuan
+                  </TableHead>
+                  <TableHead className="text-center font-semibold text-slate-700">
+                    Aksi
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredItems.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="text-center text-slate-500 py-12"
+                    >
+                      <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
+                        <Package className="h-12 w-12 text-slate-300" />
                       </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-blue-600" />
-                        Jenis Barang
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <Layers className="h-4 w-4 text-purple-600" />
-                        Kategori
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <Box className="h-4 w-4 text-orange-600" />
-                        Unit
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <Hash className="h-4 w-4 text-emerald-600" />
-                        Jumlah Stock
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-slate-600" />
-                        Harga Beli
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-blue-600" />
-                        Harga Beli + PPN
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <ShoppingCart className="h-4 w-4 text-cyan-600" />
-                        Harga Jual
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <Receipt className="h-4 w-4 text-green-600" />
-                        Harga Jual + PPN
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-amber-600" />
-                        HS Code
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-teal-600" />
-                        Tanggal Masuk
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-700 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <Eye className="h-4 w-4 text-indigo-600" />
-                        Detail
-                      </div>
-                    </TableHead>
+                      <p className="font-medium text-lg">
+                        Belum ada data stock
+                      </p>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Tambahkan stock baru untuk memulai
+                      </p>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredStockItems.map((item, index) => {
-                    const purchasePrice = item.purchase_price || 0;
-                    const sellingPrice = item.selling_price || 0;
-                    const ppnBuyRate = item.ppn_type === "PKP" ? (item.ppn_beli || 11) : 0;
-                    const ppnSellRate = item.ppn_type === "PKP" ? (item.ppn_jual || 11) : 0;
-                    const purchasePriceWithPPN = purchasePrice + (purchasePrice * ppnBuyRate / 100);
-                    const sellingPriceWithPPN = sellingPrice + (sellingPrice * ppnSellRate / 100);
-                    
-                    return (
-                      <TableRow 
-                        key={item.id}
-                        className="hover:bg-indigo-50 transition-colors border-b border-slate-100"
-                      >
-                        <TableCell className="font-medium text-slate-900">
-                          {item.item_name}
-                        </TableCell>
-                        <TableCell className="text-slate-700">
-                          {item.jenis_barang}
-                        </TableCell>
-                        <TableCell className="text-slate-700">
-                          {item.category && item.category.length > 0 
-                            ? item.category[0]
-                            : '-'}
-                        </TableCell>
-                        <TableCell className="text-slate-700">
-                          {item.unit || '-'}
-                        </TableCell>
-                        <TableCell className="text-slate-700">
-                          {item.nominal_barang}
-                        </TableCell>
-                        <TableCell className="text-slate-700 font-semibold">
-                          {formatToRupiah(purchasePrice)}
-                        </TableCell>
-                        <TableCell className="text-blue-700 font-semibold">
-                          {formatToRupiah(purchasePriceWithPPN)}
-                        </TableCell>
-                        <TableCell className="text-slate-700 font-semibold">
-                          {formatToRupiah(sellingPrice)}
-                        </TableCell>
-                        <TableCell className="text-green-700 font-bold">
-                          {formatToRupiah(sellingPriceWithPPN)}
-                        </TableCell>
-                        <TableCell className="text-slate-700 font-mono">
-                          {item.hs_code || '-'}
-                        </TableCell>
-                        <TableCell className="text-slate-700">
-                          {item.tanggal_masuk_barang 
-                            ? new Date(item.tanggal_masuk_barang).toLocaleDateString('id-ID')
-                            : '-'}
-                        </TableCell>
-                        <TableCell className="text-center">
+                ) : (
+                  filteredItems.map((item, index) => (
+                    <TableRow
+                      key={item.id}
+                      className={`${
+                        index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                      } hover:bg-indigo-50 transition-colors border-b border-slate-100`}
+                    >
+                      <TableCell className="font-medium text-slate-900">
+                        {item.item_name}
+                      </TableCell>
+                      <TableCell className="font-mono text-indigo-600">
+                        {item.sku}
+                      </TableCell>
+                      <TableCell className="text-slate-700">
+                        {item.item_arrival_date
+                          ? new Date(item.item_arrival_date).toLocaleDateString(
+                              "id-ID",
+                            )
+                          : "-"}
+                      </TableCell>
+                      <TableCell className="text-slate-700">
+                        {item.warehouses || "-"}
+                      </TableCell>
+                      <TableCell className="text-slate-700">
+                        {item.item_quantity}
+                      </TableCell>
+                      <TableCell className="text-slate-700">
+                        {item.unit}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-center gap-2">
+                          <DetailDialog item={item} />
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openDetailDialog(item)}
-                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                            onClick={() => handleEdit(item.id)}
                           >
-                            <Eye className="w-4 h-4" />
+                            <Pencil className="w-4 h-4 text-blue-600" />
                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-
-          {!loading && filteredStockItems.length === 0 && (
-            <div className="p-12 text-center">
-              <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
-                <Package className="h-12 w-12 text-slate-300" />
-              </div>
-              <p className="text-slate-500 font-medium text-lg">Tidak ada stock ditemukan</p>
-              <p className="text-sm text-slate-400 mt-1">Coba ubah filter atau tambahkan stock baru</p>
-            </div>
-          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
-
-      {/* Detail Dialog */}
-      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-indigo-600" />
-              Detail Barang
-            </DialogTitle>
-            <DialogDescription>
-              Informasi lengkap tentang item stock
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedItem && (
-            <div className="space-y-6">
-              {/* Basic Info */}
-              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg text-indigo-900 mb-3">Informasi Dasar</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-slate-600">Nama Barang</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.item_name}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Jenis Barang</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.jenis_barang}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Kategori</Label>
-                    <p className="font-medium text-slate-900">
-                      {selectedItem.category && selectedItem.category.length > 0 
-                        ? selectedItem.category.join(", ") 
-                        : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Lokasi Gudang</Label>
-                    <p className="font-medium text-slate-900">
-                      {selectedItem.locationDetails ? (
-                        <>
-                          {selectedItem.locationDetails.warehouse && (
-                            <span className="block">
-                              Gudang: {selectedItem.locationDetails.warehouse.name} ({selectedItem.locationDetails.warehouse.code})
-                            </span>
-                          )}
-                          {selectedItem.locationDetails.zone && (
-                            <span className="block">
-                              Zona: {selectedItem.locationDetails.zone.name} ({selectedItem.locationDetails.zone.code})
-                            </span>
-                          )}
-                          {selectedItem.locationDetails.rack && (
-                            <span className="block">
-                              Rak: {selectedItem.locationDetails.rack.name} ({selectedItem.locationDetails.rack.code})
-                            </span>
-                          )}
-                          {selectedItem.locationDetails.lot && (
-                            <span className="block">
-                              Lot: {selectedItem.locationDetails.lot.lot_number}
-                            </span>
-                          )}
-                          {!selectedItem.locationDetails.warehouse && "-"}
-                        </>
-                      ) : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Barcode</Label>
-                    <p className="font-medium text-slate-900 font-mono">{selectedItem.barcode || "-"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Part Number</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.part_number || "-"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Tanggal Masuk Barang</Label>
-                    <p className="font-medium text-slate-900">
-                      {selectedItem.tanggal_masuk_barang 
-                        ? new Date(selectedItem.tanggal_masuk_barang).toLocaleDateString('id-ID', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })
-                        : "-"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stock & Pricing */}
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg text-emerald-900 mb-3">Stock & Harga</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-slate-600">Jumlah Stock</Label>
-                    <p className="font-bold text-2xl text-emerald-700">
-                      {selectedItem.nominal_barang} {selectedItem.unit}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Status PPN</Label>
-                    <Badge className={selectedItem.ppn_type === "PKP" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}>
-                      {selectedItem.ppn_type}
-                    </Badge>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Harga Beli</Label>
-                    <p className="font-semibold text-slate-900">{formatToRupiah(selectedItem.purchase_price)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Harga Jual</Label>
-                    <p className="font-semibold text-slate-900">{formatToRupiah(selectedItem.selling_price)}</p>
-                  </div>
-                  {selectedItem.ppn_type === "PKP" && (
-                    <>
-                      <div>
-                        <Label className="text-slate-600">PPN Beli</Label>
-                        <p className="font-medium text-slate-900">{selectedItem.ppn_beli}%</p>
-                      </div>
-                      <div>
-                        <Label className="text-slate-600">PPN Jual</Label>
-                        <p className="font-medium text-slate-900">{selectedItem.ppn_jual}%</p>
-                      </div>
-                      <div>
-                        <Label className="text-slate-600">Harga Beli + PPN</Label>
-                        <p className="font-semibold text-blue-700">
-                          {formatToRupiah(selectedItem.purchase_price + (selectedItem.purchase_price * (selectedItem.ppn_beli || 11) / 100))}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-slate-600">Harga Jual + PPN</Label>
-                        <p className="font-semibold text-green-700">
-                          {formatToRupiah(selectedItem.selling_price + (selectedItem.selling_price * (selectedItem.ppn_jual || 11) / 100))}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* HS Code & Origin */}
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg text-amber-900 mb-3">HS Code & Asal</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-slate-600">HS Code</Label>
-                    <p className="font-mono font-semibold text-amber-700">{selectedItem.hs_code || "-"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Negara Asal</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.country_of_origin || "-"}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-slate-600">Deskripsi HS Code</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.hs_code_description || "-"}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product Details */}
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg text-purple-900 mb-3">Detail Produk</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-slate-600">Berat</Label>
-                    <p className="font-medium text-slate-900">
-                      {selectedItem.weight ? `${selectedItem.weight} ${selectedItem.weight_unit}` : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Dimensi</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.dimensions || "-"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Volume</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.volume || "-"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Brand</Label>
-                    <p className="font-medium text-slate-900">
-                      {selectedItem.brand && selectedItem.brand.length > 0 
-                        ? selectedItem.brand.join(", ") 
-                        : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Model</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.model || "-"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Supplier</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.supplier_name || "-"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Sub Kategori</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.sub_kategori || "-"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-600">Deskripsi</Label>
-                    <p className="font-medium text-slate-900">{selectedItem.deskripsi || "-"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-500">Dibuat pada</Label>
-                    <p className="text-slate-700">
-                      {selectedItem.created_at 
-                        ? new Date(selectedItem.created_at).toLocaleString('id-ID')
-                        : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-slate-500">Terakhir diupdate</Label>
-                    <p className="text-slate-700">
-                      {selectedItem.updated_at 
-                        ? new Date(selectedItem.updated_at).toLocaleString('id-ID')
-                        : "-"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={() => setIsDetailDialogOpen(false)}>
-                  Tutup
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
