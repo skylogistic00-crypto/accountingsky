@@ -80,15 +80,25 @@ export default function COAMappingManager() {
       .eq("is_active", true)
       .order("item_name");
     
-    // Fetch inventory items
+    // Fetch inventory items - use correct field names from database
     const { data: inventory } = await supabase
       .from("inventory_items")
-      .select("id, item_name, cost_per_unit, coa_inventory_code, coa_cogs_code")
-      .order("item_name");
+      .select("id, nama_barang, cost_per_unit, coa_inventory_code, coa_cogs_code")
+      .order("nama_barang");
     
     setCOAAccounts(coa || []);
     setServiceItems(services || []);
-    setInventoryItems(inventory || []);
+    
+    // Map nama_barang to item_name for consistency
+    const mappedInventory = (inventory || []).map(item => ({
+      id: item.id,
+      item_name: item.nama_barang,
+      cost_per_unit: item.cost_per_unit,
+      coa_inventory_code: item.coa_inventory_code,
+      coa_cogs_code: item.coa_cogs_code,
+    }));
+    
+    setInventoryItems(mappedInventory);
     setLoading(false);
   };
 

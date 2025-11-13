@@ -120,8 +120,8 @@ export default function SalesForm() {
   const fetchItems = async () => {
     const { data, error } = await supabase
       .from("stock")
-      .select("id, item_name, quantity, coa_account_code, coa_account_name")
-      .gt("quantity", 0)
+      .select("id, item_name, item_quantity, coa_account_code, coa_account_name")
+      .gt("item_quantity", 0)
       .order("item_name");
     
     if (error) {
@@ -131,7 +131,15 @@ export default function SalesForm() {
         variant: "destructive",
       });
     } else {
-      setItems(data || []);
+      // Map item_quantity to quantity for consistency
+      const mappedItems = (data || []).map(item => ({
+        id: item.id,
+        item_name: item.item_name,
+        quantity: item.item_quantity,
+        coa_account_code: item.coa_account_code,
+        coa_account_name: item.coa_account_name,
+      }));
+      setItems(mappedItems);
     }
   };
 
@@ -191,7 +199,7 @@ export default function SalesForm() {
   const handleItemChange = async (itemId: string) => {
     const { data, error } = await supabase
       .from("stock")
-      .select("id, item_name, quantity, coa_account_code, coa_account_name")
+      .select("id, item_name, item_quantity, coa_account_code, coa_account_name")
       .eq("id", itemId)
       .single();
 
@@ -209,7 +217,7 @@ export default function SalesForm() {
         ...prev,
         item_id: itemId,
         item_name: data.item_name,
-        stock_current: data.quantity,
+        stock_current: data.item_quantity,
         coa_account_code: data.coa_account_code || "",
         coa_account_name: data.coa_account_name || "",
       }));
@@ -356,7 +364,7 @@ export default function SalesForm() {
         const { error: updateStockError } = await supabase
           .from("stock")
           .update({ 
-            quantity: formData.stock_after,
+            item_quantity: formData.stock_after,
             updated_at: new Date().toISOString()
           })
           .eq("id", formData.item_id);
@@ -438,12 +446,12 @@ export default function SalesForm() {
         // Refresh stock data from stock table
         const { data: updatedItem } = await supabase
           .from("stock")
-          .select("quantity")
+          .select("item_quantity")
           .eq("id", formData.item_id)
           .single();
 
         if (updatedItem) {
-          setFormData(prev => ({ ...prev, stock_current: updatedItem.quantity }));
+          setFormData(prev => ({ ...prev, stock_current: updatedItem.item_quantity }));
         }
       } else {
         // Journal for Jasa (from service_items.coa_revenue_code)
