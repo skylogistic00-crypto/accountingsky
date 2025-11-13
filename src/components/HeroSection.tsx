@@ -14,16 +14,22 @@ export default function HeroSection() {
         />
       </div>
 
-      <div className="container mx-auto px-4 py-20 relative z-10">
+      <div className="container mx-auto px-4 py-10 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Main Heading */}
           <div className="mb-2">
-            <span className="inline-block px-4 py-2 bg-blue-600/30 backdrop-blur-sm rounded-full text-sm font-semibold mb-4 border border-blue-400/30">
+            <span className="inline-block px-4 py-2 bg-blue-600/30 backdrop-blur-sm rounded-full text-sm font-semibold mb-2 border border-blue-400/30">
               Freight & Finance Management
             </span>
-            <h1 className="text-5xl md:text-6xl font-bold mb-4 leading-snug relative z-10">
+            <h1
+              className="text-5xl md:text-6xl font-extrabold mb-2 leading-snug relative z-10
+              [text-shadow:_2px_2px_4px_rgba(0,0,0,0.4),_0_0_10px_rgba(59,130,246,0.6)]"
+            >
               Streamline Your
-              <span className="block text-gradient-fix bg-gradient-to-r from-blue-300 to-cyan-300">
+              <span
+                className="block bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent leading-snug relative
+                [text-shadow:_1px_1px_2px_rgba(0,0,0,0.35),_0_0_6px_rgba(34,211,238,0.4)]"
+              >
                 Cargo Accounting
               </span>
             </h1>
@@ -34,7 +40,7 @@ export default function HeroSection() {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-wrap gap-4 justify-center mb-16">
+          <div className="flex flex-wrap gap-4 justify-center mb-4">
             <Button
               size="lg"
               className="bg-white text-blue-900 hover:bg-blue-50"
@@ -51,8 +57,8 @@ export default function HeroSection() {
           </div>
 
           {/* Feature Cards */}
-          <div className="grid md:grid-cols-4 gap-6 mt-12">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+          <div className="grid md:grid-cols-4 gap-6 mb-10">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 z-20">
               <Ship className="h-10 w-10 mb-4 text-blue-300" />
               <h3 className="font-semibold mb-2">Shipment Tracking</h3>
               <p className="text-sm text-blue-100">
@@ -60,7 +66,7 @@ export default function HeroSection() {
               </p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 z-20">
               <TrendingUp className="h-10 w-10 mb-4 text-green-300" />
               <h3 className="font-semibold mb-2">Financial Reports</h3>
               <p className="text-sm text-blue-100">
@@ -86,7 +92,7 @@ export default function HeroSection() {
       {/* Bottom Wave */}
       <div className="absolute bottom-0 left-0 right-0">
         <svg
-          viewBox="0 0 1440 120"
+          viewBox="0 0 1010 91"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >

@@ -20,6 +20,7 @@ interface COAAccount {
   level: number;
   is_header: boolean;
   normal_balance: string;
+  balance?: number;
   description?: string;
   is_active: boolean;
 }
@@ -107,6 +108,16 @@ export default function COAManagement() {
         variant: 'destructive',
       });
     }
+  };
+
+  const formatRupiah = (amount: number | null | undefined): string => {
+    const value = amount || 0;
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
   };
 
   const fetchCoaMappings = async () => {
@@ -497,7 +508,8 @@ export default function COAManagement() {
                         <TableHead>Nama Akun</TableHead>
                         <TableHead>Tipe</TableHead>
                         <TableHead>Level</TableHead>
-                        <TableHead>Balance</TableHead>
+                        <TableHead>Normal Balance</TableHead>
+                        <TableHead className="text-right">Balance</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Aksi</TableHead>
                       </TableRow>
@@ -512,6 +524,9 @@ export default function COAManagement() {
                           <TableCell>{coa.account_type}</TableCell>
                           <TableCell>Level {coa.level}</TableCell>
                           <TableCell>{coa.normal_balance}</TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatRupiah(coa.balance)}
+                          </TableCell>
                           <TableCell>
                             <span
                               className={`px-2 py-1 rounded-full text-xs ${

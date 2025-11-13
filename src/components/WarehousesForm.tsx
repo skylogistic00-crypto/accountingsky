@@ -336,9 +336,10 @@ export default function WarehousesForm() {
     navigate('/dashboard');
   };
 
-  const isEditor = userProfile?.role === 'admin' || userProfile?.role === 'editor' || userProfile?.role === 'super_admin';
+  const isEditor = userProfile?.role_name === 'admin' || userProfile?.role_name === 'editor' || userProfile?.role_name === 'super_admin';
 
   console.log('User Profile:', userProfile);
+  console.log('User Role:', userProfile?.role_name);
   console.log('Is Editor:', isEditor);
 
   const summaryData = {

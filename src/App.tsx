@@ -88,7 +88,7 @@ function HomePage() {
     switch (role) {
       case "super_admin":
         return <Navigate to="/dashboard" replace />;
-      case "warehouse_manager":
+      case ("warehouse_manager", "warehouse_staff"):
         return <Navigate to="/warehouses" replace />;
       case "purchasing":
         return <Navigate to="/purchase-request" replace />;
@@ -127,13 +127,7 @@ function AppRoutes() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "accounting_staff",
-            ]}
-          >
+          <ProtectedRoute allowedRoles={["super_admin", "warehouse_staff"]}>
             <Dashboard />
           </ProtectedRoute>
         }
@@ -185,6 +179,7 @@ function AppRoutes() {
               "accounting_manager",
               "accounting_staff",
               "warehouse_manager",
+              "warehouse_staff",
             ]}
           >
             <div className="min-h-screen bg-slate-50">
@@ -198,7 +193,13 @@ function AppRoutes() {
       <Route
         path="/warehouses"
         element={
-          <ProtectedRoute allowedRoles={["super_admin", "warehouse_manager"]}>
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "warehouse_manager",
+              "warehouse_staff",
+            ]}
+          >
             <div className="min-h-screen bg-slate-50">
               <Header />
               <Navigation />
@@ -211,7 +212,7 @@ function AppRoutes() {
       <Route
         path="/barang-lini"
         element={
-          <ProtectedRoute allowedRoles={["super_admin"]}>
+          <ProtectedRoute allowedRoles={["super_admin", "warehouse_manager"]}>
             <div className="min-h-screen bg-slate-50">
               <Header />
               <Navigation />
@@ -229,6 +230,7 @@ function AppRoutes() {
               "warehouse_manager",
               "accounting_manager",
               "accounting_staff",
+              "warehouse_staff",
             ]}
           >
             <div className="min-h-screen bg-slate-50">

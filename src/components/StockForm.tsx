@@ -46,6 +46,8 @@ import {
   Eye,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { canEdit, canDelete } from "@/utils/roleAccess";
 
 interface StockItem {
   id: string;
@@ -161,6 +163,7 @@ export default function StockForm() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const { userRole } = useAuth();
 
   const [formData, setFormData] = useState({
     item_name: "",
@@ -1823,20 +1826,25 @@ export default function StockForm() {
                       <TableCell>
                         <div className="flex justify-center gap-2">
                           <DetailDialog item={item} />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(item.id)}
-                          >
-                            <Pencil className="w-4 h-4 text-blue-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(item.id)}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </Button>
+                          {canEdit(userRole) && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(item.id)}
+                              >
+                                <Pencil className="w-4 h-4 text-blue-600" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(item.id)}
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

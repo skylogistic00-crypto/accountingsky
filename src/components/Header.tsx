@@ -94,8 +94,8 @@ export default function Header() {
   return (
     <>
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="container mx-auto px-1 py-1 flex items-center justify-between">
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/70 backdrop-blur-sm shadow-[inset_0_0_3px_rgba(255,255,255,0.6),_0_4px_10px_rgba(0,0,0,0.1)] border border-slate-200 hover:shadow-[0_6px_12px_rgba(0,0,0,0.15)] transition-all duration-300">
             <img
               src="/logo.jpg"
               alt="Sakti Kargo Yaksa"
@@ -114,19 +114,38 @@ export default function Header() {
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                <span
-                  className="text-l font-bold text-slate-900 tracking-wide 
-                  [text-shadow:_1px_1px_2px_rgba(0,0,0,0.25)] hidden sm:inline"
-                >
-                  Hallo {user.user_metadata?.full_name || user.email}
-                </span>
+                <div className="hidden sm:flex flex-col items-end text-right leading-tight">
+                  <span
+                    className="text-base font-bold text-slate-900 tracking-wide
+                  [text-shadow:_1px_1px_2px_rgba(0,0,0,0.25)]"
+                  >
+                    👋 Hallo {user.user_metadata?.full_name || user.email}
+                  </span>
+                  <span
+                    className="text-xs font-semibold text-slate-600 uppercase
+                  [text-shadow:_0px_1px_1px_rgba(0,0,0,0.15)]"
+                  >
+                    {user.user_metadata?.role
+                      ? user.user_metadata.role.replaceAll("_", " ")
+                      : "User"}
+                  </span>
+                </div>
 
-                <Button onClick={handleSignOut} variant="outline" size="sm">
+                <Button
+                  onClick={handleSignOut}
+                  variant="outline"
+                  size="sm"
+                  className="shadow-sm hover:shadow-md transition-all"
+                >
                   Sign Out
                 </Button>
               </>
             ) : (
-              <Button onClick={() => setShowAuthDialog(true)} size="sm">
+              <Button
+                onClick={() => setShowAuthDialog(true)}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+              >
                 Sign In / Sign Up
               </Button>
             )}
@@ -176,7 +195,11 @@ export default function Header() {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                  disabled={loading}
+                >
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
@@ -254,7 +277,11 @@ export default function Header() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                  disabled={loading}
+                >
                   {loading ? "Creating account..." : "Sign Up"}
                 </Button>
               </form>

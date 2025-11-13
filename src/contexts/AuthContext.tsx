@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
+  userRole: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -72,7 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       console.log("👤 User Profile with Role:", data);
+
       setUserProfile(data);
+
+      const role = data.role_name || data.roles?.role_name || null;
+
+      setUserRole((role || "").toLowerCase().trim().replace(/\s+/g, "_"));
     } catch (error) {
       console.error("Error fetching user profile:", error);
     } finally {
@@ -123,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, userProfile, loading, signIn, signUp, signOut }}
+      value={{ user, userRole, userProfile, loading, signIn, signUp, signOut }}
     >
       {children}
     </AuthContext.Provider>

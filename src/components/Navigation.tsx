@@ -33,12 +33,12 @@ export default function Navigation() {
       icon: Home,
       roles: [
         "super_admin",
-        "warehouse_manager",
+        // "warehouse_manager",
         "accounting_manager",
         "customs_specialist",
         "accounting_staff",
-        "warehouse_staff",
-        "read_only",
+        // "warehouse_staff",
+        // "read_only",
       ],
     },
     {
@@ -74,19 +74,20 @@ export default function Navigation() {
         "accounting_manager",
         "accounting_staff",
         "warehouse_manager",
+        "warehouse_staff",
       ],
     },
     {
       path: "/warehouses",
       label: "Warehouses",
       icon: Building2,
-      roles: ["super_admin", "warehouse_manager"],
+      roles: ["super_admin", "warehouse_manager", "warehouse_staff"],
     },
     {
       path: "/barang-lini",
       label: "Barang Lini",
       icon: Layers,
-      roles: ["super_admin"],
+      roles: ["super_admin", "warehouse_manager"],
     },
     {
       path: "/barang-keluar",
@@ -97,6 +98,7 @@ export default function Navigation() {
         "warehouse_manager",
         "accounting_manager",
         "accounting_staff",
+        "warehouse_staff",
       ],
     },
     {

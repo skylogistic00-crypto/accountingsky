@@ -20,7 +20,14 @@ import {
   TableRow,
 } from "./ui/table";
 import { useToast } from "./ui/use-toast";
-import { Pencil, Trash2, Plus, TruckIcon, ArrowLeft, Package } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Plus,
+  TruckIcon,
+  ArrowLeft,
+  Package,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,8 +35,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { useNavigate } from "react-router-dom";
+import { canEdit, canDelete } from "@/utils/roleAccess";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface BarangKeluarForm {
   id?: string;
@@ -65,6 +80,7 @@ export default function BarangKeluar() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [selectedBarang, setSelectedBarang] = useState<any>(null);
+  const { userRole } = useAuth();
   const [formData, setFormData] = useState<BarangKeluarForm>({
     item_name: "",
     sku: "",
@@ -101,7 +117,7 @@ export default function BarangKeluar() {
         { event: "*", schema: "public", table: "barang_keluar" },
         () => {
           fetchItems();
-        }
+        },
       )
       .subscribe();
 
@@ -143,7 +159,7 @@ export default function BarangKeluar() {
     const barang = barangLini2Items.find((item) => item.sku === sku);
     if (barang) {
       setSelectedBarang(barang);
-      
+
       // Calculate storage duration
       const calculateDuration = (arrivalDate: string) => {
         if (!arrivalDate) return "";
@@ -174,11 +190,16 @@ export default function BarangKeluar() {
           item_arrival_date: barang.item_arrival_date || "",
           item_arrival_date_lini_2: barang.item_arrival_date_lini_2 || "",
           storage_duration: calculateDuration(barang.item_arrival_date),
-          storage_duration_lini_2: calculateDuration(barang.item_arrival_date_lini_2),
+          storage_duration_lini_2: calculateDuration(
+            barang.item_arrival_date_lini_2,
+          ),
           total_price: barang.total_price?.toString() || "",
           total_price_lini_2: barang.total_price_lini_2?.toString() || "",
           // Use stock data if available, otherwise fallback to barang_lini_2 data
-          item_quantity: stockData?.quantity?.toString() || barang.item_quantity?.toString() || "",
+          item_quantity:
+            stockData?.quantity?.toString() ||
+            barang.item_quantity?.toString() ||
+            "",
           unit: stockData?.unit || barang.unit || "",
           warehouses: stockData?.warehouses || barang.warehouses || "",
           zones: stockData?.zones || barang.zones || "",
@@ -207,12 +228,24 @@ export default function BarangKeluar() {
         awb: formData.awb || null,
         item_arrival_date: formData.item_arrival_date || null,
         item_arrival_date_lini_2: formData.item_arrival_date_lini_2 || null,
-        storage_duration: formData.storage_duration ? parseInt(formData.storage_duration) : null,
-        storage_duration_lini_2: formData.storage_duration_lini_2 ? parseInt(formData.storage_duration_lini_2) : null,
-        total_price: formData.total_price ? parseFloat(formData.total_price) : null,
-        total_price_lini_2: formData.total_price_lini_2 ? parseFloat(formData.total_price_lini_2) : null,
-        final_price: formData.final_price ? parseFloat(formData.final_price) : null,
-        item_quantity: formData.item_quantity ? parseFloat(formData.item_quantity) : null,
+        storage_duration: formData.storage_duration
+          ? parseInt(formData.storage_duration)
+          : null,
+        storage_duration_lini_2: formData.storage_duration_lini_2
+          ? parseInt(formData.storage_duration_lini_2)
+          : null,
+        total_price: formData.total_price
+          ? parseFloat(formData.total_price)
+          : null,
+        total_price_lini_2: formData.total_price_lini_2
+          ? parseFloat(formData.total_price_lini_2)
+          : null,
+        final_price: formData.final_price
+          ? parseFloat(formData.final_price)
+          : null,
+        item_quantity: formData.item_quantity
+          ? parseFloat(formData.item_quantity)
+          : null,
         unit: formData.unit || null,
         warehouses: formData.warehouses || null,
         zones: formData.zones || null,
@@ -232,11 +265,17 @@ export default function BarangKeluar() {
           .eq("id", editingItem.id);
 
         if (error) throw error;
-        toast({ title: "Success", description: "Data barang keluar berhasil diupdate" });
+        toast({
+          title: "Success",
+          description: "Data barang keluar berhasil diupdate",
+        });
       } else {
         const { error } = await supabase.from("barang_keluar").insert(itemData);
         if (error) throw error;
-        toast({ title: "Success", description: "Data barang keluar berhasil ditambahkan" });
+        toast({
+          title: "Success",
+          description: "Data barang keluar berhasil ditambahkan",
+        });
       }
 
       resetForm();
@@ -283,9 +322,15 @@ export default function BarangKeluar() {
     if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
 
     try {
-      const { error } = await supabase.from("barang_keluar").delete().eq("id", id);
+      const { error } = await supabase
+        .from("barang_keluar")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
-      toast({ title: "Success", description: "Data barang keluar berhasil dihapus" });
+      toast({
+        title: "Success",
+        description: "Data barang keluar berhasil dihapus",
+      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -324,8 +369,12 @@ export default function BarangKeluar() {
     setSelectedBarang(null);
   };
 
-  const pendingCount = items.filter(item => item.payment_status === "Belum Lunas").length;
-  const completedCount = items.filter(item => item.payment_status === "Lunas").length;
+  const pendingCount = items.filter(
+    (item) => item.payment_status === "Belum Lunas",
+  ).length;
+  const completedCount = items.filter(
+    (item) => item.payment_status === "Lunas",
+  ).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50 to-red-50">
@@ -333,10 +382,10 @@ export default function BarangKeluar() {
       <div className="border-b bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 shadow-lg">
         <div className="container mx-auto px-4 py-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate('/dashboard')}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
               className="text-white hover:bg-white/20"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -347,7 +396,9 @@ export default function BarangKeluar() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">Barang Keluar</h1>
-                <p className="text-sm text-orange-100">Kelola barang yang keluar dari gudang</p>
+                <p className="text-sm text-orange-100">
+                  Kelola barang yang keluar dari gudang
+                </p>
               </div>
             </div>
           </div>
@@ -360,10 +411,14 @@ export default function BarangKeluar() {
           <Card className="border-none shadow-lg bg-orange-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Total Barang Keluar</CardDescription>
+                <CardDescription className="text-white/90">
+                  Total Barang Keluar
+                </CardDescription>
                 <TruckIcon className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{items.length}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {items.length}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -376,10 +431,14 @@ export default function BarangKeluar() {
           <Card className="border-none shadow-lg bg-yellow-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Belum Lunas</CardDescription>
+                <CardDescription className="text-white/90">
+                  Belum Lunas
+                </CardDescription>
                 <Package className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{pendingCount}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {pendingCount}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -392,10 +451,14 @@ export default function BarangKeluar() {
           <Card className="border-none shadow-lg bg-green-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Lunas</CardDescription>
+                <CardDescription className="text-white/90">
+                  Lunas
+                </CardDescription>
                 <Package className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{completedCount}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {completedCount}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -411,12 +474,19 @@ export default function BarangKeluar() {
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Daftar Barang Keluar</h2>
-                <p className="text-sm text-slate-500 mt-1">Kelola data barang yang keluar dari gudang</p>
+                <h2 className="text-xl font-bold text-slate-800">
+                  Daftar Barang Keluar
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Kelola data barang yang keluar dari gudang
+                </p>
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={resetForm} className="bg-orange-600 hover:bg-orange-700">
+                  <Button
+                    onClick={resetForm}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Tambah Barang Keluar
                   </Button>
@@ -424,13 +494,17 @@ export default function BarangKeluar() {
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
-                      {editingItem ? "Edit Barang Keluar" : "Tambah Barang Keluar"}
+                      {editingItem
+                        ? "Edit Barang Keluar"
+                        : "Tambah Barang Keluar"}
                     </DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     {!editingItem && (
                       <div className="space-y-2 p-4 bg-orange-50 rounded-lg">
-                        <Label htmlFor="select_barang">Pilih Barang dari Lini 2 (Status: Diambil) *</Label>
+                        <Label htmlFor="select_barang">
+                          Pilih Barang dari Lini 2 (Status: Diambil) *
+                        </Label>
                         <Select onValueChange={handleBarangSelect}>
                           <SelectTrigger id="select_barang">
                             <SelectValue placeholder="Pilih barang..." />
@@ -443,7 +517,8 @@ export default function BarangKeluar() {
                             ) : (
                               barangLini2Items.map((item) => (
                                 <SelectItem key={item.id} value={item.sku}>
-                                  {item.sku} - {item.nama_barang || item.item_name}
+                                  {item.sku} -{" "}
+                                  {item.nama_barang || item.item_name}
                                 </SelectItem>
                               ))
                             )}
@@ -459,7 +534,10 @@ export default function BarangKeluar() {
                           id="item_name"
                           value={formData.item_name}
                           onChange={(e) =>
-                            setFormData({ ...formData, item_name: e.target.value })
+                            setFormData({
+                              ...formData,
+                              item_name: e.target.value,
+                            })
                           }
                           required
                           readOnly={!editingItem && !!selectedBarang}
@@ -492,52 +570,72 @@ export default function BarangKeluar() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="item_arrival_date">Tanggal Masuk Lini 1</Label>
+                        <Label htmlFor="item_arrival_date">
+                          Tanggal Masuk Lini 1
+                        </Label>
                         <Input
                           id="item_arrival_date"
                           type="date"
                           value={formData.item_arrival_date}
                           onChange={(e) =>
-                            setFormData({ ...formData, item_arrival_date: e.target.value })
+                            setFormData({
+                              ...formData,
+                              item_arrival_date: e.target.value,
+                            })
                           }
                           readOnly={!editingItem && !!selectedBarang}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="item_arrival_date_lini_2">Tanggal Masuk Lini 2</Label>
+                        <Label htmlFor="item_arrival_date_lini_2">
+                          Tanggal Masuk Lini 2
+                        </Label>
                         <Input
                           id="item_arrival_date_lini_2"
                           type="date"
                           value={formData.item_arrival_date_lini_2}
                           onChange={(e) =>
-                            setFormData({ ...formData, item_arrival_date_lini_2: e.target.value })
+                            setFormData({
+                              ...formData,
+                              item_arrival_date_lini_2: e.target.value,
+                            })
                           }
                           readOnly={!editingItem && !!selectedBarang}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="storage_duration">Lama Simpan Lini 1 (hari)</Label>
+                        <Label htmlFor="storage_duration">
+                          Lama Simpan Lini 1 (hari)
+                        </Label>
                         <Input
                           id="storage_duration"
                           type="number"
                           value={formData.storage_duration}
                           onChange={(e) =>
-                            setFormData({ ...formData, storage_duration: e.target.value })
+                            setFormData({
+                              ...formData,
+                              storage_duration: e.target.value,
+                            })
                           }
                           readOnly={!editingItem && !!selectedBarang}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="storage_duration_lini_2">Lama Simpan Lini 2 (hari)</Label>
+                        <Label htmlFor="storage_duration_lini_2">
+                          Lama Simpan Lini 2 (hari)
+                        </Label>
                         <Input
                           id="storage_duration_lini_2"
                           type="number"
                           value={formData.storage_duration_lini_2}
                           onChange={(e) =>
-                            setFormData({ ...formData, storage_duration_lini_2: e.target.value })
+                            setFormData({
+                              ...formData,
+                              storage_duration_lini_2: e.target.value,
+                            })
                           }
                           readOnly={!editingItem && !!selectedBarang}
                         />
@@ -550,20 +648,28 @@ export default function BarangKeluar() {
                           type="number"
                           value={formData.total_price}
                           onChange={(e) =>
-                            setFormData({ ...formData, total_price: e.target.value })
+                            setFormData({
+                              ...formData,
+                              total_price: e.target.value,
+                            })
                           }
                           readOnly={!editingItem && !!selectedBarang}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="total_price_lini_2">Harga Total Lini 2</Label>
+                        <Label htmlFor="total_price_lini_2">
+                          Harga Total Lini 2
+                        </Label>
                         <Input
                           id="total_price_lini_2"
                           type="number"
                           value={formData.total_price_lini_2}
                           onChange={(e) =>
-                            setFormData({ ...formData, total_price_lini_2: e.target.value })
+                            setFormData({
+                              ...formData,
+                              total_price_lini_2: e.target.value,
+                            })
                           }
                           readOnly={!editingItem && !!selectedBarang}
                         />
@@ -576,7 +682,10 @@ export default function BarangKeluar() {
                           type="number"
                           value={formData.final_price}
                           onChange={(e) =>
-                            setFormData({ ...formData, final_price: e.target.value })
+                            setFormData({
+                              ...formData,
+                              final_price: e.target.value,
+                            })
                           }
                           required
                         />
@@ -589,7 +698,10 @@ export default function BarangKeluar() {
                           type="number"
                           value={formData.item_quantity}
                           onChange={(e) =>
-                            setFormData({ ...formData, item_quantity: e.target.value })
+                            setFormData({
+                              ...formData,
+                              item_quantity: e.target.value,
+                            })
                           }
                           readOnly={!editingItem && !!selectedBarang}
                         />
@@ -613,7 +725,10 @@ export default function BarangKeluar() {
                           id="warehouses"
                           value={formData.warehouses}
                           onChange={(e) =>
-                            setFormData({ ...formData, warehouses: e.target.value })
+                            setFormData({
+                              ...formData,
+                              warehouses: e.target.value,
+                            })
                           }
                           readOnly={!editingItem && !!selectedBarang}
                         />
@@ -661,20 +776,28 @@ export default function BarangKeluar() {
                           id="picked_up_by"
                           value={formData.picked_up_by}
                           onChange={(e) =>
-                            setFormData({ ...formData, picked_up_by: e.target.value })
+                            setFormData({
+                              ...formData,
+                              picked_up_by: e.target.value,
+                            })
                           }
                           required
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="pick_up_date">Tanggal Pengambilan *</Label>
+                        <Label htmlFor="pick_up_date">
+                          Tanggal Pengambilan *
+                        </Label>
                         <Input
                           id="pick_up_date"
                           type="date"
                           value={formData.pick_up_date}
                           onChange={(e) =>
-                            setFormData({ ...formData, pick_up_date: e.target.value })
+                            setFormData({
+                              ...formData,
+                              pick_up_date: e.target.value,
+                            })
                           }
                           required
                         />
@@ -686,14 +809,19 @@ export default function BarangKeluar() {
                           id="payment"
                           value={formData.payment}
                           onChange={(e) =>
-                            setFormData({ ...formData, payment: e.target.value })
+                            setFormData({
+                              ...formData,
+                              payment: e.target.value,
+                            })
                           }
                           placeholder="Contoh: Transfer, Cash, dll"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="payment_status">Status Pembayaran *</Label>
+                        <Label htmlFor="payment_status">
+                          Status Pembayaran *
+                        </Label>
                         <Select
                           value={formData.payment_status}
                           onValueChange={(value) =>
@@ -704,7 +832,9 @@ export default function BarangKeluar() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Belum Lunas">Belum Lunas</SelectItem>
+                            <SelectItem value="Belum Lunas">
+                              Belum Lunas
+                            </SelectItem>
                             <SelectItem value="Lunas">Lunas</SelectItem>
                           </SelectContent>
                         </Select>
@@ -723,7 +853,9 @@ export default function BarangKeluar() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Pending">Pending</SelectItem>
-                            <SelectItem value="Dalam Proses">Dalam Proses</SelectItem>
+                            <SelectItem value="Dalam Proses">
+                              Dalam Proses
+                            </SelectItem>
                             <SelectItem value="Selesai">Selesai</SelectItem>
                           </SelectContent>
                         </Select>
@@ -754,9 +886,16 @@ export default function BarangKeluar() {
                       >
                         Batal
                       </Button>
-                      <Button type="submit" className="bg-orange-600 hover:bg-orange-700">
-                        {editingItem ? "Update" : "Simpan"}
-                      </Button>
+                      {canEdit(userRole) && (
+                        <>
+                          <Button
+                            type="submit"
+                            className="bg-orange-600 hover:bg-orange-700"
+                          >
+                            {editingItem ? "Update" : "Simpan"}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </form>
                 </DialogContent>
@@ -767,54 +906,113 @@ export default function BarangKeluar() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-100 to-orange-100 hover:from-slate-100 hover:to-orange-100">
-                    <TableHead className="font-semibold text-slate-700">Nama Barang</TableHead>
-                    <TableHead className="font-semibold text-slate-700">SKU</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Status</TableHead>
-                    <TableHead className="font-semibold text-slate-700">AWB</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Tgl Masuk L1</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Tgl Masuk L2</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Lama L1</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Lama L2</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Harga L1</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Harga L2</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Harga Final</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Jumlah</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Satuan</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Gudang</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Zona</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Rak</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Lot</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Diambil Oleh</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Tgl Ambil</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Pembayaran</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Status Bayar</TableHead>
-                    <TableHead className="text-right font-semibold text-slate-700">Aksi</TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Nama Barang
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      SKU
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Status
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      AWB
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Tgl Masuk L1
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Tgl Masuk L2
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Lama L1
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Lama L2
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Harga L1
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Harga L2
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Harga Final
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Jumlah
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Satuan
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Gudang
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Zona
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Rak
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Lot
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Diambil Oleh
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Tgl Ambil
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Pembayaran
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Status Bayar
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-slate-700">
+                      Aksi
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={22} className="text-center text-slate-500 py-12">
+                      <TableCell
+                        colSpan={22}
+                        className="text-center text-slate-500 py-12"
+                      >
                         <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
                           <TruckIcon className="h-12 w-12 text-slate-300" />
                         </div>
-                        <p className="font-medium text-lg">Belum ada data barang keluar</p>
-                        <p className="text-sm text-slate-400 mt-1">Klik tombol "Tambah Barang Keluar" untuk menambahkan data</p>
+                        <p className="font-medium text-lg">
+                          Belum ada data barang keluar
+                        </p>
+                        <p className="text-sm text-slate-400 mt-1">
+                          Klik tombol "Tambah Barang Keluar" untuk menambahkan
+                          data
+                        </p>
                       </TableCell>
                     </TableRow>
                   ) : (
                     items.map((item) => (
-                      <TableRow key={item.id} className="hover:bg-orange-50 transition-colors">
-                        <TableCell className="font-medium">{item.item_name}</TableCell>
-                        <TableCell className="font-mono text-indigo-600">{item.sku}</TableCell>
+                      <TableRow
+                        key={item.id}
+                        className="hover:bg-orange-50 transition-colors"
+                      >
+                        <TableCell className="font-medium">
+                          {item.item_name}
+                        </TableCell>
+                        <TableCell className="font-mono text-indigo-600">
+                          {item.sku}
+                        </TableCell>
                         <TableCell>
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${
                               item.status === "Pending"
                                 ? "bg-yellow-100 text-yellow-800"
                                 : item.status === "Dalam Proses"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-green-100 text-green-800"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-green-100 text-green-800"
                             }`}
                           >
                             {item.status}
@@ -822,21 +1020,43 @@ export default function BarangKeluar() {
                         </TableCell>
                         <TableCell>{item.awb || "-"}</TableCell>
                         <TableCell>
-                          {item.item_arrival_date 
-                            ? new Date(item.item_arrival_date).toLocaleDateString("id-ID")
+                          {item.item_arrival_date
+                            ? new Date(
+                                item.item_arrival_date,
+                              ).toLocaleDateString("id-ID")
                             : "-"}
                         </TableCell>
                         <TableCell>
-                          {item.item_arrival_date_lini_2 
-                            ? new Date(item.item_arrival_date_lini_2).toLocaleDateString("id-ID")
+                          {item.item_arrival_date_lini_2
+                            ? new Date(
+                                item.item_arrival_date_lini_2,
+                              ).toLocaleDateString("id-ID")
                             : "-"}
                         </TableCell>
-                        <TableCell>{item.storage_duration ? `${item.storage_duration} hari` : "-"}</TableCell>
-                        <TableCell>{item.storage_duration_lini_2 ? `${item.storage_duration_lini_2} hari` : "-"}</TableCell>
-                        <TableCell>{item.total_price ? `Rp ${item.total_price.toLocaleString("id-ID")}` : "-"}</TableCell>
-                        <TableCell>{item.total_price_lini_2 ? `Rp ${item.total_price_lini_2.toLocaleString("id-ID")}` : "-"}</TableCell>
+                        <TableCell>
+                          {item.storage_duration
+                            ? `${item.storage_duration} hari`
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {item.storage_duration_lini_2
+                            ? `${item.storage_duration_lini_2} hari`
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {item.total_price
+                            ? `Rp ${item.total_price.toLocaleString("id-ID")}`
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {item.total_price_lini_2
+                            ? `Rp ${item.total_price_lini_2.toLocaleString("id-ID")}`
+                            : "-"}
+                        </TableCell>
                         <TableCell className="font-semibold text-green-600">
-                          {item.final_price ? `Rp ${item.final_price.toLocaleString("id-ID")}` : "-"}
+                          {item.final_price
+                            ? `Rp ${item.final_price.toLocaleString("id-ID")}`
+                            : "-"}
                         </TableCell>
                         <TableCell>{item.item_quantity || "-"}</TableCell>
                         <TableCell>{item.unit || "-"}</TableCell>
@@ -846,8 +1066,10 @@ export default function BarangKeluar() {
                         <TableCell>{item.lots || "-"}</TableCell>
                         <TableCell>{item.picked_up_by || "-"}</TableCell>
                         <TableCell>
-                          {item.pick_up_date 
-                            ? new Date(item.pick_up_date).toLocaleDateString("id-ID")
+                          {item.pick_up_date
+                            ? new Date(item.pick_up_date).toLocaleDateString(
+                                "id-ID",
+                              )
                             : "-"}
                         </TableCell>
                         <TableCell>{item.payment || "-"}</TableCell>
@@ -872,14 +1094,18 @@ export default function BarangKeluar() {
                             >
                               <Pencil className="w-4 h-4 text-orange-600" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(item.id)}
-                              className="hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </Button>
+                            {canEdit(userRole) && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete(item.id)}
+                                  className="hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
