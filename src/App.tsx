@@ -88,7 +88,9 @@ function HomePage() {
     switch (role) {
       case "super_admin":
         return <Navigate to="/dashboard" replace />;
-      case ("warehouse_manager", "warehouse_staff"):
+      case "warehouse_manager":
+        return <Navigate to="/warehouses" replace />;
+      case "warehouse_staff":
         return <Navigate to="/warehouses" replace />;
       case "purchasing":
         return <Navigate to="/purchase-request" replace />;
@@ -127,7 +129,16 @@ function AppRoutes() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute allowedRoles={["super_admin", "warehouse_staff"]}>
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "warehouse_manager",
+              "warehouse_staff",
+              "accounting_manager",
+              "accounting_staff",
+              "read_only",
+            ]}
+          >
             <Dashboard />
           </ProtectedRoute>
         }
@@ -147,7 +158,14 @@ function AppRoutes() {
       <Route
         path="/purchase-request"
         element={
-          <ProtectedRoute allowedRoles={["super_admin"]}>
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+              "read_only",
+            ]}
+          >
             <PurchaseRequestList />
           </ProtectedRoute>
         }
@@ -158,8 +176,10 @@ function AppRoutes() {
           <ProtectedRoute
             allowedRoles={[
               "super_admin",
+              "warehouse_manager",
               "accounting_manager",
               "accounting_staff",
+              "read_only",
             ]}
           >
             <div className="min-h-screen bg-slate-50">
@@ -180,6 +200,7 @@ function AppRoutes() {
               "accounting_staff",
               "warehouse_manager",
               "warehouse_staff",
+              "read_only",
             ]}
           >
             <div className="min-h-screen bg-slate-50">
@@ -198,6 +219,7 @@ function AppRoutes() {
               "super_admin",
               "warehouse_manager",
               "warehouse_staff",
+              "read_only",
             ]}
           >
             <div className="min-h-screen bg-slate-50">
@@ -212,7 +234,14 @@ function AppRoutes() {
       <Route
         path="/barang-lini"
         element={
-          <ProtectedRoute allowedRoles={["super_admin", "warehouse_manager"]}>
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "warehouse_manager",
+              "warehouse_staff",
+              "read_only",
+            ]}
+          >
             <div className="min-h-screen bg-slate-50">
               <Header />
               <Navigation />
@@ -231,6 +260,7 @@ function AppRoutes() {
               "accounting_manager",
               "accounting_staff",
               "warehouse_staff",
+              "read_only",
             ]}
           >
             <div className="min-h-screen bg-slate-50">
@@ -244,7 +274,13 @@ function AppRoutes() {
       <Route
         path="/air-waybill"
         element={
-          <ProtectedRoute allowedRoles={["super_admin"]}>
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
             <div className="min-h-screen bg-slate-50">
               <Header />
               <Navigation />
@@ -256,7 +292,14 @@ function AppRoutes() {
       <Route
         path="/cash-book"
         element={
-          <ProtectedRoute allowedRoles={["super_admin"]}>
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+              "read_only",
+            ]}
+          >
             <CashBook />
           </ProtectedRoute>
         }
@@ -264,7 +307,13 @@ function AppRoutes() {
       <Route
         path="/coa-management"
         element={
-          <ProtectedRoute allowedRoles={["super_admin"]}>
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
             <COAManagement />
           </ProtectedRoute>
         }
@@ -304,7 +353,13 @@ function AppRoutes() {
       <Route
         path="/internal-usage"
         element={
-          <ProtectedRoute allowedRoles={["super_admin"]}>
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
             <div className="min-h-screen bg-slate-50">
               <Header />
               <Navigation />
@@ -316,7 +371,13 @@ function AppRoutes() {
       <Route
         path="/coa-mapping"
         element={
-          <ProtectedRoute allowedRoles={["super_admin"]}>
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
             <div className="min-h-screen bg-slate-50">
               <Header />
               <Navigation />
@@ -333,6 +394,7 @@ function AppRoutes() {
               "super_admin",
               "accounting_staff",
               "accounting_manager",
+              "read_only",
             ]}
           >
             <div className="min-h-screen bg-slate-50">
@@ -387,6 +449,24 @@ function AppRoutes() {
               <Header />
               <Navigation />
               <CashFlowReport />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/laporan-keuangan"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <IntegratedFinancialReport />
             </div>
           </ProtectedRoute>
         }

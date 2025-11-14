@@ -45,6 +45,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { canEdit, canDelete } from "@/utils/roleAccess";
 import { useAuth } from "@/contexts/AuthContext";
+import { canClick } from "@/utils/roleAccess";
 
 interface BarangKeluarForm {
   id?: string;
@@ -483,13 +484,15 @@ export default function BarangKeluar() {
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button
-                    onClick={resetForm}
-                    className="bg-orange-600 hover:bg-orange-700"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Tambah Barang Keluar
-                  </Button>
+                  {canClick(userRole) && (
+                    <Button
+                      onClick={resetForm}
+                      className="bg-orange-600 hover:bg-orange-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tambah Barang Keluar
+                    </Button>
+                  )}
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
@@ -876,16 +879,18 @@ export default function BarangKeluar() {
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setIsDialogOpen(false);
-                          resetForm();
-                        }}
-                      >
-                        Batal
-                      </Button>
+                      {canClick(userRole) && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setIsDialogOpen(false);
+                            resetForm();
+                          }}
+                        >
+                          Batal
+                        </Button>
+                      )}
                       {canEdit(userRole) && (
                         <>
                           <Button
@@ -1086,14 +1091,16 @@ export default function BarangKeluar() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(item)}
-                              className="hover:bg-orange-50"
-                            >
-                              <Pencil className="w-4 h-4 text-orange-600" />
-                            </Button>
+                            {canEdit(userRole) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(item)}
+                                className="hover:bg-orange-50"
+                              >
+                                <Pencil className="w-4 h-4 text-orange-600" />
+                              </Button>
+                            )}
                             {canEdit(userRole) && (
                               <>
                                 <Button

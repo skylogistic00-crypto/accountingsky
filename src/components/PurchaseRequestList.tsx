@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../contexts/AuthContext";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import {
   Table,
   TableBody,
@@ -12,7 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from './ui/table';
+} from "./ui/table";
 import {
   Dialog,
   DialogContent,
@@ -20,25 +26,25 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from './ui/dialog';
+} from "./ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select';
-import { useToast } from './ui/use-toast';
-import { 
-  Search, 
-  Plus, 
-  FileText, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Check, 
-  X, 
-  CheckCheck, 
+} from "./ui/select";
+import { useToast } from "./ui/use-toast";
+import {
+  Search,
+  Plus,
+  FileText,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Check,
+  X,
+  CheckCheck,
   ArrowLeft,
   Filter,
   Calendar,
@@ -47,12 +53,14 @@ import {
   DollarSign,
   TrendingUp,
   AlertCircle,
-  ShoppingCart
-} from 'lucide-react';
-import PurchaseRequestForm from './PurchaseRequestForm';
-import Header from './Header';
-import Navigation from './Navigation';
-import { useNavigate } from 'react-router-dom';
+  ShoppingCart,
+  Pencil,
+} from "lucide-react";
+import PurchaseRequestForm from "./PurchaseRequestForm";
+import Header from "./Header";
+import Navigation from "./Navigation";
+import { useNavigate } from "react-router-dom";
+import { canClick, canDelete, canEdit } from "@/utils/roleAccess";
 
 interface PurchaseRequest {
   request_date: string;
@@ -64,26 +72,30 @@ interface PurchaseRequest {
 }
 
 export default function PurchaseRequestList() {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [requests, setRequests] = useState<PurchaseRequest[]>([]);
-  const [filteredRequests, setFilteredRequests] = useState<PurchaseRequest[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [nameFilter, setNameFilter] = useState('__ALL__');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [filteredRequests, setFilteredRequests] = useState<PurchaseRequest[]>(
+    [],
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [nameFilter, setNameFilter] = useState("__ALL__");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [nameOptions, setNameOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [updatingCode, setUpdatingCode] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [items, setItems] = useState<any[]>([]);
 
   const handleBack = () => {
     if (isDialogOpen) {
       setIsDialogOpen(false);
     }
-    navigate('/dashboard');
+    navigate("/dashboard");
   };
 
   useEffect(() => {
@@ -91,11 +103,15 @@ export default function PurchaseRequestList() {
     fetchNameOptions();
 
     const channel = supabase
-      .channel('purchase-requests-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_requests' }, () => {
-        fetchRequests();
-        fetchNameOptions();
-      })
+      .channel("purchase-requests-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "purchase_requests" },
+        () => {
+          fetchRequests();
+          fetchNameOptions();
+        },
+      )
       .subscribe();
 
     return () => {
@@ -106,11 +122,13 @@ export default function PurchaseRequestList() {
   useEffect(() => {
     let filtered = requests;
 
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter((req) => req.status.toUpperCase() === statusFilter);
+    if (statusFilter !== "ALL") {
+      filtered = filtered.filter(
+        (req) => req.status.toUpperCase() === statusFilter,
+      );
     }
 
-    if (nameFilter !== '__ALL__') {
+    if (nameFilter !== "__ALL__") {
       filtered = filtered.filter((req) => req.name === nameFilter);
     }
 
@@ -118,7 +136,7 @@ export default function PurchaseRequestList() {
       filtered = filtered.filter(
         (req) =>
           req.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          req.item_name.toLowerCase().includes(searchTerm.toLowerCase())
+          req.item_name.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
@@ -129,24 +147,32 @@ export default function PurchaseRequestList() {
     setLoading(true);
     try {
       let query = supabase
-        .from('vw_purchase_requests')
-        .select('request_date, name, request_code, item_name, total_amount, status');
+        .from("vw_purchase_requests")
+        .select(
+          "request_date, name, request_code, item_name, total_amount, status",
+        );
 
       if (startDate) {
-        query = query.gte('request_date', startDate);
+        query = query.gte("request_date", startDate);
       }
 
       if (endDate) {
-        query = query.lte('request_date', endDate);
+        query = query.lte("request_date", endDate);
       }
 
-      const { data, error } = await query.order('request_date', { ascending: false });
+      const { data, error } = await query.order("request_date", {
+        ascending: false,
+      });
 
       if (error) throw error;
       setRequests(data || []);
       setFilteredRequests(data || []);
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -155,40 +181,45 @@ export default function PurchaseRequestList() {
   const fetchNameOptions = async () => {
     try {
       const { data, error } = await supabase
-        .from('vw_purchase_requests')
-        .select('name')
-        .order('name');
+        .from("vw_purchase_requests")
+        .select("name")
+        .order("name");
 
       if (error) throw error;
-      
-      const uniqueNames = Array.from(new Set(data?.map(item => item.name) || []));
+
+      const uniqueNames = Array.from(
+        new Set(data?.map((item) => item.name) || []),
+      );
       setNameOptions(uniqueNames);
     } catch (error: any) {
-      console.error('Error fetching name options:', error.message);
+      console.error("Error fetching name options:", error.message);
     }
   };
 
-  const handleUpdateStatus = async (requestCode: string, newStatus: 'APPROVED' | 'REJECTED') => {
+  const handleUpdateStatus = async (
+    requestCode: string,
+    newStatus: "APPROVED" | "REJECTED",
+  ) => {
     setUpdatingCode(requestCode);
     try {
       const { error } = await supabase
-        .from('purchase_requests')
+        .from("purchase_requests")
         .update({ status: newStatus })
-        .eq('request_code', requestCode);
+        .eq("request_code", requestCode);
 
       if (error) throw error;
 
       toast({
-        title: 'Success',
+        title: "Success",
         description: `Purchase Request ${newStatus.toLowerCase()}`,
       });
 
       await fetchRequests();
     } catch (error: any) {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setUpdatingCode(null);
@@ -197,31 +228,31 @@ export default function PurchaseRequestList() {
 
   const handleComplete = async (requestCode: string) => {
     if (!user?.id) return;
-    
+
     setUpdatingCode(requestCode);
     try {
       const { error } = await supabase
-        .from('purchase_requests')
-        .update({ 
-          status: 'COMPLETED',
+        .from("purchase_requests")
+        .update({
+          status: "COMPLETED",
           completed_by: user.id,
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
         })
-        .eq('request_code', requestCode);
+        .eq("request_code", requestCode);
 
       if (error) throw error;
 
       toast({
-        title: 'Success',
-        description: 'Request completed',
+        title: "Success",
+        description: "Request completed",
       });
 
       await fetchRequests();
     } catch (error: any) {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setUpdatingCode(null);
@@ -230,8 +261,8 @@ export default function PurchaseRequestList() {
 
   const getStatusBadge = (status: string) => {
     const statusUpper = status.toUpperCase();
-    
-    if (statusUpper === 'PENDING') {
+
+    if (statusUpper === "PENDING") {
       return (
         <Badge className="flex items-center gap-1 w-fit bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-300">
           <Clock className="h-3 w-3" />
@@ -239,7 +270,7 @@ export default function PurchaseRequestList() {
         </Badge>
       );
     }
-    if (statusUpper === 'APPROVED') {
+    if (statusUpper === "APPROVED") {
       return (
         <Badge className="flex items-center gap-1 w-fit bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-300">
           <CheckCircle className="h-3 w-3" />
@@ -247,7 +278,7 @@ export default function PurchaseRequestList() {
         </Badge>
       );
     }
-    if (statusUpper === 'REJECTED') {
+    if (statusUpper === "REJECTED") {
       return (
         <Badge className="flex items-center gap-1 w-fit bg-rose-100 text-rose-700 hover:bg-rose-200 border-rose-300">
           <XCircle className="h-3 w-3" />
@@ -255,7 +286,7 @@ export default function PurchaseRequestList() {
         </Badge>
       );
     }
-    if (statusUpper === 'COMPLETED') {
+    if (statusUpper === "COMPLETED") {
       return (
         <Badge className="flex items-center gap-1 w-fit bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-300">
           <CheckCheck className="h-3 w-3" />
@@ -272,15 +303,18 @@ export default function PurchaseRequestList() {
 
   const summaryData = {
     total: requests.length,
-    pending: requests.filter((r) => r.status.toUpperCase() === 'PENDING').length,
-    approved: requests.filter((r) => r.status.toUpperCase() === 'APPROVED').length,
-    rejected: requests.filter((r) => r.status.toUpperCase() === 'REJECTED').length,
+    pending: requests.filter((r) => r.status.toUpperCase() === "PENDING")
+      .length,
+    approved: requests.filter((r) => r.status.toUpperCase() === "APPROVED")
+      .length,
+    rejected: requests.filter((r) => r.status.toUpperCase() === "REJECTED")
+      .length,
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
       minimumFractionDigits: 0,
     }).format(amount);
   };
@@ -302,17 +336,23 @@ export default function PurchaseRequestList() {
                 <ShoppingCart className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Purchase Requests</h1>
-                <p className="text-sm text-blue-100">Kelola dan lacak permintaan pembelian</p>
+                <h1 className="text-2xl font-bold text-white">
+                  Purchase Requests
+                </h1>
+                <p className="text-sm text-blue-100">
+                  Kelola dan lacak permintaan pembelian
+                </p>
               </div>
             </div>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-white text-indigo-600 hover:bg-blue-50 shadow-md">
-                <Plus className="mr-2 h-4 w-4" />
-                New Purchase Request
-              </Button>
+              {canClick(userRole) && (
+                <Button className="bg-white text-indigo-600 hover:bg-blue-50 shadow-md">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Purchase Request
+                </Button>
+              )}
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
@@ -321,10 +361,12 @@ export default function PurchaseRequestList() {
                   Fill in the details to create a new purchase request
                 </DialogDescription>
               </DialogHeader>
-              <PurchaseRequestForm onSuccess={() => {
-                setIsDialogOpen(false);
-                fetchRequests();
-              }} />
+              <PurchaseRequestForm
+                onSuccess={() => {
+                  setIsDialogOpen(false);
+                  fetchRequests();
+                }}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -336,10 +378,14 @@ export default function PurchaseRequestList() {
           <Card className="border-none shadow-lg bg-purple-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Total Requests</CardDescription>
+                <CardDescription className="text-white/90">
+                  Total Requests
+                </CardDescription>
                 <FileText className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.total}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.total}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -352,10 +398,14 @@ export default function PurchaseRequestList() {
           <Card className="border-none shadow-lg bg-emerald-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Pending</CardDescription>
+                <CardDescription className="text-white/90">
+                  Pending
+                </CardDescription>
                 <Clock className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.pending}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.pending}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -368,10 +418,14 @@ export default function PurchaseRequestList() {
           <Card className="border-none shadow-lg bg-pink-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Approved</CardDescription>
+                <CardDescription className="text-white/90">
+                  Approved
+                </CardDescription>
                 <TrendingUp className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.approved}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.approved}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -384,10 +438,14 @@ export default function PurchaseRequestList() {
           <Card className="border-none shadow-lg bg-blue-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Rejected</CardDescription>
+                <CardDescription className="text-white/90">
+                  Rejected
+                </CardDescription>
                 <XCircle className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.rejected}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.rejected}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -446,7 +504,9 @@ export default function PurchaseRequestList() {
               <div className="flex gap-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-slate-600" />
-                  <label className="text-sm font-medium text-slate-700">Start Date:</label>
+                  <label className="text-sm font-medium text-slate-700">
+                    Start Date:
+                  </label>
                   <Input
                     type="date"
                     value={startDate}
@@ -456,7 +516,9 @@ export default function PurchaseRequestList() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-slate-600" />
-                  <label className="text-sm font-medium text-slate-700">End Date:</label>
+                  <label className="text-sm font-medium text-slate-700">
+                    End Date:
+                  </label>
                   <Input
                     type="date"
                     value={endDate}
@@ -514,19 +576,23 @@ export default function PurchaseRequestList() {
                         Status
                       </div>
                     </TableHead>
-                    <TableHead className="font-semibold text-slate-700">Actions</TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredRequests.map((request, index) => (
-                    <TableRow 
+                    <TableRow
                       key={index}
                       className={`${
-                        index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
+                        index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                       } hover:bg-indigo-50 transition-colors border-b border-slate-100`}
                     >
                       <TableCell className="text-slate-700">
-                        {new Date(request.request_date).toLocaleDateString('id-ID')}
+                        {new Date(request.request_date).toLocaleDateString(
+                          "id-ID",
+                        )}
                       </TableCell>
                       <TableCell className="font-medium text-slate-900">
                         {request.name}
@@ -542,13 +608,18 @@ export default function PurchaseRequestList() {
                       </TableCell>
                       <TableCell>{getStatusBadge(request.status)}</TableCell>
                       <TableCell>
-                        {request.status.toUpperCase() === 'PENDING' && (
+                        {request.status.toUpperCase() === "PENDING" && (
                           <div className="flex gap-2">
                             <Button
                               size="sm"
                               variant="outline"
                               className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-300"
-                              onClick={() => handleUpdateStatus(request.request_code, 'APPROVED')}
+                              onClick={() =>
+                                handleUpdateStatus(
+                                  request.request_code,
+                                  "APPROVED",
+                                )
+                              }
                               disabled={updatingCode === request.request_code}
                             >
                               <Check className="h-4 w-4" />
@@ -557,14 +628,19 @@ export default function PurchaseRequestList() {
                               size="sm"
                               variant="outline"
                               className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-300"
-                              onClick={() => handleUpdateStatus(request.request_code, 'REJECTED')}
+                              onClick={() =>
+                                handleUpdateStatus(
+                                  request.request_code,
+                                  "REJECTED",
+                                )
+                              }
                               disabled={updatingCode === request.request_code}
                             >
                               <X className="h-4 w-4" />
                             </Button>
                           </div>
                         )}
-                        {request.status.toUpperCase() === 'APPROVED' && (
+                        {request.status.toUpperCase() === "APPROVED" && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -576,6 +652,15 @@ export default function PurchaseRequestList() {
                             Complete
                           </Button>
                         )}
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(request)}
+                          className="hover:bg-orange-50"
+                        >
+                          <Pencil className="w-4 h-4 text-orange-600" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -589,8 +674,12 @@ export default function PurchaseRequestList() {
               <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
                 <ShoppingCart className="h-12 w-12 text-slate-300" />
               </div>
-              <p className="text-slate-500 font-medium text-lg">Tidak ada purchase request ditemukan</p>
-              <p className="text-sm text-slate-400 mt-1">Coba ubah filter atau buat request baru</p>
+              <p className="text-slate-500 font-medium text-lg">
+                Tidak ada purchase request ditemukan
+              </p>
+              <p className="text-sm text-slate-400 mt-1">
+                Coba ubah filter atau buat request baru
+              </p>
             </div>
           )}
         </div>

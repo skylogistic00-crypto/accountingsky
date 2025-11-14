@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { supabase, UserProfile, UserRole } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
+import { useEffect, useState } from "react";
+import { supabase, UserProfile, UserRole } from "../lib/supabase";
+import { useAuth } from "../contexts/AuthContext";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
 import {
   Table,
   TableBody,
@@ -11,14 +11,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from './ui/table';
+} from "./ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select';
+} from "./ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,17 +34,26 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from './ui/alert-dialog';
+} from "./ui/alert-dialog";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from './ui/card';
-import { useToast } from './ui/use-toast';
-import { Search, Trash2, ArrowLeft, Users, Shield, Eye, UserCheck, Filter } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+} from "./ui/card";
+import { useToast } from "./ui/use-toast";
+import {
+  Search,
+  Trash2,
+  ArrowLeft,
+  Users,
+  Shield,
+  Eye,
+  UserCheck,
+  Filter,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function UserManagement() {
   const { userProfile } = useAuth();
@@ -46,19 +61,24 @@ export default function UserManagement() {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('ALL');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const { userRole } = useAuth();
 
   useEffect(() => {
     fetchUsers();
-    
+
     const channel = supabase
-      .channel('users-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-        fetchUsers();
-      })
+      .channel("users-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users" },
+        () => {
+          fetchUsers();
+        },
+      )
       .subscribe();
 
     return () => {
@@ -69,7 +89,7 @@ export default function UserManagement() {
   useEffect(() => {
     let filtered = users;
 
-    if (roleFilter !== 'ALL') {
+    if (roleFilter !== "ALL") {
       filtered = filtered.filter((user) => user.role === roleFilter);
     }
 
@@ -78,7 +98,7 @@ export default function UserManagement() {
         (user) =>
           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.role.toLowerCase().includes(searchTerm.toLowerCase())
+          user.role.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
@@ -88,15 +108,19 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("users")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setUsers(data || []);
       setFilteredUsers(data || []);
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -105,54 +129,115 @@ export default function UserManagement() {
   const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
       const { error } = await supabase
-        .from('users')
+        .from("users")
         .update({ role: newRole, updated_at: new Date().toISOString() })
-        .eq('id', userId);
+        .eq("id", userId);
 
       if (error) throw error;
-      toast({ title: 'Success', description: 'User role updated successfully' });
+      toast({
+        title: "Success",
+        description: "User role updated successfully",
+      });
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateUserStatus = async (userId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("users")
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq("id", userId);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "User status updated successfully",
+      });
+      
+      fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
   const deleteUser = async () => {
     if (!deleteUserId) return;
-    
+
     try {
       const { error } = await supabase.auth.admin.deleteUser(deleteUserId);
       if (error) throw error;
-      toast({ title: 'Success', description: 'User deleted successfully' });
+      toast({ title: "Success", description: "User deleted successfully" });
       setDeleteUserId(null);
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
   const getRoleBadgeVariant = (role: UserRole) => {
     switch (role) {
-      case 'admin':
-        return 'destructive';
-      case 'editor':
-        return 'default';
-      case 'viewer':
-        return 'secondary';
+      case "admin":
+        return "destructive";
+      case "editor":
+        return "default";
+      case "viewer":
+        return "secondary";
       default:
-        return 'outline';
+        return "outline";
+    }
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "active":
+        return "default";
+      case "inactive":
+        return "secondary";
+      case "suspended":
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-green-500 hover:bg-green-600 text-white cursor-pointer";
+      case "inactive":
+        return "bg-gray-400 hover:bg-gray-500 text-white cursor-pointer";
+      case "suspended":
+        return "bg-orange-500 hover:bg-orange-600 text-white cursor-pointer";
+      default:
+        return "cursor-pointer";
     }
   };
 
   const handleBack = () => {
-    navigate('/dashboard');
+    navigate("/dashboard");
   };
 
-  const isAdmin = userProfile?.role === 'admin';
+  const isAdmin = userProfile?.role === "admin";
 
   const summaryData = {
     total: users.length,
-    admins: users.filter((user) => user.role === 'admin').length,
-    editors: users.filter((user) => user.role === 'editor').length,
-    viewers: users.filter((user) => user.role === 'viewer').length,
+    admins: users.filter((user) => user.role === "admin").length,
+    editors: users.filter((user) => user.role === "editor").length,
+    viewers: users.filter((user) => user.role === "viewer").length,
   };
 
   return (
@@ -161,9 +246,9 @@ export default function UserManagement() {
       <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
         <div className="container mx-auto px-4 py-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleBack}
               className="text-white hover:bg-white/20"
             >
@@ -174,8 +259,12 @@ export default function UserManagement() {
                 <Users className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">User Management</h1>
-                <p className="text-sm text-blue-100">Kelola pengguna dan role akses</p>
+                <h1 className="text-2xl font-bold text-white">
+                  User Management
+                </h1>
+                <p className="text-sm text-blue-100">
+                  Kelola pengguna dan role akses
+                </p>
               </div>
             </div>
           </div>
@@ -188,10 +277,14 @@ export default function UserManagement() {
           <Card className="border-none shadow-lg bg-purple-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Total Users</CardDescription>
+                <CardDescription className="text-white/90">
+                  Total Users
+                </CardDescription>
                 <Users className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.total}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.total}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -204,10 +297,14 @@ export default function UserManagement() {
           <Card className="border-none shadow-lg bg-emerald-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Admins</CardDescription>
+                <CardDescription className="text-white/90">
+                  Admins
+                </CardDescription>
                 <Shield className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.admins}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.admins}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -220,10 +317,14 @@ export default function UserManagement() {
           <Card className="border-none shadow-lg bg-pink-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Editors</CardDescription>
+                <CardDescription className="text-white/90">
+                  Editors
+                </CardDescription>
                 <Users className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.editors}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.editors}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -236,10 +337,14 @@ export default function UserManagement() {
           <Card className="border-none shadow-lg bg-blue-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Viewers</CardDescription>
+                <CardDescription className="text-white/90">
+                  Viewers
+                </CardDescription>
                 <Eye className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.viewers}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.viewers}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -315,6 +420,12 @@ export default function UserManagement() {
                     </TableHead>
                     <TableHead className="font-semibold text-slate-700">
                       <div className="flex items-center gap-2">
+                        <UserCheck className="h-4 w-4 text-emerald-600" />
+                        Status
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-emerald-600" />
                         Created
                       </div>
@@ -331,19 +442,23 @@ export default function UserManagement() {
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user) => (
-                    <TableRow 
+                    <TableRow
                       key={user.id}
                       className="hover:bg-indigo-50 transition-colors border-b border-slate-100"
                     >
                       <TableCell className="font-medium text-slate-900">
-                        {user.full_name || 'N/A'}
+                        {user.full_name || "N/A"}
                       </TableCell>
-                      <TableCell className="text-slate-700">{user.email}</TableCell>
+                      <TableCell className="text-slate-700">
+                        {user.email}
+                      </TableCell>
                       <TableCell>
                         {isAdmin && user.id !== userProfile?.id ? (
                           <Select
                             value={user.role}
-                            onValueChange={(value) => updateUserRole(user.id, value as UserRole)}
+                            onValueChange={(value) =>
+                              updateUserRole(user.id, value as UserRole)
+                            }
                           >
                             <SelectTrigger className="w-32">
                               <SelectValue />
@@ -360,8 +475,53 @@ export default function UserManagement() {
                           </Badge>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {isAdmin ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="focus:outline-none">
+                                <Badge
+                                  className={getStatusBadgeClass(user.status || "active")}
+                                >
+                                  {user.status || "active"}
+                                </Badge>
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem
+                                onClick={() => updateUserStatus(user.id, "active")}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                  Active
+                                </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateUserStatus(user.id, "inactive")}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                                  Inactive
+                                </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateUserStatus(user.id, "suspended")}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                                  Suspended
+                                </div>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <Badge className={getStatusBadgeClass(user.status || "active")}>
+                            {user.status || "active"}
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-slate-700">
-                        {new Date(user.created_at).toLocaleDateString('id-ID')}
+                        {new Date(user.created_at).toLocaleDateString("id-ID")}
                       </TableCell>
                       {isAdmin && (
                         <TableCell className="text-center">
@@ -389,24 +549,35 @@ export default function UserManagement() {
               <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
                 <Users className="h-12 w-12 text-slate-300" />
               </div>
-              <p className="text-slate-500 font-medium text-lg">Tidak ada users ditemukan</p>
-              <p className="text-sm text-slate-400 mt-1">Coba ubah filter atau pencarian</p>
+              <p className="text-slate-500 font-medium text-lg">
+                Tidak ada users ditemukan
+              </p>
+              <p className="text-sm text-slate-400 mt-1">
+                Coba ubah filter atau pencarian
+              </p>
             </div>
           )}
         </div>
       </div>
 
-      <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
+      <AlertDialog
+        open={!!deleteUserId}
+        onOpenChange={() => setDeleteUserId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user account.
+              This action cannot be undone. This will permanently delete the
+              user account.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={deleteUser} className="bg-red-500 hover:bg-red-600">
+            <AlertDialogAction
+              onClick={deleteUser}
+              className="bg-red-500 hover:bg-red-600"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

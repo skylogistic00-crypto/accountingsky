@@ -2,9 +2,19 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, TrendingUp, TrendingDown, DollarSign, Wallet, FileText, Scale } from "lucide-react";
+import {
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Wallet,
+  FileText,
+  Scale,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import MonthlyFinanceChart from "./MonthlyFinanceChart";
+import { canClick } from "@/utils/roleAccess";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface FinancialSummary {
   totalRevenue: number;
@@ -16,6 +26,7 @@ interface FinancialSummary {
 export default function FinancialDashboard() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { userRole } = useAuth();
   const [summary, setSummary] = useState<FinancialSummary>({
     totalRevenue: 0,
     totalExpense: 0,
@@ -47,7 +58,7 @@ export default function FinancialDashboard() {
       summaryData?.forEach((item) => {
         const balance = item.total_balance || 0;
         const normalizedType = (item.account_type || "").trim().toLowerCase();
-        
+
         switch (normalizedType) {
           case "pendapatan":
             totalRevenue = balance;
@@ -95,7 +106,9 @@ export default function FinancialDashboard() {
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Keuangan</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Dashboard Keuangan
+          </h1>
           <p className="text-gray-600 mt-1">Ringkasan keuangan bulan ini</p>
         </div>
 
@@ -108,7 +121,15 @@ export default function FinancialDashboard() {
             {/* Summary Cards */}
             <div className="grid md:grid-cols-4 gap-4">
               {/* Total Pendapatan */}
-              <Link to="/profit-loss">
+              {/*  <Link to="/profit-loss">*/}
+              <Link
+                to="/profit-loss"
+                onClick={(e) => {
+                  if (!canClick(userRole)) {
+                    e.preventDefault();
+                  }
+                }}
+              >
                 <Card className="bg-white shadow-md rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium text-gray-600">
@@ -120,13 +141,23 @@ export default function FinancialDashboard() {
                     <div className="text-2xl font-bold text-green-700">
                       {formatRupiah(summary.totalRevenue)}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Klik untuk detail</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Klik untuk detail
+                    </p>
                   </CardContent>
                 </Card>
               </Link>
 
               {/* Total Beban */}
-              <Link to="/profit-loss">
+              {/* <Link to="/profit-loss">*/}
+              <Link
+                to="/profit-loss"
+                onClick={(e) => {
+                  if (!canClick(userRole)) {
+                    e.preventDefault();
+                  }
+                }}
+              >
                 <Card className="bg-white shadow-md rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium text-gray-600">
@@ -138,30 +169,50 @@ export default function FinancialDashboard() {
                     <div className="text-2xl font-bold text-red-700">
                       {formatRupiah(summary.totalExpense)}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Klik untuk detail</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Klik untuk detail
+                    </p>
                   </CardContent>
                 </Card>
               </Link>
 
               {/* Laba Bersih */}
-              <Link to="/profit-loss">
-                <Card className={`shadow-md rounded-2xl border-2 hover:shadow-lg transition-shadow cursor-pointer ${
-                  summary.netProfit >= 0
-                    ? "bg-blue-50 border-blue-500"
-                    : "bg-orange-50 border-orange-500"
-                }`}>
+              {/*<Link to="/profit-loss">*/}
+              <Link
+                to="/profit-loss"
+                onClick={(e) => {
+                  if (!canClick(userRole)) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                <Card
+                  className={`shadow-md rounded-2xl border-2 hover:shadow-lg transition-shadow cursor-pointer ${
+                    summary.netProfit >= 0
+                      ? "bg-blue-50 border-blue-500"
+                      : "bg-orange-50 border-orange-500"
+                  }`}
+                >
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium text-gray-600">
                       Laba Bersih Bulan Ini
                     </CardTitle>
-                    <DollarSign className={`h-5 w-5 ${
-                      summary.netProfit >= 0 ? "text-blue-600" : "text-orange-600"
-                    }`} />
+                    <DollarSign
+                      className={`h-5 w-5 ${
+                        summary.netProfit >= 0
+                          ? "text-blue-600"
+                          : "text-orange-600"
+                      }`}
+                    />
                   </CardHeader>
                   <CardContent>
-                    <div className={`text-2xl font-bold ${
-                      summary.netProfit >= 0 ? "text-blue-700" : "text-orange-700"
-                    }`}>
+                    <div
+                      className={`text-2xl font-bold ${
+                        summary.netProfit >= 0
+                          ? "text-blue-700"
+                          : "text-orange-700"
+                      }`}
+                    >
                       {formatRupiah(Math.abs(summary.netProfit))}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -172,7 +223,15 @@ export default function FinancialDashboard() {
               </Link>
 
               {/* Total Aset */}
-              <Link to="/balance-sheet">
+              {/*<Link to="/balance-sheet">*/}
+              <Link
+                to="/balance-sheet"
+                onClick={(e) => {
+                  if (!canClick(userRole)) {
+                    e.preventDefault();
+                  }
+                }}
+              >
                 <Card className="bg-white shadow-md rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium text-gray-600">
@@ -184,7 +243,9 @@ export default function FinancialDashboard() {
                     <div className="text-2xl font-bold text-purple-700">
                       {formatRupiah(summary.totalAssets)}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Klik untuk detail</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Klik untuk detail
+                    </p>
                   </CardContent>
                 </Card>
               </Link>
@@ -195,10 +256,20 @@ export default function FinancialDashboard() {
 
             {/* Financial Reports Stats Cards */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">📊 Laporan Keuangan</h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                📊 Laporan Keuangan
+              </h2>
               <div className="grid md:grid-cols-4 gap-4">
                 {/* Laporan Keuangan Terintegrasi */}
-                <Link to="/financial-report">
+                {/*    <Link to="/laporan-keuangan">*/}
+                <Link
+                  to="/laporan-keuangan"
+                  onClick={(e) => {
+                    if (!canClick(userRole)) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
                   <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 hover:shadow-lg transition-shadow cursor-pointer h-full">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <CardTitle className="text-sm font-medium text-purple-800">
@@ -206,6 +277,7 @@ export default function FinancialDashboard() {
                       </CardTitle>
                       <FileText className="h-5 w-5 text-purple-600" />
                     </CardHeader>
+
                     <CardContent>
                       <p className="text-xs text-purple-700">
                         Laporan keuangan terintegrasi lengkap
@@ -215,7 +287,15 @@ export default function FinancialDashboard() {
                 </Link>
 
                 {/* Laba Rugi */}
-                <Link to="/profit-loss">
+                {/*<Link to="/profit-loss"> */}
+                <Link
+                  to="/profit-loss"
+                  onClick={(e) => {
+                    if (!canClick(userRole)) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
                   <Card className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 hover:shadow-lg transition-shadow cursor-pointer h-full">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <CardTitle className="text-sm font-medium text-green-800">
@@ -232,7 +312,15 @@ export default function FinancialDashboard() {
                 </Link>
 
                 {/* Neraca */}
-                <Link to="/balance-sheet">
+                {/*<Link to="/balance-sheet"> */}
+                <Link
+                  to="/balance-sheet"
+                  onClick={(e) => {
+                    if (!canClick(userRole)) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
                   <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 hover:shadow-lg transition-shadow cursor-pointer h-full">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <CardTitle className="text-sm font-medium text-blue-800">
@@ -249,7 +337,15 @@ export default function FinancialDashboard() {
                 </Link>
 
                 {/* Arus Kas */}
-                <Link to="/cash-flow">
+                {/*<Link to="/cash-flow"> */}
+                <Link
+                  to="/cash-flow"
+                  onClick={(e) => {
+                    if (!canClick(userRole)) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
                   <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 border-2 border-cyan-300 hover:shadow-lg transition-shadow cursor-pointer h-full">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <CardTitle className="text-sm font-medium text-cyan-800">

@@ -50,6 +50,8 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { canClick, canDelete, canEdit } from "@/utils/roleAccess";
 
 interface KasTransaksi {
   id?: string;
@@ -79,6 +81,7 @@ export default function CashBook() {
   const [coaAccounts, setCoaAccounts] = useState<any[]>([]);
   const [serviceCategories, setServiceCategories] = useState<string[]>([]);
   const [categoryMappings, setCategoryMappings] = useState<any[]>([]);
+  const { userRole } = useAuth();
 
   const [formData, setFormData] = useState<KasTransaksi>({
     tanggal: new Date().toISOString().split("T")[0],
@@ -104,7 +107,7 @@ export default function CashBook() {
         { event: "*", schema: "public", table: "kas_transaksi" },
         () => {
           fetchTransactions();
-        }
+        },
       )
       .subscribe();
 
@@ -134,7 +137,7 @@ export default function CashBook() {
           t.document_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           t.account_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           t.account_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          t.keterangan?.toLowerCase().includes(searchTerm.toLowerCase())
+          t.keterangan?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
@@ -187,8 +190,10 @@ export default function CashBook() {
         .eq("is_active", true);
 
       if (error) throw error;
-      
-      const uniqueCategories = Array.from(new Set(data?.map(item => item.service_category).filter(Boolean))) as string[];
+
+      const uniqueCategories = Array.from(
+        new Set(data?.map((item) => item.service_category).filter(Boolean)),
+      ) as string[];
       setServiceCategories(uniqueCategories);
     } catch (error) {
       console.error("Error fetching service categories:", error);
@@ -202,8 +207,10 @@ export default function CashBook() {
     }
 
     try {
-      const { data, error } = await supabase
-        .rpc('get_service_types_by_category', { p_category: category });
+      const { data, error } = await supabase.rpc(
+        "get_service_types_by_category",
+        { p_category: category },
+      );
 
       if (error) throw error;
       setCategoryMappings(data || []);
@@ -213,49 +220,56 @@ export default function CashBook() {
   };
 
   const handleCategoryChange = (value: string) => {
-    setFormData({ ...formData, service_category: value, service_type: "", account_number: "", account_name: "" });
+    setFormData({
+      ...formData,
+      service_category: value,
+      service_type: "",
+      account_number: "",
+      account_name: "",
+    });
     fetchServiceTypesByCategory(value);
   };
 
   const handleServiceTypeChange = async (value: string) => {
     setFormData({ ...formData, service_type: value });
-    
+
     // Auto-fetch COA mapping
     if (formData.service_category && value) {
       try {
-        const { data, error } = await supabase
-          .rpc('get_coa_mapping', { 
-            p_service_category: formData.service_category, 
-            p_service_type: value 
-          });
+        const { data, error } = await supabase.rpc("get_coa_mapping", {
+          p_service_category: formData.service_category,
+          p_service_type: value,
+        });
 
         if (error) throw error;
-        
+
         if (data && data.length > 0) {
           const mapping = data[0];
           let accountCode = "";
           let accountName = "";
-          
+
           // Untuk Persediaan, gunakan asset_account
           if (formData.service_category === "Persediaan") {
             accountCode = mapping.asset_account_code || "";
             accountName = mapping.asset_account_name || "";
-          } 
+          }
           // Untuk kategori lain, gunakan revenue atau cogs berdasarkan payment type
           else if (formData.payment_type === "Penerimaan Kas") {
             accountCode = mapping.revenue_account_code || "";
             accountName = mapping.revenue_account_name || "";
           } else {
-            accountCode = mapping.cogs_account_code || mapping.asset_account_code || "";
-            accountName = mapping.cogs_account_name || mapping.asset_account_name || "";
+            accountCode =
+              mapping.cogs_account_code || mapping.asset_account_code || "";
+            accountName =
+              mapping.cogs_account_name || mapping.asset_account_name || "";
           }
-          
-          setFormData(prev => ({ 
-            ...prev, 
+
+          setFormData((prev) => ({
+            ...prev,
             account_number: accountCode,
-            account_name: accountName
+            account_name: accountName,
           }));
-          
+
           toast({
             title: "COA Auto-Selected",
             description: `${accountCode} - ${accountName}`,
@@ -414,7 +428,7 @@ export default function CashBook() {
     <div className="min-h-screen bg-slate-50">
       <Header />
       <Navigation />
-      
+
       <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
         {/* Header */}
         <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
@@ -489,7 +503,9 @@ export default function CashBook() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="service_category">Kategori Layanan/Produk</Label>
+                      <Label htmlFor="service_category">
+                        Kategori Layanan/Produk
+                      </Label>
                       <Select
                         value={formData.service_category}
                         onValueChange={(value) => handleCategoryChange(value)}
@@ -514,15 +530,26 @@ export default function CashBook() {
                       <Label htmlFor="service_type">Jenis Layanan/Barang</Label>
                       <Select
                         value={formData.service_type}
-                        onValueChange={(value) => handleServiceTypeChange(value)}
+                        onValueChange={(value) =>
+                          handleServiceTypeChange(value)
+                        }
                         disabled={!formData.service_category}
                       >
                         <SelectTrigger id="service_type">
-                          <SelectValue placeholder={formData.service_category ? "Pilih jenis" : "Pilih kategori dulu"} />
+                          <SelectValue
+                            placeholder={
+                              formData.service_category
+                                ? "Pilih jenis"
+                                : "Pilih kategori dulu"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {categoryMappings.map((mapping) => (
-                            <SelectItem key={mapping.service_type} value={mapping.service_type}>
+                            <SelectItem
+                              key={mapping.service_type}
+                              value={mapping.service_type}
+                            >
                               {mapping.service_type}
                             </SelectItem>
                           ))}
@@ -535,11 +562,13 @@ export default function CashBook() {
                       <Select
                         value={formData.account_number}
                         onValueChange={(value) => {
-                          const selectedAccount = coaAccounts.find(acc => acc.account_code === value);
-                          setFormData({ 
-                            ...formData, 
+                          const selectedAccount = coaAccounts.find(
+                            (acc) => acc.account_code === value,
+                          );
+                          setFormData({
+                            ...formData,
                             account_number: value,
-                            account_name: selectedAccount?.account_name || ""
+                            account_name: selectedAccount?.account_name || "",
                           });
                         }}
                         required
@@ -549,7 +578,10 @@ export default function CashBook() {
                         </SelectTrigger>
                         <SelectContent>
                           {coaAccounts.map((account) => (
-                            <SelectItem key={account.account_code} value={account.account_code}>
+                            <SelectItem
+                              key={account.account_code}
+                              value={account.account_code}
+                            >
                               {account.account_code} - {account.account_name}
                             </SelectItem>
                           ))}
@@ -589,7 +621,10 @@ export default function CashBook() {
                         id="keterangan"
                         value={formData.keterangan}
                         onChange={(e) =>
-                          setFormData({ ...formData, keterangan: e.target.value })
+                          setFormData({
+                            ...formData,
+                            keterangan: e.target.value,
+                          })
                         }
                         placeholder="Keterangan transaksi"
                         rows={3}
@@ -609,7 +644,11 @@ export default function CashBook() {
                       Batal
                     </Button>
                     <Button type="submit" disabled={loading}>
-                      {loading ? "Menyimpan..." : editingItem ? "Update" : "Simpan"}
+                      {loading
+                        ? "Menyimpan..."
+                        : editingItem
+                          ? "Update"
+                          : "Simpan"}
                     </Button>
                   </div>
                 </form>
@@ -650,10 +689,12 @@ export default function CashBook() {
                   <TrendingUp className="h-8 w-8 text-white/80" />
                 </div>
                 <CardTitle className="text-3xl font-bold">
-                  {formatCurrency(summaryData.totalPenerimaan)
-                    .replace("Rp", "")
-                    .trim()
-                    .split(",")[0]}
+                  {
+                    formatCurrency(summaryData.totalPenerimaan)
+                      .replace("Rp", "")
+                      .trim()
+                      .split(",")[0]
+                  }
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -673,10 +714,12 @@ export default function CashBook() {
                   <TrendingDown className="h-8 w-8 text-white/80" />
                 </div>
                 <CardTitle className="text-3xl font-bold">
-                  {formatCurrency(summaryData.totalPengeluaran)
-                    .replace("Rp", "")
-                    .trim()
-                    .split(",")[0]}
+                  {
+                    formatCurrency(summaryData.totalPengeluaran)
+                      .replace("Rp", "")
+                      .trim()
+                      .split(",")[0]
+                  }
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -694,11 +737,18 @@ export default function CashBook() {
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardDescription className="text-white/90">Net</CardDescription>
+                  <CardDescription className="text-white/90">
+                    Net
+                  </CardDescription>
                   <DollarSign className="h-8 w-8 text-white/80" />
                 </div>
                 <CardTitle className="text-3xl font-bold">
-                  {formatCurrency(netAmount).replace("Rp", "").trim().split(",")[0]}
+                  {
+                    formatCurrency(netAmount)
+                      .replace("Rp", "")
+                      .trim()
+                      .split(",")[0]
+                  }
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -739,8 +789,12 @@ export default function CashBook() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">Semua</SelectItem>
-                      <SelectItem value="Penerimaan Kas">Penerimaan Kas</SelectItem>
-                      <SelectItem value="Pengeluaran Kas">Pengeluaran Kas</SelectItem>
+                      <SelectItem value="Penerimaan Kas">
+                        Penerimaan Kas
+                      </SelectItem>
+                      <SelectItem value="Pengeluaran Kas">
+                        Pengeluaran Kas
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <Input
@@ -822,7 +876,7 @@ export default function CashBook() {
                           >
                             <TableCell className="text-slate-700">
                               {new Date(transaction.tanggal).toLocaleDateString(
-                                "id-ID"
+                                "id-ID",
                               )}
                             </TableCell>
                             <TableCell className="font-medium text-slate-900">
@@ -859,22 +913,26 @@ export default function CashBook() {
                             </TableCell>
                             <TableCell>
                               <div className="flex justify-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEdit(transaction)}
-                                  className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(transaction.id)}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                                {canEdit(userRole) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(transaction)}
+                                    className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {canDelete(userRole) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDelete(transaction.id)}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>

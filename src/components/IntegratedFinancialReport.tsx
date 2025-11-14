@@ -43,7 +43,7 @@ export default function IntegratedFinancialReport() {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<FinancialReportData[]>([]);
   const [filteredData, setFilteredData] = useState<FinancialReportData[]>([]);
-  
+
   const [reportType, setReportType] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -57,7 +57,7 @@ export default function IntegratedFinancialReport() {
 
   const fetchReportData = async () => {
     setLoading(true);
-    
+
     const { data, error } = await supabase
       .from("vw_laporan_keuangan_all")
       .select("*")
@@ -74,7 +74,7 @@ export default function IntegratedFinancialReport() {
     } else {
       setReportData(data || []);
     }
-    
+
     setLoading(false);
   };
 
@@ -89,7 +89,7 @@ export default function IntegratedFinancialReport() {
     // Filter by account name
     if (searchQuery.trim()) {
       filtered = filtered.filter((item) =>
-        item.account_name.toLowerCase().includes(searchQuery.toLowerCase())
+        item.account_name.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
@@ -106,7 +106,7 @@ export default function IntegratedFinancialReport() {
 
   const getTotalDebit = () =>
     filteredData.reduce((sum, item) => sum + (item.debit_total || 0), 0);
-  
+
   const getTotalCredit = () =>
     filteredData.reduce((sum, item) => sum + (item.credit_total || 0), 0);
 
@@ -115,7 +115,15 @@ export default function IntegratedFinancialReport() {
 
   const exportToCSV = () => {
     const csv = [
-      ["Report Type", "Section", "Account Code", "Account Name", "Debit Total", "Credit Total", "Amount"],
+      [
+        "Report Type",
+        "Section",
+        "Account Code",
+        "Account Name",
+        "Debit Total",
+        "Credit Total",
+        "Amount",
+      ],
       ...filteredData.map((item) => [
         item.report_type,
         item.section,
@@ -147,9 +155,7 @@ export default function IntegratedFinancialReport() {
       <Card className="max-w-7xl mx-auto rounded-2xl shadow-md">
         <CardHeader className="p-4">
           <CardTitle className="text-2xl">Laporan Keuangan</CardTitle>
-          <CardDescription>
-            Data dari view vw_laporan_keuangan_all
-          </CardDescription>
+          <CardDescription>Data Laporan Keuangan</CardDescription>
         </CardHeader>
         <CardContent className="p-4">
           {/* Filter Section */}
@@ -207,7 +213,9 @@ export default function IntegratedFinancialReport() {
           <div className="grid md:grid-cols-3 gap-4 mb-6">
             <Card className="bg-green-50 border-green-200">
               <CardHeader className="p-4">
-                <CardTitle className="text-sm text-green-700">Total Debit</CardTitle>
+                <CardTitle className="text-sm text-green-700">
+                  Total Debit
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <p className="text-2xl font-bold text-green-800">
@@ -217,7 +225,9 @@ export default function IntegratedFinancialReport() {
             </Card>
             <Card className="bg-red-50 border-red-200">
               <CardHeader className="p-4">
-                <CardTitle className="text-sm text-red-700">Total Credit</CardTitle>
+                <CardTitle className="text-sm text-red-700">
+                  Total Credit
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <p className="text-2xl font-bold text-red-800">
@@ -227,7 +237,9 @@ export default function IntegratedFinancialReport() {
             </Card>
             <Card className="bg-blue-50 border-blue-200">
               <CardHeader className="p-4">
-                <CardTitle className="text-sm text-blue-700">Total Amount</CardTitle>
+                <CardTitle className="text-sm text-blue-700">
+                  Total Amount
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <p className="text-2xl font-bold text-blue-800">
@@ -265,7 +277,10 @@ export default function IntegratedFinancialReport() {
                   <TableBody>
                     {filteredData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                        <TableCell
+                          colSpan={7}
+                          className="text-center py-8 text-gray-500"
+                        >
                           Tidak ada data
                         </TableCell>
                       </TableRow>
@@ -277,8 +292,12 @@ export default function IntegratedFinancialReport() {
                               {item.report_type}
                             </span>
                           </TableCell>
-                          <TableCell className="font-medium">{item.section}</TableCell>
-                          <TableCell className="font-mono">{item.account_code}</TableCell>
+                          <TableCell className="font-medium">
+                            {item.section}
+                          </TableCell>
+                          <TableCell className="font-mono">
+                            {item.account_code}
+                          </TableCell>
                           <TableCell>{item.account_name}</TableCell>
                           <TableCell className="text-right font-mono">
                             {formatRupiah(item.debit_total || 0)}

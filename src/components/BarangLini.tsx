@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -20,7 +21,15 @@ import {
 } from "./ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useToast } from "./ui/use-toast";
-import { Pencil, Trash2, Plus, Package, ArrowLeft, ArrowRight, UserCheck } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Plus,
+  Package,
+  ArrowLeft,
+  ArrowRight,
+  UserCheck,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,14 +37,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { useNavigate } from "react-router-dom";
+import { canClick, canDelete, canView, canEdit } from "@/utils/roleAccess";
 
 export default function BarangLini() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("lini1");
-  
+
   // Lini 1 states
   const [lini1Items, setLini1Items] = useState<any[]>([]);
   const [stockItems, setStockItems] = useState<any[]>([]);
@@ -43,6 +59,7 @@ export default function BarangLini() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [isLini1DialogOpen, setIsLini1DialogOpen] = useState(false);
   const [selectedStockItems, setSelectedStockItems] = useState<any[]>([]);
+  const { user, userRole } = useAuth();
 
   // Lini 2 states
   const [lini2Items, setLini2Items] = useState<any[]>([]);
@@ -74,7 +91,7 @@ export default function BarangLini() {
         { event: "*", schema: "public", table: "barang_lini_1" },
         () => {
           fetchLini1Items();
-        }
+        },
       )
       .subscribe();
 
@@ -85,7 +102,7 @@ export default function BarangLini() {
         { event: "*", schema: "public", table: "barang_lini_2" },
         () => {
           fetchLini2Items();
-        }
+        },
       )
       .subscribe();
 
@@ -98,10 +115,12 @@ export default function BarangLini() {
   const fetchStockItems = async () => {
     try {
       console.log("🔍 Fetching stock items...");
-      
+
       const { data, error } = await supabase
         .from("stock")
-        .select("id, item_name, sku, item_arrival_date, airwaybills, item_quantity, unit, warehouses, zones, racks, lots")
+        .select(
+          "id, item_name, sku, item_arrival_date, airwaybills, item_quantity, unit, warehouses, zones, racks, lots",
+        )
         .not("item_arrival_date", "is", null)
         .order("item_arrival_date", { ascending: false });
 
@@ -109,11 +128,13 @@ export default function BarangLini() {
       console.log("❌ Error (if any):", error);
 
       if (error) throw error;
-      
+
       setStockItems(data || []);
-      
+
       // Extract unique dates
-      const dates = [...new Set(data?.map(item => item.item_arrival_date).filter(Boolean))];
+      const dates = [
+        ...new Set(data?.map((item) => item.item_arrival_date).filter(Boolean)),
+      ];
       console.log("📅 Available dates:", dates);
       setAvailableDates(dates);
     } catch (error) {
@@ -128,9 +149,11 @@ export default function BarangLini() {
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
-    
+
     // Filter stock items by selected date
-    const filtered = stockItems.filter(item => item.item_arrival_date === date);
+    const filtered = stockItems.filter(
+      (item) => item.item_arrival_date === date,
+    );
     setSelectedStockItems(filtered);
   };
 
@@ -145,7 +168,7 @@ export default function BarangLini() {
     }
 
     try {
-      const itemsToInsert = selectedStockItems.map(stock => {
+      const itemsToInsert = selectedStockItems.map((stock) => {
         let storageDuration = 0;
         if (stock.item_arrival_date) {
           const arrivalDate = new Date(stock.item_arrival_date);
@@ -174,7 +197,9 @@ export default function BarangLini() {
         };
       });
 
-      const { error } = await supabase.from("barang_lini_1").insert(itemsToInsert);
+      const { error } = await supabase
+        .from("barang_lini_1")
+        .insert(itemsToInsert);
 
       if (error) throw error;
 
@@ -216,7 +241,10 @@ export default function BarangLini() {
     if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
 
     try {
-      const { error } = await supabase.from("barang_lini_1").delete().eq("id", id);
+      const { error } = await supabase
+        .from("barang_lini_1")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       toast({ title: "Success", description: "Data barang berhasil dihapus" });
     } catch (error: any) {
@@ -237,7 +265,7 @@ export default function BarangLini() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
+
       // Fetch stock data for each item based on SKU
       const itemsWithStock = await Promise.all(
         (data || []).map(async (item) => {
@@ -256,7 +284,7 @@ export default function BarangLini() {
             stock_racks: stockData?.racks || item.racks,
             stock_lots: stockData?.lots || item.lots,
           };
-        })
+        }),
       );
 
       setLini2Items(data || []);
@@ -284,16 +312,16 @@ export default function BarangLini() {
 
       console.log("Calculated values:", {
         storageDurationLini1,
-        biayaLini1
+        biayaLini1,
       });
 
       // Update Lini 1
       const { error: updateLini1Error } = await supabase
         .from("barang_lini_1")
-        .update({ 
+        .update({
           total_price: biayaLini1,
           storage_duration: storageDurationLini1,
-          status: "Lini 2" 
+          status: "Lini 2",
         })
         .eq("id", item.id);
 
@@ -358,7 +386,8 @@ export default function BarangLini() {
   };
 
   const handleDiambilSupplier = async (item: any) => {
-    if (!confirm(`Tandai ${item.item_name} sebagai diambil oleh supplier?`)) return;
+    if (!confirm(`Tandai ${item.item_name} sebagai diambil oleh supplier?`))
+      return;
 
     try {
       // Delete dari Lini 1
@@ -386,7 +415,8 @@ export default function BarangLini() {
   };
 
   const handleDiambilSupplierLini2 = async (item: any) => {
-    if (!confirm(`Tandai ${item.item_name} sebagai diambil oleh supplier?`)) return;
+    if (!confirm(`Tandai ${item.item_name} sebagai diambil oleh supplier?`))
+      return;
 
     try {
       // Calculate current lama simpan lini 2
@@ -405,11 +435,11 @@ export default function BarangLini() {
       // Update status and save calculated prices
       const { error } = await supabase
         .from("barang_lini_2")
-        .update({ 
+        .update({
           status: "Diambil",
           storage_duration_lini_2: lamaSimpanLini2,
           total_price_lini_2: biayaLini2,
-          final_price: totalBiaya
+          final_price: totalBiaya,
         })
         .eq("id", item.id);
 
@@ -438,7 +468,9 @@ export default function BarangLini() {
       // Calculate storage duration lini 2 if date is provided
       let storageDurationLini2 = lini2FormData.storage_duration_lini_2;
       if (lini2FormData.item_arrival_date_lini_2) {
-        const arrivalDateLini2 = new Date(lini2FormData.item_arrival_date_lini_2);
+        const arrivalDateLini2 = new Date(
+          lini2FormData.item_arrival_date_lini_2,
+        );
         const today = new Date();
         const diffTime = today.getTime() - arrivalDateLini2.getTime();
         storageDurationLini2 = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -463,7 +495,9 @@ export default function BarangLini() {
         final_price: finalPrice,
       };
 
-      const { error } = await supabase.from("barang_lini_2").insert(dataToInsert);
+      const { error } = await supabase
+        .from("barang_lini_2")
+        .insert(dataToInsert);
 
       if (error) throw error;
 
@@ -505,7 +539,10 @@ export default function BarangLini() {
     if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
 
     try {
-      const { error } = await supabase.from("barang_lini_2").delete().eq("id", id);
+      const { error } = await supabase
+        .from("barang_lini_2")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       toast({ title: "Success", description: "Data barang berhasil dihapus" });
     } catch (error: any) {
@@ -530,10 +567,10 @@ export default function BarangLini() {
       <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
         <div className="container mx-auto px-4 py-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate('/dashboard')}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
               className="text-white hover:bg-white/20"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -543,8 +580,12 @@ export default function BarangLini() {
                 <Package className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Manajemen Barang Lini</h1>
-                <p className="text-sm text-blue-100">Kelola barang lini 1 dan lini 2</p>
+                <h1 className="text-2xl font-bold text-white">
+                  Manajemen Barang Lini
+                </h1>
+                <p className="text-sm text-blue-100">
+                  Kelola barang lini 1 dan lini 2
+                </p>
               </div>
             </div>
           </div>
@@ -557,10 +598,14 @@ export default function BarangLini() {
           <Card className="border-none shadow-lg bg-purple-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Barang Lini 1</CardDescription>
+                <CardDescription className="text-white/90">
+                  Barang Lini 1
+                </CardDescription>
                 <Package className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{lini1Items.length}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {lini1Items.length}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -573,10 +618,14 @@ export default function BarangLini() {
           <Card className="border-none shadow-lg bg-emerald-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Barang Lini 2</CardDescription>
+                <CardDescription className="text-white/90">
+                  Barang Lini 2
+                </CardDescription>
                 <Package className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{lini2Items.length}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {lini2Items.length}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -592,10 +641,16 @@ export default function BarangLini() {
           <div className="p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="mb-6 bg-gradient-to-r from-indigo-100 to-blue-100">
-                <TabsTrigger value="lini1" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
+                <TabsTrigger
+                  value="lini1"
+                  className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+                >
                   Barang Lini 1
                 </TabsTrigger>
-                <TabsTrigger value="lini2" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                <TabsTrigger
+                  value="lini2"
+                  className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+                >
                   Barang Lini 2
                 </TabsTrigger>
               </TabsList>
@@ -603,16 +658,23 @@ export default function BarangLini() {
               {/* Lini 1 Tab */}
               <TabsContent value="lini1">
                 <div className="flex justify-end mb-4">
-                  <Dialog open={isLini1DialogOpen} onOpenChange={setIsLini1DialogOpen}>
+                  <Dialog
+                    open={isLini1DialogOpen}
+                    onOpenChange={setIsLini1DialogOpen}
+                  >
                     <DialogTrigger asChild>
-                      <Button onClick={() => {
-                        setSelectedDate("");
-                        setSelectedStockItems([]);
-                        fetchStockItems();
-                      }}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Tambah Barang Lini 1
-                      </Button>
+                      {canClick(userRole) && (
+                        <Button
+                          onClick={() => {
+                            setSelectedDate("");
+                            setSelectedStockItems([]);
+                            fetchStockItems();
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Tambah Barang Lini 1
+                        </Button>
+                      )}
                     </DialogTrigger>
                     <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
@@ -620,26 +682,35 @@ export default function BarangLini() {
                       </DialogHeader>
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="date_select">Pilih Tanggal Barang Masuk *</Label>
+                          <Label htmlFor="date_select">
+                            Pilih Tanggal Barang Masuk *
+                          </Label>
                           {availableDates.length === 0 ? (
                             <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
-                              ⚠️ Tidak ada data stock dengan tanggal masuk barang.
+                              ⚠️ Tidak ada data stock dengan tanggal masuk
+                              barang.
                             </div>
                           ) : (
                             <>
-                              <Select value={selectedDate} onValueChange={handleDateSelect}>
+                              <Select
+                                value={selectedDate}
+                                onValueChange={handleDateSelect}
+                              >
                                 <SelectTrigger id="date_select">
                                   <SelectValue placeholder="-- Pilih tanggal --" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {availableDates.map((date) => (
                                     <SelectItem key={date} value={date}>
-                                      {new Date(date).toLocaleDateString("id-ID", {
-                                        weekday: "long",
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric"
-                                      })}
+                                      {new Date(date).toLocaleDateString(
+                                        "id-ID",
+                                        {
+                                          weekday: "long",
+                                          year: "numeric",
+                                          month: "long",
+                                          day: "numeric",
+                                        },
+                                      )}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -655,7 +726,8 @@ export default function BarangLini() {
                           <div className="space-y-3">
                             <div className="flex justify-between items-center">
                               <h3 className="text-sm font-semibold text-slate-700">
-                                Barang yang akan ditambahkan ({selectedStockItems.length} item)
+                                Barang yang akan ditambahkan (
+                                {selectedStockItems.length} item)
                               </h3>
                               <Button onClick={handleAddAllToLini1}>
                                 Tambahkan Semua ke Lini 1
@@ -680,19 +752,35 @@ export default function BarangLini() {
                                 <TableBody>
                                   {selectedStockItems.map((stock) => (
                                     <TableRow key={stock.id}>
-                                      <TableCell className="font-medium">{stock.item_name}</TableCell>
-                                      <TableCell className="font-mono text-indigo-600">{stock.sku}</TableCell>
-                                      <TableCell>{stock.airwaybills || "-"}</TableCell>
+                                      <TableCell className="font-medium">
+                                        {stock.item_name}
+                                      </TableCell>
+                                      <TableCell className="font-mono text-indigo-600">
+                                        {stock.sku}
+                                      </TableCell>
                                       <TableCell>
-                                        {stock.item_arrival_date 
-                                          ? new Date(stock.item_arrival_date).toLocaleDateString("id-ID")
+                                        {stock.airwaybills || "-"}
+                                      </TableCell>
+                                      <TableCell>
+                                        {stock.item_arrival_date
+                                          ? new Date(
+                                              stock.item_arrival_date,
+                                            ).toLocaleDateString("id-ID")
                                           : "-"}
                                       </TableCell>
-                                      <TableCell className="font-semibold">{stock.item_quantity || "-"}</TableCell>
+                                      <TableCell className="font-semibold">
+                                        {stock.item_quantity || "-"}
+                                      </TableCell>
                                       <TableCell>{stock.unit || "-"}</TableCell>
-                                      <TableCell>{stock.warehouses || "-"}</TableCell>
-                                      <TableCell>{stock.zones || "-"}</TableCell>
-                                      <TableCell>{stock.racks || "-"}</TableCell>
+                                      <TableCell>
+                                        {stock.warehouses || "-"}
+                                      </TableCell>
+                                      <TableCell>
+                                        {stock.zones || "-"}
+                                      </TableCell>
+                                      <TableCell>
+                                        {stock.racks || "-"}
+                                      </TableCell>
                                       <TableCell>{stock.lots || "-"}</TableCell>
                                     </TableRow>
                                   ))}
@@ -710,57 +798,107 @@ export default function BarangLini() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gradient-to-r from-slate-100 to-blue-100 hover:from-slate-100 hover:to-blue-100">
-                        <TableHead className="font-semibold text-slate-700">Nama Barang</TableHead>
-                        <TableHead className="font-semibold text-slate-700">SKU</TableHead>
-                        <TableHead className="font-semibold text-slate-700">AWB</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Tanggal Masuk</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Jumlah</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Satuan</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Gudang</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Zona</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Rak</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Lot</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Lama Simpan</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Status</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Total Biaya</TableHead>
-                        <TableHead className="text-right font-semibold text-slate-700">Aksi</TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Nama Barang
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          SKU
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          AWB
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Tanggal Masuk
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Jumlah
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Satuan
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Gudang
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Zona
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Rak
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Lot
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Lama Simpan
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Status
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Total Biaya
+                        </TableHead>
+                        <TableHead className="text-right font-semibold text-slate-700">
+                          Aksi
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {lini1Items.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={14} className="text-center text-slate-500 py-12">
+                          <TableCell
+                            colSpan={14}
+                            className="text-center text-slate-500 py-12"
+                          >
                             <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
                               <Package className="h-12 w-12 text-slate-300" />
                             </div>
-                            <p className="font-medium text-lg">Belum ada data barang</p>
-                            <p className="text-sm text-slate-400 mt-1">Klik tombol "Tambah Barang Lini 1" untuk menambahkan data</p>
+                            <p className="font-medium text-lg">
+                              Belum ada data barang
+                            </p>
+                            <p className="text-sm text-slate-400 mt-1">
+                              Klik tombol "Tambah Barang Lini 1" untuk
+                              menambahkan data
+                            </p>
                           </TableCell>
                         </TableRow>
                       ) : (
                         lini1Items.map((item) => {
                           const lamaSimpan = item.storage_duration || 0;
-                          const lamaSimpanText = lamaSimpan >= 0 ? `${lamaSimpan} hari` : "0 hari";
+                          const lamaSimpanText =
+                            lamaSimpan >= 0 ? `${lamaSimpan} hari` : "0 hari";
                           const totalPrice = item.total_price || 0;
 
                           return (
-                            <TableRow key={item.id} className="hover:bg-indigo-50 transition-colors">
-                              <TableCell className="font-medium">{item.item_name}</TableCell>
-                              <TableCell className="font-mono text-indigo-600">{item.sku}</TableCell>
+                            <TableRow
+                              key={item.id}
+                              className="hover:bg-indigo-50 transition-colors"
+                            >
+                              <TableCell className="font-medium">
+                                {item.item_name}
+                              </TableCell>
+                              <TableCell className="font-mono text-indigo-600">
+                                {item.sku}
+                              </TableCell>
                               <TableCell>{item.awb || "-"}</TableCell>
                               <TableCell>
-                                {item.item_arrival_date 
-                                  ? new Date(item.item_arrival_date).toLocaleDateString("id-ID")
+                                {item.item_arrival_date
+                                  ? new Date(
+                                      item.item_arrival_date,
+                                    ).toLocaleDateString("id-ID")
                                   : "-"}
                               </TableCell>
-                              <TableCell className="font-semibold">{item.item_quantity || "-"}</TableCell>
+                              <TableCell className="font-semibold">
+                                {item.item_quantity || "-"}
+                              </TableCell>
                               <TableCell>{item.unit || "-"}</TableCell>
                               <TableCell>{item.warehouses || "-"}</TableCell>
                               <TableCell>{item.zones || "-"}</TableCell>
                               <TableCell>{item.racks || "-"}</TableCell>
                               <TableCell>{item.lots || "-"}</TableCell>
                               <TableCell>
-                                <span className="font-semibold text-blue-600">{lamaSimpanText}</span>
+                                <span className="font-semibold text-blue-600">
+                                  {lamaSimpanText}
+                                </span>
                               </TableCell>
                               <TableCell>
                                 <span
@@ -798,15 +936,17 @@ export default function BarangLini() {
                                   >
                                     <UserCheck className="w-4 h-4" />
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleLini1Delete(item.id)}
-                                    className="hover:bg-red-50"
-                                    title="Hapus Data"
-                                  >
-                                    <Trash2 className="w-4 h-4 text-red-600" />
-                                  </Button>
+                                  {canDelete(userRole) && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleLini1Delete(item.id)}
+                                      className="hover:bg-red-50"
+                                      title="Hapus Data"
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-600" />
+                                    </Button>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -821,12 +961,17 @@ export default function BarangLini() {
               {/* Lini 2 Tab */}
               <TabsContent value="lini2">
                 <div className="flex justify-end mb-4">
-                  <Dialog open={isLini2DialogOpen} onOpenChange={setIsLini2DialogOpen}>
+                  <Dialog
+                    open={isLini2DialogOpen}
+                    onOpenChange={setIsLini2DialogOpen}
+                  >
                     <DialogTrigger asChild>
-                      <Button onClick={resetLini2Form}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Tambah Barang Lini 2
-                      </Button>
+                      {canClick(userRole) && (
+                        <Button onClick={resetLini2Form}>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Tambah Barang Lini 2
+                        </Button>
+                      )}
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
@@ -840,7 +985,10 @@ export default function BarangLini() {
                               id="item_name"
                               value={lini2FormData.item_name}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, item_name: e.target.value })
+                                setLini2FormData({
+                                  ...lini2FormData,
+                                  item_name: e.target.value,
+                                })
                               }
                               required
                             />
@@ -852,7 +1000,10 @@ export default function BarangLini() {
                               id="sku"
                               value={lini2FormData.sku}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, sku: e.target.value })
+                                setLini2FormData({
+                                  ...lini2FormData,
+                                  sku: e.target.value,
+                                })
                               }
                               required
                             />
@@ -864,56 +1015,81 @@ export default function BarangLini() {
                               id="awb"
                               value={lini2FormData.awb}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, awb: e.target.value })
+                                setLini2FormData({
+                                  ...lini2FormData,
+                                  awb: e.target.value,
+                                })
                               }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="item_arrival_date">Tanggal Masuk Barang</Label>
+                            <Label htmlFor="item_arrival_date">
+                              Tanggal Masuk Barang
+                            </Label>
                             <Input
                               id="item_arrival_date"
                               type="date"
                               value={lini2FormData.item_arrival_date}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, item_arrival_date: e.target.value })
+                                setLini2FormData({
+                                  ...lini2FormData,
+                                  item_arrival_date: e.target.value,
+                                })
                               }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="item_arrival_date_lini_2">Tanggal Masuk Barang Lini 2 *</Label>
+                            <Label htmlFor="item_arrival_date_lini_2">
+                              Tanggal Masuk Barang Lini 2 *
+                            </Label>
                             <Input
                               id="item_arrival_date_lini_2"
                               type="date"
                               value={lini2FormData.item_arrival_date_lini_2}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, item_arrival_date_lini_2: e.target.value })
+                                setLini2FormData({
+                                  ...lini2FormData,
+                                  item_arrival_date_lini_2: e.target.value,
+                                })
                               }
                               required
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="storage_duration">Lama Simpan Lini 1 (hari)</Label>
+                            <Label htmlFor="storage_duration">
+                              Lama Simpan Lini 1 (hari)
+                            </Label>
                             <Input
                               id="storage_duration"
                               type="number"
                               value={lini2FormData.storage_duration}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, storage_duration: parseInt(e.target.value) || 0 })
+                                setLini2FormData({
+                                  ...lini2FormData,
+                                  storage_duration:
+                                    parseInt(e.target.value) || 0,
+                                })
                               }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="storage_duration_lini_2">Lama Simpan Lini 2 (hari)</Label>
+                            <Label htmlFor="storage_duration_lini_2">
+                              Lama Simpan Lini 2 (hari)
+                            </Label>
                             <Input
                               id="storage_duration_lini_2"
                               type="number"
                               value={lini2FormData.storage_duration_lini_2}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, storage_duration_lini_2: parseInt(e.target.value) || 0 })
+                                setLini2FormData({
+                                  ...lini2FormData,
+                                  storage_duration_lini_2:
+                                    parseInt(e.target.value) || 0,
+                                })
                               }
                             />
                           </div>
@@ -923,7 +1099,10 @@ export default function BarangLini() {
                             <Select
                               value={lini2FormData.status}
                               onValueChange={(value) =>
-                                setLini2FormData({ ...lini2FormData, status: value })
+                                setLini2FormData({
+                                  ...lini2FormData,
+                                  status: value,
+                                })
                               }
                             >
                               <SelectTrigger id="status">
@@ -937,27 +1116,37 @@ export default function BarangLini() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="total_price">Total Biaya di Lini 1</Label>
+                            <Label htmlFor="total_price">
+                              Total Biaya di Lini 1
+                            </Label>
                             <Input
                               id="total_price"
                               type="number"
                               step="0.01"
                               value={lini2FormData.total_price}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, total_price: e.target.value })
+                                setLini2FormData({
+                                  ...lini2FormData,
+                                  total_price: e.target.value,
+                                })
                               }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="total_price_lini_2">Total Biaya di Lini 2</Label>
+                            <Label htmlFor="total_price_lini_2">
+                              Total Biaya di Lini 2
+                            </Label>
                             <Input
                               id="total_price_lini_2"
                               type="number"
                               step="0.01"
                               value={lini2FormData.total_price_lini_2}
                               onChange={(e) =>
-                                setLini2FormData({ ...lini2FormData, total_price_lini_2: e.target.value })
+                                setLini2FormData({
+                                  ...lini2FormData,
+                                  total_price_lini_2: e.target.value,
+                                })
                               }
                             />
                           </div>
@@ -967,7 +1156,9 @@ export default function BarangLini() {
                             <div className="text-2xl font-bold text-emerald-600">
                               {formatCurrency(
                                 (parseFloat(lini2FormData.total_price) || 0) +
-                                (parseFloat(lini2FormData.total_price_lini_2) || 0)
+                                  (parseFloat(
+                                    lini2FormData.total_price_lini_2,
+                                  ) || 0),
                               )}
                             </div>
                           </div>
@@ -995,47 +1186,98 @@ export default function BarangLini() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gradient-to-r from-slate-100 to-emerald-100 hover:from-slate-100 hover:to-emerald-100">
-                        <TableHead className="font-semibold text-slate-700">SKU</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Status</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Nama Barang</TableHead>
-                        <TableHead className="font-semibold text-slate-700">AWB</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Tanggal Masuk (L1)</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Tanggal Masuk L2</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Lama Simpan L2</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Harga Total (L1)</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Harga Total L2</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Harga Final</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Jumlah</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Satuan</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Gudang</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Zona</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Rak</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Lot</TableHead>
-                        <TableHead className="text-right font-semibold text-slate-700">Aksi</TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          SKU
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Status
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Nama Barang
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          AWB
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Tanggal Masuk (L1)
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Tanggal Masuk L2
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Lama Simpan L2
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Harga Total (L1)
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Harga Total L2
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Harga Final
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Jumlah
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Satuan
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Gudang
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Zona
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Rak
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Lot
+                        </TableHead>
+                        <TableHead className="text-right font-semibold text-slate-700">
+                          Aksi
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {lini2Items.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={17} className="text-center text-slate-500 py-12">
+                          <TableCell
+                            colSpan={17}
+                            className="text-center text-slate-500 py-12"
+                          >
                             <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
                               <Package className="h-12 w-12 text-slate-300" />
                             </div>
-                            <p className="font-medium text-lg">Belum ada data barang</p>
-                            <p className="text-sm text-slate-400 mt-1">Klik tombol "Tambah Barang Lini 2" untuk menambahkan data</p>
+                            <p className="font-medium text-lg">
+                              Belum ada data barang
+                            </p>
+                            <p className="text-sm text-slate-400 mt-1">
+                              Klik tombol "Tambah Barang Lini 2" untuk
+                              menambahkan data
+                            </p>
                           </TableCell>
                         </TableRow>
                       ) : (
                         lini2ItemsWithStock.map((item) => {
-                          const lamaSimpanLini2 = item.storage_duration_lini_2 || 0;
-                          const lamaSimpanLini2Text = lamaSimpanLini2 >= 0 ? `${lamaSimpanLini2} hari` : "0 hari";
+                          const lamaSimpanLini2 =
+                            item.storage_duration_lini_2 || 0;
+                          const lamaSimpanLini2Text =
+                            lamaSimpanLini2 >= 0
+                              ? `${lamaSimpanLini2} hari`
+                              : "0 hari";
                           const biayaLini1 = item.total_price || 0;
                           const biayaLini2 = item.total_price_lini_2 || 0;
                           const totalBiaya = item.final_price || 0;
 
                           return (
-                            <TableRow key={item.id} className="hover:bg-emerald-50 transition-colors">
-                              <TableCell className="font-mono text-indigo-600">{item.sku}</TableCell>
+                            <TableRow
+                              key={item.id}
+                              className="hover:bg-emerald-50 transition-colors"
+                            >
+                              <TableCell className="font-mono text-indigo-600">
+                                {item.sku}
+                              </TableCell>
                               <TableCell>
                                 <span
                                   className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -1047,16 +1289,22 @@ export default function BarangLini() {
                                   {item.status}
                                 </span>
                               </TableCell>
-                              <TableCell className="font-medium">{item.item_name || item.nama_barang}</TableCell>
+                              <TableCell className="font-medium">
+                                {item.item_name || item.nama_barang}
+                              </TableCell>
                               <TableCell>{item.awb || "-"}</TableCell>
                               <TableCell>
                                 {item.item_arrival_date
-                                  ? new Date(item.item_arrival_date).toLocaleDateString("id-ID")
+                                  ? new Date(
+                                      item.item_arrival_date,
+                                    ).toLocaleDateString("id-ID")
                                   : "-"}
                               </TableCell>
                               <TableCell>
                                 {item.item_arrival_date_lini_2
-                                  ? new Date(item.item_arrival_date_lini_2).toLocaleDateString("id-ID")
+                                  ? new Date(
+                                      item.item_arrival_date_lini_2,
+                                    ).toLocaleDateString("id-ID")
                                   : "-"}
                               </TableCell>
                               <TableCell>
@@ -1073,9 +1321,13 @@ export default function BarangLini() {
                               <TableCell className="font-bold text-emerald-600">
                                 {formatCurrency(totalBiaya)}
                               </TableCell>
-                              <TableCell>{item.stock_quantity || "-"}</TableCell>
+                              <TableCell>
+                                {item.stock_quantity || "-"}
+                              </TableCell>
                               <TableCell>{item.stock_unit || "-"}</TableCell>
-                              <TableCell>{item.stock_warehouses || "-"}</TableCell>
+                              <TableCell>
+                                {item.stock_warehouses || "-"}
+                              </TableCell>
                               <TableCell>{item.stock_zones || "-"}</TableCell>
                               <TableCell>{item.stock_racks || "-"}</TableCell>
                               <TableCell>{item.stock_lots || "-"}</TableCell>
@@ -1084,22 +1336,26 @@ export default function BarangLini() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleDiambilSupplierLini2(item)}
+                                    onClick={() =>
+                                      handleDiambilSupplierLini2(item)
+                                    }
                                     disabled={item.status === "Diambil"}
                                     className="text-green-600 hover:bg-green-50 disabled:opacity-50"
                                     title="Diambil oleh Supplier"
                                   >
                                     <UserCheck className="w-4 h-4" />
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleLini2Delete(item.id)}
-                                    className="hover:bg-red-50"
-                                    title="Hapus Data"
-                                  >
-                                    <Trash2 className="w-4 h-4 text-red-600" />
-                                  </Button>
+                                  {canDelete(userRole) && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleLini2Delete(item.id)}
+                                      className="hover:bg-red-50"
+                                      title="Hapus Data"
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-600" />
+                                    </Button>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>

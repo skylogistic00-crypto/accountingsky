@@ -1,14 +1,26 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { useToast } from './ui/use-toast';
-import { Badge } from './ui/badge';
+import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { useToast } from "./ui/use-toast";
+import { Badge } from "./ui/badge";
 import {
   Table,
   TableBody,
@@ -16,7 +28,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from './ui/table';
+} from "./ui/table";
 import {
   Dialog,
   DialogContent,
@@ -24,14 +36,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from './ui/dialog';
-import { 
-  Search, 
-  Plus, 
-  ArrowLeft, 
-  Building2, 
-  CheckCircle, 
-  XCircle, 
+} from "./ui/dialog";
+import {
+  Search,
+  Plus,
+  ArrowLeft,
+  Building2,
+  CheckCircle,
+  XCircle,
   Filter,
   Phone,
   Mail,
@@ -40,9 +52,10 @@ import {
   Package,
   TrendingUp,
   Users,
-  ShieldCheck
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+  ShieldCheck,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { canClick } from "@/utils/roleAccess";
 
 interface SupplierFormData {
   supplier_code: string;
@@ -75,44 +88,48 @@ interface Supplier {
 }
 
 export default function SupplierForm() {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [pkpFilter, setPkpFilter] = useState('ALL');
-  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [pkpFilter, setPkpFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<SupplierFormData>({
-    supplier_code: '',
-    supplier_name: '',
-    contact_person: '',
-    phone_number: '',
-    email: '',
-    city: '',
-    country: '',
-    is_pkp: '',
-    tax_id: '',
-    bank_name: '',
-    bank_account_holder: '',
-    payment_terms: '',
-    category: '',
-    currency: 'IDR',
-    status: 'ACTIVE',
-    address: '',
+    supplier_code: "",
+    supplier_name: "",
+    contact_person: "",
+    phone_number: "",
+    email: "",
+    city: "",
+    country: "",
+    is_pkp: "",
+    tax_id: "",
+    bank_name: "",
+    bank_account_holder: "",
+    payment_terms: "",
+    category: "",
+    currency: "IDR",
+    status: "ACTIVE",
+    address: "",
   });
 
   useEffect(() => {
     fetchSuppliers();
 
     const channel = supabase
-      .channel('suppliers-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'suppliers' }, () => {
-        fetchSuppliers();
-      })
+      .channel("suppliers-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "suppliers" },
+        () => {
+          fetchSuppliers();
+        },
+      )
       .subscribe();
 
     return () => {
@@ -123,15 +140,15 @@ export default function SupplierForm() {
   useEffect(() => {
     let filtered = suppliers;
 
-    if (statusFilter !== 'ALL') {
+    if (statusFilter !== "ALL") {
       filtered = filtered.filter((sup) => sup.status === statusFilter);
     }
 
-    if (pkpFilter !== 'ALL') {
+    if (pkpFilter !== "ALL") {
       filtered = filtered.filter((sup) => sup.is_pkp === pkpFilter);
     }
 
-    if (categoryFilter !== 'ALL') {
+    if (categoryFilter !== "ALL") {
       filtered = filtered.filter((sup) => sup.category === categoryFilter);
     }
 
@@ -140,7 +157,7 @@ export default function SupplierForm() {
         (sup) =>
           sup.supplier_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           sup.supplier_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          sup.contact_person.toLowerCase().includes(searchTerm.toLowerCase())
+          sup.contact_person.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
@@ -151,15 +168,21 @@ export default function SupplierForm() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('suppliers')
-        .select('supplier_code, supplier_name, contact_person, phone_number, email, is_pkp, category, status')
-        .order('supplier_code', { ascending: false });
+        .from("suppliers")
+        .select(
+          "supplier_code, supplier_name, contact_person, phone_number, email, is_pkp, category, status",
+        )
+        .order("supplier_code", { ascending: false });
 
       if (error) throw error;
       setSuppliers(data || []);
       setFilteredSuppliers(data || []);
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -169,7 +192,7 @@ export default function SupplierForm() {
     if (isDialogOpen) {
       setIsDialogOpen(false);
     }
-    navigate('/dashboard');
+    navigate("/dashboard");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -177,60 +200,63 @@ export default function SupplierForm() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.from('suppliers').insert({
-        supplier_name: formData.supplier_name,
-        contact_person: formData.contact_person,
-        phone_number: formData.phone_number,
-        email: formData.email,
-        city: formData.city,
-        country: formData.country,
-        is_pkp: formData.is_pkp,
-        tax_id: formData.tax_id,
-        bank_name: formData.bank_name,
-        bank_account_holder: formData.bank_account_holder,
-        payment_terms: formData.payment_terms,
-        category: formData.category,
-        currency: formData.currency,
-        status: formData.status,
-        address: formData.address,
-      }).select();
+      const { data, error } = await supabase
+        .from("suppliers")
+        .insert({
+          supplier_name: formData.supplier_name,
+          contact_person: formData.contact_person,
+          phone_number: formData.phone_number,
+          email: formData.email,
+          city: formData.city,
+          country: formData.country,
+          is_pkp: formData.is_pkp,
+          tax_id: formData.tax_id,
+          bank_name: formData.bank_name,
+          bank_account_holder: formData.bank_account_holder,
+          payment_terms: formData.payment_terms,
+          category: formData.category,
+          currency: formData.currency,
+          status: formData.status,
+          address: formData.address,
+        })
+        .select();
 
       if (error) throw error;
 
-      const generatedCode = data && data[0] ? data[0].supplier_code : '';
+      const generatedCode = data && data[0] ? data[0].supplier_code : "";
 
       toast({
-        title: 'Success',
+        title: "Success",
         description: `Supplier berhasil ditambahkan dengan kode ${generatedCode}`,
       });
 
       // Reset form
       setFormData({
-        supplier_code: '',
-        supplier_name: '',
-        contact_person: '',
-        phone_number: '',
-        email: '',
-        city: '',
-        country: '',
-        is_pkp: '',
-        tax_id: '',
-        bank_name: '',
-        bank_account_holder: '',
-        payment_terms: '',
-        category: '',
-        currency: 'IDR',
-        status: 'ACTIVE',
-        address: '',
+        supplier_code: "",
+        supplier_name: "",
+        contact_person: "",
+        phone_number: "",
+        email: "",
+        city: "",
+        country: "",
+        is_pkp: "",
+        tax_id: "",
+        bank_name: "",
+        bank_account_holder: "",
+        payment_terms: "",
+        category: "",
+        currency: "IDR",
+        status: "ACTIVE",
+        address: "",
       });
 
       setIsDialogOpen(false);
       fetchSuppliers();
     } catch (error: any) {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -239,13 +265,13 @@ export default function SupplierForm() {
 
   const getCategoryIcon = (category: string) => {
     const iconClass = "h-4 w-4";
-    switch(category) {
-      case 'Raw Materials':
-      case 'Work in Process':
-      case 'Finished Goods':
+    switch (category) {
+      case "Raw Materials":
+      case "Work in Process":
+      case "Finished Goods":
         return <Package className={iconClass} />;
-      case 'Food':
-      case 'Beverage':
+      case "Food":
+      case "Beverage":
         return <Package className={iconClass} />;
       default:
         return <Package className={iconClass} />;
@@ -254,18 +280,19 @@ export default function SupplierForm() {
 
   const getCategoryBadge = (category: string) => {
     if (!category) return <span className="text-sm text-slate-400">-</span>;
-    
+
     const colors: Record<string, string> = {
-      'Raw Materials': 'bg-amber-100 text-amber-700 border-amber-300',
-      'Work in Process': 'bg-orange-100 text-orange-700 border-orange-300',
-      'Finished Goods': 'bg-green-100 text-green-700 border-green-300',
-      'Resale/Merchandise': 'bg-purple-100 text-purple-700 border-purple-300',
-      'Food': 'bg-pink-100 text-pink-700 border-pink-300',
-      'Beverage': 'bg-cyan-100 text-cyan-700 border-cyan-300',
-      'Spare Parts': 'bg-slate-100 text-slate-700 border-slate-300',
+      "Raw Materials": "bg-amber-100 text-amber-700 border-amber-300",
+      "Work in Process": "bg-orange-100 text-orange-700 border-orange-300",
+      "Finished Goods": "bg-green-100 text-green-700 border-green-300",
+      "Resale/Merchandise": "bg-purple-100 text-purple-700 border-purple-300",
+      Food: "bg-pink-100 text-pink-700 border-pink-300",
+      Beverage: "bg-cyan-100 text-cyan-700 border-cyan-300",
+      "Spare Parts": "bg-slate-100 text-slate-700 border-slate-300",
     };
 
-    const colorClass = colors[category] || 'bg-slate-100 text-slate-700 border-slate-300';
+    const colorClass =
+      colors[category] || "bg-slate-100 text-slate-700 border-slate-300";
 
     return (
       <Badge className={`flex items-center gap-1 ${colorClass}`}>
@@ -276,7 +303,7 @@ export default function SupplierForm() {
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === 'ACTIVE') {
+    if (status === "ACTIVE") {
       return (
         <Badge className="flex items-center gap-1 w-fit bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-300">
           <CheckCircle className="h-3 w-3" />
@@ -293,7 +320,7 @@ export default function SupplierForm() {
   };
 
   const getPkpBadge = (isPkp: string) => {
-    if (isPkp === 'YES') {
+    if (isPkp === "YES") {
       return (
         <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-300">
           PKP
@@ -309,13 +336,15 @@ export default function SupplierForm() {
 
   const summaryData = {
     total: suppliers.length,
-    active: suppliers.filter((s) => s.status === 'ACTIVE').length,
-    inactive: suppliers.filter((s) => s.status === 'INACTIVE').length,
-    pkp: suppliers.filter((s) => s.is_pkp === 'YES').length,
+    active: suppliers.filter((s) => s.status === "ACTIVE").length,
+    inactive: suppliers.filter((s) => s.status === "INACTIVE").length,
+    pkp: suppliers.filter((s) => s.is_pkp === "YES").length,
   };
 
   // Get unique categories for filter
-  const uniqueCategories = Array.from(new Set(suppliers.map(s => s.category).filter(Boolean)));
+  const uniqueCategories = Array.from(
+    new Set(suppliers.map((s) => s.category).filter(Boolean)),
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -323,9 +352,9 @@ export default function SupplierForm() {
       <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
         <div className="container mx-auto px-4 py-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleBack}
               className="text-white hover:bg-white/20"
             >
@@ -336,37 +365,46 @@ export default function SupplierForm() {
                 <Building2 className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Suppliers Management</h1>
-                <p className="text-sm text-blue-100">Kelola informasi supplier Anda</p>
+                <h1 className="text-2xl font-bold text-white">
+                  Suppliers Management
+                </h1>
+                <p className="text-sm text-blue-100">
+                  Kelola informasi supplier Anda
+                </p>
               </div>
             </div>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-white text-indigo-600 hover:bg-blue-50 shadow-md">
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Supplier
-              </Button>
+              {canClick(userRole) && (
+                <Button className="bg-white text-indigo-600 hover:bg-blue-50 shadow-md">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tambah Supplier
+                </Button>
+              )}
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Tambahkan Supplier Baru</DialogTitle>
-                <DialogDescription>
-                  Isi detail supplier baru
-                </DialogDescription>
+                <DialogDescription>Isi detail supplier baru</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Basic Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Informasi Dasar</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="supplier_name">Nama Supplier *</Label>
                       <Input
                         id="supplier_name"
                         value={formData.supplier_name}
-                        onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            supplier_name: e.target.value,
+                          })
+                        }
                         placeholder="PT. Supplier Indonesia"
                         required
                       />
@@ -377,14 +415,19 @@ export default function SupplierForm() {
                 {/* Contact Information */}
                 <div className="border-t pt-6 space-y-4">
                   <h3 className="text-lg font-semibold">Informasi Kontak</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="contact_person">Contact Person *</Label>
                       <Input
                         id="contact_person"
                         value={formData.contact_person}
-                        onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            contact_person: e.target.value,
+                          })
+                        }
                         placeholder="John Doe"
                         required
                       />
@@ -395,7 +438,12 @@ export default function SupplierForm() {
                       <Input
                         id="phone_number"
                         value={formData.phone_number}
-                        onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            phone_number: e.target.value,
+                          })
+                        }
                         placeholder="+62 812 3456 7890"
                         required
                       />
@@ -407,7 +455,9 @@ export default function SupplierForm() {
                         id="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         placeholder="supplier@example.com"
                         required
                       />
@@ -418,7 +468,9 @@ export default function SupplierForm() {
                       <Input
                         id="city"
                         value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, city: e.target.value })
+                        }
                         placeholder="Jakarta"
                       />
                     </div>
@@ -428,7 +480,9 @@ export default function SupplierForm() {
                       <Input
                         id="country"
                         value={formData.country}
-                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, country: e.target.value })
+                        }
                         placeholder="Indonesia"
                       />
                     </div>
@@ -439,7 +493,9 @@ export default function SupplierForm() {
                     <Textarea
                       id="address"
                       value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: e.target.value })
+                      }
                       placeholder="Jl. Contoh No. 123"
                       rows={3}
                     />
@@ -449,13 +505,15 @@ export default function SupplierForm() {
                 {/* Tax Information */}
                 <div className="border-t pt-6 space-y-4">
                   <h3 className="text-lg font-semibold">Informasi Pajak</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="is_pkp">PKP</Label>
                       <Select
                         value={formData.is_pkp}
-                        onValueChange={(value) => setFormData({ ...formData, is_pkp: value })}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, is_pkp: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih status PKP" />
@@ -472,7 +530,9 @@ export default function SupplierForm() {
                       <Input
                         id="tax_id"
                         value={formData.tax_id}
-                        onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, tax_id: e.target.value })
+                        }
                         placeholder="01.234.567.8-901.000"
                       />
                     </div>
@@ -482,24 +542,36 @@ export default function SupplierForm() {
                 {/* Bank Information */}
                 <div className="border-t pt-6 space-y-4">
                   <h3 className="text-lg font-semibold">Informasi Bank</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="bank_name">Bank Name</Label>
                       <Input
                         id="bank_name"
                         value={formData.bank_name}
-                        onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bank_name: e.target.value,
+                          })
+                        }
                         placeholder="Bank Mandiri"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="bank_account_holder">Bank Account Holder</Label>
+                      <Label htmlFor="bank_account_holder">
+                        Bank Account Holder
+                      </Label>
                       <Input
                         id="bank_account_holder"
                         value={formData.bank_account_holder}
-                        onChange={(e) => setFormData({ ...formData, bank_account_holder: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bank_account_holder: e.target.value,
+                          })
+                        }
                         placeholder="PT. Supplier Indonesia"
                       />
                     </div>
@@ -509,14 +581,19 @@ export default function SupplierForm() {
                 {/* Additional Information */}
                 <div className="border-t pt-6 space-y-4">
                   <h3 className="text-lg font-semibold">Informasi Tambahan</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="payment_terms">Payment Terms</Label>
                       <Input
                         id="payment_terms"
                         value={formData.payment_terms}
-                        onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            payment_terms: e.target.value,
+                          })
+                        }
                         placeholder="Net 30"
                       />
                     </div>
@@ -525,32 +602,66 @@ export default function SupplierForm() {
                       <Label htmlFor="category">Category</Label>
                       <Select
                         value={formData.category}
-                        onValueChange={(value) => setFormData({ ...formData, category: value })}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, category: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih kategori" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Raw Materials">Bahan Baku</SelectItem>
-                          <SelectItem value="Work in Process">Barang Dalam Proses</SelectItem>
-                          <SelectItem value="Finished Goods">Barang Jadi</SelectItem>
-                          <SelectItem value="Resale/Merchandise">Barang Dagangan</SelectItem>
-                          <SelectItem value="Kits/Bundles">Paket/Bundle</SelectItem>
-                          <SelectItem value="Spare Parts">Suku Cadang</SelectItem>
-                          <SelectItem value="MRO">MRO (Pemeliharaan, Perbaikan, Operasi)</SelectItem>
-                          <SelectItem value="Consumables">Barang Habis Pakai</SelectItem>
+                          <SelectItem value="Raw Materials">
+                            Bahan Baku
+                          </SelectItem>
+                          <SelectItem value="Work in Process">
+                            Barang Dalam Proses
+                          </SelectItem>
+                          <SelectItem value="Finished Goods">
+                            Barang Jadi
+                          </SelectItem>
+                          <SelectItem value="Resale/Merchandise">
+                            Barang Dagangan
+                          </SelectItem>
+                          <SelectItem value="Kits/Bundles">
+                            Paket/Bundle
+                          </SelectItem>
+                          <SelectItem value="Spare Parts">
+                            Suku Cadang
+                          </SelectItem>
+                          <SelectItem value="MRO">
+                            MRO (Pemeliharaan, Perbaikan, Operasi)
+                          </SelectItem>
+                          <SelectItem value="Consumables">
+                            Barang Habis Pakai
+                          </SelectItem>
                           <SelectItem value="Packaging">Kemasan</SelectItem>
                           <SelectItem value="Food">Makanan</SelectItem>
                           <SelectItem value="Beverage">Minuman</SelectItem>
-                          <SelectItem value="Rentable Units">Unit Sewa</SelectItem>
-                          <SelectItem value="Demo/Loaner Units">Unit Demo/Pinjaman</SelectItem>
+                          <SelectItem value="Rentable Units">
+                            Unit Sewa
+                          </SelectItem>
+                          <SelectItem value="Demo/Loaner Units">
+                            Unit Demo/Pinjaman
+                          </SelectItem>
                           <SelectItem value="Returns">Barang Retur</SelectItem>
-                          <SelectItem value="Defective/Damaged">Barang Cacat/Rusak</SelectItem>
-                          <SelectItem value="Obsolete/Expired">Barang Usang/Kadaluarsa</SelectItem>
-                          <SelectItem value="Goods in Transit">Barang Dalam Perjalanan</SelectItem>
-                          <SelectItem value="Consignment">Konsinyasi</SelectItem>
-                          <SelectItem value="Third Party/Owner">Pihak Ketiga/Pemilik</SelectItem>
-                          <SelectItem value="Samples/Marketing">Sampel/Pemasaran</SelectItem>
+                          <SelectItem value="Defective/Damaged">
+                            Barang Cacat/Rusak
+                          </SelectItem>
+                          <SelectItem value="Obsolete/Expired">
+                            Barang Usang/Kadaluarsa
+                          </SelectItem>
+                          <SelectItem value="Goods in Transit">
+                            Barang Dalam Perjalanan
+                          </SelectItem>
+                          <SelectItem value="Consignment">
+                            Konsinyasi
+                          </SelectItem>
+                          <SelectItem value="Third Party/Owner">
+                            Pihak Ketiga/Pemilik
+                          </SelectItem>
+                          <SelectItem value="Samples/Marketing">
+                            Sampel/Pemasaran
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -559,7 +670,9 @@ export default function SupplierForm() {
                       <Label htmlFor="currency">Currency *</Label>
                       <Select
                         value={formData.currency}
-                        onValueChange={(value) => setFormData({ ...formData, currency: value })}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, currency: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -577,7 +690,9 @@ export default function SupplierForm() {
                       <Label htmlFor="status">Status *</Label>
                       <Select
                         value={formData.status}
-                        onValueChange={(value) => setFormData({ ...formData, status: value })}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, status: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -594,7 +709,7 @@ export default function SupplierForm() {
                 {/* Submit Buttons */}
                 <div className="flex gap-4 pt-6">
                   <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? 'Menyimpan...' : 'Simpan Supplier'}
+                    {loading ? "Menyimpan..." : "Simpan Supplier"}
                   </Button>
                   <Button
                     type="button"
@@ -617,10 +732,14 @@ export default function SupplierForm() {
           <Card className="border-none shadow-lg bg-purple-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Total Suppliers</CardDescription>
+                <CardDescription className="text-white/90">
+                  Total Suppliers
+                </CardDescription>
                 <Users className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.total}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.total}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -633,10 +752,14 @@ export default function SupplierForm() {
           <Card className="border-none shadow-lg bg-emerald-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Active</CardDescription>
+                <CardDescription className="text-white/90">
+                  Active
+                </CardDescription>
                 <TrendingUp className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.active}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.active}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -649,10 +772,14 @@ export default function SupplierForm() {
           <Card className="border-none shadow-lg bg-pink-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">Inactive</CardDescription>
+                <CardDescription className="text-white/90">
+                  Inactive
+                </CardDescription>
                 <XCircle className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.inactive}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.inactive}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -665,10 +792,14 @@ export default function SupplierForm() {
           <Card className="border-none shadow-lg bg-blue-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardDescription className="text-white/90">PKP Suppliers</CardDescription>
+                <CardDescription className="text-white/90">
+                  PKP Suppliers
+                </CardDescription>
                 <ShieldCheck className="h-8 w-8 text-white/80" />
               </div>
-              <CardTitle className="text-4xl font-bold">{summaryData.pkp}</CardTitle>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.pkp}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center text-sm text-white/90">
@@ -719,14 +850,19 @@ export default function SupplierForm() {
                     <SelectItem value="NO">Non-PKP</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                >
                   <SelectTrigger className="w-[200px] border-slate-300 focus:border-purple-500 focus:ring-purple-500">
                     <SelectValue placeholder="Kategori" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">Semua Kategori</SelectItem>
                     {uniqueCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -796,10 +932,10 @@ export default function SupplierForm() {
                 </TableHeader>
                 <TableBody>
                   {filteredSuppliers.map((supplier, index) => (
-                    <TableRow 
+                    <TableRow
                       key={supplier.supplier_code}
                       className={`${
-                        index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
+                        index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                       } hover:bg-indigo-50 transition-colors border-b border-slate-100`}
                     >
                       <TableCell className="font-mono font-semibold text-indigo-600">
@@ -818,7 +954,9 @@ export default function SupplierForm() {
                         {supplier.email}
                       </TableCell>
                       <TableCell>{getPkpBadge(supplier.is_pkp)}</TableCell>
-                      <TableCell>{getCategoryBadge(supplier.category)}</TableCell>
+                      <TableCell>
+                        {getCategoryBadge(supplier.category)}
+                      </TableCell>
                       <TableCell>{getStatusBadge(supplier.status)}</TableCell>
                     </TableRow>
                   ))}
@@ -832,8 +970,12 @@ export default function SupplierForm() {
               <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
                 <Building2 className="h-12 w-12 text-slate-300" />
               </div>
-              <p className="text-slate-500 font-medium text-lg">Tidak ada supplier ditemukan</p>
-              <p className="text-sm text-slate-400 mt-1">Coba ubah filter atau tambahkan supplier baru</p>
+              <p className="text-slate-500 font-medium text-lg">
+                Tidak ada supplier ditemukan
+              </p>
+              <p className="text-sm text-slate-400 mt-1">
+                Coba ubah filter atau tambahkan supplier baru
+              </p>
             </div>
           )}
         </div>

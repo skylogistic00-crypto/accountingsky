@@ -26,7 +26,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Download, Filter, FileText, TrendingUp, TrendingDown } from "lucide-react";
+import {
+  Loader2,
+  Download,
+  Filter,
+  FileText,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 
 interface LabaRugiDetail {
   account_code: string;
@@ -38,14 +45,18 @@ interface LabaRugiDetail {
 export default function ProfitLossReport() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  
+
   const [revenues, setRevenues] = useState<LabaRugiDetail[]>([]);
   const [cogs, setCogs] = useState<LabaRugiDetail[]>([]);
   const [expenses, setExpenses] = useState<LabaRugiDetail[]>([]);
-  
-  const [filterType, setFilterType] = useState<"month" | "year" | "custom">("month");
+
+  const [filterType, setFilterType] = useState<"month" | "year" | "custom">(
+    "month",
+  );
   const [dateFrom, setDateFrom] = useState(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0]
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      .toISOString()
+      .split("T")[0],
   );
   const [dateTo, setDateTo] = useState(new Date().toISOString().split("T")[0]);
 
@@ -56,13 +67,25 @@ export default function ProfitLossReport() {
   const handleFilterChange = (type: "month" | "year" | "custom") => {
     setFilterType(type);
     const now = new Date();
-    
+
     if (type === "month") {
-      setDateFrom(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0]);
-      setDateTo(new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0]);
+      setDateFrom(
+        new Date(now.getFullYear(), now.getMonth(), 1)
+          .toISOString()
+          .split("T")[0],
+      );
+      setDateTo(
+        new Date(now.getFullYear(), now.getMonth() + 1, 0)
+          .toISOString()
+          .split("T")[0],
+      );
     } else if (type === "year") {
-      setDateFrom(new Date(now.getFullYear(), 0, 1).toISOString().split("T")[0]);
-      setDateTo(new Date(now.getFullYear(), 11, 31).toISOString().split("T")[0]);
+      setDateFrom(
+        new Date(now.getFullYear(), 0, 1).toISOString().split("T")[0],
+      );
+      setDateTo(
+        new Date(now.getFullYear(), 11, 31).toISOString().split("T")[0],
+      );
     }
   };
 
@@ -87,7 +110,7 @@ export default function ProfitLossReport() {
 
       labaRugiData?.forEach((item) => {
         const normalizedType = (item.account_type || "").trim().toLowerCase();
-        
+
         if (normalizedType === "pendapatan") {
           revenueAccounts.push(item);
         } else if (normalizedType === "beban pokok penjualan") {
@@ -126,10 +149,19 @@ export default function ProfitLossReport() {
   };
 
   // Calculate totals using display_amount
-  const totalRevenue = revenues.reduce((sum, acc) => sum + (acc.display_amount || 0), 0);
-  const totalCOGS = cogs.reduce((sum, acc) => sum + (acc.display_amount || 0), 0);
+  const totalRevenue = revenues.reduce(
+    (sum, acc) => sum + (acc.display_amount || 0),
+    0,
+  );
+  const totalCOGS = cogs.reduce(
+    (sum, acc) => sum + (acc.display_amount || 0),
+    0,
+  );
   const grossProfit = totalRevenue - totalCOGS;
-  const totalExpenses = expenses.reduce((sum, acc) => sum + (acc.display_amount || 0), 0);
+  const totalExpenses = expenses.reduce(
+    (sum, acc) => sum + (acc.display_amount || 0),
+    0,
+  );
   const netProfit = totalRevenue - (totalCOGS + totalExpenses);
 
   const exportToCSV = () => {
@@ -185,7 +217,8 @@ export default function ProfitLossReport() {
         <CardHeader className="p-4">
           <CardTitle className="text-2xl">Laporan Laba Rugi</CardTitle>
           <CardDescription>
-            Laporan keuangan yang menunjukkan pendapatan, beban, dan laba/rugi perusahaan
+            Laporan keuangan yang menunjukkan pendapatan, beban, dan laba/rugi
+            perusahaan
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4">
@@ -193,7 +226,10 @@ export default function ProfitLossReport() {
           <div className="grid md:grid-cols-5 gap-3 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <div className="space-y-2">
               <Label>Filter Waktu</Label>
-              <Select value={filterType} onValueChange={(v: any) => handleFilterChange(v)}>
+              <Select
+                value={filterType}
+                onValueChange={(v: any) => handleFilterChange(v)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -225,13 +261,20 @@ export default function ProfitLossReport() {
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={fetchProfitLossData} className="w-full bg-blue-600 hover:bg-blue-700">
+              <Button
+                onClick={fetchProfitLossData}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
                 <Filter className="mr-2 h-4 w-4" />
                 Filter
               </Button>
             </div>
             <div className="flex items-end gap-2">
-              <Button onClick={exportToCSV} variant="outline" className="flex-1">
+              <Button
+                onClick={exportToCSV}
+                variant="outline"
+                className="flex-1"
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Excel
               </Button>
@@ -251,7 +294,9 @@ export default function ProfitLossReport() {
               {/* PENDAPATAN */}
               <div className="border rounded-lg overflow-hidden bg-white">
                 <div className="bg-green-100 px-4 py-2">
-                  <h3 className="text-lg font-bold text-green-800">PENDAPATAN</h3>
+                  <h3 className="text-lg font-bold text-green-800">
+                    PENDAPATAN
+                  </h3>
                 </div>
                 <Table>
                   <TableHeader>
@@ -264,15 +309,22 @@ export default function ProfitLossReport() {
                   <TableBody>
                     {revenues.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center text-slate-500">
+                        <TableCell
+                          colSpan={3}
+                          className="text-center text-slate-500"
+                        >
                           Tidak ada data pendapatan
                         </TableCell>
                       </TableRow>
                     ) : (
                       revenues.map((acc) => (
                         <TableRow key={acc.account_code}>
-                          <TableCell className="font-mono">{acc.account_code}</TableCell>
-                          <TableCell className="font-medium">{acc.account_name}</TableCell>
+                          <TableCell className="font-mono">
+                            {acc.account_code}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {acc.account_name}
+                          </TableCell>
                           <TableCell className="text-right font-semibold">
                             {formatRupiah(acc.display_amount)}
                           </TableCell>
@@ -292,7 +344,9 @@ export default function ProfitLossReport() {
               {/* BEBAN POKOK PENJUALAN */}
               <div className="border rounded-lg overflow-hidden bg-white">
                 <div className="bg-orange-100 px-4 py-2">
-                  <h3 className="text-lg font-bold text-orange-800">BEBAN POKOK PENJUALAN</h3>
+                  <h3 className="text-lg font-bold text-orange-800">
+                    BEBAN POKOK PENJUALAN
+                  </h3>
                 </div>
                 <Table>
                   <TableHeader>
@@ -305,15 +359,22 @@ export default function ProfitLossReport() {
                   <TableBody>
                     {cogs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center text-slate-500">
+                        <TableCell
+                          colSpan={3}
+                          className="text-center text-slate-500"
+                        >
                           Tidak ada data beban pokok penjualan
                         </TableCell>
                       </TableRow>
                     ) : (
                       cogs.map((acc) => (
                         <TableRow key={acc.account_code}>
-                          <TableCell className="font-mono">{acc.account_code}</TableCell>
-                          <TableCell className="font-medium">{acc.account_name}</TableCell>
+                          <TableCell className="font-mono">
+                            {acc.account_code}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {acc.account_name}
+                          </TableCell>
                           <TableCell className="text-right font-semibold">
                             {formatRupiah(acc.display_amount)}
                           </TableCell>
@@ -321,7 +382,9 @@ export default function ProfitLossReport() {
                       ))
                     )}
                     <TableRow className="bg-orange-50 font-bold">
-                      <TableCell colSpan={2}>Total Beban Pokok Penjualan</TableCell>
+                      <TableCell colSpan={2}>
+                        Total Beban Pokok Penjualan
+                      </TableCell>
                       <TableCell className="text-right text-orange-700">
                         {formatRupiah(totalCOGS)}
                       </TableCell>
@@ -333,7 +396,7 @@ export default function ProfitLossReport() {
               {/* LABA KOTOR */}
               <div className="border-2 border-blue-500 rounded-lg p-4 bg-blue-50">
                 <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-blue-700">
+                  <span className="text-lg font-bold text-blue-700">
                     LABA KOTOR = Total Pendapatan - Total Beban Pokok Penjualan
                   </span>
                   <span className="text-2xl font-bold text-blue-700">
@@ -345,7 +408,9 @@ export default function ProfitLossReport() {
               {/* BEBAN OPERASIONAL */}
               <div className="border rounded-lg overflow-hidden bg-white">
                 <div className="bg-red-100 px-4 py-2">
-                  <h3 className="text-lg font-bold text-red-800">BEBAN OPERASIONAL</h3>
+                  <h3 className="text-lg font-bold text-red-800">
+                    BEBAN OPERASIONAL
+                  </h3>
                 </div>
                 <Table>
                   <TableHeader>
@@ -358,15 +423,22 @@ export default function ProfitLossReport() {
                   <TableBody>
                     {expenses.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center text-slate-500">
+                        <TableCell
+                          colSpan={3}
+                          className="text-center text-slate-500"
+                        >
                           Tidak ada data beban operasional
                         </TableCell>
                       </TableRow>
                     ) : (
                       expenses.map((acc) => (
                         <TableRow key={acc.account_code}>
-                          <TableCell className="font-mono">{acc.account_code}</TableCell>
-                          <TableCell className="font-medium">{acc.account_name}</TableCell>
+                          <TableCell className="font-mono">
+                            {acc.account_code}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {acc.account_name}
+                          </TableCell>
                           <TableCell className="text-right font-semibold">
                             {formatRupiah(acc.display_amount)}
                           </TableCell>
@@ -384,7 +456,9 @@ export default function ProfitLossReport() {
               </div>
 
               {/* LABA BERSIH */}
-              <div className={`border-4 rounded-lg p-6 ${netProfit >= 0 ? 'border-green-600 bg-green-50' : 'border-red-600 bg-red-50'}`}>
+              <div
+                className={`border-4 rounded-lg p-6 ${netProfit >= 0 ? "border-green-600 bg-green-50" : "border-red-600 bg-red-50"}`}
+              >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     {netProfit >= 0 ? (
@@ -392,11 +466,16 @@ export default function ProfitLossReport() {
                     ) : (
                       <TrendingDown className="h-8 w-8 text-red-600" />
                     )}
-                    <span className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                      LABA BERSIH = Total Pendapatan - (Total Beban Pokok Penjualan + Total Beban Operasional)
+                    <span
+                      className={`text-1xl font-bold ${netProfit >= 0 ? "text-green-700" : "text-red-700"}`}
+                    >
+                      LABA BERSIH = Total Pendapatan - (Total Beban Pokok
+                      Penjualan + Total Beban Operasional)
                     </span>
                   </div>
-                  <span className={`text-3xl font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  <span
+                    className={`text-2xl font-bold ${netProfit >= 0 ? "text-green-700" : "text-red-700"}`}
+                  >
                     {formatRupiah(Math.abs(netProfit))}
                   </span>
                 </div>

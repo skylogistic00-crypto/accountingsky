@@ -1,13 +1,23 @@
 // utils/roleAccess.ts
 
-export const CAN_EDIT_ROLES = ["super_admin", "warehouse_manager"];
+export const CAN_EDIT_ROLES = [
+  "super_admin",
+  "warehouse_manager",
+  "accounting_manager",
+];
 
-export const CAN_DELETE_ROLES = ["super_admin", "warehouse_manager"];
+export const CAN_DELETE_ROLES = [
+  "super_admin",
+  "warehouse_manager",
+  "accounting_manager",
+];
 
 export const CAN_VIEW_ROLES = [
   "super_admin",
   "warehouse_manager",
+  //  "accounting_staff",
   //"warehouse_staff",
+  // "read_only",
 ];
 
 // Fungsi helper global
@@ -23,7 +33,14 @@ export function canView(role: string | null) {
   return CAN_VIEW_ROLES.includes(role || "");
 }
 
-export const CAN_CLICK_ROLES = ["super_admin", "warehouse_manager"];
+export const CAN_CLICK_ROLES = [
+  "super_admin",
+  "warehouse_manager",
+  "accounting_manager",
+  "customs_specialist",
+  "accounting_staff",
+  "warehouse_staff",
+];
 
 export function canClick(role: string | null) {
   return CAN_CLICK_ROLES.includes(role || "");

@@ -6,14 +6,53 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Package, Clock, CheckCircle, Plane, DollarSign } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Package,
+  Clock,
+  CheckCircle,
+  Plane,
+  DollarSign,
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { canClick } from "@/utils/roleAccess";
 
 interface AirWaybillForm {
   id?: string;
@@ -66,6 +105,7 @@ interface AirWaybillForm {
 
 export default function AirWaybill() {
   const { toast } = useToast();
+  const { userRole } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -163,7 +203,9 @@ export default function AirWaybill() {
         height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
         commodity_description: formData.commodity_description || null,
         hs_code: formData.hs_code || null,
-        value_of_goods: formData.value_of_goods ? parseFloat(formData.value_of_goods) : null,
+        value_of_goods: formData.value_of_goods
+          ? parseFloat(formData.value_of_goods)
+          : null,
         currency: formData.currency,
         incoterm: formData.incoterm,
         import_duty: parseFloat(formData.import_duty),
@@ -196,11 +238,17 @@ export default function AirWaybill() {
           .eq("id", editingItem.id);
 
         if (error) throw error;
-        toast({ title: "Success", description: "Air Waybill berhasil diupdate" });
+        toast({
+          title: "Success",
+          description: "Air Waybill berhasil diupdate",
+        });
       } else {
         const { error } = await supabase.from("airwaybills").insert(itemData);
         if (error) throw error;
-        toast({ title: "Success", description: "Air Waybill berhasil ditambahkan" });
+        toast({
+          title: "Success",
+          description: "Air Waybill berhasil ditambahkan",
+        });
       }
 
       resetForm();
@@ -361,7 +409,10 @@ export default function AirWaybill() {
       CANCELLED: { variant: "destructive", icon: Clock },
     };
 
-    const config = statusConfig[status] || { variant: "secondary", icon: Package };
+    const config = statusConfig[status] || {
+      variant: "secondary",
+      icon: Package,
+    };
     const Icon = config.icon;
 
     return (
@@ -373,9 +424,13 @@ export default function AirWaybill() {
   };
 
   const arrivedCount = items.filter((item) => item.status === "ARRIVED").length;
-  const inCustomsCount = items.filter((item) => item.status === "IN_CUSTOMS").length;
+  const inCustomsCount = items.filter(
+    (item) => item.status === "IN_CUSTOMS",
+  ).length;
   const clearedCount = items.filter((item) => item.status === "CLEARED").length;
-  const deliveredCount = items.filter((item) => item.status === "DELIVERED").length;
+  const deliveredCount = items.filter(
+    (item) => item.status === "DELIVERED",
+  ).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-blue-50">
@@ -383,8 +438,12 @@ export default function AirWaybill() {
       <div className="border-b bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 shadow-lg">
         <div className="container mx-auto px-4 py-6 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-1">Air Waybill Management</h1>
-            <p className="text-sky-100">Kelola data pengiriman dan customs clearance</p>
+            <h1 className="text-3xl font-bold text-white mb-1">
+              Air Waybill Management
+            </h1>
+            <p className="text-sky-100">
+              Kelola data pengiriman dan customs clearance
+            </p>
           </div>
           <Button
             onClick={() => navigate("/dashboard")}
@@ -407,7 +466,9 @@ export default function AirWaybill() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-slate-900">{items.length}</div>
+              <div className="text-3xl font-bold text-slate-900">
+                {items.length}
+              </div>
             </CardContent>
           </Card>
 
@@ -419,7 +480,9 @@ export default function AirWaybill() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-amber-600">{arrivedCount}</div>
+              <div className="text-3xl font-bold text-amber-600">
+                {arrivedCount}
+              </div>
             </CardContent>
           </Card>
 
@@ -431,7 +494,9 @@ export default function AirWaybill() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-600">{inCustomsCount}</div>
+              <div className="text-3xl font-bold text-blue-600">
+                {inCustomsCount}
+              </div>
             </CardContent>
           </Card>
 
@@ -443,7 +508,9 @@ export default function AirWaybill() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-emerald-600">{deliveredCount}</div>
+              <div className="text-3xl font-bold text-emerald-600">
+                {deliveredCount}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -452,13 +519,20 @@ export default function AirWaybill() {
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-slate-900">Daftar Air Waybill</h2>
+              <h2 className="text-xl font-semibold text-slate-900">
+                Daftar Air Waybill
+              </h2>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={resetForm} className="bg-sky-600 hover:bg-sky-700">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Tambah Air Waybill
-                  </Button>
+                  {canClick(userRole) && (
+                    <Button
+                      onClick={resetForm}
+                      className="bg-sky-600 hover:bg-sky-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tambah Air Waybill
+                    </Button>
+                  )}
                 </DialogTrigger>
                 <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
@@ -480,11 +554,19 @@ export default function AirWaybill() {
                       <TabsContent value="basic" className="space-y-4">
                         <div className="grid md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="awb_number">AWB Number * (Format: 123-12345678 atau 12345678901)</Label>
+                            <Label htmlFor="awb_number">
+                              AWB Number * (Format: 123-12345678 atau
+                              12345678901)
+                            </Label>
                             <Input
                               id="awb_number"
                               value={formData.awb_number}
-                              onChange={(e) => setFormData({ ...formData, awb_number: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  awb_number: e.target.value,
+                                })
+                              }
                               required
                               placeholder="123-12345678"
                             />
@@ -495,7 +577,12 @@ export default function AirWaybill() {
                             <Input
                               id="hawb_number"
                               value={formData.hawb_number}
-                              onChange={(e) => setFormData({ ...formData, hawb_number: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  hawb_number: e.target.value,
+                                })
+                              }
                               placeholder="HAWB123456"
                             />
                           </div>
@@ -504,14 +591,18 @@ export default function AirWaybill() {
                             <Label htmlFor="import_type">Import Type *</Label>
                             <Select
                               value={formData.import_type}
-                              onValueChange={(value) => setFormData({ ...formData, import_type: value })}
+                              onValueChange={(value) =>
+                                setFormData({ ...formData, import_type: value })
+                              }
                             >
                               <SelectTrigger id="import_type">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="DIRECT">Direct</SelectItem>
-                                <SelectItem value="TRANSSHIPMENT">Transshipment</SelectItem>
+                                <SelectItem value="TRANSSHIPMENT">
+                                  Transshipment
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -521,7 +612,12 @@ export default function AirWaybill() {
                             <Input
                               id="flight_number"
                               value={formData.flight_number}
-                              onChange={(e) => setFormData({ ...formData, flight_number: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  flight_number: e.target.value,
+                                })
+                              }
                               placeholder="GA123"
                             />
                           </div>
@@ -532,16 +628,29 @@ export default function AirWaybill() {
                               id="flight_date"
                               type="date"
                               value={formData.flight_date}
-                              onChange={(e) => setFormData({ ...formData, flight_date: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  flight_date: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="origin_airport_code">Origin Airport * (3 huruf, contoh: SIN)</Label>
+                            <Label htmlFor="origin_airport_code">
+                              Origin Airport * (3 huruf, contoh: SIN)
+                            </Label>
                             <Input
                               id="origin_airport_code"
                               value={formData.origin_airport_code}
-                              onChange={(e) => setFormData({ ...formData, origin_airport_code: e.target.value.toUpperCase() })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  origin_airport_code:
+                                    e.target.value.toUpperCase(),
+                                })
+                              }
                               required
                               maxLength={3}
                               placeholder="SIN"
@@ -549,11 +658,19 @@ export default function AirWaybill() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="arrival_airport_code">Arrival Airport * (3 huruf, contoh: CGK)</Label>
+                            <Label htmlFor="arrival_airport_code">
+                              Arrival Airport * (3 huruf, contoh: CGK)
+                            </Label>
                             <Input
                               id="arrival_airport_code"
                               value={formData.arrival_airport_code}
-                              onChange={(e) => setFormData({ ...formData, arrival_airport_code: e.target.value.toUpperCase() })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  arrival_airport_code:
+                                    e.target.value.toUpperCase(),
+                                })
+                              }
                               required
                               maxLength={3}
                               placeholder="CGK"
@@ -566,17 +683,29 @@ export default function AirWaybill() {
                               id="arrival_date"
                               type="date"
                               value={formData.arrival_date}
-                              onChange={(e) => setFormData({ ...formData, arrival_date: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  arrival_date: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="unloading_date">Unloading Date</Label>
+                            <Label htmlFor="unloading_date">
+                              Unloading Date
+                            </Label>
                             <Input
                               id="unloading_date"
                               type="date"
                               value={formData.unloading_date}
-                              onChange={(e) => setFormData({ ...formData, unloading_date: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  unloading_date: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -584,19 +713,31 @@ export default function AirWaybill() {
                             <Label htmlFor="status">Status *</Label>
                             <Select
                               value={formData.status}
-                              onValueChange={(value) => setFormData({ ...formData, status: value })}
+                              onValueChange={(value) =>
+                                setFormData({ ...formData, status: value })
+                              }
                             >
                               <SelectTrigger id="status">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="ARRIVED">Arrived</SelectItem>
-                                <SelectItem value="IN_CUSTOMS">In Customs</SelectItem>
+                                <SelectItem value="IN_CUSTOMS">
+                                  In Customs
+                                </SelectItem>
                                 <SelectItem value="CLEARED">Cleared</SelectItem>
-                                <SelectItem value="IN_STORAGE">In Storage</SelectItem>
-                                <SelectItem value="READY_FOR_DELIVERY">Ready for Delivery</SelectItem>
-                                <SelectItem value="DELIVERED">Delivered</SelectItem>
-                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                <SelectItem value="IN_STORAGE">
+                                  In Storage
+                                </SelectItem>
+                                <SelectItem value="READY_FOR_DELIVERY">
+                                  Ready for Delivery
+                                </SelectItem>
+                                <SelectItem value="DELIVERED">
+                                  Delivered
+                                </SelectItem>
+                                <SelectItem value="CANCELLED">
+                                  Cancelled
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -611,54 +752,94 @@ export default function AirWaybill() {
                             <Input
                               id="shipper_name"
                               value={formData.shipper_name}
-                              onChange={(e) => setFormData({ ...formData, shipper_name: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  shipper_name: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="consignee_name">Consignee Name</Label>
+                            <Label htmlFor="consignee_name">
+                              Consignee Name
+                            </Label>
                             <Input
                               id="consignee_name"
                               value={formData.consignee_name}
-                              onChange={(e) => setFormData({ ...formData, consignee_name: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  consignee_name: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
                           <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="shipper_address">Shipper Address</Label>
+                            <Label htmlFor="shipper_address">
+                              Shipper Address
+                            </Label>
                             <Textarea
                               id="shipper_address"
                               value={formData.shipper_address}
-                              onChange={(e) => setFormData({ ...formData, shipper_address: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  shipper_address: e.target.value,
+                                })
+                              }
                               rows={2}
                             />
                           </div>
 
                           <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="consignee_address">Consignee Address</Label>
+                            <Label htmlFor="consignee_address">
+                              Consignee Address
+                            </Label>
                             <Textarea
                               id="consignee_address"
                               value={formData.consignee_address}
-                              onChange={(e) => setFormData({ ...formData, consignee_address: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  consignee_address: e.target.value,
+                                })
+                              }
                               rows={2}
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="consignee_npwp">Consignee NPWP</Label>
+                            <Label htmlFor="consignee_npwp">
+                              Consignee NPWP
+                            </Label>
                             <Input
                               id="consignee_npwp"
                               value={formData.consignee_npwp}
-                              onChange={(e) => setFormData({ ...formData, consignee_npwp: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  consignee_npwp: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="consignee_contact">Consignee Contact</Label>
+                            <Label htmlFor="consignee_contact">
+                              Consignee Contact
+                            </Label>
                             <Input
                               id="consignee_contact"
                               value={formData.consignee_contact}
-                              onChange={(e) => setFormData({ ...formData, consignee_contact: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  consignee_contact: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -667,7 +848,12 @@ export default function AirWaybill() {
                             <Input
                               id="notify_party"
                               value={formData.notify_party}
-                              onChange={(e) => setFormData({ ...formData, notify_party: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  notify_party: e.target.value,
+                                })
+                              }
                             />
                           </div>
                         </div>
@@ -677,24 +863,38 @@ export default function AirWaybill() {
                       <TabsContent value="cargo" className="space-y-4">
                         <div className="grid md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="number_of_packages">Number of Packages *</Label>
+                            <Label htmlFor="number_of_packages">
+                              Number of Packages *
+                            </Label>
                             <Input
                               id="number_of_packages"
                               type="number"
                               value={formData.number_of_packages}
-                              onChange={(e) => setFormData({ ...formData, number_of_packages: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  number_of_packages: e.target.value,
+                                })
+                              }
                               required
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="gross_weight_kg">Gross Weight (kg) *</Label>
+                            <Label htmlFor="gross_weight_kg">
+                              Gross Weight (kg) *
+                            </Label>
                             <Input
                               id="gross_weight_kg"
                               type="number"
                               step="0.001"
                               value={formData.gross_weight_kg}
-                              onChange={(e) => setFormData({ ...formData, gross_weight_kg: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  gross_weight_kg: e.target.value,
+                                })
+                              }
                               required
                             />
                           </div>
@@ -706,7 +906,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.length_cm}
-                              onChange={(e) => setFormData({ ...formData, length_cm: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  length_cm: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -717,7 +922,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.width_cm}
-                              onChange={(e) => setFormData({ ...formData, width_cm: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  width_cm: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -728,7 +938,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.height_cm}
-                              onChange={(e) => setFormData({ ...formData, height_cm: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  height_cm: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -737,37 +952,63 @@ export default function AirWaybill() {
                             <Input
                               id="hs_code"
                               value={formData.hs_code}
-                              onChange={(e) => setFormData({ ...formData, hs_code: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  hs_code: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
                           <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="commodity_description">Commodity Description</Label>
+                            <Label htmlFor="commodity_description">
+                              Commodity Description
+                            </Label>
                             <Textarea
                               id="commodity_description"
                               value={formData.commodity_description}
-                              onChange={(e) => setFormData({ ...formData, commodity_description: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  commodity_description: e.target.value,
+                                })
+                              }
                               rows={3}
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="value_of_goods">Value of Goods</Label>
+                            <Label htmlFor="value_of_goods">
+                              Value of Goods
+                            </Label>
                             <Input
                               id="value_of_goods"
                               type="number"
                               step="0.01"
                               value={formData.value_of_goods}
-                              onChange={(e) => setFormData({ ...formData, value_of_goods: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  value_of_goods: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="currency">Currency * (3 huruf, contoh: USD)</Label>
+                            <Label htmlFor="currency">
+                              Currency * (3 huruf, contoh: USD)
+                            </Label>
                             <Input
                               id="currency"
                               value={formData.currency}
-                              onChange={(e) => setFormData({ ...formData, currency: e.target.value.toUpperCase() })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  currency: e.target.value.toUpperCase(),
+                                })
+                              }
                               required
                               maxLength={3}
                             />
@@ -777,7 +1018,9 @@ export default function AirWaybill() {
                             <Label htmlFor="incoterm">Incoterm *</Label>
                             <Select
                               value={formData.incoterm}
-                              onValueChange={(value) => setFormData({ ...formData, incoterm: value })}
+                              onValueChange={(value) =>
+                                setFormData({ ...formData, incoterm: value })
+                              }
                             >
                               <SelectTrigger id="incoterm">
                                 <SelectValue />
@@ -799,11 +1042,18 @@ export default function AirWaybill() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="storage_location">Storage Location</Label>
+                            <Label htmlFor="storage_location">
+                              Storage Location
+                            </Label>
                             <Input
                               id="storage_location"
                               value={formData.storage_location}
-                              onChange={(e) => setFormData({ ...formData, storage_location: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  storage_location: e.target.value,
+                                })
+                              }
                             />
                           </div>
                         </div>
@@ -813,40 +1063,65 @@ export default function AirWaybill() {
                       <TabsContent value="customs" className="space-y-4">
                         <div className="grid md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="customs_status">Customs Status *</Label>
+                            <Label htmlFor="customs_status">
+                              Customs Status *
+                            </Label>
                             <Select
                               value={formData.customs_status}
-                              onValueChange={(value) => setFormData({ ...formData, customs_status: value })}
+                              onValueChange={(value) =>
+                                setFormData({
+                                  ...formData,
+                                  customs_status: value,
+                                })
+                              }
                             >
                               <SelectTrigger id="customs_status">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="PENDING">Pending</SelectItem>
-                                <SelectItem value="IN_PROCESS">In Process</SelectItem>
+                                <SelectItem value="IN_PROCESS">
+                                  In Process
+                                </SelectItem>
                                 <SelectItem value="CLEARED">Cleared</SelectItem>
                                 <SelectItem value="HELD">Held</SelectItem>
-                                <SelectItem value="REJECTED">Rejected</SelectItem>
+                                <SelectItem value="REJECTED">
+                                  Rejected
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="customs_declaration_number">Customs Declaration Number</Label>
+                            <Label htmlFor="customs_declaration_number">
+                              Customs Declaration Number
+                            </Label>
                             <Input
                               id="customs_declaration_number"
                               value={formData.customs_declaration_number}
-                              onChange={(e) => setFormData({ ...formData, customs_declaration_number: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  customs_declaration_number: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="customs_clearance_date">Customs Clearance Date</Label>
+                            <Label htmlFor="customs_clearance_date">
+                              Customs Clearance Date
+                            </Label>
                             <Input
                               id="customs_clearance_date"
                               type="date"
                               value={formData.customs_clearance_date}
-                              onChange={(e) => setFormData({ ...formData, customs_clearance_date: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  customs_clearance_date: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -857,7 +1132,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.import_duty}
-                              onChange={(e) => setFormData({ ...formData, import_duty: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  import_duty: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -868,7 +1148,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.ppn_import}
-                              onChange={(e) => setFormData({ ...formData, ppn_import: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  ppn_import: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -879,7 +1164,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.pph_import}
-                              onChange={(e) => setFormData({ ...formData, pph_import: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  pph_import: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -890,7 +1180,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.excise_duty}
-                              onChange={(e) => setFormData({ ...formData, excise_duty: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  excise_duty: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -901,7 +1196,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.other_taxes}
-                              onChange={(e) => setFormData({ ...formData, other_taxes: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  other_taxes: e.target.value,
+                                })
+                              }
                             />
                           </div>
                         </div>
@@ -911,13 +1211,20 @@ export default function AirWaybill() {
                       <TabsContent value="charges" className="space-y-4">
                         <div className="grid md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="freight_charge">Freight Charge</Label>
+                            <Label htmlFor="freight_charge">
+                              Freight Charge
+                            </Label>
                             <Input
                               id="freight_charge"
                               type="number"
                               step="0.01"
                               value={formData.freight_charge}
-                              onChange={(e) => setFormData({ ...formData, freight_charge: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  freight_charge: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -928,7 +1235,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.handling_fee}
-                              onChange={(e) => setFormData({ ...formData, handling_fee: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  handling_fee: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -939,7 +1251,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.storage_fee}
-                              onChange={(e) => setFormData({ ...formData, storage_fee: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  storage_fee: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -950,7 +1267,12 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.insurance_fee}
-                              onChange={(e) => setFormData({ ...formData, insurance_fee: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  insurance_fee: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -961,15 +1283,27 @@ export default function AirWaybill() {
                               type="number"
                               step="0.01"
                               value={formData.other_charge}
-                              onChange={(e) => setFormData({ ...formData, other_charge: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  other_charge: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="payment_status">Payment Status *</Label>
+                            <Label htmlFor="payment_status">
+                              Payment Status *
+                            </Label>
                             <Select
                               value={formData.payment_status}
-                              onValueChange={(value) => setFormData({ ...formData, payment_status: value })}
+                              onValueChange={(value) =>
+                                setFormData({
+                                  ...formData,
+                                  payment_status: value,
+                                })
+                              }
                             >
                               <SelectTrigger id="payment_status">
                                 <SelectValue />
@@ -984,20 +1318,34 @@ export default function AirWaybill() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="invoice_number">Invoice Number</Label>
+                            <Label htmlFor="invoice_number">
+                              Invoice Number
+                            </Label>
                             <Input
                               id="invoice_number"
                               value={formData.invoice_number}
-                              onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  invoice_number: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="delivery_order_number">Delivery Order Number</Label>
+                            <Label htmlFor="delivery_order_number">
+                              Delivery Order Number
+                            </Label>
                             <Input
                               id="delivery_order_number"
                               value={formData.delivery_order_number}
-                              onChange={(e) => setFormData({ ...formData, delivery_order_number: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  delivery_order_number: e.target.value,
+                                })
+                              }
                             />
                           </div>
 
@@ -1007,7 +1355,12 @@ export default function AirWaybill() {
                               id="delivery_date"
                               type="date"
                               value={formData.delivery_date}
-                              onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  delivery_date: e.target.value,
+                                })
+                              }
                             />
                           </div>
                         </div>
@@ -1025,7 +1378,10 @@ export default function AirWaybill() {
                       >
                         Batal
                       </Button>
-                      <Button type="submit" className="bg-sky-600 hover:bg-sky-700">
+                      <Button
+                        type="submit"
+                        className="bg-sky-600 hover:bg-sky-700"
+                      >
                         {editingItem ? "Update" : "Simpan"}
                       </Button>
                     </div>
@@ -1054,26 +1410,40 @@ export default function AirWaybill() {
                 <TableBody>
                   {items.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8 text-slate-500">
+                      <TableCell
+                        colSpan={10}
+                        className="text-center py-8 text-slate-500"
+                      >
                         Belum ada data air waybill
                       </TableCell>
                     </TableRow>
                   ) : (
                     items.map((item) => (
                       <TableRow key={item.id} className="hover:bg-slate-50">
-                        <TableCell className="font-medium">{item.awb_number}</TableCell>
+                        <TableCell className="font-medium">
+                          {item.awb_number}
+                        </TableCell>
                         <TableCell>{item.flight_number || "-"}</TableCell>
                         <TableCell>
-                          {item.origin_airport_code} → {item.arrival_airport_code}
+                          {item.origin_airport_code} →{" "}
+                          {item.arrival_airport_code}
                         </TableCell>
                         <TableCell>{item.consignee_name || "-"}</TableCell>
                         <TableCell>{item.number_of_packages}</TableCell>
                         <TableCell>{item.gross_weight_kg}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{item.customs_status}</Badge>
+                          <Badge variant="secondary">
+                            {item.customs_status}
+                          </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={item.payment_status === "PAID" ? "default" : "secondary"}>
+                          <Badge
+                            variant={
+                              item.payment_status === "PAID"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
                             {item.payment_status}
                           </Badge>
                         </TableCell>
@@ -1115,8 +1485,8 @@ export default function AirWaybill() {
             <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
             <AlertDialogDescription>
               Apakah Anda yakin ingin menghapus air waybill{" "}
-              <span className="font-semibold">{deleteItem?.awb_number}</span>? Tindakan ini
-              tidak dapat dibatalkan.
+              <span className="font-semibold">{deleteItem?.awb_number}</span>?
+              Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -47,7 +47,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { canEdit, canDelete } from "@/utils/roleAccess";
+import { canEdit, canDelete, canView } from "@/utils/roleAccess";
+import { canClick } from "@/utils/roleAccess";
 
 interface StockItem {
   id: string;
@@ -123,6 +124,14 @@ interface Lot {
   lot_number: string;
 }
 
+interface Supplier {
+  id: string;
+  supplier_name: string;
+  phone_number?: string;
+  email?: string;
+  address?: string;
+}
+
 interface HSCode {
   id: string;
   hs_code: string;
@@ -133,7 +142,7 @@ interface HSCode {
 
 const CEISA_DOCUMENT_TYPES = [
   "BC 2.0 – Pemberitahuan Impor Barang",
-  "BC 2.3 – Pemberitahuan Impor Barang untuk ditimbun di Tempat Penimbunan Berikat",
+  "BC 2.3 �� Pemberitahuan Impor Barang untuk ditimbun di Tempat Penimbunan Berikat",
   "BC 2.5 – Pemberitahuan Impor Barang dari Tempat Penimbunan Berikat",
   "BC 2.7 – Pemberitahuan Pengeluaran untuk diangkut dari Tempat Penimbunan Berikat ke Tempat Penimbunan Berikat lainnya",
   "BC 2.8 – Pemberitahuan Impor Barang dari Pusat Logistik Berikat",
@@ -157,6 +166,7 @@ export default function StockForm() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [racks, setRacks] = useState<Rack[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [hsCategories, setHsCategories] = useState<string[]>([]);
   const [hsSubCategories, setHsSubCategories] = useState<HSCode[]>([]);
   const [hsDescriptions, setHsDescriptions] = useState<HSCode[]>([]);
@@ -178,6 +188,9 @@ export default function StockForm() {
     weight: "",
     volume: "",
     supplier_name: "",
+    phone_number: "",
+    email: "",
+    address: "",
     warehouses: "",
     zones: "",
     racks: "",
@@ -207,11 +220,11 @@ export default function StockForm() {
   useEffect(() => {
     fetchStockItems();
     fetchCategories();
-    fetchCOAAccounts();
     fetchWarehouses();
     fetchZones();
     fetchRacks();
     fetchLots();
+    fetchSuppliers();
     fetchHSCategories();
   }, []);
 
@@ -226,6 +239,16 @@ export default function StockForm() {
       fetchDescriptions(formData.service_type);
     }
   }, [formData.service_type]);
+
+  useEffect(() => {
+    if (
+      formData.description &&
+      formData.service_category &&
+      formData.service_type
+    ) {
+      fetchCOAAccounts(formData.description);
+    }
+  }, [formData.description]);
 
   useEffect(() => {
     if (formData.coa_account_code) {
@@ -578,15 +601,18 @@ export default function StockForm() {
     try {
       const { data, error } = await supabase
         .from("chart_of_accounts")
-        .select("account_name")
+        .select("kategori_layanan")
         .eq("is_active", true)
-        .eq("level", 2)
-        .order("account_code");
+        .not("kategori_layanan", "is", null)
+        .order("kategori_layanan");
 
       if (error) throw error;
 
+      // Get unique values from kategori_layanan
       const uniqueCategories = [
-        ...new Set(data?.map((item) => item.account_name) || []),
+        ...new Set(
+          data?.map((item) => item.kategori_layanan).filter(Boolean) || [],
+        ),
       ];
       setCategories(uniqueCategories);
     } catch (error: any) {
@@ -600,30 +626,23 @@ export default function StockForm() {
 
   const fetchServiceTypes = async (category: string) => {
     try {
-      // Find the parent account code for the selected category
-      const { data: parentData, error: parentError } = await supabase
-        .from("chart_of_accounts")
-        .select("account_code")
-        .eq("account_name", category)
-        .eq("level", 2)
-        .single();
-
-      if (parentError) throw parentError;
-
-      // Get child accounts (level 3) that belong to this parent
-      const parentCode = parentData.account_code.split("-")[0];
       const { data, error } = await supabase
         .from("chart_of_accounts")
-        .select("account_name")
+        .select("jenis_layanan")
+        .eq("kategori_layanan", category)
         .eq("is_active", true)
-        .eq("level", 3)
-        .like("account_code", `${parentCode}-%`)
-        .order("account_code");
+        .not("jenis_layanan", "is", null)
+        .order("jenis_layanan");
 
       if (error) throw error;
 
-      const types = data?.map((item) => item.account_name) || [];
-      setServiceTypes(types);
+      // Get unique values from jenis_layanan
+      const uniqueTypes = [
+        ...new Set(
+          data?.map((item) => item.jenis_layanan).filter(Boolean) || [],
+        ),
+      ];
+      setServiceTypes(uniqueTypes);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -636,26 +655,37 @@ export default function StockForm() {
   const fetchDescriptions = async (serviceType: string) => {
     try {
       const { data, error } = await supabase
-        .from("vw_coa_accounts_by_service")
+        .from("chart_of_accounts")
         .select("description, account_name, account_code")
         .eq("kategori_layanan", formData.service_category)
-        .eq("jenis_layanan", serviceType);
+        .eq("jenis_layanan", serviceType)
+        .eq("is_active", true)
+        .not("description", "is", null)
+        .order("description");
 
       if (error) throw error;
 
-      const descs =
-        data?.map((item) => item.description || item.account_name) || [];
-      setDescriptions(descs);
+      // Get unique descriptions
+      const uniqueDescriptions = [
+        ...new Set(data?.map((item) => item.description).filter(Boolean) || []),
+      ];
+      setDescriptions(uniqueDescriptions);
 
       // Auto-fill description if only one result
       if (data && data.length === 1) {
-        const autoFillValue = data[0].description || data[0].account_name;
         setFormData((prev) => ({
           ...prev,
-          description: autoFillValue,
+          description: data[0].description,
           coa_account_code: data[0].account_code,
           coa_account_name: data[0].account_name,
         }));
+        // Set COA accounts for the dropdown
+        setCOAAccounts([
+          {
+            account_code: data[0].account_code,
+            account_name: data[0].account_name,
+          },
+        ]);
       } else {
         // Reset description if more than one option
         setFormData((prev) => ({
@@ -664,6 +694,7 @@ export default function StockForm() {
           coa_account_code: "",
           coa_account_name: "",
         }));
+        setCOAAccounts([]);
       }
     } catch (error: any) {
       toast({
@@ -674,16 +705,36 @@ export default function StockForm() {
     }
   };
 
-  const fetchCOAAccounts = async () => {
+  const fetchCOAAccounts = async (description: string) => {
     try {
       const { data, error } = await supabase
         .from("chart_of_accounts")
         .select("account_code, account_name")
+        .eq("kategori_layanan", formData.service_category)
+        .eq("jenis_layanan", formData.service_type)
+        .eq("description", description)
         .eq("is_active", true)
         .order("account_code");
 
       if (error) throw error;
+
       setCOAAccounts(data || []);
+
+      // Auto-fill COA account code if only one result
+      if (data && data.length === 1) {
+        setFormData((prev) => ({
+          ...prev,
+          coa_account_code: data[0].account_code,
+          coa_account_name: data[0].account_name,
+        }));
+      } else if (data && data.length > 1) {
+        // Reset COA fields if more than one option
+        setFormData((prev) => ({
+          ...prev,
+          coa_account_code: "",
+          coa_account_name: "",
+        }));
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -760,6 +811,25 @@ export default function StockForm() {
 
       if (error) throw error;
       setLots(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("suppliers")
+        .select("id, supplier_name, phone_number, email, address")
+        .eq("is_active", true)
+        .order("supplier_name");
+
+      if (error) throw error;
+      setSuppliers(data || []);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -929,6 +999,30 @@ export default function StockForm() {
     }
   };
 
+  const handleSupplierChange = (supplierName: string) => {
+    const selectedSupplier = suppliers.find(
+      (supplier) => supplier.supplier_name === supplierName,
+    );
+
+    if (selectedSupplier) {
+      setFormData({
+        ...formData,
+        supplier_name: supplierName,
+        phone_number: selectedSupplier.phone_number || "",
+        email: selectedSupplier.email || "",
+        address: selectedSupplier.address || "",
+      });
+    } else {
+      setFormData({
+        ...formData,
+        supplier_name: supplierName,
+        phone_number: "",
+        email: "",
+        address: "",
+      });
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       item_name: "",
@@ -943,6 +1037,9 @@ export default function StockForm() {
       weight: "",
       volume: "",
       supplier_name: "",
+      phone_number: "",
+      email: "",
+      address: "",
       warehouses: "",
       zones: "",
       racks: "",
@@ -1011,16 +1108,18 @@ export default function StockForm() {
               </div>
             </div>
           </div>
-          <Button
-            onClick={() => {
-              resetForm();
-              setShowForm(!showForm);
-            }}
-            className="bg-white text-indigo-600 hover:bg-blue-50 shadow-md"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            {showForm ? "Tutup Form" : "Tambah Stock"}
-          </Button>
+          {canClick(userRole) && (
+            <Button
+              onClick={() => {
+                resetForm();
+                setShowForm(!showForm);
+              }}
+              className="bg-white text-indigo-600 hover:bg-blue-50 shadow-md"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {showForm ? "Tutup Form" : "Tambah Stock"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1141,6 +1240,9 @@ export default function StockForm() {
                         onValueChange={(value) =>
                           setFormData({ ...formData, coa_account_code: value })
                         }
+                        disabled={
+                          !formData.description || coaAccounts.length === 0
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih kode akun" />
@@ -1227,16 +1329,56 @@ export default function StockForm() {
 
                     <div>
                       <Label>Nama Supplier</Label>
-                      <Input
+                      <Select
                         value={formData.supplier_name}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            supplier_name: e.target.value,
-                          })
-                        }
-                      />
+                        onValueChange={handleSupplierChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih supplier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {suppliers.map((supplier) => (
+                            <SelectItem
+                              key={supplier.id}
+                              value={supplier.supplier_name}
+                            >
+                              {supplier.supplier_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {formData.supplier_name && (
+                      <>
+                        <div>
+                          <Label>Nomor Telepon</Label>
+                          <Input
+                            value={formData.phone_number}
+                            disabled
+                            className="bg-slate-50"
+                          />
+                        </div>
+
+                        <div>
+                          <Label>Email</Label>
+                          <Input
+                            value={formData.email}
+                            disabled
+                            className="bg-slate-50"
+                          />
+                        </div>
+
+                        <div>
+                          <Label>Alamat</Label>
+                          <Input
+                            value={formData.address}
+                            disabled
+                            className="bg-slate-50"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -1826,16 +1968,17 @@ export default function StockForm() {
                       <TableCell>
                         <div className="flex justify-center gap-2">
                           <DetailDialog item={item} />
-                          {canEdit(userRole) && (
+                          {canView(userRole) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(item.id)}
+                            >
+                              <Pencil className="w-4 h-4 text-blue-600" />
+                            </Button>
+                          )}
+                          {canDelete(userRole) && (
                             <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(item.id)}
-                              >
-                                <Pencil className="w-4 h-4 text-blue-600" />
-                              </Button>
-
                               <Button
                                 variant="ghost"
                                 size="sm"
