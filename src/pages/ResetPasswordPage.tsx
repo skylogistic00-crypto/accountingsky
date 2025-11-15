@@ -197,7 +197,9 @@ export default function ResetPasswordPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-semibold">New Password</FormLabel>
+                      <FormLabel className="text-sm font-semibold">
+                        New Password
+                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -230,7 +232,9 @@ export default function ResetPasswordPage() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-semibold">Confirm Password</FormLabel>
+                      <FormLabel className="text-sm font-semibold">
+                        Confirm Password1
+                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -261,22 +265,29 @@ export default function ResetPasswordPage() {
 
                 {/* Alerts */}
                 {error && (
-                  <Alert variant="destructive" className="border-red-200 bg-red-50">
+                  <Alert
+                    variant="destructive"
+                    className="border-red-200 bg-red-50"
+                  >
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="ml-2">{error}</AlertDescription>
+                    <AlertDescription className="ml-2">
+                      {error}
+                    </AlertDescription>
                   </Alert>
                 )}
                 {message && (
                   <Alert className="border-green-200 bg-green-50 text-green-800">
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="ml-2">{message}</AlertDescription>
+                    <AlertDescription className="ml-2">
+                      {message}
+                    </AlertDescription>
                   </Alert>
                 )}
 
                 {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting} 
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
                   className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   {isSubmitting ? (
