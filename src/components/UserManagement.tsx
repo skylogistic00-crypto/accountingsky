@@ -160,22 +160,22 @@ export default function UserManagement() {
   const ROLE_MAP: Record<UserRole, number> = {
     super_admin: 1,
     warehouse_manager: 2,
-    warehouse_staff: 3,
+    warehouse_staff: 6,
     customs_specialist: 4,
     accounting_manager: 5,
-    accounting_staff: 6,
+    accounting_staff: 3,
     read_only: 7,
   };
 
   const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
-      console.log('=== Update User Role Started ===');
-      console.log('User ID:', userId);
-      console.log('New Role:', newRole);
-      
+      console.log("=== Update User Role Started ===");
+      console.log("User ID:", userId);
+      console.log("New Role:", newRole);
+
       const roleId = ROLE_MAP[newRole];
-      console.log('Mapped Role ID:', roleId);
-      
+      console.log("Mapped Role ID:", roleId);
+
       if (!roleId) {
         throw new Error(`Invalid role: ${newRole}`);
       }
@@ -184,7 +184,7 @@ export default function UserManagement() {
         role_id: roleId,
         updated_at: new Date().toISOString(),
       };
-      console.log('Update Data:', updateData);
+      console.log("Update Data:", updateData);
 
       const { error } = await supabase
         .from("users")
@@ -192,11 +192,11 @@ export default function UserManagement() {
         .eq("id", userId);
 
       if (error) {
-        console.error('Update Error:', error);
+        console.error("Update Error:", error);
         throw error;
       }
 
-      console.log('Update Successful');
+      console.log("Update Successful");
       toast({
         title: "Success",
         description: "User role updated successfully",
@@ -204,8 +204,8 @@ export default function UserManagement() {
 
       fetchUsers();
     } catch (error: any) {
-      console.error('=== Update User Role Failed ===');
-      console.error('Error:', error);
+      console.error("=== Update User Role Failed ===");
+      console.error("Error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -474,11 +474,9 @@ export default function UserManagement() {
                       Warehouse Manager
                     </SelectItem>
                     <SelectItem value="warehouse_staff">
-                      {" "}
                       Warehouse Staff
                     </SelectItem>
                     <SelectItem value="customs_specialist">
-                      {" "}
                       Customs Specialist
                     </SelectItem>
                     <SelectItem value="read_only">Viewer</SelectItem>
