@@ -233,7 +233,7 @@ export default function ResetPasswordPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-semibold">
-                        Confirm Password1
+                        Confirm Password
                       </FormLabel>
                       <FormControl>
                         <div className="relative">
