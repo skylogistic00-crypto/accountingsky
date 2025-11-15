@@ -221,7 +221,7 @@ export default function Header() {
                     }}
                     className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                   >
-                    Forgot Password?
+                    Lupa Password?
                   </button>
                 </div>
 
