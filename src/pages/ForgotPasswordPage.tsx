@@ -84,7 +84,7 @@ const ForgotPasswordPage: React.FC = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <CardTitle className="text-2xl font-bold">
-                Forgot Password
+                Forgot Password1
               </CardTitle>
             </div>
             <CardDescription>
