@@ -44,6 +44,42 @@ interface PurchaseRequestFormProps {
   onSuccess?: () => void;
 }
 
+interface Supplier {
+  id: string;
+  supplier_name: string;
+  phone_number?: string;
+  address?: string;
+  email?: string;
+}
+
+interface StockItem {
+  id: string;
+  item_name: string;
+  hs_category?: string;
+  supplier_name?: string;
+  unit?: string;
+  purchase_price?: number;
+  selling_price?: number;
+  ppn_on_purchase?: number;
+}
+
+interface PurchaseRequestForm {
+  request_date: Date;
+  name: string;
+  item_name: string;
+  supplier_id: string;
+  qty: string;
+  unit: string;
+  unit_price: string;
+  shipping_cost: string;
+  tax: string;
+  barcode: string;
+  notes: string;
+  email: string;
+  status: string;
+  hs_category: string;
+}
+
 export default function PurchaseRequestForm({
   onSuccess,
 }: PurchaseRequestFormProps = {}) {
@@ -55,7 +91,10 @@ export default function PurchaseRequestForm({
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
     null,
   );
-  const [stockItems, setStockItems] = useState<string[]>([]);
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [selectedStockItem, setSelectedStockItem] = useState<StockItem | null>(
+    null,
+  );
   const [openItemCombobox, setOpenItemCombobox] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -92,6 +131,7 @@ export default function PurchaseRequestForm({
     notes: "",
     email: user?.email || "",
     status: "PENDING",
+    hs_category: "",
   });
 
   useEffect(() => {
@@ -122,18 +162,29 @@ export default function PurchaseRequestForm({
 
   const fetchStockItems = async () => {
     try {
+      console.log("=== Fetching Stock Items ===");
       const { data, error } = await supabase
         .from("stock")
-        .select("item_name")
+        .select(
+          "id, item_name, hs_category, supplier_name, unit, purchase_price, selling_price, ppn_on_purchase",
+        )
         .order("item_name");
 
-      if (error) throw error;
-      
-      // Get unique item names
-      const uniqueItems = [...new Set(data?.map(item => item.item_name).filter(Boolean))] as string[];
-      setStockItems(uniqueItems);
+      if (error) {
+        console.error("Error fetching stock items:", error);
+        throw error;
+      }
+
+      console.log("Stock items fetched:", data?.length || 0, "items");
+      console.log("Sample stock item:", data?.[0]);
+      setStockItems(data || []);
     } catch (error) {
       console.error("Error fetching stock items:", error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data stock",
+        variant: "destructive",
+      });
     }
   };
 
@@ -147,6 +198,49 @@ export default function PurchaseRequestForm({
 
     const supplier = suppliers.find((s) => s.id === supplierId);
     setSelectedSupplier(supplier || null);
+  };
+
+  const handleItemSelect = (item: StockItem) => {
+    console.log("=== Item Selected ===");
+    console.log("Selected item:", item);
+
+    setSelectedStockItem(item);
+
+    // Use ppn_on_purchase directly as tax value
+    const taxValue = item.ppn_on_purchase?.toString() || "0";
+
+    setFormData({
+      ...formData,
+      item_name: item.item_name,
+      hs_category: item.hs_category || "",
+      unit: item.unit || "",
+      unit_price: item.purchase_price?.toString() || "0",
+      tax: taxValue,
+    });
+
+    console.log("Form data updated with:", {
+      item_name: item.item_name,
+      hs_category: item.hs_category,
+      supplier_name: item.supplier_name,
+      unit: item.unit,
+      unit_price: item.purchase_price,
+      tax: taxValue,
+      ppn_on_purchase: item.ppn_on_purchase,
+    });
+
+    // Find supplier by name if available
+    if (item.supplier_name) {
+      const supplier = suppliers.find(
+        (s) => s.supplier_name === item.supplier_name,
+      );
+      console.log("Setting supplier by name:", supplier);
+      if (supplier) {
+        setSelectedSupplier(supplier);
+        setFormData((prev) => ({ ...prev, supplier_id: supplier.id }));
+      }
+    }
+
+    setOpenItemCombobox(false);
   };
 
   const handleAddNewSupplier = async (e: React.FormEvent) => {
@@ -325,13 +419,17 @@ export default function PurchaseRequestForm({
     try {
       // Generate request code
       const requestCode = `PR-${Date.now()}`;
-      
+
       // Pastikan name tidak kosong
-      const requesterName = formData.name || userProfile?.full_name || user?.email?.split('@')[0] || 'Unknown User';
-      
-      const { error } = await supabase.from('purchase_requests').insert({
+      const requesterName =
+        formData.name ||
+        userProfile?.full_name ||
+        user?.email?.split("@")[0] ||
+        "Unknown User";
+
+      const { error } = await supabase.from("purchase_requests").insert({
         request_code: requestCode,
-        request_date: format(formData.request_date, 'yyyy-MM-dd'),
+        request_date: format(formData.request_date, "yyyy-MM-dd"),
         name: requesterName,
         item_name: formData.item_name,
         quantity: parseInt(formData.qty),
@@ -339,7 +437,7 @@ export default function PurchaseRequestForm({
         shipping_cost: parseFloat(formData.shipping_cost) || 0,
         total_amount: calculateTotalAmount(),
         requester_id: user?.id,
-        status: 'PENDING',
+        status: "PENDING",
         email: formData.email || null,
         tax: parseFloat(formData.tax) || 0,
         barcode: formData.barcode || null,
@@ -354,8 +452,8 @@ export default function PurchaseRequestForm({
       if (error) throw error;
 
       toast({
-        title: 'Success',
-        description: 'Purchase request created successfully',
+        title: "Success",
+        description: "Purchase request created successfully",
       });
 
       // Reset form
@@ -373,20 +471,22 @@ export default function PurchaseRequestForm({
         notes: "",
         email: user?.email || "",
         status: "PENDING",
+        hs_category: "",
       });
       setPhotoFile(null);
       setPhotoPreview(null);
       setPhotoUrl(null);
       setSelectedSupplier(null);
+      setSelectedStockItem(null);
 
       if (onSuccess) {
         onSuccess();
       }
     } catch (error: any) {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -458,7 +558,10 @@ export default function PurchaseRequestForm({
 
             <div className="space-y-2">
               <Label htmlFor="item_name">Item Name *</Label>
-              <Popover open={openItemCombobox} onOpenChange={setOpenItemCombobox}>
+              <Popover
+                open={openItemCombobox}
+                onOpenChange={setOpenItemCombobox}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -471,30 +574,50 @@ export default function PurchaseRequestForm({
                 </PopoverTrigger>
                 <PopoverContent className="w-full p-0" align="start">
                   <Command>
-                    <CommandInput 
-                      placeholder="Search or type new item name..." 
+                    <CommandInput
+                      placeholder="Search or type new item name..."
                       value={formData.item_name}
-                      onValueChange={(value) => 
+                      onValueChange={(value) =>
                         setFormData({ ...formData, item_name: value })
                       }
                     />
                     <CommandList>
                       <CommandEmpty>
-                        <div className="p-2 text-sm text-slate-600">
-                          No item found. Press Enter to use "{formData.item_name}"
+                        <div className="p-4 space-y-2">
+                          <p className="text-sm text-slate-600">
+                            Item "{formData.item_name}" tidak ditemukan di list.
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                              // Keep the typed item name and close the combobox
+                              setOpenItemCombobox(false);
+                              toast({
+                                title: "Item Baru",
+                                description: `Item "${formData.item_name}" akan ditambahkan sebagai item baru`,
+                              });
+                            }}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Gunakan "{formData.item_name}" sebagai item baru
+                          </Button>
                         </div>
                       </CommandEmpty>
                       <CommandGroup>
                         {stockItems.map((item) => (
                           <CommandItem
-                            key={item}
-                            value={item}
-                            onSelect={(value) => {
-                              setFormData({ ...formData, item_name: value });
-                              setOpenItemCombobox(false);
-                            }}
+                            key={item.id}
+                            value={item.item_name}
+                            onSelect={() => handleItemSelect(item)}
                           >
-                            {item}
+                            {item.item_name}
+                            {item.hs_category && (
+                              <span className="ml-2 text-xs text-slate-500">
+                                ({item.hs_category})
+                              </span>
+                            )}
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -502,6 +625,23 @@ export default function PurchaseRequestForm({
                   </Command>
                 </PopoverContent>
               </Popover>
+              {formData.item_name && !stockItems.find(item => item.item_name === formData.item_name) && (
+                <p className="text-xs text-blue-600 mt-1">
+                  ℹ️ Item baru akan dibuat: "{formData.item_name}"
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hs_category">Kategori (HS Category)</Label>
+              <Input
+                id="hs_category"
+                value={formData.hs_category}
+                onChange={(e) =>
+                  setFormData({ ...formData, hs_category: e.target.value })
+                }
+                placeholder="Kategori barang"
+              />
             </div>
 
             <div className="space-y-2">
@@ -563,10 +703,12 @@ export default function PurchaseRequestForm({
                       {supplier.supplier_name}
                     </SelectItem>
                   ))}
-                  <SelectItem value="add_new" className="text-blue-600 font-semibold">
+                  <SelectItem
+                    value="add_new"
+                    className="text-blue-600 font-semibold"
+                  >
                     <div className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      + Tambah supplier baru
+                      <Plus className="h-4 w-4" />+ Tambah supplier baru
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -731,7 +873,10 @@ export default function PurchaseRequestForm({
       </Card>
 
       {/* Add New Supplier Dialog */}
-      <Dialog open={isSupplierDialogOpen} onOpenChange={setIsSupplierDialogOpen}>
+      <Dialog
+        open={isSupplierDialogOpen}
+        onOpenChange={setIsSupplierDialogOpen}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Tambah Supplier Baru</DialogTitle>
@@ -803,7 +948,10 @@ export default function PurchaseRequestForm({
                     type="email"
                     value={newSupplierData.email}
                     onChange={(e) =>
-                      setNewSupplierData({ ...newSupplierData, email: e.target.value })
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        email: e.target.value,
+                      })
                     }
                     placeholder="supplier@example.com"
                     required
@@ -816,7 +964,10 @@ export default function PurchaseRequestForm({
                     id="new_city"
                     value={newSupplierData.city}
                     onChange={(e) =>
-                      setNewSupplierData({ ...newSupplierData, city: e.target.value })
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        city: e.target.value,
+                      })
                     }
                     placeholder="Jakarta"
                   />
@@ -828,7 +979,10 @@ export default function PurchaseRequestForm({
                     id="new_country"
                     value={newSupplierData.country}
                     onChange={(e) =>
-                      setNewSupplierData({ ...newSupplierData, country: e.target.value })
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        country: e.target.value,
+                      })
                     }
                     placeholder="Indonesia"
                   />
@@ -841,7 +995,10 @@ export default function PurchaseRequestForm({
                   id="new_address"
                   value={newSupplierData.address}
                   onChange={(e) =>
-                    setNewSupplierData({ ...newSupplierData, address: e.target.value })
+                    setNewSupplierData({
+                      ...newSupplierData,
+                      address: e.target.value,
+                    })
                   }
                   placeholder="Jl. Contoh No. 123"
                   rows={3}
@@ -877,7 +1034,10 @@ export default function PurchaseRequestForm({
                     id="new_tax_id"
                     value={newSupplierData.tax_id}
                     onChange={(e) =>
-                      setNewSupplierData({ ...newSupplierData, tax_id: e.target.value })
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        tax_id: e.target.value,
+                      })
                     }
                     placeholder="01.234.567.8-901.000"
                   />
@@ -947,7 +1107,10 @@ export default function PurchaseRequestForm({
                   <Select
                     value={newSupplierData.category}
                     onValueChange={(value) =>
-                      setNewSupplierData({ ...newSupplierData, category: value })
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        category: value,
+                      })
                     }
                   >
                     <SelectTrigger>
@@ -955,9 +1118,15 @@ export default function PurchaseRequestForm({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Raw Materials">Bahan Baku</SelectItem>
-                      <SelectItem value="Work in Process">Barang Dalam Proses</SelectItem>
-                      <SelectItem value="Finished Goods">Barang Jadi</SelectItem>
-                      <SelectItem value="Resale/Merchandise">Barang Dagangan</SelectItem>
+                      <SelectItem value="Work in Process">
+                        Barang Dalam Proses
+                      </SelectItem>
+                      <SelectItem value="Finished Goods">
+                        Barang Jadi
+                      </SelectItem>
+                      <SelectItem value="Resale/Merchandise">
+                        Barang Dagangan
+                      </SelectItem>
                       <SelectItem value="Spare Parts">Suku Cadang</SelectItem>
                       <SelectItem value="Food">Makanan</SelectItem>
                       <SelectItem value="Beverage">Minuman</SelectItem>
@@ -970,7 +1139,10 @@ export default function PurchaseRequestForm({
                   <Select
                     value={newSupplierData.currency}
                     onValueChange={(value) =>
-                      setNewSupplierData({ ...newSupplierData, currency: value })
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        currency: value,
+                      })
                     }
                   >
                     <SelectTrigger>
