@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
+import { Eye, EyeOff, Lock, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ export default function Header() {
   const { userProfile } = useAuth();
   const [suspendedModal, setSuspendedModal] = useState(false);
   const [inactiveModal, setInactiveModal] = useState(false);
+  const [showsigninPassword, setshowsigninPassword] = useState(false);
 
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({
@@ -201,15 +203,31 @@ export default function Header() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signin-password">Password</Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    value={signInData.password}
-                    onChange={(e) =>
-                      setSignInData({ ...signInData, password: e.target.value })
-                    }
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="signin-password"
+                      type={showsigninPassword ? "text" : "password"}
+                      value={signInData.password}
+                      onChange={(e) =>
+                        setSignInData({
+                          ...signInData,
+                          password: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setshowsigninPassword(!showsigninPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-500 hover:text-gray-700 transition-colors"
+                    >
+                      {showsigninPassword ? (
+                        <EyeOff size={17} />
+                      ) : (
+                        <Eye size={17} />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="text-right">
@@ -221,7 +239,7 @@ export default function Header() {
                     }}
                     className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                   >
-                    Lupa Password?
+                    Forgot Password?
                   </button>
                 </div>
 
@@ -265,15 +283,31 @@ export default function Header() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={signUpData.password}
-                    onChange={(e) =>
-                      setSignUpData({ ...signUpData, password: e.target.value })
-                    }
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="signup-password"
+                      type={showsigninPassword ? "text" : "password"}
+                      value={signUpData.password}
+                      onChange={(e) =>
+                        setSignUpData({
+                          ...signUpData,
+                          password: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setshowsigninPassword(!showsigninPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-500 hover:text-gray-700 transition-colors"
+                    >
+                      {showsigninPassword ? (
+                        <EyeOff size={17} />
+                      ) : (
+                        <Eye size={17} />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-role">Role</Label>
