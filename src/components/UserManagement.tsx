@@ -55,6 +55,26 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+function formatRoleName(role: string) {
+  const map: Record<string, string> = {
+    super_admin: "Super Admin",
+    warehouse_manager: "Warehouse Manager",
+    warehouse_staff: "Warehouse Staff",
+    accounting_manager: "Accounting Manager",
+    accounting_staff: "Accounting Staff",
+    customs_specialist: "Customs Specialist",
+    read_only: "Read Only",
+    admin: "Admin",
+    editor: "Editor",
+    viewer: "Viewer",
+  };
+
+  return (
+    map[role] ||
+    role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
 export default function UserManagement() {
   const { userProfile } = useAuth();
   const { toast } = useToast();
@@ -90,7 +110,7 @@ export default function UserManagement() {
     let filtered = users;
 
     if (roleFilter !== "ALL") {
-      filtered = filtered.filter((user) => user.role === roleFilter);
+      filtered = filtered.filter((user) => user.role_name === roleFilter);
     }
 
     if (searchTerm) {
@@ -106,39 +126,86 @@ export default function UserManagement() {
   }, [searchTerm, roleFilter, users]);
 
   const fetchUsers = async () => {
+    console.log("🔍 Fetching users...");
+
     try {
       const { data, error } = await supabase
         .from("users")
         .select("*")
         .order("created_at", { ascending: false });
 
+      console.log("📦 Raw data from Supabase:", data);
+      console.log("❗ Supabase Error:", error);
+
       if (error) throw error;
+
+      console.log("📊 Number of users returned:", data?.length);
+
       setUsers(data || []);
       setFilteredUsers(data || []);
     } catch (error: any) {
+      console.error("❌ Fetch Users Error:", error);
+
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
     } finally {
+      console.log("✅ Fetch users completed.");
       setLoading(false);
     }
   };
 
+  const ROLE_MAP: Record<UserRole, number> = {
+    super_admin: 1,
+    warehouse_manager: 2,
+    warehouse_staff: 3,
+    customs_specialist: 4,
+    accounting_manager: 5,
+    accounting_staff: 6,
+    read_only: 7,
+  };
+
   const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
+      console.log('=== Update User Role Started ===');
+      console.log('User ID:', userId);
+      console.log('New Role:', newRole);
+      
+      const roleId = ROLE_MAP[newRole];
+      console.log('Mapped Role ID:', roleId);
+      
+      if (!roleId) {
+        throw new Error(`Invalid role: ${newRole}`);
+      }
+
+      const updateData = {
+        role_id: roleId,
+        updated_at: new Date().toISOString(),
+      };
+      console.log('Update Data:', updateData);
+
       const { error } = await supabase
         .from("users")
-        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq("id", userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update Error:', error);
+        throw error;
+      }
+
+      console.log('Update Successful');
       toast({
         title: "Success",
         description: "User role updated successfully",
       });
+
+      fetchUsers();
     } catch (error: any) {
+      console.error('=== Update User Role Failed ===');
+      console.error('Error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -155,12 +222,12 @@ export default function UserManagement() {
         .eq("id", userId);
 
       if (error) throw error;
-      
+
       toast({
         title: "Success",
         description: "User status updated successfully",
       });
-      
+
       fetchUsers();
     } catch (error: any) {
       toast({
@@ -188,16 +255,31 @@ export default function UserManagement() {
     }
   };
 
-  const getRoleBadgeVariant = (role: UserRole) => {
+  const getRoleBadgeStyle = (role: string) => {
     switch (role) {
-      case "admin":
-        return "destructive";
-      case "editor":
-        return "default";
-      case "viewer":
-        return "secondary";
+      case "super_admin":
+        return "bg-blue-500 text-white"; // biru
+
+      case "warehouse_manager":
+        return "bg-amber-700 text-white"; // coklat
+
+      case "warehouse_staff":
+        return "bg-amber-200 text-amber-900"; // cream
+
+      case "accounting_manager":
+        return "bg-pink-500 text-white"; // pink
+
+      case "accounting_staff":
+        return "bg-purple-600 text-white"; // ungu
+
+      case "customs_specialist":
+        return "bg-green-600 text-white"; // hijau
+
+      case "read_only":
+        return "bg-gray-400 text-white"; // abu-abu
+
       default:
-        return "outline";
+        return "bg-slate-200 text-slate-900"; // default soft
     }
   };
 
@@ -231,11 +313,11 @@ export default function UserManagement() {
     navigate("/dashboard");
   };
 
-  const isAdmin = userProfile?.role === "admin";
+  const isAdmin = userProfile?.role_name === "super_admin";
 
   const summaryData = {
     total: users.length,
-    admins: users.filter((user) => user.role === "admin").length,
+    admins: users.filter((user) => user.role_name === "super_admin").length,
     editors: users.filter((user) => user.role === "editor").length,
     viewers: users.filter((user) => user.role === "viewer").length,
   };
@@ -381,9 +463,25 @@ export default function UserManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">Semua Role</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="editor">Editor</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
+                    <SelectItem value="super_admin">Admin</SelectItem>
+                    <SelectItem value="accounting_manager">
+                      Accounting Manager
+                    </SelectItem>
+                    <SelectItem value="accounting_staff">
+                      Accounting Staff
+                    </SelectItem>
+                    <SelectItem value="warehouse_manager">
+                      Warehouse Manager
+                    </SelectItem>
+                    <SelectItem value="warehouse_staff">
+                      {" "}
+                      Warehouse Staff
+                    </SelectItem>
+                    <SelectItem value="customs_specialist">
+                      {" "}
+                      Customs Specialist
+                    </SelectItem>
+                    <SelectItem value="read_only">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -455,7 +553,7 @@ export default function UserManagement() {
                       <TableCell>
                         {isAdmin && user.id !== userProfile?.id ? (
                           <Select
-                            value={user.role}
+                            value={user.role_name}
                             onValueChange={(value) =>
                               updateUserRole(user.id, value as UserRole)
                             }
@@ -464,14 +562,32 @@ export default function UserManagement() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="editor">Editor</SelectItem>
-                              <SelectItem value="viewer">Viewer</SelectItem>
+                              <SelectItem value="super_admin">
+                                Super Admin
+                              </SelectItem>
+                              <SelectItem value="warehouse_manager">
+                                Warehouse Manager
+                              </SelectItem>
+                              <SelectItem value="warehouse_staff">
+                                Warehouse Staff
+                              </SelectItem>
+                              <SelectItem value="accounting_manager">
+                                Accounting Manager
+                              </SelectItem>
+                              <SelectItem value="accounting_staff">
+                                Accounting Staff
+                              </SelectItem>
+                              <SelectItem value="customs_specialist">
+                                Customs Specialist
+                              </SelectItem>
+                              <SelectItem value="read_only">
+                                Read Only
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge variant={getRoleBadgeVariant(user.role)}>
-                            {user.role}
+                          <Badge className={getRoleBadgeStyle(user.role_name)}>
+                            {formatRoleName(user.role_name)}
                           </Badge>
                         )}
                       </TableCell>
@@ -481,7 +597,9 @@ export default function UserManagement() {
                             <DropdownMenuTrigger asChild>
                               <button className="focus:outline-none">
                                 <Badge
-                                  className={getStatusBadgeClass(user.status || "active")}
+                                  className={getStatusBadgeClass(
+                                    user.status || "active",
+                                  )}
                                 >
                                   {user.status || "active"}
                                 </Badge>
@@ -489,7 +607,9 @@ export default function UserManagement() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
                               <DropdownMenuItem
-                                onClick={() => updateUserStatus(user.id, "active")}
+                                onClick={() =>
+                                  updateUserStatus(user.id, "active")
+                                }
                               >
                                 <div className="flex items-center gap-2">
                                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
@@ -497,7 +617,9 @@ export default function UserManagement() {
                                 </div>
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => updateUserStatus(user.id, "inactive")}
+                                onClick={() =>
+                                  updateUserStatus(user.id, "inactive")
+                                }
                               >
                                 <div className="flex items-center gap-2">
                                   <div className="w-2 h-2 rounded-full bg-gray-400"></div>
@@ -505,7 +627,9 @@ export default function UserManagement() {
                                 </div>
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => updateUserStatus(user.id, "suspended")}
+                                onClick={() =>
+                                  updateUserStatus(user.id, "suspended")
+                                }
                               >
                                 <div className="flex items-center gap-2">
                                   <div className="w-2 h-2 rounded-full bg-orange-500"></div>
@@ -515,7 +639,11 @@ export default function UserManagement() {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         ) : (
-                          <Badge className={getStatusBadgeClass(user.status || "active")}>
+                          <Badge
+                            className={getStatusBadgeClass(
+                              user.status || "active",
+                            )}
+                          >
                             {user.status || "active"}
                           </Badge>
                         )}

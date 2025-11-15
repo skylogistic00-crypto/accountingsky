@@ -57,7 +57,7 @@ export default function Navigation() {
       path: "/users",
       label: "User Management",
       icon: Users,
-      roles: ["super_admin", "read_only"],
+      roles: ["super_admin"],
     },
     {
       path: "/purchase-request",

@@ -19,12 +19,17 @@ import {
 } from "./ui/select";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "./ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function Header() {
   const { user, signIn, signUp, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { userProfile } = useAuth();
+  const [suspendedModal, setSuspendedModal] = useState(false);
+  const [inactiveModal, setInactiveModal] = useState(false);
 
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({
@@ -37,14 +42,25 @@ export default function Header() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       await signIn(signInData.email, signInData.password);
       toast({ title: "Success", description: "Signed in successfully" });
       setShowAuthDialog(false);
     } catch (error: any) {
+      if (error.type === "suspended") {
+        setSuspendedModal(true);
+        return;
+      }
+
+      if (error.type === "inactive") {
+        setInactiveModal(true);
+        return;
+      }
+
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Login gagal",
         variant: "destructive",
       });
     } finally {
@@ -119,14 +135,14 @@ export default function Header() {
                     className="text-base font-bold text-slate-900 tracking-wide
                   [text-shadow:_1px_1px_2px_rgba(0,0,0,0.25)]"
                   >
-                    👋 Hallo {user.user_metadata?.full_name || user.email}
+                    👋 Hallo {userProfile?.full_name || user.email}
                   </span>
                   <span
                     className="text-xs font-semibold text-slate-600 uppercase
-                  [text-shadow:_0px_1px_1px_rgba(0,0,0,0.15)]"
+                    [text-shadow:_0px_1px_1px_rgba(0,0,0,0.15)]"
                   >
-                    {user.user_metadata?.role
-                      ? user.user_metadata.role.replaceAll("_", " ")
+                    {userProfile?.role_name
+                      ? userProfile.role_name.replaceAll("_", " ")
                       : "User"}
                   </span>
                 </div>
@@ -195,6 +211,20 @@ export default function Header() {
                     required
                   />
                 </div>
+
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAuthDialog(false);
+                      navigate("/forgot-password");
+                    }}
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md"
@@ -287,6 +317,31 @@ export default function Header() {
               </form>
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+      {/* 🔥 Modal: Suspended */}
+      <Dialog open={suspendedModal} onOpenChange={setSuspendedModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Akun Ditangguhkan</DialogTitle>
+            <DialogDescription>
+              Akun Anda telah ditangguhkan oleh administrator.
+            </DialogDescription>
+          </DialogHeader>
+          <Button onClick={() => setSuspendedModal(false)}>OK</Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* 🔥 Modal: Inactive */}
+      <Dialog open={inactiveModal} onOpenChange={setInactiveModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Akun Tidak Aktif</DialogTitle>
+            <DialogDescription>
+              Akun Anda tidak aktif, silakan hubungi administrator.
+            </DialogDescription>
+          </DialogHeader>
+          <Button onClick={() => setInactiveModal(false)}>OK</Button>
         </DialogContent>
       </Dialog>
     </>

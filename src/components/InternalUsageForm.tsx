@@ -26,6 +26,9 @@ interface Item {
   item_name: string;
   qty_available: number;
   cost_per_unit: number;
+  unit?: string;
+  brand?: string;
+  model?: string;
 }
 
 interface Department {
@@ -102,8 +105,8 @@ export default function InternalUsageForm() {
 
   const fetchItems = async () => {
     const { data, error } = await supabase
-      .from("inventory_items")
-      .select("id, item_name, qty_available, cost_per_unit")
+      .from("stock")
+      .select("id, item_name, qty_available, cost_per_unit, unit, brand, model")
       .order("item_name");
     
     if (error) {
@@ -306,7 +309,7 @@ export default function InternalUsageForm() {
 
       // Step 4: Refresh stock data
       const { data: updatedItem } = await supabase
-        .from("inventory_items")
+        .from("stock")
         .select("qty_available")
         .eq("id", formData.item_id)
         .single();

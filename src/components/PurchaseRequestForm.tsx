@@ -13,16 +13,31 @@ import {
   SelectValue,
 } from "./ui/select";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./ui/command";
+import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 import { useToast } from "./ui/use-toast";
 import { Calendar } from "./ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { CalendarIcon, Upload, X } from "lucide-react";
+import { CalendarIcon, Upload, X, Plus } from "lucide-react";
 import { format } from "date-fns";
 
 interface PurchaseRequestFormProps {
@@ -40,9 +55,29 @@ export default function PurchaseRequestForm({
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
     null,
   );
+  const [stockItems, setStockItems] = useState<string[]>([]);
+  const [openItemCombobox, setOpenItemCombobox] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
+  const [newSupplierData, setNewSupplierData] = useState({
+    supplier_name: "",
+    contact_person: "",
+    phone_number: "",
+    email: "",
+    city: "",
+    country: "",
+    is_pkp: "",
+    tax_id: "",
+    bank_name: "",
+    bank_account_holder: "",
+    payment_terms: "",
+    category: "",
+    currency: "IDR",
+    status: "ACTIVE",
+    address: "",
+  });
   const [formData, setFormData] = useState<PurchaseRequestForm>({
     request_date: new Date(),
     name: "",
@@ -67,6 +102,7 @@ export default function PurchaseRequestForm({
       setFormData((prev) => ({ ...prev, email: user.email }));
     }
     fetchSuppliers();
+    fetchStockItems();
   }, [userProfile, user]);
 
   const fetchSuppliers = async () => {
@@ -84,11 +120,105 @@ export default function PurchaseRequestForm({
     }
   };
 
+  const fetchStockItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("stock")
+        .select("item_name")
+        .order("item_name");
+
+      if (error) throw error;
+      
+      // Get unique item names
+      const uniqueItems = [...new Set(data?.map(item => item.item_name).filter(Boolean))] as string[];
+      setStockItems(uniqueItems);
+    } catch (error) {
+      console.error("Error fetching stock items:", error);
+    }
+  };
+
   const handleSupplierChange = (supplierId: string) => {
+    if (supplierId === "add_new") {
+      setIsSupplierDialogOpen(true);
+      return;
+    }
+
     setFormData({ ...formData, supplier_id: supplierId });
 
     const supplier = suppliers.find((s) => s.id === supplierId);
     setSelectedSupplier(supplier || null);
+  };
+
+  const handleAddNewSupplier = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("suppliers")
+        .insert({
+          supplier_name: newSupplierData.supplier_name,
+          contact_person: newSupplierData.contact_person,
+          phone_number: newSupplierData.phone_number,
+          email: newSupplierData.email,
+          city: newSupplierData.city,
+          country: newSupplierData.country,
+          is_pkp: newSupplierData.is_pkp,
+          tax_id: newSupplierData.tax_id,
+          bank_name: newSupplierData.bank_name,
+          bank_account_holder: newSupplierData.bank_account_holder,
+          payment_terms: newSupplierData.payment_terms,
+          category: newSupplierData.category,
+          currency: newSupplierData.currency,
+          status: newSupplierData.status,
+          address: newSupplierData.address,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Supplier ${data.supplier_name} berhasil ditambahkan`,
+      });
+
+      // Reset form
+      setNewSupplierData({
+        supplier_name: "",
+        contact_person: "",
+        phone_number: "",
+        email: "",
+        city: "",
+        country: "",
+        is_pkp: "",
+        tax_id: "",
+        bank_name: "",
+        bank_account_holder: "",
+        payment_terms: "",
+        category: "",
+        currency: "IDR",
+        status: "ACTIVE",
+        address: "",
+      });
+
+      // Refresh suppliers list
+      await fetchSuppliers();
+
+      // Auto-select the new supplier
+      setFormData({ ...formData, supplier_id: data.id });
+      setSelectedSupplier(data);
+
+      setIsSupplierDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -328,15 +458,50 @@ export default function PurchaseRequestForm({
 
             <div className="space-y-2">
               <Label htmlFor="item_name">Item Name *</Label>
-              <Input
-                id="item_name"
-                value={formData.item_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, item_name: e.target.value })
-                }
-                placeholder="Enter item name"
-                required
-              />
+              <Popover open={openItemCombobox} onOpenChange={setOpenItemCombobox}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openItemCombobox}
+                    className="w-full justify-between"
+                  >
+                    {formData.item_name || "Select or type item name..."}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput 
+                      placeholder="Search or type new item name..." 
+                      value={formData.item_name}
+                      onValueChange={(value) => 
+                        setFormData({ ...formData, item_name: value })
+                      }
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        <div className="p-2 text-sm text-slate-600">
+                          No item found. Press Enter to use "{formData.item_name}"
+                        </div>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {stockItems.map((item) => (
+                          <CommandItem
+                            key={item}
+                            value={item}
+                            onSelect={(value) => {
+                              setFormData({ ...formData, item_name: value });
+                              setOpenItemCombobox(false);
+                            }}
+                          >
+                            {item}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
@@ -398,6 +563,12 @@ export default function PurchaseRequestForm({
                       {supplier.supplier_name}
                     </SelectItem>
                   ))}
+                  <SelectItem value="add_new" className="text-blue-600 font-semibold">
+                    <div className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      + Tambah supplier baru
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -558,6 +729,299 @@ export default function PurchaseRequestForm({
           </form>
         </CardContent>
       </Card>
+
+      {/* Add New Supplier Dialog */}
+      <Dialog open={isSupplierDialogOpen} onOpenChange={setIsSupplierDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tambah Supplier Baru</DialogTitle>
+            <DialogDescription>Isi detail supplier baru</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddNewSupplier} className="space-y-6">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Informasi Dasar</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new_supplier_name">Nama Supplier *</Label>
+                  <Input
+                    id="new_supplier_name"
+                    value={newSupplierData.supplier_name}
+                    onChange={(e) =>
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        supplier_name: e.target.value,
+                      })
+                    }
+                    placeholder="PT. Supplier Indonesia"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Informasi Kontak</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new_contact_person">Contact Person *</Label>
+                  <Input
+                    id="new_contact_person"
+                    value={newSupplierData.contact_person}
+                    onChange={(e) =>
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        contact_person: e.target.value,
+                      })
+                    }
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_phone_number">Phone *</Label>
+                  <Input
+                    id="new_phone_number"
+                    value={newSupplierData.phone_number}
+                    onChange={(e) =>
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        phone_number: e.target.value,
+                      })
+                    }
+                    placeholder="+62 812 3456 7890"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_email">Email *</Label>
+                  <Input
+                    id="new_email"
+                    type="email"
+                    value={newSupplierData.email}
+                    onChange={(e) =>
+                      setNewSupplierData({ ...newSupplierData, email: e.target.value })
+                    }
+                    placeholder="supplier@example.com"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_city">City</Label>
+                  <Input
+                    id="new_city"
+                    value={newSupplierData.city}
+                    onChange={(e) =>
+                      setNewSupplierData({ ...newSupplierData, city: e.target.value })
+                    }
+                    placeholder="Jakarta"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_country">Country</Label>
+                  <Input
+                    id="new_country"
+                    value={newSupplierData.country}
+                    onChange={(e) =>
+                      setNewSupplierData({ ...newSupplierData, country: e.target.value })
+                    }
+                    placeholder="Indonesia"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="new_address">Address</Label>
+                <Textarea
+                  id="new_address"
+                  value={newSupplierData.address}
+                  onChange={(e) =>
+                    setNewSupplierData({ ...newSupplierData, address: e.target.value })
+                  }
+                  placeholder="Jl. Contoh No. 123"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            {/* Tax Information */}
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Informasi Pajak</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new_is_pkp">PKP</Label>
+                  <Select
+                    value={newSupplierData.is_pkp}
+                    onValueChange={(value) =>
+                      setNewSupplierData({ ...newSupplierData, is_pkp: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih status PKP" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="YES">Ya</SelectItem>
+                      <SelectItem value="NO">Tidak</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_tax_id">Tax ID / No. PKP</Label>
+                  <Input
+                    id="new_tax_id"
+                    value={newSupplierData.tax_id}
+                    onChange={(e) =>
+                      setNewSupplierData({ ...newSupplierData, tax_id: e.target.value })
+                    }
+                    placeholder="01.234.567.8-901.000"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bank Information */}
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Informasi Bank</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new_bank_name">Bank Name</Label>
+                  <Input
+                    id="new_bank_name"
+                    value={newSupplierData.bank_name}
+                    onChange={(e) =>
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        bank_name: e.target.value,
+                      })
+                    }
+                    placeholder="Bank Mandiri"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_bank_account_holder">
+                    Bank Account Holder
+                  </Label>
+                  <Input
+                    id="new_bank_account_holder"
+                    value={newSupplierData.bank_account_holder}
+                    onChange={(e) =>
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        bank_account_holder: e.target.value,
+                      })
+                    }
+                    placeholder="PT. Supplier Indonesia"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Informasi Tambahan</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new_payment_terms">Payment Terms</Label>
+                  <Input
+                    id="new_payment_terms"
+                    value={newSupplierData.payment_terms}
+                    onChange={(e) =>
+                      setNewSupplierData({
+                        ...newSupplierData,
+                        payment_terms: e.target.value,
+                      })
+                    }
+                    placeholder="Net 30"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_category">Category</Label>
+                  <Select
+                    value={newSupplierData.category}
+                    onValueChange={(value) =>
+                      setNewSupplierData({ ...newSupplierData, category: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih kategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Raw Materials">Bahan Baku</SelectItem>
+                      <SelectItem value="Work in Process">Barang Dalam Proses</SelectItem>
+                      <SelectItem value="Finished Goods">Barang Jadi</SelectItem>
+                      <SelectItem value="Resale/Merchandise">Barang Dagangan</SelectItem>
+                      <SelectItem value="Spare Parts">Suku Cadang</SelectItem>
+                      <SelectItem value="Food">Makanan</SelectItem>
+                      <SelectItem value="Beverage">Minuman</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_currency">Currency *</Label>
+                  <Select
+                    value={newSupplierData.currency}
+                    onValueChange={(value) =>
+                      setNewSupplierData({ ...newSupplierData, currency: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IDR">IDR</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="SGD">SGD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_status">Status *</Label>
+                  <Select
+                    value={newSupplierData.status}
+                    onValueChange={(value) =>
+                      setNewSupplierData({ ...newSupplierData, status: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex gap-4 pt-6">
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading ? "Menyimpan..." : "Simpan Supplier"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsSupplierDialogOpen(false)}
+                className="flex-1"
+              >
+                Batal
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -182,7 +182,7 @@ export default function SalesForm() {
     const { data, error } = await supabase
       .from("chart_of_accounts")
       .select("account_code, account_name, account_type")
-      .in("account_type", ["Revenue", "Income", "COGS", "Asset"])
+      .eq("account_type", "Pendapatan")
       .order("account_code");
     
     if (error) {
@@ -833,13 +833,11 @@ export default function SalesForm() {
                     <SelectValue placeholder="Pilih akun COA..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {coaAccounts
-                      .filter(acc => acc.account_type === "Revenue" || acc.account_type === "Income")
-                      .map((account) => (
-                        <SelectItem key={account.account_code} value={account.account_code}>
-                          {account.account_code} - {account.account_name}
-                        </SelectItem>
-                      ))}
+                    {coaAccounts.map((account) => (
+                      <SelectItem key={account.account_code} value={account.account_code}>
+                        {account.account_code} - {account.account_name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

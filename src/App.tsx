@@ -28,6 +28,8 @@ import BalanceSheetReport from "./components/BalanceSheetReport";
 import FinancialDashboard from "./components/FinancialDashboard";
 import CashFlowReport from "./components/CashFlowReport";
 import { Toaster } from "./components/ui/toaster";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // 🔐 1️⃣ ProtectedRoute — hanya render jika role diizinkan
 interface ProtectedRouteProps {
@@ -472,6 +474,8 @@ function AppRoutes() {
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
     </Routes>
   );
 }

@@ -89,16 +89,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      // 1. Cek status user
+      const { data: userCheck, error: userError } = await supabase
+        .from("users")
+        .select("id, status")
+        .eq("email", email)
+        .single();
+
+      if (userError || !userCheck) {
+        throw { type: "not_found", message: "Akun tidak ditemukan" };
+      }
+
+      // 2. Status = suspended
+      if (userCheck.status === "suspended") {
+        throw { type: "suspended", message: "Akun Anda ditangguhkan" };
+      }
+
+      // 3. Status = inactive
+      if (userCheck.status === "inactive") {
+        throw { type: "inactive", message: "Akun Anda tidak aktif" };
+      }
+
+      // 4. Status aktif → lanjut login
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      console.log("Auth response:", data, error);
-      if (error) throw error;
+
+      if (error) throw { type: "auth", message: error.message };
       return data;
     } catch (err: any) {
-      console.error("Sign-in failed:", err.message || err);
-      alert(err.message || "Login gagal");
+      throw err; // -> dilempar ke Header untuk ditampilkan via modal
     }
   };
 
