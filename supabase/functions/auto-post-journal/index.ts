@@ -26,7 +26,14 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { type, record } = await req.json();
+    const body = await req.json();
+    console.log('Received request body:', JSON.stringify(body, null, 2));
+    
+    const { type, record } = body;
+
+    if (!type || !record) {
+      throw new Error('Missing required fields: type and record');
+    }
 
     const journalEntries: JournalEntry[] = [];
     let transactionId = '';
@@ -239,11 +246,160 @@ Deno.serve(async (req) => {
         description: `Pengurangan Persediaan - ${record.item_name}`,
         created_by: record.created_by || 'system',
       });
+    } else if (type === 'stock_adjustment') {
+      transactionId = `SADJ-${record.id.substring(0, 8)}`;
+      console.log('Processing stock adjustment:', { sku: record.sku, transaction_type: record.transaction_type });
+
+      // Get stock item details for COA codes
+      const { data: stockData, error: stockError } = await supabase
+        .from('stock')
+        .select('coa_inventory_code, coa_cogs_code, unit_price, item_name')
+        .eq('sku', record.sku)
+        .maybeSingle();
+
+      console.log('Stock query result:', { stockData, stockError });
+
+      // If stock not found, use default values
+      const inventoryCode = stockData?.coa_inventory_code || '1-1300';
+      const cogsCode = stockData?.coa_cogs_code || '5-1100';
+      const unitPrice = stockData?.unit_price || 0;
+      const itemName = stockData?.item_name || record.item_name || 'Unknown Item';
+
+      console.log('Using values:', { inventoryCode, unitPrice, itemName });
+
+      // If unit_price is 0, we can't calculate adjustment amount
+      // In this case, we'll skip journal posting
+      if (unitPrice === 0) {
+        console.warn(`Unit price is 0 for SKU: ${record.sku}. Skipping journal posting.`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: 'Unit price is 0. Please update unit_price in stock table before posting to journal.',
+            entries: 0,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200, // Return 200 but with success: false
+          }
+        );
+      }
+
+      const adjustmentAmount = Math.abs(record.adjustment_value || 0) * unitPrice;
+      console.log('Adjustment amount:', adjustmentAmount);
+
+      if (record.transaction_type === 'stock_in') {
+        // Barang Masuk (Non-Pembelian)
+        // 1. Dr Persediaan
+        journalEntries.push({
+          transaction_id: transactionId,
+          transaction_date: record.transaction_date,
+          account_code: inventoryCode,
+          account_name: 'Persediaan Barang',
+          debit: adjustmentAmount,
+          credit: 0,
+          description: `Barang Masuk - ${itemName} (${record.reason || 'No reason'})`,
+          created_by: record.created_by || 'system',
+        });
+
+        // 2. Cr Pendapatan Lain-lain / Koreksi Persediaan
+        journalEntries.push({
+          transaction_id: transactionId,
+          transaction_date: record.transaction_date,
+          account_code: '4-2100',
+          account_name: 'Pendapatan Lain-lain',
+          debit: 0,
+          credit: adjustmentAmount,
+          description: `${record.reason || 'Stock In'} - ${itemName}`,
+          created_by: record.created_by || 'system',
+        });
+      } else if (record.transaction_type === 'stock_out') {
+        // Barang Keluar (Non-Penjualan)
+        // 1. Dr Beban Lain-lain / Kerugian
+        journalEntries.push({
+          transaction_id: transactionId,
+          transaction_date: record.transaction_date,
+          account_code: '6-2100',
+          account_name: 'Beban Lain-lain',
+          debit: adjustmentAmount,
+          credit: 0,
+          description: `${record.reason || 'Stock Out'} - ${itemName}`,
+          created_by: record.created_by || 'system',
+        });
+
+        // 2. Cr Persediaan
+        journalEntries.push({
+          transaction_id: transactionId,
+          transaction_date: record.transaction_date,
+          account_code: inventoryCode,
+          account_name: 'Persediaan Barang',
+          debit: 0,
+          credit: adjustmentAmount,
+          description: `Pengurangan Persediaan - ${itemName}`,
+          created_by: record.created_by || 'system',
+        });
+      } else if (record.transaction_type === 'adjustment' || record.transaction_type === 'opname') {
+        // Koreksi Stok / Stock Opname
+        if (record.adjustment_value > 0) {
+          // Selisih Lebih (Stok bertambah)
+          // 1. Dr Persediaan
+          journalEntries.push({
+            transaction_id: transactionId,
+            transaction_date: record.transaction_date,
+            account_code: inventoryCode,
+            account_name: 'Persediaan Barang',
+            debit: adjustmentAmount,
+            credit: 0,
+            description: `${record.transaction_type === 'opname' ? 'Stock Opname' : 'Koreksi Stok'} - ${itemName} (Selisih Lebih)`,
+            created_by: record.created_by || 'system',
+          });
+
+          // 2. Cr Pendapatan Lain-lain
+          journalEntries.push({
+            transaction_id: transactionId,
+            transaction_date: record.transaction_date,
+            account_code: '4-2100',
+            account_name: 'Pendapatan Lain-lain',
+            debit: 0,
+            credit: adjustmentAmount,
+            description: `Selisih Lebih ${record.transaction_type === 'opname' ? 'Opname' : 'Koreksi'} - ${itemName}`,
+            created_by: record.created_by || 'system',
+          });
+        } else if (record.adjustment_value < 0) {
+          // Selisih Kurang (Stok berkurang)
+          // 1. Dr Beban Lain-lain
+          journalEntries.push({
+            transaction_id: transactionId,
+            transaction_date: record.transaction_date,
+            account_code: '6-2100',
+            account_name: 'Beban Lain-lain',
+            debit: adjustmentAmount,
+            credit: 0,
+            description: `${record.transaction_type === 'opname' ? 'Stock Opname' : 'Koreksi Stok'} - ${itemName} (Selisih Kurang)`,
+            created_by: record.created_by || 'system',
+          });
+
+          // 2. Cr Persediaan
+          journalEntries.push({
+            transaction_id: transactionId,
+            transaction_date: record.transaction_date,
+            account_code: inventoryCode,
+            account_name: 'Persediaan Barang',
+            debit: 0,
+            credit: adjustmentAmount,
+            description: `Pengurangan Persediaan - ${itemName}`,
+            created_by: record.created_by || 'system',
+          });
+        }
+      }
     }
+
+    console.log('Journal entries to insert:', JSON.stringify(journalEntries, null, 2));
 
     // Validate journal balance
     const totalDebit = journalEntries.reduce((sum, entry) => sum + entry.debit, 0);
     const totalCredit = journalEntries.reduce((sum, entry) => sum + entry.credit, 0);
+
+    console.log('Balance check:', { totalDebit, totalCredit, diff: Math.abs(totalDebit - totalCredit) });
 
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       throw new Error(`Jurnal tidak balance! Debit: ${totalDebit}, Kredit: ${totalCredit}`);
@@ -255,8 +411,11 @@ Deno.serve(async (req) => {
       .insert(journalEntries);
 
     if (journalError) {
+      console.error('Journal insert error:', journalError);
       throw journalError;
     }
+
+    console.log('Success! Inserted', journalEntries.length, 'entries');
 
     return new Response(
       JSON.stringify({
@@ -271,10 +430,12 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error: any) {
+    console.error('Function error:', error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error.message || 'Unknown error',
+        stack: error.stack,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -10,6 +10,7 @@ import Dashboard from "./components/Dashboard";
 import PurchaseRequestForm from "./components/PurchaseRequestForm";
 import PurchaseRequestList from "./components/PurchaseRequestList";
 import SupplierForm from "./components/SupplierForm";
+import ShipperForm from "./components/ShipperForm";
 import StockForm from "./components/StockForm";
 import WarehousesForm from "./components/WarehousesForm";
 import BarangLini from "./components/BarangLini";
@@ -20,7 +21,6 @@ import AdminSetup from "./components/AdminSetup";
 import COAManagement from "./components/COAManagement";
 import BarangLamaReport from "./components/BarangLamaReport";
 import SalesForm from "./components/SalesForm";
-import InternalUsageForm from "./components/InternalUsageForm";
 import COAMappingManager from "./components/COAMappingManager";
 import IntegratedFinancialReport from "./components/IntegratedFinancialReport";
 import ProfitLossReport from "./components/ProfitLossReport";
@@ -30,6 +30,7 @@ import CashFlowReport from "./components/CashFlowReport";
 import { Toaster } from "./components/ui/toaster";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import StockAdjustmentForm from "./components/StockAdjustmentForm";
 
 // 🔐 1️⃣ ProtectedRoute — hanya render jika role diizinkan
 interface ProtectedRouteProps {
@@ -193,6 +194,26 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/shipper"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "warehouse_manager",
+              "accounting_manager",
+              "accounting_staff",
+              "read_only",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <ShipperForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/stock"
         element={
           <ProtectedRoute
@@ -274,6 +295,26 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/stock-adjustment"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "warehouse_manager",
+              "accounting_manager",
+              "accounting_staff",
+              "warehouse_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <StockAdjustmentForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/air-waybill"
         element={
           <ProtectedRoute
@@ -321,6 +362,20 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/coa-mapping"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
+            <COAMappingManager />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/report-barang-lama"
         element={
           <ProtectedRoute
@@ -348,42 +403,6 @@ function AppRoutes() {
               <Header />
               <Navigation />
               <SalesForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/internal-usage"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <InternalUsageForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/coa-mapping"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <COAMappingManager />
             </div>
           </ProtectedRoute>
         }

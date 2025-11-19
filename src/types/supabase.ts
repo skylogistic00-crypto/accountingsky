@@ -441,10 +441,9 @@ export type Database = {
           account_code: string
           account_name: string
           account_type: string
+          balance: number | null
           created_at: string | null
-          credit_total: number | null
           current_balance: number | null
-          debit_total: number | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -459,10 +458,9 @@ export type Database = {
           account_code: string
           account_name: string
           account_type: string
+          balance?: number | null
           created_at?: string | null
-          credit_total?: number | null
           current_balance?: number | null
-          debit_total?: number | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -477,10 +475,9 @@ export type Database = {
           account_code?: string
           account_name?: string
           account_type?: string
+          balance?: number | null
           created_at?: string | null
-          credit_total?: number | null
           current_balance?: number | null
-          debit_total?: number | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -555,6 +552,72 @@ export type Database = {
           revenue_account_code?: string | null
           service_category?: string
           service_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      consignees: {
+        Row: {
+          address: string | null
+          bank_account_holder: string | null
+          bank_name: string | null
+          category: string | null
+          city: string | null
+          consignee_code: string
+          consignee_name: string
+          contact_person: string
+          country: string | null
+          created_at: string | null
+          currency: string
+          email: string
+          id: string
+          is_pkp: string | null
+          payment_terms: string | null
+          phone_number: string
+          status: string
+          tax_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          bank_account_holder?: string | null
+          bank_name?: string | null
+          category?: string | null
+          city?: string | null
+          consignee_code: string
+          consignee_name: string
+          contact_person: string
+          country?: string | null
+          created_at?: string | null
+          currency?: string
+          email: string
+          id?: string
+          is_pkp?: string | null
+          payment_terms?: string | null
+          phone_number: string
+          status?: string
+          tax_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          bank_account_holder?: string | null
+          bank_name?: string | null
+          category?: string | null
+          city?: string | null
+          consignee_code?: string
+          consignee_name?: string
+          contact_person?: string
+          country?: string | null
+          created_at?: string | null
+          currency?: string
+          email?: string
+          id?: string
+          is_pkp?: string | null
+          payment_terms?: string | null
+          phone_number?: string
+          status?: string
+          tax_id?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1006,6 +1069,7 @@ export type Database = {
           service_type: string | null
           source_id: string | null
           source_table: string | null
+          stock_adjustment_id: string | null
           stock_movement_id: string | null
           total_credit: number | null
           total_debit: number | null
@@ -1036,6 +1100,7 @@ export type Database = {
           service_type?: string | null
           source_id?: string | null
           source_table?: string | null
+          stock_adjustment_id?: string | null
           stock_movement_id?: string | null
           total_credit?: number | null
           total_debit?: number | null
@@ -1066,6 +1131,7 @@ export type Database = {
           service_type?: string | null
           source_id?: string | null
           source_table?: string | null
+          stock_adjustment_id?: string | null
           stock_movement_id?: string | null
           total_credit?: number | null
           total_debit?: number | null
@@ -1075,6 +1141,13 @@ export type Database = {
           vehicle_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_journal_stock_adj"
+            columns: ["stock_adjustment_id"]
+            isOneToOne: false
+            referencedRelation: "stock_adjustments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "journal_entries_stock_movement_id_fkey"
             columns: ["stock_movement_id"]
@@ -1397,6 +1470,7 @@ export type Database = {
       purchase_requests: {
         Row: {
           barcode: string | null
+          code: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string | null
@@ -1424,6 +1498,7 @@ export type Database = {
         }
         Insert: {
           barcode?: string | null
+          code?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string | null
@@ -1451,6 +1526,7 @@ export type Database = {
         }
         Update: {
           barcode?: string | null
+          code?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string | null
@@ -1707,6 +1783,72 @@ export type Database = {
         }
         Relationships: []
       }
+      shippers: {
+        Row: {
+          address: string | null
+          bank_account_holder: string | null
+          bank_name: string | null
+          category: string | null
+          city: string | null
+          contact_person: string
+          country: string | null
+          created_at: string | null
+          currency: string
+          email: string
+          id: string
+          is_pkp: string | null
+          payment_terms: string | null
+          phone_number: string
+          shipper_code: string
+          shipper_name: string
+          status: string
+          tax_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          bank_account_holder?: string | null
+          bank_name?: string | null
+          category?: string | null
+          city?: string | null
+          contact_person: string
+          country?: string | null
+          created_at?: string | null
+          currency?: string
+          email: string
+          id?: string
+          is_pkp?: string | null
+          payment_terms?: string | null
+          phone_number: string
+          shipper_code: string
+          shipper_name: string
+          status?: string
+          tax_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          bank_account_holder?: string | null
+          bank_name?: string | null
+          category?: string | null
+          city?: string | null
+          contact_person?: string
+          country?: string | null
+          created_at?: string | null
+          currency?: string
+          email?: string
+          id?: string
+          is_pkp?: string | null
+          payment_terms?: string | null
+          phone_number?: string
+          shipper_code?: string
+          shipper_name?: string
+          status?: string
+          tax_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       stock: {
         Row: {
           airwaybills: string | null
@@ -1729,10 +1871,10 @@ export type Database = {
           item_id: string | null
           item_name: string
           item_quantity: number
-          lots: string
+          lots: string | null
           ppn_on_purchase: number | null
           ppn_on_sale: number | null
-          ppn_status: string
+          ppn_status: string | null
           purchase_price: number
           purchase_price_after_ppn: number | null
           racks: string | null
@@ -1742,6 +1884,7 @@ export type Database = {
           service_type: string | null
           sku: string | null
           stock_code: string | null
+          supplier_id: string | null
           supplier_name: string | null
           unit: string | null
           updated_at: string | null
@@ -1773,10 +1916,10 @@ export type Database = {
           item_id?: string | null
           item_name: string
           item_quantity: number
-          lots: string
+          lots?: string | null
           ppn_on_purchase?: number | null
           ppn_on_sale?: number | null
-          ppn_status: string
+          ppn_status?: string | null
           purchase_price?: number
           purchase_price_after_ppn?: number | null
           racks?: string | null
@@ -1786,6 +1929,7 @@ export type Database = {
           service_type?: string | null
           sku?: string | null
           stock_code?: string | null
+          supplier_id?: string | null
           supplier_name?: string | null
           unit?: string | null
           updated_at?: string | null
@@ -1817,10 +1961,10 @@ export type Database = {
           item_id?: string | null
           item_name?: string
           item_quantity?: number
-          lots?: string
+          lots?: string | null
           ppn_on_purchase?: number | null
           ppn_on_sale?: number | null
-          ppn_status?: string
+          ppn_status?: string | null
           purchase_price?: number
           purchase_price_after_ppn?: number | null
           racks?: string | null
@@ -1830,6 +1974,7 @@ export type Database = {
           service_type?: string | null
           sku?: string | null
           stock_code?: string | null
+          supplier_id?: string | null
           supplier_name?: string | null
           unit?: string | null
           updated_at?: string | null
@@ -1863,10 +2008,163 @@ export type Database = {
             referencedColumns: ["account_code"]
           },
           {
+            foreignKeyName: "fk_stock_coa"
+            columns: ["coa_account_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_stock_coa"
+            columns: ["coa_account_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_stock_supplier"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_suppliers"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_adjustments: {
+        Row: {
+          adjustment_value: number | null
+          after_quantity: number | null
+          approval_date: string | null
+          approved_by: string | null
+          before_quantity: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          item_name: string
+          lot: string | null
+          notes: string | null
+          quantity: number
+          quantity_change: number | null
+          rack: string | null
+          reason: string
+          reference_number: string
+          selling_price_after_ppn: number | null
+          sku: string
+          status: string | null
+          stock_id: string | null
+          stock_id_uuid: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          transaction_date: string
+          transaction_type: string
+          unit: string
+          updated_at: string | null
+          warehouse: string | null
+          zone: string | null
+        }
+        Insert: {
+          adjustment_value?: number | null
+          after_quantity?: number | null
+          approval_date?: string | null
+          approved_by?: string | null
+          before_quantity?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          item_name: string
+          lot?: string | null
+          notes?: string | null
+          quantity: number
+          quantity_change?: number | null
+          rack?: string | null
+          reason: string
+          reference_number: string
+          selling_price_after_ppn?: number | null
+          sku: string
+          status?: string | null
+          stock_id?: string | null
+          stock_id_uuid?: string | null
+          supplier_id?: string | null
+          supplier_name?: string | null
+          transaction_date?: string
+          transaction_type: string
+          unit: string
+          updated_at?: string | null
+          warehouse?: string | null
+          zone?: string | null
+        }
+        Update: {
+          adjustment_value?: number | null
+          after_quantity?: number | null
+          approval_date?: string | null
+          approved_by?: string | null
+          before_quantity?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          item_name?: string
+          lot?: string | null
+          notes?: string | null
+          quantity?: number
+          quantity_change?: number | null
+          rack?: string | null
+          reason?: string
+          reference_number?: string
+          selling_price_after_ppn?: number | null
+          sku?: string
+          status?: string | null
+          stock_id?: string | null
+          stock_id_uuid?: string | null
+          supplier_id?: string | null
+          supplier_name?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          unit?: string
+          updated_at?: string | null
+          warehouse?: string | null
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_adjustment_stock"
+            columns: ["stock_id"]
+            isOneToOne: false
+            referencedRelation: "stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_adjustment_supplier"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_adjustment_suppliers"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_adjustments_stock"
+            columns: ["stock_id"]
+            isOneToOne: false
+            referencedRelation: "stock"
             referencedColumns: ["id"]
           },
         ]
@@ -2029,6 +2327,7 @@ export type Database = {
           currency: string | null
           email: string | null
           id: string
+          is_active: boolean
           is_pkp: string | null
           name: string | null
           payment_terms: string | null
@@ -2053,6 +2352,7 @@ export type Database = {
           currency?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean
           is_pkp?: string | null
           name?: string | null
           payment_terms?: string | null
@@ -2077,6 +2377,7 @@ export type Database = {
           currency?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean
           is_pkp?: string | null
           name?: string | null
           payment_terms?: string | null
@@ -2197,6 +2498,69 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_balance_backup: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          balance: number | null
+          closing_balance: number | null
+          created_at: string | null
+          credit: number | null
+          credit_balance: number | null
+          debit: number | null
+          debit_balance: number | null
+          id: string | null
+          net_balance: number | null
+          opening_balance: number | null
+          period: string | null
+          period_end: string | null
+          period_start: string | null
+          total_credit: number | null
+          total_debit: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          account_name?: string | null
+          balance?: number | null
+          closing_balance?: number | null
+          created_at?: string | null
+          credit?: number | null
+          credit_balance?: number | null
+          debit?: number | null
+          debit_balance?: number | null
+          id?: string | null
+          net_balance?: number | null
+          opening_balance?: number | null
+          period?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          total_credit?: number | null
+          total_debit?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_code?: string | null
+          account_name?: string | null
+          balance?: number | null
+          closing_balance?: number | null
+          created_at?: string | null
+          credit?: number | null
+          credit_balance?: number | null
+          debit?: number | null
+          debit_balance?: number | null
+          id?: string | null
+          net_balance?: number | null
+          opening_balance?: number | null
+          period?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          total_credit?: number | null
+          total_debit?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -2210,6 +2574,7 @@ export type Database = {
           phone_number: string | null
           role_id: number | null
           role_name: string | null
+          status: Database["public"]["Enums"]["user_status"]
           updated_at: string | null
         }
         Insert: {
@@ -2224,6 +2589,7 @@ export type Database = {
           phone_number?: string | null
           role_id?: number | null
           role_name?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string | null
         }
         Update: {
@@ -2238,6 +2604,7 @@ export type Database = {
           phone_number?: string | null
           role_id?: number | null
           role_name?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string | null
         }
         Relationships: [
@@ -2247,13 +2614,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["role_id"]
-          },
-          {
-            foreignKeyName: "users_role_name_fkey"
-            columns: ["role_name"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["role_name"]
           },
         ]
       }
@@ -2380,7 +2740,48 @@ export type Database = {
       vw_dashboard_summary: {
         Row: {
           account_type: string | null
-          nominal: number | null
+          total_balance: number | null
+        }
+        Relationships: []
+      }
+      vw_laba_rugi_detail: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          credit_total: number | null
+          debit_total: number | null
+          display_amount: number | null
+          period_month: string | null
+          transaction_date: string | null
+        }
+        Relationships: []
+      }
+      vw_laporan_keuangan: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          amount: number | null
+          credit_total: number | null
+          debit_total: number | null
+          normal_balance: string | null
+          period_month: string | null
+          report_type: string | null
+          section: string | null
+          transaction_date: string | null
+        }
+        Relationships: []
+      }
+      vw_laporan_keuangan_all: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          amount: number | null
+          credit_total: number | null
+          debit_total: number | null
+          report_type: string | null
+          section: string | null
         }
         Relationships: []
       }
@@ -2413,7 +2814,23 @@ export type Database = {
       }
     }
     Functions: {
+      fn_income_statement: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          credit_total: number
+          debit_total: number
+          is_total: boolean
+          note: string
+          saldo: number
+          section: string
+          sort_section: number
+        }[]
+      }
+      fn_update_coa_balance: { Args: never; Returns: undefined }
       gen_stock_code: { Args: never; Returns: string }
+      generate_pr_code: { Args: never; Returns: string }
       generate_supplier_code: {
         Args: { pad_len?: number; prefix?: string }
         Returns: string
@@ -2503,6 +2920,7 @@ export type Database = {
         | "DDP"
         | "OTHER"
       payment_status: "UNPAID" | "PARTIALLY_PAID" | "PAID" | "INVOICE_SENT"
+      user_status: "active" | "inactive" | "suspended"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2660,6 +3078,7 @@ export const Constants = {
         "OTHER",
       ],
       payment_status: ["UNPAID", "PARTIALLY_PAID", "PAID", "INVOICE_SENT"],
+      user_status: ["active", "inactive", "suspended"],
     },
   },
 } as const

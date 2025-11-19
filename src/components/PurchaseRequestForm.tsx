@@ -34,10 +34,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
 import { useToast } from "./ui/use-toast";
 import { Calendar } from "./ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { CalendarIcon, Upload, X, Plus } from "lucide-react";
+import { CalendarIcon, Upload, X, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface PurchaseRequestFormProps {
@@ -61,6 +69,19 @@ interface StockItem {
   purchase_price?: number;
   selling_price?: number;
   ppn_on_purchase?: number;
+}
+
+interface PRItem {
+  id: string;
+  item_name: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  tax: number;
+  shipping_cost: number;
+  subtotal: number;
+  hs_category?: string;
+  foto_barang?: string;
 }
 
 interface PurchaseRequestForm {
@@ -92,14 +113,23 @@ export default function PurchaseRequestForm({
     null,
   );
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  const [selectedStockItem, setSelectedStockItem] = useState<StockItem | null>(
-    null,
-  );
+  const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
+
+  // PR Items state
+  const [prItems, setPrItems] = useState<PRItem[]>([]);
+  const [currentItem, setCurrentItem] = useState({
+    item_name: "",
+    quantity: 1,
+    unit: "",
+    unit_price: 0,
+    tax: 0,
+    shipping_cost: 0,
+    hs_category: "",
+  });
   const [openItemCombobox, setOpenItemCombobox] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
   const [newSupplierData, setNewSupplierData] = useState({
     supplier_name: "",
     contact_person: "",
@@ -117,21 +147,14 @@ export default function PurchaseRequestForm({
     status: "ACTIVE",
     address: "",
   });
-  const [formData, setFormData] = useState<PurchaseRequestForm>({
+  const [formData, setFormData] = useState({
     request_date: new Date(),
     name: "",
-    item_name: "",
     supplier_id: "",
-    qty: "1",
-    unit: "",
-    unit_price: "0",
-    shipping_cost: "0",
-    tax: "0",
-    barcode: "",
+    shipping_cost: 0,
     notes: "",
     email: user?.email || "",
     status: "PENDING",
-    hs_category: "",
   });
 
   useEffect(() => {
@@ -204,28 +227,25 @@ export default function PurchaseRequestForm({
     console.log("=== Item Selected ===");
     console.log("Selected item:", item);
 
-    setSelectedStockItem(item);
+    const taxValue = item.ppn_on_purchase || 0;
 
-    // Use ppn_on_purchase directly as tax value
-    const taxValue = item.ppn_on_purchase?.toString() || "0";
-
-    setFormData({
-      ...formData,
+    setCurrentItem({
       item_name: item.item_name,
-      hs_category: item.hs_category || "",
+      quantity: 1,
       unit: item.unit || "",
-      unit_price: item.purchase_price?.toString() || "0",
+      unit_price: item.purchase_price || 0,
       tax: taxValue,
+      shipping_cost: 0,
+      hs_category: item.hs_category || "",
     });
 
-    console.log("Form data updated with:", {
+    console.log("Current item updated with:", {
       item_name: item.item_name,
       hs_category: item.hs_category,
       supplier_name: item.supplier_name,
       unit: item.unit,
       unit_price: item.purchase_price,
       tax: taxValue,
-      ppn_on_purchase: item.ppn_on_purchase,
     });
 
     // Find supplier by name if available
@@ -243,67 +263,178 @@ export default function PurchaseRequestForm({
     setOpenItemCombobox(false);
   };
 
-  const handleAddNewSupplier = async (e: React.FormEvent) => {
+  const calculateItemSubtotal = (
+    quantity: number,
+    unitPrice: number,
+    tax: number,
+    shippingCost: number,
+  ) => {
+    return quantity * unitPrice + tax + shippingCost;
+  };
+
+  const handleAddItem = async () => {
+    if (
+      !currentItem.item_name ||
+      currentItem.quantity <= 0 ||
+      currentItem.unit_price < 0
+    ) {
+      toast({
+        title: "Error",
+        description: "Mohon lengkapi data item (nama, quantity, dan harga)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const subtotal = calculateItemSubtotal(
+      currentItem.quantity,
+      currentItem.unit_price,
+      currentItem.tax,
+      currentItem.shipping_cost,
+    );
+
+    const newItem: PRItem = {
+      id: Date.now().toString(),
+      item_name: currentItem.item_name,
+      quantity: currentItem.quantity,
+      unit: currentItem.unit,
+      unit_price: currentItem.unit_price,
+      tax: currentItem.tax,
+      shipping_cost: currentItem.shipping_cost,
+      subtotal: subtotal,
+      hs_category: currentItem.hs_category,
+      foto_barang: photoUrl || undefined,
+    };
+
+    setPrItems([...prItems, newItem]);
+
+    // Reset current item
+    setCurrentItem({
+      item_name: "",
+      quantity: 1,
+      unit: "",
+      unit_price: 0,
+      tax: 0,
+      shipping_cost: 0,
+      hs_category: "",
+    });
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoUrl(null);
+
+    toast({
+      title: "Item ditambahkan",
+      description: `${newItem.item_name} berhasil ditambahkan ke daftar`,
+    });
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    setPrItems(prItems.filter((item) => item.id !== itemId));
+    toast({
+      title: "Item dihapus",
+      description: "Item berhasil dihapus dari daftar",
+    });
+  };
+
+  const calculateTotalAmount = () => {
+    const itemsTotal = prItems.reduce((sum, item) => sum + item.subtotal, 0);
+    return itemsTotal;
+  };
+
+  const calculateTotalShipping = () => {
+    return prItems.reduce((sum, item) => sum + item.shipping_cost, 0);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (prItems.length === 0) {
+      toast({
+        title: "Error",
+        description: "Mohon tambahkan minimal 1 item ke Purchase Request",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("suppliers")
-        .insert({
-          supplier_name: newSupplierData.supplier_name,
-          contact_person: newSupplierData.contact_person,
-          phone_number: newSupplierData.phone_number,
-          email: newSupplierData.email,
-          city: newSupplierData.city,
-          country: newSupplierData.country,
-          is_pkp: newSupplierData.is_pkp,
-          tax_id: newSupplierData.tax_id,
-          bank_name: newSupplierData.bank_name,
-          bank_account_holder: newSupplierData.bank_account_holder,
-          payment_terms: newSupplierData.payment_terms,
-          category: newSupplierData.category,
-          currency: newSupplierData.currency,
-          status: newSupplierData.status,
-          address: newSupplierData.address,
-        })
-        .select()
-        .single();
+      // Generate base request code
+      const baseRequestCode = `PR-${Date.now()}`;
 
-      if (error) throw error;
+      // Pastikan name tidak kosong
+      const requesterName =
+        formData.name ||
+        userProfile?.full_name ||
+        user?.email?.split("@")[0] ||
+        "Unknown User";
+
+      // Insert each item as a separate purchase request with unique code
+      const insertPromises = prItems.map((item, index) =>
+        supabase.from("purchase_requests").insert({
+          request_code: `${baseRequestCode}-${index + 1}`, // Add index to make unique
+          request_date: format(formData.request_date, "yyyy-MM-dd"),
+          name: requesterName,
+          item_name: item.item_name,
+          quantity: item.quantity,
+          unit: item.unit,
+          unit_price: item.unit_price,
+          shipping_cost: item.shipping_cost,
+          total_amount: item.subtotal,
+          requester_id: user?.id,
+          status: "PENDING",
+          email: formData.email || null,
+          tax: item.tax,
+          notes: formData.notes || null,
+          supplier_id: formData.supplier_id || null,
+          foto_barang: item.foto_barang || null,
+          item_description: item.item_name,
+          requester_name: requesterName,
+        }),
+      );
+
+      const results = await Promise.all(insertPromises);
+
+      // Check for errors
+      const errors = results.filter((result) => result.error);
+      if (errors.length > 0) {
+        throw errors[0].error;
+      }
 
       toast({
         title: "Success",
-        description: `Supplier ${data.supplier_name} berhasil ditambahkan`,
+        description: `Purchase request dengan ${prItems.length} item berhasil dibuat`,
       });
 
       // Reset form
-      setNewSupplierData({
-        supplier_name: "",
-        contact_person: "",
-        phone_number: "",
-        email: "",
-        city: "",
-        country: "",
-        is_pkp: "",
-        tax_id: "",
-        bank_name: "",
-        bank_account_holder: "",
-        payment_terms: "",
-        category: "",
-        currency: "IDR",
-        status: "ACTIVE",
-        address: "",
+      setFormData({
+        request_date: new Date(),
+        name: userProfile?.full_name || "",
+        supplier_id: "",
+        shipping_cost: 0,
+        notes: "",
+        email: user?.email || "",
+        status: "PENDING",
       });
+      setPrItems([]);
+      setCurrentItem({
+        item_name: "",
+        quantity: 1,
+        unit: "",
+        unit_price: 0,
+        tax: 0,
+        shipping_cost: 0,
+        hs_category: "",
+      });
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setPhotoUrl(null);
+      setSelectedSupplier(null);
 
-      // Refresh suppliers list
-      await fetchSuppliers();
-
-      // Auto-select the new supplier
-      setFormData({ ...formData, supplier_id: data.id });
-      setSelectedSupplier(data);
-
-      setIsSupplierDialogOpen(false);
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -319,17 +450,7 @@ export default function PurchaseRequestForm({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Please upload an image file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (max 5MB)
+    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Error",
@@ -339,37 +460,37 @@ export default function PurchaseRequestForm({
       return;
     }
 
-    setPhotoFile(file);
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Error",
+        description: "File must be an image",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPhotoPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
 
     // Upload to Supabase Storage
-    await uploadPhoto(file);
-  };
-
-  const uploadPhoto = async (file: File) => {
     setUploading(true);
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `purchase-items/${fileName}`;
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `purchase-requests/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("purchase-items")
+        .from("purchase-request-photos")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("purchase-items").getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage
+        .from("purchase-request-photos")
+        .getPublicUrl(filePath);
 
-      setPhotoUrl(publicUrl);
+      setPhotoUrl(urlData.publicUrl);
 
       toast({
         title: "Success",
@@ -394,94 +515,48 @@ export default function PurchaseRequestForm({
     setPhotoUrl(null);
   };
 
-  const calculateTotalAmount = () => {
-    const qty = parseFloat(formData.qty) || 0;
-    const unitPrice = parseFloat(formData.unit_price) || 0;
-    const shippingCost = parseFloat(formData.shipping_cost) || 0;
-    const tax = parseFloat(formData.tax) || 0;
-
-    return qty * unitPrice + shippingCost + tax;
-  };
-
-  const formatToRupiah = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAddNewSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Generate request code
-      const requestCode = `PR-${Date.now()}`;
-
-      // Pastikan name tidak kosong
-      const requesterName =
-        formData.name ||
-        userProfile?.full_name ||
-        user?.email?.split("@")[0] ||
-        "Unknown User";
-
-      const { error } = await supabase.from("purchase_requests").insert({
-        request_code: requestCode,
-        request_date: format(formData.request_date, "yyyy-MM-dd"),
-        name: requesterName,
-        item_name: formData.item_name,
-        quantity: parseInt(formData.qty),
-        unit_price: parseFloat(formData.unit_price),
-        shipping_cost: parseFloat(formData.shipping_cost) || 0,
-        total_amount: calculateTotalAmount(),
-        requester_id: user?.id,
-        status: "PENDING",
-        email: formData.email || null,
-        tax: parseFloat(formData.tax) || 0,
-        barcode: formData.barcode || null,
-        notes: formData.notes || null,
-        supplier_id: formData.supplier_id || null,
-        foto_barang: photoUrl || null,
-        item_description: formData.item_name,
-        requester_name: requesterName,
-        unit: formData.unit || null,
-      });
+      const { data, error } = await supabase
+        .from("suppliers")
+        .insert([newSupplierData])
+        .select()
+        .single();
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Purchase request created successfully",
+        description: "Supplier berhasil ditambahkan",
       });
 
-      // Reset form
-      setFormData({
-        request_date: new Date(),
-        name: userProfile?.full_name || "",
-        item_name: "",
-        supplier_id: "",
-        qty: "1",
-        unit: "",
-        unit_price: "0",
-        shipping_cost: "0",
-        tax: "0",
-        barcode: "",
-        notes: "",
-        email: user?.email || "",
-        status: "PENDING",
-        hs_category: "",
-      });
-      setPhotoFile(null);
-      setPhotoPreview(null);
-      setPhotoUrl(null);
-      setSelectedSupplier(null);
-      setSelectedStockItem(null);
+      // Add to suppliers list and select it
+      setSuppliers([...suppliers, data]);
+      setFormData({ ...formData, supplier_id: data.id });
+      setSelectedSupplier(data);
 
-      if (onSuccess) {
-        onSuccess();
-      }
+      // Reset form and close dialog
+      setNewSupplierData({
+        supplier_name: "",
+        contact_person: "",
+        phone_number: "",
+        email: "",
+        city: "",
+        country: "",
+        is_pkp: "",
+        tax_id: "",
+        bank_name: "",
+        bank_account_holder: "",
+        payment_terms: "",
+        category: "",
+        currency: "IDR",
+        status: "ACTIVE",
+        address: "",
+      });
+      setIsSupplierDialogOpen(false);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -494,18 +569,27 @@ export default function PurchaseRequestForm({
   };
 
   const totalAmount = calculateTotalAmount();
+  const formatToRupiah = (amount: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Card className="max-w-3xl mx-auto">
+      <Card className="max-w-5xl mx-auto">
         <CardHeader>
           <CardTitle>Create Purchase Request</CardTitle>
           <CardDescription>
-            Fill in the details for your purchase request
+            Fill in the details for your purchase request with multiple items
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Header Information */}
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="request_date">Request Date *</Label>
@@ -557,142 +641,18 @@ export default function PurchaseRequestForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="item_name">Item Name *</Label>
-              <Popover
-                open={openItemCombobox}
-                onOpenChange={setOpenItemCombobox}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openItemCombobox}
-                    className="w-full justify-between"
-                  >
-                    {formData.item_name || "Select or type item name..."}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search or type new item name..."
-                      value={formData.item_name}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, item_name: value })
-                      }
-                    />
-                    <CommandList>
-                      <CommandEmpty>
-                        <div className="p-4 space-y-2">
-                          <p className="text-sm text-slate-600">
-                            Item "{formData.item_name}" tidak ditemukan di list.
-                          </p>
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => {
-                              // Keep the typed item name and close the combobox
-                              setOpenItemCombobox(false);
-                              toast({
-                                title: "Item Baru",
-                                description: `Item "${formData.item_name}" akan ditambahkan sebagai item baru`,
-                              });
-                            }}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Gunakan "{formData.item_name}" sebagai item baru
-                          </Button>
-                        </div>
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {stockItems.map((item) => (
-                          <CommandItem
-                            key={item.id}
-                            value={item.item_name}
-                            onSelect={() => handleItemSelect(item)}
-                          >
-                            {item.item_name}
-                            {item.hs_category && (
-                              <span className="ml-2 text-xs text-slate-500">
-                                ({item.hs_category})
-                              </span>
-                            )}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {formData.item_name && !stockItems.find(item => item.item_name === formData.item_name) && (
-                <p className="text-xs text-blue-600 mt-1">
-                  ℹ️ Item baru akan dibuat: "{formData.item_name}"
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hs_category">Kategori (HS Category)</Label>
-              <Input
-                id="hs_category"
-                value={formData.hs_category}
-                onChange={(e) =>
-                  setFormData({ ...formData, hs_category: e.target.value })
-                }
-                placeholder="Kategori barang"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="foto_barang">Foto Barang</Label>
-              <div className="space-y-3">
-                {!photoPreview ? (
-                  <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-slate-400 transition-colors">
-                    <input
-                      id="foto_barang"
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      className="hidden"
-                      disabled={uploading}
-                    />
-                    <label htmlFor="foto_barang" className="cursor-pointer">
-                      <Upload className="mx-auto h-12 w-12 text-slate-400" />
-                      <p className="mt-2 text-sm text-slate-600">
-                        {uploading ? "Uploading..." : "Click to upload photo"}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        PNG, JPG up to 5MB
-                      </p>
-                    </label>
-                  </div>
-                ) : (
-                  <div className="relative border border-slate-300 rounded-lg p-2">
-                    <img
-                      src={photoPreview}
-                      alt="Preview"
-                      className="w-full h-48 object-cover rounded"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-4 right-4"
-                      onClick={removePhoto}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="supplier_id">Supplier Name</Label>
               <Select
                 value={formData.supplier_id}
-                onValueChange={handleSupplierChange}
+                onValueChange={(value) => {
+                  if (value === "add_new") {
+                    setIsSupplierDialogOpen(true);
+                    return;
+                  }
+                  setFormData({ ...formData, supplier_id: value });
+                  const supplier = suppliers.find((s) => s.id === value);
+                  setSelectedSupplier(supplier || null);
+                }}
               >
                 <SelectTrigger id="supplier_id">
                   <SelectValue placeholder="Pilih supplier" />
@@ -721,85 +681,347 @@ export default function PurchaseRequestForm({
                   Supplier Information
                 </h4>
 
-                <div className="space-y-2">
-                  <Label htmlFor="supplier_phone">Phone Number</Label>
-                  <Input
-                    id="supplier_phone"
-                    value={selectedSupplier.phone_number || "-"}
-                    disabled
-                    className="bg-white"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="supplier_address">Address</Label>
-                  <Textarea
-                    id="supplier_address"
-                    value={selectedSupplier.address || "-"}
-                    disabled
-                    className="bg-white"
-                    rows={2}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="supplier_email">Email</Label>
-                  <Input
-                    id="supplier_email"
-                    value={selectedSupplier.email || "-"}
-                    disabled
-                    className="bg-white"
-                  />
+                <div className="grid md:grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <Label className="text-xs text-slate-600">Phone</Label>
+                    <p className="font-medium">
+                      {selectedSupplier.phone_number || "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-600">Email</Label>
+                    <p className="font-medium">
+                      {selectedSupplier.email || "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-600">Address</Label>
+                    <p className="font-medium">
+                      {selectedSupplier.address || "-"}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
 
-            <div className="grid md:grid-cols-3 gap-4">
+            {/* Add Item Section */}
+            <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 space-y-4">
+              <h3 className="text-lg font-semibold text-slate-700">
+                Tambah Item
+              </h3>
+
               <div className="space-y-2">
-                <Label htmlFor="qty">Quantity *</Label>
+                <Label htmlFor="item_name">Item Name *</Label>
+                <Popover
+                  open={openItemCombobox}
+                  onOpenChange={setOpenItemCombobox}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openItemCombobox}
+                      className="w-full justify-between"
+                    >
+                      {currentItem.item_name || "Select or type item name..."}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search or type new item name..."
+                        value={currentItem.item_name}
+                        onValueChange={(value) =>
+                          setCurrentItem({ ...currentItem, item_name: value })
+                        }
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          <div className="p-4 space-y-2">
+                            <p className="text-sm text-slate-600">
+                              Item "{currentItem.item_name}" tidak ditemukan di
+                              list.
+                            </p>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="w-full"
+                              onClick={() => {
+                                setOpenItemCombobox(false);
+                                toast({
+                                  title: "Item Baru",
+                                  description: `Item "${currentItem.item_name}" akan ditambahkan sebagai item baru`,
+                                });
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Gunakan "{currentItem.item_name}" sebagai item
+                              baru
+                            </Button>
+                          </div>
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {stockItems.map((item) => (
+                            <CommandItem
+                              key={item.id}
+                              value={item.item_name}
+                              onSelect={() => handleItemSelect(item)}
+                            >
+                              {item.item_name}
+                              {item.hs_category && (
+                                <span className="ml-2 text-xs text-slate-500">
+                                  ({item.hs_category})
+                                </span>
+                              )}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hs_category">Kategori (HS Category)</Label>
                 <Input
-                  id="qty"
-                  type="number"
-                  min="1"
-                  value={formData.qty}
+                  id="hs_category"
+                  value={currentItem.hs_category}
                   onChange={(e) =>
-                    setFormData({ ...formData, qty: e.target.value })
+                    setCurrentItem({
+                      ...currentItem,
+                      hs_category: e.target.value,
+                    })
                   }
-                  required
+                  placeholder="Kategori barang"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="unit">Satuan Barang</Label>
-                <Input
-                  id="unit"
-                  value={formData.unit}
-                  onChange={(e) =>
-                    setFormData({ ...formData, unit: e.target.value })
-                  }
-                  placeholder="Contoh: pcs, botol, unit, dll."
-                />
+                <Label htmlFor="foto_barang">Foto Barang</Label>
+                <div className="space-y-3">
+                  {!photoPreview ? (
+                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-slate-400 transition-colors">
+                      <input
+                        id="foto_barang"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                        disabled={uploading}
+                      />
+                      <label htmlFor="foto_barang" className="cursor-pointer">
+                        <Upload className="mx-auto h-12 w-12 text-slate-400" />
+                        <p className="mt-2 text-sm text-slate-600">
+                          {uploading ? "Uploading..." : "Click to upload photo"}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          PNG, JPG up to 5MB
+                        </p>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="relative border border-slate-300 rounded-lg p-2">
+                      <img
+                        src={photoPreview}
+                        alt="Preview"
+                        className="w-full h-48 object-cover rounded"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-4 right-4"
+                        onClick={removePhoto}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantity *</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={currentItem.quantity}
+                    onChange={(e) =>
+                      setCurrentItem({
+                        ...currentItem,
+                        quantity: parseInt(e.target.value) || 1,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="unit">Unit</Label>
+                  <Input
+                    id="unit"
+                    value={currentItem.unit}
+                    onChange={(e) =>
+                      setCurrentItem({ ...currentItem, unit: e.target.value })
+                    }
+                    placeholder="pcs, kg, dll"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="unit_price">Unit Price *</Label>
+                  <Input
+                    id="unit_price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={currentItem.unit_price}
+                    onChange={(e) =>
+                      setCurrentItem({
+                        ...currentItem,
+                        unit_price: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tax">Tax</Label>
+                  <Input
+                    id="tax"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={currentItem.tax}
+                    onChange={(e) =>
+                      setCurrentItem({
+                        ...currentItem,
+                        tax: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="unit_price">Unit Price *</Label>
+                <Label htmlFor="item_shipping_cost">Shipping Cost</Label>
                 <Input
-                  id="unit_price"
+                  id="item_shipping_cost"
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.unit_price}
+                  value={currentItem.shipping_cost}
                   onChange={(e) =>
-                    setFormData({ ...formData, unit_price: e.target.value })
+                    setCurrentItem({
+                      ...currentItem,
+                      shipping_cost: parseFloat(e.target.value) || 0,
+                    })
                   }
-                  required
+                  placeholder="Biaya pengiriman untuk item ini"
                 />
+              </div>
+
+              <div className="flex justify-between items-center pt-2">
+                <div className="text-sm text-slate-600">
+                  Subtotal:{" "}
+                  <span className="font-semibold text-slate-900">
+                    {formatToRupiah(
+                      calculateItemSubtotal(
+                        currentItem.quantity,
+                        currentItem.unit_price,
+                        currentItem.tax,
+                        currentItem.shipping_cost,
+                      ),
+                    )}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleAddItem}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Barang
+                </Button>
               </div>
             </div>
 
+            {/* PR Items Table */}
+            {prItems.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-slate-700">
+                  Daftar Item ({prItems.length})
+                </h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50">
+                        <TableHead className="w-[30%]">Item Name</TableHead>
+                        <TableHead className="text-center">Qty</TableHead>
+                        <TableHead className="text-center">Unit</TableHead>
+                        <TableHead className="text-right">Unit Price</TableHead>
+                        <TableHead className="text-right">Tax</TableHead>
+                        <TableHead className="text-right">Shipping</TableHead>
+                        <TableHead className="text-right">Subtotal</TableHead>
+                        <TableHead className="text-center w-[80px]">
+                          Action
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {prItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">
+                            {item.item_name}
+                            {item.hs_category && (
+                              <span className="block text-xs text-slate-500">
+                                {item.hs_category}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {item.quantity}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {item.unit || "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatToRupiah(item.unit_price)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatToRupiah(item.tax)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatToRupiah(item.shipping_cost)}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatToRupiah(item.subtotal)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
+            {/* Shipping Cost & Notes */}
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="shipping_cost">Shipping Cost *</Label>
+                <Label htmlFor="shipping_cost">Shipping Cost</Label>
                 <Input
                   id="shipping_cost"
                   type="number"
@@ -807,35 +1029,12 @@ export default function PurchaseRequestForm({
                   min="0"
                   value={formData.shipping_cost}
                   onChange={(e) =>
-                    setFormData({ ...formData, shipping_cost: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tax">Tax</Label>
-                <Input
-                  id="tax"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.tax}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tax: e.target.value })
+                    setFormData({
+                      ...formData,
+                      shipping_cost: parseFloat(e.target.value) || 0,
+                    })
                   }
                 />
-              </div>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-slate-700">
-                  Total Amount:
-                </span>
-                <span className="text-2xl font-bold text-blue-600">
-                  {formatToRupiah(totalAmount)}
-                </span>
               </div>
             </div>
 
@@ -852,13 +1051,48 @@ export default function PurchaseRequestForm({
               />
             </div>
 
+            {/* Total Amount */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">Items Total:</span>
+                  <span className="font-medium">
+                    {formatToRupiah(
+                      prItems.reduce(
+                        (sum, item) =>
+                          sum + (item.quantity * item.unit_price + item.tax),
+                        0,
+                      ),
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">Total Shipping Cost:</span>
+                  <span className="font-medium">
+                    {formatToRupiah(calculateTotalShipping())}
+                  </span>
+                </div>
+                <div className="border-t border-blue-300 pt-2 flex justify-between items-center">
+                  <span className="font-semibold text-slate-700">
+                    Total Amount:
+                  </span>
+                  <span className="text-2xl font-bold text-blue-600">
+                    {formatToRupiah(totalAmount)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
             <div className="flex gap-3">
               <Button
                 type="submit"
-                disabled={loading || uploading}
+                disabled={loading || uploading || prItems.length === 0}
                 className="flex-1"
               >
-                {loading ? "Submitting..." : "Submit Purchase Request"}
+                {loading
+                  ? "Submitting..."
+                  : `Submit Purchase Request (${prItems.length} items)`}
               </Button>
               <Button
                 type="button"

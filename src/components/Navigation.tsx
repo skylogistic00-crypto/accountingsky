@@ -17,6 +17,9 @@ import {
   PackageX,
   Link2,
   LayoutDashboard,
+  ClipboardList,
+  Wallet,
+  Truck,
 } from "lucide-react";
 
 export default function Navigation() {
@@ -78,6 +81,19 @@ export default function Navigation() {
         "super_admin",
         "accounting_staff",
         "warehouse_manager",
+        "accounting_manager",
+        "read_only",
+      ],
+    },
+    {
+      path: "/shipper",
+      label: "Shippers",
+      icon: Truck,
+      roles: [
+        "super_admin",
+        "accounting_staff",
+        "warehouse_manager",
+        "accounting_manager",
         "read_only",
       ],
     },
@@ -130,6 +146,18 @@ export default function Navigation() {
       ],
     },
     {
+      path: "/stock-adjustment",
+      label: "Stock Adjustment",
+      icon: ClipboardList,
+      roles: [
+        "super_admin",
+        "warehouse_manager",
+        "accounting_manager",
+        "accounting_staff",
+        "warehouse_staff",
+      ],
+    },
+    {
       path: "/air-waybill",
       label: "Air Waybill",
       icon: Plane,
@@ -143,29 +171,18 @@ export default function Navigation() {
     {
       path: "/sales",
       label: "Penjualan",
-      icon: DollarSign,
-      roles: [
-        "super_admin",
-        "accounting_staff",
-        "accounting_manager",
-        "accounting_staff",
-      ],
-    },
-    {
-      path: "/internal-usage",
-      label: "Pemakaian Internal",
-      icon: PackageX,
+      icon: ShoppingCart,
       roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
       path: "/cash-book",
       label: "Cash Book",
-      icon: Receipt,
+      icon: Wallet,
       roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
       path: "/coa-management",
-      label: "COA Management",
+      label: "Chart of Accounts",
       icon: BookOpen,
       roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },

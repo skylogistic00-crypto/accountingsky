@@ -33,6 +33,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Plus,
@@ -63,6 +76,7 @@ interface StockItem {
   sku: string;
   weight: string;
   volume: string;
+  supplier_id: string;
   supplier_name: string;
   warehouses: string;
   zones: string;
@@ -173,8 +187,19 @@ export default function StockForm() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showWarehouseModal, setShowWarehouseModal] = useState(false);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(
+    null,
+  );
+  const [openCategoryCombobox, setOpenCategoryCombobox] = useState(false);
+  const [openServiceTypeCombobox, setOpenServiceTypeCombobox] = useState(false);
+  const [openDescriptionCombobox, setOpenDescriptionCombobox] = useState(false);
+  const [openCOACombobox, setOpenCOACombobox] = useState(false);
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false);
   const { userRole } = useAuth();
+  const { user } = useAuth();
 
+  const [itemType, setItemType] = useState<"barang" | "jasa">("barang");
   const [formData, setFormData] = useState({
     item_name: "",
     service_category: "",
@@ -187,11 +212,10 @@ export default function StockForm() {
     sku: "",
     weight: "",
     volume: "",
+    supplier_id: "",
     supplier_name: "",
-    phone_number: "",
-    email: "",
-    address: "",
     warehouses: "",
+    warehouse_name: "",
     zones: "",
     racks: "",
     lots: "",
@@ -217,6 +241,13 @@ export default function StockForm() {
     hs_description: "",
   });
 
+  // Separate state for display-only supplier info
+  const [supplierInfo, setSupplierInfo] = useState({
+    phone_number: "",
+    email: "",
+    address: "",
+  });
+
   useEffect(() => {
     fetchStockItems();
     fetchCategories();
@@ -227,6 +258,18 @@ export default function StockForm() {
     fetchSuppliers();
     fetchHSCategories();
   }, []);
+
+  // Re-fetch categories when item type changes
+  useEffect(() => {
+    fetchCategories();
+    // Reset category-related fields when item type changes
+    setFormData({
+      ...formData,
+      service_category: "",
+      service_type: "",
+      description: "",
+    });
+  }, [itemType]);
 
   useEffect(() => {
     if (formData.service_category) {
@@ -609,11 +652,31 @@ export default function StockForm() {
       if (error) throw error;
 
       // Get unique values from kategori_layanan
-      const uniqueCategories = [
+      let uniqueCategories = [
         ...new Set(
           data?.map((item) => item.kategori_layanan).filter(Boolean) || [],
         ),
       ];
+
+      // Filter categories based on item type
+      if (itemType === "jasa") {
+        // For services, only show categories related to revenue/income (Pendapatan)
+        uniqueCategories = uniqueCategories.filter((cat) =>
+          cat.toLowerCase().includes("pendapatan") ||
+          cat.toLowerCase().includes("revenue") ||
+          cat.toLowerCase().includes("income")
+        );
+      } else {
+        // For goods, show categories related to inventory/COGS (Persediaan/HPP)
+        uniqueCategories = uniqueCategories.filter((cat) =>
+          cat.toLowerCase().includes("persediaan") ||
+          cat.toLowerCase().includes("inventory") ||
+          cat.toLowerCase().includes("hpp") ||
+          cat.toLowerCase().includes("cogs") ||
+          cat.toLowerCase().includes("barang")
+        );
+      }
+
       setCategories(uniqueCategories);
     } catch (error: any) {
       toast({
@@ -917,26 +980,47 @@ export default function StockForm() {
     setLoading(true);
 
     try {
+      // Determine target table based on item type
+      const targetTable = itemType === "jasa" ? "service_items" : "stock";
+
+      // Prepare data with proper date handling and user ID
+      const dataToSubmit = {
+        ...formData,
+        item_arrival_date: formData.item_arrival_date || null,
+        ceisa_document_date: formData.ceisa_document_date || null,
+        created_by: user?.id || null,
+      };
+
+      // Remove warehouse_name and supplier display fields before submitting
+      delete dataToSubmit.warehouse_name;
+
+      // 🔥 Wajib: ubah "" menjadi null
+      Object.keys(dataToSubmit).forEach((key) => {
+        if (dataToSubmit[key] === "") {
+          dataToSubmit[key] = null;
+        }
+      });
+
       if (editingId) {
         const { error } = await supabase
-          .from("stock")
-          .update(formData)
+          .from(targetTable)
+          .update(dataToSubmit)
           .eq("id", editingId);
 
         if (error) throw error;
 
         toast({
           title: "✅ Berhasil",
-          description: "Data stock berhasil diupdate",
+          description: `Data ${itemType === "jasa" ? "jasa" : "stock"} berhasil diupdate`,
         });
       } else {
-        const { error } = await supabase.from("stock").insert([formData]);
+        const { error } = await supabase.from(targetTable).insert([dataToSubmit]);
 
         if (error) throw error;
 
         toast({
           title: "✅ Berhasil",
-          description: "Data stock berhasil ditambahkan",
+          description: `Data ${itemType === "jasa" ? "jasa" : "stock"} berhasil ditambahkan`,
         });
       }
 
@@ -964,7 +1048,17 @@ export default function StockForm() {
 
       if (error) throw error;
 
-      setFormData(data);
+      // Find warehouse from warehouse name
+      const warehouse = warehouses.find((wh) => wh.name === data.warehouses);
+      if (warehouse) {
+        setSelectedWarehouseId(warehouse.id);
+      }
+
+      // Set warehouse_name for display
+      setFormData({
+        ...data,
+        warehouse_name: data.warehouses || "",
+      });
       setEditingId(id);
       setShowForm(true);
     } catch (error: any) {
@@ -1008,6 +1102,10 @@ export default function StockForm() {
       setFormData({
         ...formData,
         supplier_name: supplierName,
+        supplier_id: selectedSupplier.id,
+      });
+      // Set display-only info in separate state
+      setSupplierInfo({
         phone_number: selectedSupplier.phone_number || "",
         email: selectedSupplier.email || "",
         address: selectedSupplier.address || "",
@@ -1016,6 +1114,9 @@ export default function StockForm() {
       setFormData({
         ...formData,
         supplier_name: supplierName,
+        supplier_id: "",
+      });
+      setSupplierInfo({
         phone_number: "",
         email: "",
         address: "",
@@ -1023,7 +1124,161 @@ export default function StockForm() {
     }
   };
 
+  // Check if selected warehouse is "Gudang Penjualan" (code: 222)
+  const isGudangPenjualan = () => {
+    const selectedWarehouse = warehouses.find(
+      (wh) => wh.name === formData.warehouses,
+    );
+    // Check by code instead of ID
+    const isGP = selectedWarehouse?.code === "222";
+    console.log("Checking Gudang Penjualan:", {
+      warehouseName: formData.warehouses,
+      warehouseCode: selectedWarehouse?.code,
+      isGudangPenjualan: isGP,
+    });
+    return isGP;
+  };
+
+  const handleWarehouseSelection = (warehouseId: string) => {
+    const warehouse = warehouses.find((wh) => wh.id === warehouseId);
+    if (warehouse) {
+      setSelectedWarehouseId(warehouseId);
+      setFormData({
+        ...formData,
+        warehouses: warehouse.name, // Store warehouse name in warehouses column
+        warehouse_name: warehouse.name, // Store name for display
+      });
+      setShowWarehouseModal(false);
+      setShowForm(true);
+    }
+  };
+
+  const handleAddNewStock = () => {
+    if (showForm) {
+      // If form is already open, close it
+      resetForm();
+      setShowForm(false);
+    } else {
+      // If form is closed, open warehouse modal
+      resetForm();
+      setShowWarehouseModal(true);
+    }
+  };
+
+  const handleCOARecommendation = async () => {
+    if (
+      !formData.item_name ||
+      !formData.service_category ||
+      !formData.service_type ||
+      !formData.description
+    ) {
+      toast({
+        title: "⚠️ Data Tidak Lengkap",
+        description:
+          "Mohon isi Nama Barang, Kategori, Jenis Produk, dan Deskripsi terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingRecommendation(true);
+
+    try {
+      // Fetch all COA accounts
+      const { data: allCOA, error } = await supabase
+        .from("chart_of_accounts")
+        .select(
+          "account_code, account_name, kategori_layanan, jenis_layanan, description",
+        )
+        .eq("is_active", true);
+
+      if (error) throw error;
+
+      if (!allCOA || allCOA.length === 0) {
+        toast({
+          title: "❌ Tidak Ditemukan",
+          description: "Tidak ditemukan rekomendasi COA",
+        });
+        return;
+      }
+
+      // Calculate scores for each COA
+      const scoredCOA = allCOA.map((coa) => {
+        let score = 0;
+
+        // Category match: +3
+        if (
+          coa.kategori_layanan?.toLowerCase() ===
+          formData.service_category.toLowerCase()
+        ) {
+          score += 3;
+        }
+
+        // Service type match: +2
+        if (
+          coa.jenis_layanan?.toLowerCase() ===
+          formData.service_type.toLowerCase()
+        ) {
+          score += 2;
+        }
+
+        // Description similarity: +1 for each matching word
+        if (coa.description && formData.description) {
+          const coaWords = coa.description.toLowerCase().split(/\s+/);
+          const formWords = formData.description.toLowerCase().split(/\s+/);
+
+          const matchingWords = coaWords.filter((word) =>
+            formWords.some(
+              (formWord) => formWord.includes(word) || word.includes(formWord),
+            ),
+          );
+
+          if (matchingWords.length > 0) {
+            score += 1;
+          }
+        }
+
+        return { ...coa, score };
+      });
+
+      // Sort by score (highest first)
+      const sortedCOA = scoredCOA.sort((a, b) => b.score - a.score);
+
+      // Get the best match
+      const bestMatch = sortedCOA[0];
+
+      if (bestMatch.score === 0) {
+        toast({
+          title: "❌ Tidak Ditemukan",
+          description: "Tidak ditemukan rekomendasi COA yang cocok",
+        });
+        return;
+      }
+
+      // Auto-fill COA fields
+      setFormData({
+        ...formData,
+        coa_account_code: bestMatch.account_code,
+        coa_account_name: bestMatch.account_name,
+      });
+
+      toast({
+        title: "✅ Rekomendasi COA Ditemukan",
+        description: `${bestMatch.account_code} - ${bestMatch.account_name} (Skor: ${bestMatch.score})`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingRecommendation(false);
+    }
+  };
+
   const resetForm = () => {
+    setItemType("barang");
     setFormData({
       item_name: "",
       service_category: "",
@@ -1036,11 +1291,10 @@ export default function StockForm() {
       sku: "",
       weight: "",
       volume: "",
+      supplier_id: "",
       supplier_name: "",
-      phone_number: "",
-      email: "",
-      address: "",
       warehouses: "",
+      warehouse_name: "",
       zones: "",
       racks: "",
       lots: "",
@@ -1065,7 +1319,13 @@ export default function StockForm() {
       hs_sub_category: "",
       hs_description: "",
     });
+    setSupplierInfo({
+      phone_number: "",
+      email: "",
+      address: "",
+    });
     setEditingId(null);
+    setSelectedWarehouseId(null);
   };
 
   const handleBack = () => {
@@ -1110,10 +1370,7 @@ export default function StockForm() {
           </div>
           {canClick(userRole) && (
             <Button
-              onClick={() => {
-                resetForm();
-                setShowForm(!showForm);
-              }}
+              onClick={handleAddNewStock}
               className="bg-white text-indigo-600 hover:bg-blue-50 shadow-md"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -1124,6 +1381,39 @@ export default function StockForm() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Warehouse Selection Modal */}
+        <Dialog open={showWarehouseModal} onOpenChange={setShowWarehouseModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-indigo-600">
+                Pilih Gudang
+              </DialogTitle>
+              <p className="text-sm text-slate-600 mt-2">
+                Pilih gudang terlebih dahulu untuk melanjutkan input stock
+              </p>
+            </DialogHeader>
+            <div className="space-y-3 mt-4">
+              {warehouses.map((warehouse) => (
+                <Button
+                  key={warehouse.id}
+                  variant="outline"
+                  className="w-full justify-start text-left h-auto py-4 hover:bg-indigo-50 hover:border-indigo-300"
+                  onClick={() => handleWarehouseSelection(warehouse.id)}
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="font-semibold text-slate-900">
+                      {warehouse.name}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      Kode: {warehouse.code}
+                    </span>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Form Input */}
         {showForm && (
           <Card className="mb-6 bg-white shadow-lg rounded-xl border border-slate-200">
@@ -1139,6 +1429,30 @@ export default function StockForm() {
             </CardHeader>
             <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Item Type Selection */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                    Tipe Item
+                  </h3>
+                  <div>
+                    <Label>Pilih Tipe Item *</Label>
+                    <Select
+                      value={itemType}
+                      onValueChange={(value: "barang" | "jasa") => {
+                        setItemType(value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="barang">Barang</SelectItem>
+                        <SelectItem value="jasa">Jasa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 {/* Basic Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
@@ -1146,7 +1460,7 @@ export default function StockForm() {
                   </h3>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label>Nama Barang *</Label>
+                      <Label>Nama {itemType === "barang" ? "Barang" : "Jasa"} *</Label>
                       <Input
                         value={formData.item_name}
                         onChange={(e) =>
@@ -1161,103 +1475,352 @@ export default function StockForm() {
 
                     <div>
                       <Label>Kategori Layanan/Produk *</Label>
-                      <Select
-                        value={formData.service_category}
-                        onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            service_category: value,
-                            service_type: "",
-                            description: "",
-                          })
-                        }
+                      <Popover
+                        open={openCategoryCombobox}
+                        onOpenChange={setOpenCategoryCombobox}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kategori" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat} value={cat}>
-                              {cat}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openCategoryCombobox}
+                            className="w-full justify-between"
+                          >
+                            {formData.service_category ||
+                              "Pilih atau ketik kategori baru..."}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder="Cari atau ketik kategori baru..."
+                              value={formData.service_category}
+                              onValueChange={(value) =>
+                                setFormData({
+                                  ...formData,
+                                  service_category: value,
+                                  service_type: "",
+                                  description: "",
+                                })
+                              }
+                            />
+                            <CommandList>
+                              <CommandEmpty>
+                                <div className="p-4 space-y-2">
+                                  <p className="text-sm text-slate-600">
+                                    Kategori "{formData.service_category}" tidak
+                                    ditemukan di list.
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => {
+                                      setOpenCategoryCombobox(false);
+                                      toast({
+                                        title: "Kategori Baru",
+                                        description: `Kategori "${formData.service_category}" akan ditambahkan sebagai kategori baru`,
+                                      });
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Gunakan "{formData.service_category}"
+                                    sebagai kategori baru
+                                  </Button>
+                                </div>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {categories.map((cat) => (
+                                  <CommandItem
+                                    key={cat}
+                                    value={cat}
+                                    onSelect={() => {
+                                      setFormData({
+                                        ...formData,
+                                        service_category: cat,
+                                        service_type: "",
+                                        description: "",
+                                      });
+                                      setOpenCategoryCombobox(false);
+                                    }}
+                                  >
+                                    {cat}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      {formData.service_category &&
+                        !categories.includes(formData.service_category) && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            ℹ️ Kategori baru akan dibuat: "
+                            {formData.service_category}"
+                          </p>
+                        )}
                     </div>
 
                     <div>
                       <Label>Jenis Layanan/Produk *</Label>
-                      <Select
-                        value={formData.service_type}
-                        onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            service_type: value,
-                            description: "",
-                          })
-                        }
-                        disabled={!formData.service_category}
+                      <Popover
+                        open={openServiceTypeCombobox}
+                        onOpenChange={setOpenServiceTypeCombobox}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih jenis" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {serviceTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openServiceTypeCombobox}
+                            className="w-full justify-between"
+                            disabled={!formData.service_category}
+                          >
+                            {formData.service_type ||
+                              "Pilih atau ketik jenis layanan baru..."}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder="Cari atau ketik jenis layanan baru..."
+                              value={formData.service_type}
+                              onValueChange={(value) =>
+                                setFormData({
+                                  ...formData,
+                                  service_type: value,
+                                  description: "",
+                                })
+                              }
+                            />
+                            <CommandList>
+                              <CommandEmpty>
+                                <div className="p-4 space-y-2">
+                                  <p className="text-sm text-slate-600">
+                                    Jenis layanan "{formData.service_type}"
+                                    tidak ditemukan di list.
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => {
+                                      setOpenServiceTypeCombobox(false);
+                                      toast({
+                                        title: "Jenis Layanan Baru",
+                                        description: `Jenis layanan "${formData.service_type}" akan ditambahkan sebagai jenis baru`,
+                                      });
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Gunakan "{formData.service_type}" sebagai
+                                    jenis layanan baru
+                                  </Button>
+                                </div>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {serviceTypes.map((type) => (
+                                  <CommandItem
+                                    key={type}
+                                    value={type}
+                                    onSelect={() => {
+                                      setFormData({
+                                        ...formData,
+                                        service_type: type,
+                                        description: "",
+                                      });
+                                      setOpenServiceTypeCombobox(false);
+                                    }}
+                                  >
+                                    {type}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      {formData.service_type &&
+                        !serviceTypes.includes(formData.service_type) && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            ℹ️ Jenis layanan baru akan dibuat: "
+                            {formData.service_type}"
+                          </p>
+                        )}
                     </div>
 
                     <div>
-                      <Label>Deskripsi</Label>
-                      <Select
-                        value={formData.description}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, description: value })
-                        }
-                        disabled={!formData.service_type}
+                      <Label>Deskripsi *</Label>
+                      <Popover
+                        open={openDescriptionCombobox}
+                        onOpenChange={setOpenDescriptionCombobox}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih deskripsi" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {descriptions.map((desc, idx) => (
-                            <SelectItem key={idx} value={desc}>
-                              {desc}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openDescriptionCombobox}
+                            className="w-full justify-between"
+                            disabled={!formData.service_type}
+                          >
+                            {formData.description ||
+                              "Pilih atau ketik deskripsi baru..."}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder="Cari atau ketik deskripsi baru..."
+                              value={formData.description}
+                              onValueChange={(value) =>
+                                setFormData({
+                                  ...formData,
+                                  description: value,
+                                })
+                              }
+                            />
+                            <CommandList>
+                              <CommandEmpty>
+                                <div className="p-4 space-y-2">
+                                  <p className="text-sm text-slate-600">
+                                    Deskripsi "{formData.description}" tidak
+                                    ditemukan di list.
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => {
+                                      setOpenDescriptionCombobox(false);
+                                      toast({
+                                        title: "Deskripsi Baru",
+                                        description: `Deskripsi "${formData.description}" akan ditambahkan sebagai deskripsi baru`,
+                                      });
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Gunakan "{formData.description}" sebagai
+                                    deskripsi baru
+                                  </Button>
+                                </div>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {descriptions.map((desc) => (
+                                  <CommandItem
+                                    key={desc}
+                                    value={desc}
+                                    onSelect={() => {
+                                      setFormData({
+                                        ...formData,
+                                        description: desc,
+                                      });
+                                      setOpenDescriptionCombobox(false);
+                                    }}
+                                  >
+                                    {desc}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      {formData.description &&
+                        !descriptions.includes(formData.description) && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            ℹ️ Deskripsi baru akan dibuat: "
+                            {formData.description}"
+                          </p>
+                        )}
                     </div>
 
                     <div>
                       <Label>Kode Akun COA *</Label>
-                      <Select
-                        value={formData.coa_account_code}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, coa_account_code: value })
-                        }
-                        disabled={
-                          !formData.description || coaAccounts.length === 0
-                        }
+                      <Popover
+                        open={openCOACombobox}
+                        onOpenChange={setOpenCOACombobox}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kode akun" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {coaAccounts.map((acc) => (
-                            <SelectItem
-                              key={acc.account_code}
-                              value={acc.account_code}
-                            >
-                              {acc.account_code} - {acc.account_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openCOACombobox}
+                            className="w-full justify-between"
+                            disabled={!formData.description}
+                          >
+                            {formData.coa_account_code
+                              ? `${formData.coa_account_code} - ${formData.coa_account_name}`
+                              : "Pilih atau ketik kode akun baru..."}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder="Cari atau ketik kode akun baru..."
+                              value={formData.coa_account_code}
+                              onValueChange={(value) =>
+                                setFormData({
+                                  ...formData,
+                                  coa_account_code: value,
+                                })
+                              }
+                            />
+                            <CommandList>
+                              <CommandEmpty>
+                                <div className="p-4 space-y-2">
+                                  <p className="text-sm text-slate-600">
+                                    Kode akun "{formData.coa_account_code}"
+                                    tidak ditemukan di list.
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => {
+                                      setOpenCOACombobox(false);
+                                      toast({
+                                        title: "Kode Akun Baru",
+                                        description: `Kode akun "${formData.coa_account_code}" akan ditambahkan sebagai akun baru`,
+                                      });
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Gunakan "{formData.coa_account_code}"
+                                    sebagai kode akun baru
+                                  </Button>
+                                </div>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {coaAccounts.map((acc) => (
+                                  <CommandItem
+                                    key={acc.account_code}
+                                    value={acc.account_code}
+                                    onSelect={() => {
+                                      setFormData({
+                                        ...formData,
+                                        coa_account_code: acc.account_code,
+                                        coa_account_name: acc.account_name,
+                                      });
+                                      setOpenCOACombobox(false);
+                                    }}
+                                  >
+                                    {acc.account_code} - {acc.account_name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      {formData.coa_account_code &&
+                        !coaAccounts.find(
+                          (acc) =>
+                            acc.account_code === formData.coa_account_code,
+                        ) && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            ℹ️ Kode akun baru akan dibuat: "
+                            {formData.coa_account_code}"
+                          </p>
+                        )}
                     </div>
 
                     <div>
@@ -1327,6 +1890,165 @@ export default function StockForm() {
                       />
                     </div>
 
+                    {/* Removed duplicate Gudang, Zona, Rak, Lot, Jumlah fields - they are in Informasi Gudang section */}
+                  </div>
+
+                  {/* 6. Pricing Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                      Informasi Harga
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Status PPN *</Label>
+                        <Select
+                          value={formData.ppn_status}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, ppn_status: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Yes">Yes</SelectItem>
+                            <SelectItem value="No">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label>Harga Beli *</Label>
+                        <Input
+                          type="number"
+                          value={formData.purchase_price}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              purchase_price: parseFloat(e.target.value),
+                            })
+                          }
+                          required
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          {formatRupiah(formData.purchase_price)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label>Harga Jual *</Label>
+                        <Input
+                          type="number"
+                          value={formData.selling_price}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              selling_price: parseFloat(e.target.value),
+                            })
+                          }
+                          required
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          {formatRupiah(formData.selling_price)}
+                        </p>
+                      </div>
+
+                      {formData.ppn_status === "Yes" && (
+                        <>
+                          <div>
+                            <Label>PPN Beli (%)</Label>
+                            <Input
+                              type="number"
+                              value={formData.ppn_on_purchase}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  ppn_on_purchase: parseFloat(e.target.value),
+                                })
+                              }
+                            />
+                          </div>
+
+                          <div>
+                            <Label>PPN Jual (%)</Label>
+                            <Input
+                              type="number"
+                              value={formData.ppn_on_sale}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  ppn_on_sale: parseFloat(e.target.value),
+                                })
+                              }
+                            />
+                          </div>
+
+                          <div>
+                            <Label>Harga Beli Setelah PPN</Label>
+                            <Input
+                              type="number"
+                              value={formData.purchase_price_after_ppn}
+                              disabled
+                              className="bg-slate-50"
+                            />
+                            <p className="text-xs text-slate-500 mt-1">
+                              {formatRupiah(formData.purchase_price_after_ppn)}
+                            </p>
+                          </div>
+
+                          <div>
+                            <Label>Harga Jual Setelah PPN</Label>
+                            <Input
+                              type="number"
+                              value={formData.selling_price_after_ppn}
+                              disabled
+                              className="bg-slate-50"
+                            />
+                            <p className="text-xs text-slate-500 mt-1">
+                              {formatRupiah(formData.selling_price_after_ppn)}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. Supplier Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                      Informasi Supplier
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {/* COA Recommendation Button */}
+                      <div className="flex justify-start mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCOARecommendation}
+                          disabled={
+                            loadingRecommendation ||
+                            !formData.item_name ||
+                            !formData.service_category ||
+                            !formData.service_type ||
+                            !formData.description
+                          }
+                          className="bg-gradient-to-r from-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 border-indigo-300"
+                        >
+                          {loadingRecommendation ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Mencari Rekomendasi...
+                            </>
+                          ) : (
+                            <>
+                              <Search className="mr-2 h-4 w-4" />
+                              Rekomendasi COA
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                     <div>
                       <Label>Nama Supplier</Label>
                       <Select
@@ -1354,7 +2076,7 @@ export default function StockForm() {
                         <div>
                           <Label>Nomor Telepon</Label>
                           <Input
-                            value={formData.phone_number}
+                            value={supplierInfo.phone_number}
                             disabled
                             className="bg-slate-50"
                           />
@@ -1363,7 +2085,7 @@ export default function StockForm() {
                         <div>
                           <Label>Email</Label>
                           <Input
-                            value={formData.email}
+                            value={supplierInfo.email}
                             disabled
                             className="bg-slate-50"
                           />
@@ -1372,7 +2094,7 @@ export default function StockForm() {
                         <div>
                           <Label>Alamat</Label>
                           <Input
-                            value={formData.address}
+                            value={supplierInfo.address}
                             disabled
                             className="bg-slate-50"
                           />
@@ -1382,299 +2104,96 @@ export default function StockForm() {
                   </div>
                 </div>
 
-                {/* AWB & HS Code Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
-                    Informasi AWB & HS Code
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>AWB (Air Waybill)</Label>
-                      <Input
-                        value={formData.airwaybills}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            airwaybills: e.target.value,
-                          })
-                        }
-                        placeholder="Nomor AWB"
-                      />
-                    </div>
-
-                    <div>
-                      <Label>HS Category</Label>
-                      <Select
-                        value={formData.hs_category}
-                        onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            hs_category: value,
-                            hs_sub_category: "",
-                            hs_description: "",
-                            hs_code: "",
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kategori HS" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {hsCategories.map((cat) => (
-                            <SelectItem key={cat} value={cat}>
-                              {cat}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label>HS Sub Category</Label>
-                      <Select
-                        value={formData.hs_sub_category}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, hs_sub_category: value })
-                        }
-                        disabled={!formData.hs_category}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih sub kategori HS" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {hsSubCategories.map((sub) => (
-                            <SelectItem
-                              key={sub.id}
-                              value={sub.sub_category || ""}
-                            >
-                              {sub.sub_category}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label>HS Description</Label>
-                      <Select
-                        value={formData.hs_description}
-                        onValueChange={(value) => {
-                          const selectedHS = hsDescriptions.find(
-                            (hs) => hs.description === value,
-                          );
-                          setFormData({
-                            ...formData,
-                            hs_description: value,
-                            hs_code: selectedHS?.hs_code || "",
-                          });
-                        }}
-                        disabled={!formData.hs_sub_category}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih deskripsi HS" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {hsDescriptions.map((desc) => (
-                            <SelectItem key={desc.id} value={desc.description}>
-                              {desc.hs_code} - {desc.description}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label>HS Code</Label>
-                      <Input
-                        value={formData.hs_code}
-                        disabled
-                        className="bg-slate-50"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Warehouse Information */}
+                {/* 3. Warehouse Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
                     Informasi Gudang
                   </h3>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label>Gudang</Label>
-                      <Select
-                        value={formData.warehouses}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, warehouses: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih gudang" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {warehouses.map((wh) => (
-                            <SelectItem key={wh.id} value={wh.name}>
-                              {wh.code} - {wh.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>Gudang *</Label>
+                      {editingId ? (
+                        <Select
+                          value={formData.warehouses}
+                          onValueChange={(value) => {
+                            const warehouse = warehouses.find(
+                              (wh) => wh.name === value,
+                            );
+                            if (warehouse) {
+                              setFormData({
+                                ...formData,
+                                warehouses: warehouse.name,
+                                warehouse_name: warehouse.name,
+                              });
+                              setSelectedWarehouseId(warehouse.id);
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih gudang" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {warehouses.map((warehouse) => (
+                              <SelectItem
+                                key={warehouse.id}
+                                value={warehouse.name}
+                              >
+                                {warehouse.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <>
+                          <Input
+                            value={formData.warehouse_name}
+                            disabled
+                            className="bg-slate-50 font-medium"
+                          />
+                          <p className="text-xs text-slate-500 mt-1">
+                            Gudang dipilih saat membuat stock baru
+                          </p>
+                        </>
+                      )}
                     </div>
 
                     <div>
                       <Label>Zona</Label>
-                      <Select
+                      <Input
                         value={formData.zones}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, zones: value })
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            zones: e.target.value,
+                          })
                         }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih zona" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {zones.map((zone) => (
-                            <SelectItem key={zone.id} value={zone.name}>
-                              {zone.code} - {zone.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
 
                     <div>
                       <Label>Rak</Label>
-                      <Select
+                      <Input
                         value={formData.racks}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, racks: value })
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            racks: e.target.value,
+                          })
                         }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih rak" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {racks.map((rack) => (
-                            <SelectItem key={rack.id} value={rack.name}>
-                              {rack.code} - {rack.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
 
                     <div>
                       <Label>Lot</Label>
-                      <Select
+                      <Input
                         value={formData.lots}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, lots: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih lot" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {lots.map((lot) => (
-                            <SelectItem key={lot.id} value={lot.lot_number}>
-                              {lot.lot_number}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* WMS & CEISA Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
-                    Informasi WMS & CEISA
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Nomor Referensi WMS</Label>
-                      <Input
-                        value={formData.wms_reference_number}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            wms_reference_number: e.target.value,
+                            lots: e.target.value,
                           })
                         }
                       />
-                    </div>
-
-                    <div>
-                      <Label>Nomor Referensi CEISA</Label>
-                      <Input
-                        value={formData.ceisa_document_number}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            ceisa_document_number: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Jenis Dokumen CEISA</Label>
-                      <Select
-                        value={formData.ceisa_document_type}
-                        onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            ceisa_document_type: value,
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih jenis dokumen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CEISA_DOCUMENT_TYPES.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label>Tanggal Dokumen CEISA</Label>
-                      <Input
-                        type="date"
-                        value={formData.ceisa_document_date}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            ceisa_document_date: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Status CEISA</Label>
-                      <Select
-                        value={formData.ceisa_status}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, ceisa_status: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CEISA_STATUS_OPTIONS.map((status) => (
-                            <SelectItem key={status} value={status}>
-                              {status}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
 
                     <div>
@@ -1692,157 +2211,249 @@ export default function StockForm() {
                       />
                     </div>
                   </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Catatan WMS</Label>
-                      <Textarea
-                        value={formData.wms_notes}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            wms_notes: e.target.value,
-                          })
-                        }
-                        rows={2}
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Catatan CEISA</Label>
-                      <Textarea
-                        value={formData.ceisa_notes}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            ceisa_notes: e.target.value,
-                          })
-                        }
-                        rows={2}
-                      />
-                    </div>
-                  </div>
                 </div>
 
-                {/* Pricing Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
-                    Informasi Harga
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Status PPN *</Label>
-                      <Select
-                        value={formData.ppn_status}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, ppn_status: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Yes">Yes</SelectItem>
-                          <SelectItem value="No">No</SelectItem>
-                        </SelectContent>
-                      </Select>
+                {/* 4. AWB & HS Code Information - Hidden for Gudang Penjualan */}
+                {!isGudangPenjualan() && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                      Informasi AWB & HS Code
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>AWB (Air Waybill)</Label>
+                        <Input
+                          value={formData.airwaybills}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              airwaybills: e.target.value,
+                            })
+                          }
+                          placeholder="Nomor AWB"
+                        />
+                      </div>
+
+                      <div>
+                        <Label>HS Category</Label>
+                        <Select
+                          value={formData.hs_category}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              hs_category: value,
+                              hs_sub_category: "",
+                              hs_description: "",
+                              hs_code: "",
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih kategori HS" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {hsCategories.map((cat) => (
+                              <SelectItem key={cat} value={cat}>
+                                {cat}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label>HS Sub Category</Label>
+                        <Select
+                          value={formData.hs_sub_category}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, hs_sub_category: value })
+                          }
+                          disabled={!formData.hs_category}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih sub kategori HS" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {hsSubCategories.map((sub) => (
+                              <SelectItem
+                                key={sub.id}
+                                value={sub.sub_category || ""}
+                              >
+                                {sub.sub_category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label>HS Description</Label>
+                        <Select
+                          value={formData.hs_description}
+                          onValueChange={(value) => {
+                            const selectedHS = hsDescriptions.find(
+                              (hs) => hs.description === value,
+                            );
+                            setFormData({
+                              ...formData,
+                              hs_description: value,
+                              hs_code: selectedHS?.hs_code || "",
+                            });
+                          }}
+                          disabled={!formData.hs_sub_category}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih deskripsi HS" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {hsDescriptions.map((desc) => (
+                              <SelectItem
+                                key={desc.id}
+                                value={desc.description}
+                              >
+                                {desc.hs_code} - {desc.description}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label>HS Code</Label>
+                        <Input
+                          value={formData.hs_code}
+                          disabled
+                          className="bg-slate-50"
+                        />
+                      </div>
                     </div>
-
-                    <div>
-                      <Label>Harga Beli *</Label>
-                      <Input
-                        type="number"
-                        value={formData.purchase_price}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            purchase_price: parseFloat(e.target.value),
-                          })
-                        }
-                        required
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        {formatRupiah(formData.purchase_price)}
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label>Harga Jual *</Label>
-                      <Input
-                        type="number"
-                        value={formData.selling_price}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            selling_price: parseFloat(e.target.value),
-                          })
-                        }
-                        required
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        {formatRupiah(formData.selling_price)}
-                      </p>
-                    </div>
-
-                    {formData.ppn_status === "Yes" && (
-                      <>
-                        <div>
-                          <Label>PPN Beli (%)</Label>
-                          <Input
-                            type="number"
-                            value={formData.ppn_on_purchase}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                ppn_on_purchase: parseFloat(e.target.value),
-                              })
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <Label>PPN Jual (%)</Label>
-                          <Input
-                            type="number"
-                            value={formData.ppn_on_sale}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                ppn_on_sale: parseFloat(e.target.value),
-                              })
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <Label>Harga Beli Setelah PPN</Label>
-                          <Input
-                            type="number"
-                            value={formData.purchase_price_after_ppn}
-                            disabled
-                            className="bg-slate-50"
-                          />
-                          <p className="text-xs text-slate-500 mt-1">
-                            {formatRupiah(formData.purchase_price_after_ppn)}
-                          </p>
-                        </div>
-
-                        <div>
-                          <Label>Harga Jual Setelah PPN</Label>
-                          <Input
-                            type="number"
-                            value={formData.selling_price_after_ppn}
-                            disabled
-                            className="bg-slate-50"
-                          />
-                          <p className="text-xs text-slate-500 mt-1">
-                            {formatRupiah(formData.selling_price_after_ppn)}
-                          </p>
-                        </div>
-                      </>
-                    )}
                   </div>
-                </div>
+                )}
+
+                {/* 5. WMS & CEISA Information - Hidden for Gudang Penjualan */}
+                {!isGudangPenjualan() && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                      Informasi WMS & CEISA
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Nomor Referensi WMS</Label>
+                        <Input
+                          value={formData.wms_reference_number}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              wms_reference_number: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Nomor Referensi CEISA</Label>
+                        <Input
+                          value={formData.ceisa_document_number}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              ceisa_document_number: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Jenis Dokumen CEISA</Label>
+                        <Select
+                          value={formData.ceisa_document_type}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              ceisa_document_type: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih jenis dokumen" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CEISA_DOCUMENT_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label>Tanggal Dokumen CEISA</Label>
+                        <Input
+                          type="date"
+                          value={formData.ceisa_document_date}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              ceisa_document_date: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Status CEISA</Label>
+                        <Select
+                          value={formData.ceisa_status}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, ceisa_status: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CEISA_STATUS_OPTIONS.map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {status}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Catatan WMS</Label>
+                        <Textarea
+                          value={formData.wms_notes}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              wms_notes: e.target.value,
+                            })
+                          }
+                          rows={2}
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Catatan CEISA</Label>
+                        <Textarea
+                          value={formData.ceisa_notes}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              ceisa_notes: e.target.value,
+                            })
+                          }
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-2 pt-4">
                   <Button
@@ -1907,10 +2518,13 @@ export default function StockForm() {
                     Gudang
                   </TableHead>
                   <TableHead className="font-semibold text-slate-700">
-                    Jumlah
+                    Racks
                   </TableHead>
                   <TableHead className="font-semibold text-slate-700">
-                    Satuan
+                    Lots
+                  </TableHead>
+                  <TableHead className="font-semibold text-slate-700">
+                    Jumlah
                   </TableHead>
                   <TableHead className="text-center font-semibold text-slate-700">
                     Aksi
@@ -1921,7 +2535,7 @@ export default function StockForm() {
                 {filteredItems.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={9}
                       className="text-center text-slate-500 py-12"
                     >
                       <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
@@ -1960,10 +2574,13 @@ export default function StockForm() {
                         {item.warehouses || "-"}
                       </TableCell>
                       <TableCell className="text-slate-700">
-                        {item.item_quantity}
+                        {item.racks || "-"}
                       </TableCell>
                       <TableCell className="text-slate-700">
-                        {item.unit}
+                        {item.lots || "-"}
+                      </TableCell>
+                      <TableCell className="text-slate-700">
+                        {item.item_quantity}
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-center gap-2">

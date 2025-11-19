@@ -251,9 +251,6 @@ export default function FinancialDashboard() {
               </Link>
             </div>
 
-            {/* Monthly Finance Chart */}
-            <MonthlyFinanceChart />
-
             {/* Financial Reports Stats Cards */}
             <div>
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
@@ -362,6 +359,9 @@ export default function FinancialDashboard() {
                 </Link>
               </div>
             </div>
+
+            {/* Monthly Finance Chart */}
+            <MonthlyFinanceChart />
           </>
         )}
       </div>
