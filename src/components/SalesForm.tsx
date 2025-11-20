@@ -19,8 +19,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Plus } from "lucide-react";
 
 interface Item {
   id: string;
@@ -40,7 +47,8 @@ interface ServiceItem {
 
 interface Customer {
   id: string;
-  name: string;
+  customer_code: string;
+  customer_name: string;
 }
 
 interface COAAccount {
@@ -57,7 +65,25 @@ export default function SalesForm() {
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [coaAccounts, setCOAAccounts] = useState<COAAccount[]>([]);
-  
+  const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false);
+  const [newCustomerData, setNewCustomerData] = useState({
+    customer_name: "",
+    contact_person: "",
+    phone_number: "",
+    email: "",
+    city: "",
+    country: "",
+    is_pkp: "",
+    tax_id: "",
+    bank_name: "",
+    bank_account_holder: "",
+    payment_terms: "",
+    category: "",
+    currency: "IDR",
+    status: "ACTIVE",
+    address: "",
+  });
+
   const [formData, setFormData] = useState({
     transaction_date: new Date().toISOString().split("T")[0],
     transaction_type: "Barang",
@@ -96,8 +122,8 @@ export default function SalesForm() {
     const taxAmount = (subtotal * formData.tax_percentage) / 100;
     // Calculate total
     const totalAmount = subtotal + taxAmount;
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
       subtotal,
       tax_amount: taxAmount,
@@ -108,8 +134,15 @@ export default function SalesForm() {
   useEffect(() => {
     // Calculate stock after
     const stockAfter = formData.stock_current - formData.quantity;
-    setFormData(prev => ({ ...prev, stock_after: stockAfter }));
-    
+    console.log("Stock calculation:", {
+      stock_current: formData.stock_current,
+      quantity: formData.quantity,
+      stock_after: stockAfter,
+      transaction_type: formData.transaction_type,
+    });
+
+    setFormData((prev) => ({ ...prev, stock_after: stockAfter }));
+
     if (stockAfter < 0 && formData.transaction_type === "Barang") {
       setStockWarning("⚠️ Stok tidak mencukupi!");
     } else {
@@ -120,10 +153,12 @@ export default function SalesForm() {
   const fetchItems = async () => {
     const { data, error } = await supabase
       .from("stock")
-      .select("id, item_name, item_quantity, coa_account_code, coa_account_name")
+      .select(
+        "id, item_name, item_quantity, coa_account_code, coa_account_name",
+      )
       .gt("item_quantity", 0)
       .order("item_name");
-    
+
     if (error) {
       toast({
         title: "Error",
@@ -132,7 +167,7 @@ export default function SalesForm() {
       });
     } else {
       // Map item_quantity to quantity for consistency
-      const mappedItems = (data || []).map(item => ({
+      const mappedItems = (data || []).map((item) => ({
         id: item.id,
         item_name: item.item_name,
         quantity: item.item_quantity,
@@ -149,7 +184,7 @@ export default function SalesForm() {
       .select("id, item_name, price, unit, coa_revenue_code")
       .eq("is_active", true)
       .order("item_name");
-    
+
     if (error) {
       toast({
         title: "Error",
@@ -164,16 +199,19 @@ export default function SalesForm() {
   const fetchCustomers = async () => {
     const { data, error } = await supabase
       .from("customers")
-      .select("id, name")
-      .order("name");
-    
+      .select("id, customer_code, customer_name")
+      .eq("status", "ACTIVE")
+      .order("customer_name");
+
     if (error) {
+      console.error("Error fetching customers:", error);
       toast({
         title: "Error",
         description: "Gagal memuat data customer",
         variant: "destructive",
       });
     } else {
+      console.log("Customers loaded:", data);
       setCustomers(data || []);
     }
   };
@@ -184,7 +222,7 @@ export default function SalesForm() {
       .select("account_code, account_name, account_type")
       .eq("account_type", "Pendapatan")
       .order("account_code");
-    
+
     if (error) {
       toast({
         title: "Error",
@@ -199,7 +237,9 @@ export default function SalesForm() {
   const handleItemChange = async (itemId: string) => {
     const { data, error } = await supabase
       .from("stock")
-      .select("id, item_name, item_quantity, coa_account_code, coa_account_name")
+      .select(
+        "id, item_name, item_quantity, coa_account_code, coa_account_name",
+      )
       .eq("id", itemId)
       .single();
 
@@ -213,7 +253,7 @@ export default function SalesForm() {
     }
 
     if (data) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         item_id: itemId,
         item_name: data.item_name,
@@ -249,7 +289,7 @@ export default function SalesForm() {
         .eq("account_code", data.coa_revenue_code)
         .single();
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         item_id: serviceId,
         item_name: data.item_name,
@@ -264,20 +304,104 @@ export default function SalesForm() {
   };
 
   const handleCustomerChange = (customerId: string) => {
-    const selectedCustomer = customers.find(c => c.id === customerId);
+    if (customerId === "add_new") {
+      setIsAddCustomerDialogOpen(true);
+      return;
+    }
+
+    const selectedCustomer = customers.find((c) => c.id === customerId);
     if (selectedCustomer) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         customer_id: customerId,
-        customer_name: selectedCustomer.name,
+        customer_name: selectedCustomer.customer_name,
       }));
     }
   };
 
+  const handleAddNewCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .insert({
+          customer_name: newCustomerData.customer_name,
+          contact_person: newCustomerData.contact_person,
+          phone_number: newCustomerData.phone_number,
+          email: newCustomerData.email,
+          city: newCustomerData.city,
+          country: newCustomerData.country,
+          is_pkp: newCustomerData.is_pkp,
+          tax_id: newCustomerData.tax_id,
+          bank_name: newCustomerData.bank_name,
+          bank_account_holder: newCustomerData.bank_account_holder,
+          payment_terms: newCustomerData.payment_terms,
+          category: newCustomerData.category,
+          currency: newCustomerData.currency,
+          status: newCustomerData.status,
+          address: newCustomerData.address,
+        })
+        .select();
+
+      if (error) throw error;
+
+      const newCustomer = data && data[0];
+
+      toast({
+        title: "Success",
+        description: `Customer ${newCustomer.customer_name} berhasil ditambahkan`,
+      });
+
+      // Refresh customers list
+      await fetchCustomers();
+
+      // Set the newly created customer as selected
+      if (newCustomer) {
+        setFormData((prev) => ({
+          ...prev,
+          customer_id: newCustomer.id,
+          customer_name: newCustomer.customer_name,
+        }));
+      }
+
+      // Reset form and close dialog
+      setNewCustomerData({
+        customer_name: "",
+        contact_person: "",
+        phone_number: "",
+        email: "",
+        city: "",
+        country: "",
+        is_pkp: "",
+        tax_id: "",
+        bank_name: "",
+        bank_account_holder: "",
+        payment_terms: "",
+        category: "",
+        currency: "IDR",
+        status: "ACTIVE",
+        address: "",
+      });
+      setIsAddCustomerDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCOAChange = (accountCode: string) => {
-    const selectedAccount = coaAccounts.find(acc => acc.account_code === accountCode);
+    const selectedAccount = coaAccounts.find(
+      (acc) => acc.account_code === accountCode,
+    );
     if (selectedAccount) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         coa_account_code: accountCode,
         coa_account_name: selectedAccount.account_name,
@@ -287,7 +411,7 @@ export default function SalesForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.stock_after < 0 && formData.transaction_type === "Barang") {
       toast({
         title: "Stok tidak mencukupi",
@@ -302,15 +426,16 @@ export default function SalesForm() {
     try {
       // Step 1: Validate stock with edge function (only for Barang)
       if (formData.transaction_type === "Barang") {
-        const { data: stockCheck, error: stockError } = await supabase.functions.invoke(
-          "supabase-functions-check-stock-balance",
-          {
-            body: {
-              item_id: formData.item_id,
-              qty: formData.quantity,
+        const { data: stockCheck, error: stockError } =
+          await supabase.functions.invoke(
+            "supabase-functions-check-stock-balance",
+            {
+              body: {
+                item_id: formData.item_id,
+                qty: formData.quantity,
+              },
             },
-          }
-        );
+          );
 
         if (stockError || !stockCheck?.success) {
           toast({
@@ -331,9 +456,15 @@ export default function SalesForm() {
           transaction_type: formData.transaction_type,
           item_id: formData.item_id,
           item_name: formData.item_name,
-          stock_before: formData.transaction_type === "Barang" ? formData.stock_current : null,
+          stock_before:
+            formData.transaction_type === "Barang"
+              ? formData.stock_current
+              : null,
           quantity: formData.quantity,
-          stock_after: formData.transaction_type === "Barang" ? formData.stock_after : null,
+          stock_after:
+            formData.transaction_type === "Barang"
+              ? formData.stock_after
+              : null,
           unit_price: formData.unit_price,
           subtotal: formData.subtotal,
           tax_percentage: formData.tax_percentage,
@@ -342,13 +473,18 @@ export default function SalesForm() {
           payment_method: formData.payment_method,
           customer_id: formData.customer_id,
           customer_name: formData.customer_name,
-          coa_cash_code: formData.payment_method === "Piutang" ? "1-1200" : "1-1100",
+          coa_cash_code:
+            formData.payment_method === "Piutang" ? "1-1200" : "1-1100",
           coa_revenue_code: formData.coa_account_code,
-          coa_cogs_code: formData.transaction_type === "Barang" ? "5-1100" : null,
-          coa_inventory_code: formData.transaction_type === "Barang" ? formData.coa_account_code : null,
+          coa_cogs_code:
+            formData.transaction_type === "Barang" ? "5-1100" : null,
+          coa_inventory_code:
+            formData.transaction_type === "Barang"
+              ? formData.coa_account_code
+              : null,
           coa_tax_code: formData.tax_amount > 0 ? "2-1250" : null,
           notes: formData.notes,
-          created_by: user?.email || "system",
+          created_by: user?.id || "system",
         })
         .select()
         .single();
@@ -363,9 +499,9 @@ export default function SalesForm() {
         // Update stock in stock table
         const { error: updateStockError } = await supabase
           .from("stock")
-          .update({ 
+          .update({
             item_quantity: formData.stock_after,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq("id", formData.item_id);
 
@@ -377,9 +513,11 @@ export default function SalesForm() {
         const cogs = formData.quantity * (formData.cost_per_unit || 0);
 
         // 1️⃣ Dr Kas/Piutang
-        const debitAccountCode = formData.payment_method === "Piutang" ? "1-1200" : "1-1100";
-        const debitAccountName = formData.payment_method === "Piutang" ? "Piutang Usaha" : "Kas";
-        
+        const debitAccountCode =
+          formData.payment_method === "Piutang" ? "1-1200" : "1-1100";
+        const debitAccountName =
+          formData.payment_method === "Piutang" ? "Piutang Usaha" : "Kas";
+
         journalEntries.push({
           transaction_id: transactionId,
           transaction_date: formData.transaction_date,
@@ -451,15 +589,20 @@ export default function SalesForm() {
           .single();
 
         if (updatedItem) {
-          setFormData(prev => ({ ...prev, stock_current: updatedItem.item_quantity }));
+          setFormData((prev) => ({
+            ...prev,
+            stock_current: updatedItem.item_quantity,
+          }));
         }
       } else {
         // Journal for Jasa (from service_items.coa_revenue_code)
-        
+
         // 1️⃣ Dr Kas/Piutang
-        const debitAccountCode = formData.payment_method === "Piutang" ? "1-1200" : "1-1100";
-        const debitAccountName = formData.payment_method === "Piutang" ? "Piutang Usaha" : "Kas";
-        
+        const debitAccountCode =
+          formData.payment_method === "Piutang" ? "1-1200" : "1-1100";
+        const debitAccountName =
+          formData.payment_method === "Piutang" ? "Piutang Usaha" : "Kas";
+
         journalEntries.push({
           transaction_id: transactionId,
           transaction_date: formData.transaction_date,
@@ -520,7 +663,8 @@ export default function SalesForm() {
       // Step 5: Show success notification
       toast({
         title: "✅ Berhasil!",
-        description: "Transaksi berhasil disimpan dan jurnal otomatis telah dibuat.",
+        description:
+          "Transaksi berhasil disimpan dan jurnal otomatis telah dibuat.",
       });
 
       // Reset form
@@ -567,7 +711,7 @@ export default function SalesForm() {
     }).format(value);
   };
 
-  const isFormValid = 
+  const isFormValid =
     formData.item_name &&
     formData.quantity > 0 &&
     formData.unit_price > 0 &&
@@ -579,9 +723,12 @@ export default function SalesForm() {
     <div className="min-h-screen bg-slate-50 p-6">
       <Card className="max-w-5xl mx-auto rounded-2xl shadow-md">
         <CardHeader className="p-4">
-          <CardTitle className="text-2xl">Form Penjualan Barang & Jasa</CardTitle>
+          <CardTitle className="text-2xl">
+            Form Penjualan Barang & Jasa
+          </CardTitle>
           <CardDescription>
-            Catat transaksi penjualan barang atau jasa dengan otomatis update stok dan jurnal
+            Catat transaksi penjualan barang atau jasa dengan otomatis update
+            stok dan jurnal
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4">
@@ -596,7 +743,10 @@ export default function SalesForm() {
                   type="date"
                   value={formData.transaction_date}
                   onChange={(e) =>
-                    setFormData({ ...formData, transaction_date: e.target.value })
+                    setFormData({
+                      ...formData,
+                      transaction_date: e.target.value,
+                    })
                   }
                   required
                   className="border"
@@ -609,14 +759,14 @@ export default function SalesForm() {
                 <Select
                   value={formData.transaction_type}
                   onValueChange={(value) =>
-                    setFormData({ 
-                      ...formData, 
+                    setFormData({
+                      ...formData,
                       transaction_type: value,
                       item_id: "",
                       item_name: "",
                       stock_current: 0,
                       quantity: 0,
-                      unit_price: 0
+                      unit_price: 0,
                     })
                   }
                 >
@@ -633,7 +783,8 @@ export default function SalesForm() {
               {/* Nama Barang/Jasa */}
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="item_id">
-                  Nama {formData.transaction_type === "Barang" ? "Barang" : "Jasa"} *
+                  Nama{" "}
+                  {formData.transaction_type === "Barang" ? "Barang" : "Jasa"} *
                 </Label>
                 {formData.transaction_type === "Barang" ? (
                   <Select
@@ -662,7 +813,8 @@ export default function SalesForm() {
                     <SelectContent>
                       {serviceItems.map((service) => (
                         <SelectItem key={service.id} value={service.id}>
-                          {service.item_name} - {formatRupiah(service.price)}/{service.unit}
+                          {service.item_name} - {formatRupiah(service.price)}/
+                          {service.unit}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -693,7 +845,10 @@ export default function SalesForm() {
                   min="1"
                   value={formData.quantity || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })
+                    setFormData({
+                      ...formData,
+                      quantity: Number(e.target.value) || 0,
+                    })
                   }
                   required
                   className="border"
@@ -711,7 +866,9 @@ export default function SalesForm() {
                       value={formData.stock_after}
                       readOnly
                       className={`bg-gray-100 border ${
-                        formData.stock_after < 0 ? "border-red-500 text-red-600" : ""
+                        formData.stock_after < 0
+                          ? "border-red-500 text-red-600"
+                          : ""
                       }`}
                     />
                     {formData.stock_after < 0 && (
@@ -736,7 +893,10 @@ export default function SalesForm() {
                   min="0"
                   value={formData.unit_price || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, unit_price: parseFloat(e.target.value) || 0 })
+                    setFormData({
+                      ...formData,
+                      unit_price: parseFloat(e.target.value) || 0,
+                    })
                   }
                   required
                   className={`border ${formData.transaction_type === "Jasa" ? "bg-gray-100" : ""}`}
@@ -765,7 +925,10 @@ export default function SalesForm() {
                   max="100"
                   value={formData.tax_percentage}
                   onChange={(e) =>
-                    setFormData({ ...formData, tax_percentage: parseFloat(e.target.value) || 0 })
+                    setFormData({
+                      ...formData,
+                      tax_percentage: parseFloat(e.target.value) || 0,
+                    })
                   }
                   className="border"
                 />
@@ -794,9 +957,18 @@ export default function SalesForm() {
                   <SelectContent>
                     {customers.map((customer) => (
                       <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
+                        {customer.customer_name}
                       </SelectItem>
                     ))}
+                    <SelectItem
+                      value="add_new"
+                      className="text-blue-600 font-semibold"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Tambah customer baru
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -824,7 +996,9 @@ export default function SalesForm() {
 
               {/* Kode Akun COA */}
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="coa_account_code">Kode Akun COA (Revenue) *</Label>
+                <Label htmlFor="coa_account_code">
+                  Kode Akun COA (Revenue) *
+                </Label>
                 <Select
                   value={formData.coa_account_code}
                   onValueChange={handleCOAChange}
@@ -834,7 +1008,10 @@ export default function SalesForm() {
                   </SelectTrigger>
                   <SelectContent>
                     {coaAccounts.map((account) => (
-                      <SelectItem key={account.account_code} value={account.account_code}>
+                      <SelectItem
+                        key={account.account_code}
+                        value={account.account_code}
+                      >
                         {account.account_code} - {account.account_name}
                       </SelectItem>
                     ))}
@@ -889,6 +1066,329 @@ export default function SalesForm() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Add Customer Dialog */}
+      <Dialog
+        open={isAddCustomerDialogOpen}
+        onOpenChange={setIsAddCustomerDialogOpen}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tambahkan Customer Baru</DialogTitle>
+            <DialogDescription>Isi detail customer baru</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddNewCustomer} className="space-y-6">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Informasi Dasar</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new_customer_name">Nama Customer *</Label>
+                  <Input
+                    id="new_customer_name"
+                    value={newCustomerData.customer_name}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        customer_name: e.target.value,
+                      })
+                    }
+                    placeholder="PT. Customer Indonesia"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Informasi Kontak</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new_contact_person">Contact Person *</Label>
+                  <Input
+                    id="new_contact_person"
+                    value={newCustomerData.contact_person}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        contact_person: e.target.value,
+                      })
+                    }
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_phone_number">Phone *</Label>
+                  <Input
+                    id="new_phone_number"
+                    value={newCustomerData.phone_number}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        phone_number: e.target.value,
+                      })
+                    }
+                    placeholder="+62 812 3456 7890"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_email">Email *</Label>
+                  <Input
+                    id="new_email"
+                    type="email"
+                    value={newCustomerData.email}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        email: e.target.value,
+                      })
+                    }
+                    placeholder="customer@example.com"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_city">City</Label>
+                  <Input
+                    id="new_city"
+                    value={newCustomerData.city}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        city: e.target.value,
+                      })
+                    }
+                    placeholder="Jakarta"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_country">Country</Label>
+                  <Input
+                    id="new_country"
+                    value={newCustomerData.country}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        country: e.target.value,
+                      })
+                    }
+                    placeholder="Indonesia"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="new_address">Address</Label>
+                <Textarea
+                  id="new_address"
+                  value={newCustomerData.address}
+                  onChange={(e) =>
+                    setNewCustomerData({
+                      ...newCustomerData,
+                      address: e.target.value,
+                    })
+                  }
+                  placeholder="Jl. Contoh No. 123"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            {/* Tax Information */}
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Informasi Pajak</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new_is_pkp">PKP</Label>
+                  <Select
+                    value={newCustomerData.is_pkp}
+                    onValueChange={(value) =>
+                      setNewCustomerData({ ...newCustomerData, is_pkp: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih status PKP" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="YES">Ya</SelectItem>
+                      <SelectItem value="NO">Tidak</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_tax_id">Tax ID / No. PKP</Label>
+                  <Input
+                    id="new_tax_id"
+                    value={newCustomerData.tax_id}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        tax_id: e.target.value,
+                      })
+                    }
+                    placeholder="01.234.567.8-901.000"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bank Information */}
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Informasi Bank</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new_bank_name">Bank Name</Label>
+                  <Input
+                    id="new_bank_name"
+                    value={newCustomerData.bank_name}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        bank_name: e.target.value,
+                      })
+                    }
+                    placeholder="Bank Mandiri"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_bank_account_holder">
+                    Bank Account Holder
+                  </Label>
+                  <Input
+                    id="new_bank_account_holder"
+                    value={newCustomerData.bank_account_holder}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        bank_account_holder: e.target.value,
+                      })
+                    }
+                    placeholder="PT. Customer Indonesia"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Informasi Tambahan</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new_payment_terms">Payment Terms</Label>
+                  <Input
+                    id="new_payment_terms"
+                    value={newCustomerData.payment_terms}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        payment_terms: e.target.value,
+                      })
+                    }
+                    placeholder="Net 30"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_category">Category</Label>
+                  <Select
+                    value={newCustomerData.category}
+                    onValueChange={(value) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        category: value,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih kategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Raw Materials">Bahan Baku</SelectItem>
+                      <SelectItem value="Work in Process">
+                        Barang Dalam Proses
+                      </SelectItem>
+                      <SelectItem value="Finished Goods">
+                        Barang Jadi
+                      </SelectItem>
+                      <SelectItem value="Resale/Merchandise">
+                        Barang Dagangan
+                      </SelectItem>
+                      <SelectItem value="Food">Makanan</SelectItem>
+                      <SelectItem value="Beverage">Minuman</SelectItem>
+                      <SelectItem value="Spare Parts">Suku Cadang</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_currency">Currency *</Label>
+                  <Select
+                    value={newCustomerData.currency}
+                    onValueChange={(value) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        currency: value,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IDR">IDR</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="SGD">SGD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new_status">Status *</Label>
+                  <Select
+                    value={newCustomerData.status}
+                    onValueChange={(value) =>
+                      setNewCustomerData({ ...newCustomerData, status: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex gap-4 pt-6">
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading ? "Menyimpan..." : "Simpan Customer"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddCustomerDialogOpen(false)}
+                className="flex-1"
+              >
+                Batal
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

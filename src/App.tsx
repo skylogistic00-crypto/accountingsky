@@ -11,6 +11,8 @@ import PurchaseRequestForm from "./components/PurchaseRequestForm";
 import PurchaseRequestList from "./components/PurchaseRequestList";
 import SupplierForm from "./components/SupplierForm";
 import ShipperForm from "./components/ShipperForm";
+import ConsigneeForm from "./components/ConsigneeForm";
+import CustomerForm from "./components/CustomerForm";
 import StockForm from "./components/StockForm";
 import WarehousesForm from "./components/WarehousesForm";
 import BarangLini from "./components/BarangLini";
@@ -209,6 +211,46 @@ function AppRoutes() {
               <Header />
               <Navigation />
               <ShipperForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/consignee"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "warehouse_manager",
+              "accounting_manager",
+              "accounting_staff",
+              "read_only",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <ConsigneeForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/customer"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "warehouse_manager",
+              "accounting_manager",
+              "accounting_staff",
+              "read_only",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <CustomerForm />
             </div>
           </ProtectedRoute>
         }

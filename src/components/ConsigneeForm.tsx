@@ -1,26 +1,26 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "./ui/select";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
-import { Badge } from "@/components/ui/badge";
+} from "./ui/card";
+import { useToast } from "./ui/use-toast";
+import { Badge } from "./ui/badge";
 import {
   Table,
   TableBody,
@@ -28,7 +28,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "./ui/table";
 import {
   Dialog,
   DialogContent,
@@ -36,12 +36,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "./ui/dialog";
 import {
   Search,
   Plus,
   ArrowLeft,
-  UserCheck,
+  Building2,
   CheckCircle,
   XCircle,
   Filter,
@@ -50,6 +50,7 @@ import {
   User,
   MapPin,
   Package,
+  TrendingUp,
   Users,
   ShieldCheck,
 } from "lucide-react";
@@ -140,23 +141,23 @@ export default function ConsigneeForm() {
     let filtered = consignees;
 
     if (statusFilter !== "ALL") {
-      filtered = filtered.filter((cons) => cons.status === statusFilter);
+      filtered = filtered.filter((con) => con.status === statusFilter);
     }
 
     if (pkpFilter !== "ALL") {
-      filtered = filtered.filter((cons) => cons.is_pkp === pkpFilter);
+      filtered = filtered.filter((con) => con.is_pkp === pkpFilter);
     }
 
     if (categoryFilter !== "ALL") {
-      filtered = filtered.filter((cons) => cons.category === categoryFilter);
+      filtered = filtered.filter((con) => con.category === categoryFilter);
     }
 
     if (searchTerm) {
       filtered = filtered.filter(
-        (cons) =>
-          cons.consignee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          cons.consignee_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          cons.contact_person.toLowerCase().includes(searchTerm.toLowerCase()),
+        (con) =>
+          con.consignee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          con.consignee_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          con.contact_person.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
@@ -229,6 +230,7 @@ export default function ConsigneeForm() {
         description: `Consignee berhasil ditambahkan dengan kode ${generatedCode}`,
       });
 
+      // Reset form
       setFormData({
         consignee_code: "",
         consignee_name: "",
@@ -263,17 +265,30 @@ export default function ConsigneeForm() {
 
   const getCategoryIcon = (category: string) => {
     const iconClass = "h-4 w-4";
-    return <Package className={iconClass} />;
+    switch (category) {
+      case "Raw Materials":
+      case "Work in Process":
+      case "Finished Goods":
+        return <Package className={iconClass} />;
+      case "Food":
+      case "Beverage":
+        return <Package className={iconClass} />;
+      default:
+        return <Package className={iconClass} />;
+    }
   };
 
   const getCategoryBadge = (category: string) => {
     if (!category) return <span className="text-sm text-slate-400">-</span>;
 
     const colors: Record<string, string> = {
-      "Import": "bg-blue-100 text-blue-700 border-blue-300",
-      "Export": "bg-green-100 text-green-700 border-green-300",
-      "Domestic": "bg-purple-100 text-purple-700 border-purple-300",
-      "International": "bg-orange-100 text-orange-700 border-orange-300",
+      "Raw Materials": "bg-amber-100 text-amber-700 border-amber-300",
+      "Work in Process": "bg-orange-100 text-orange-700 border-orange-300",
+      "Finished Goods": "bg-green-100 text-green-700 border-green-300",
+      "Resale/Merchandise": "bg-purple-100 text-purple-700 border-purple-300",
+      Food: "bg-pink-100 text-pink-700 border-pink-300",
+      Beverage: "bg-cyan-100 text-cyan-700 border-cyan-300",
+      "Spare Parts": "bg-slate-100 text-slate-700 border-slate-300",
     };
 
     const colorClass =
@@ -326,12 +341,14 @@ export default function ConsigneeForm() {
     pkp: consignees.filter((c) => c.is_pkp === "YES").length,
   };
 
+  // Get unique categories for filter
   const uniqueCategories = Array.from(
     new Set(consignees.map((c) => c.category).filter(Boolean)),
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Header with gradient */}
       <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
         <div className="container mx-auto px-4 py-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -345,7 +362,7 @@ export default function ConsigneeForm() {
             </Button>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg">
-                <UserCheck className="h-6 w-6 text-white" />
+                <Building2 className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">
@@ -372,6 +389,7 @@ export default function ConsigneeForm() {
                 <DialogDescription>Isi detail consignee baru</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Basic Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Informasi Dasar</h3>
 
@@ -387,10 +405,18 @@ export default function ConsigneeForm() {
                             consignee_name: e.target.value,
                           })
                         }
+                        placeholder="PT. Consignee Indonesia"
                         required
                       />
                     </div>
+                  </div>
+                </div>
 
+                {/* Contact Information */}
+                <div className="border-t pt-6 space-y-4">
+                  <h3 className="text-lg font-semibold">Informasi Kontak</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="contact_person">Contact Person *</Label>
                       <Input
@@ -402,12 +428,13 @@ export default function ConsigneeForm() {
                             contact_person: e.target.value,
                           })
                         }
+                        placeholder="John Doe"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="phone_number">Nomor Telepon *</Label>
+                      <Label htmlFor="phone_number">Phone *</Label>
                       <Input
                         id="phone_number"
                         value={formData.phone_number}
@@ -417,6 +444,7 @@ export default function ConsigneeForm() {
                             phone_number: e.target.value,
                           })
                         }
+                        placeholder="+62 812 3456 7890"
                         required
                       />
                     </div>
@@ -430,54 +458,57 @@ export default function ConsigneeForm() {
                         onChange={(e) =>
                           setFormData({ ...formData, email: e.target.value })
                         }
+                        placeholder="consignee@example.com"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="city">Kota</Label>
+                      <Label htmlFor="city">City</Label>
                       <Input
                         id="city"
                         value={formData.city}
                         onChange={(e) =>
                           setFormData({ ...formData, city: e.target.value })
                         }
+                        placeholder="Jakarta"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="country">Negara</Label>
+                      <Label htmlFor="country">Country</Label>
                       <Input
                         id="country"
                         value={formData.country}
                         onChange={(e) =>
                           setFormData({ ...formData, country: e.target.value })
                         }
+                        placeholder="Indonesia"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address">Alamat</Label>
+                    <Label htmlFor="address">Address</Label>
                     <Textarea
                       id="address"
                       value={formData.address}
                       onChange={(e) =>
                         setFormData({ ...formData, address: e.target.value })
                       }
+                      placeholder="Jl. Contoh No. 123"
                       rows={3}
                     />
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">
-                    Informasi Pajak & Keuangan
-                  </h3>
+                {/* Tax Information */}
+                <div className="border-t pt-6 space-y-4">
+                  <h3 className="text-lg font-semibold">Informasi Pajak</h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="is_pkp">Status PKP</Label>
+                      <Label htmlFor="is_pkp">PKP</Label>
                       <Select
                         value={formData.is_pkp}
                         onValueChange={(value) =>
@@ -488,25 +519,33 @@ export default function ConsigneeForm() {
                           <SelectValue placeholder="Pilih status PKP" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="YES">PKP</SelectItem>
-                          <SelectItem value="NO">Non-PKP</SelectItem>
+                          <SelectItem value="YES">Ya</SelectItem>
+                          <SelectItem value="NO">Tidak</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="tax_id">NPWP</Label>
+                      <Label htmlFor="tax_id">Tax ID / No. PKP</Label>
                       <Input
                         id="tax_id"
                         value={formData.tax_id}
                         onChange={(e) =>
                           setFormData({ ...formData, tax_id: e.target.value })
                         }
+                        placeholder="01.234.567.8-901.000"
                       />
                     </div>
+                  </div>
+                </div>
 
+                {/* Bank Information */}
+                <div className="border-t pt-6 space-y-4">
+                  <h3 className="text-lg font-semibold">Informasi Bank</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="bank_name">Nama Bank</Label>
+                      <Label htmlFor="bank_name">Bank Name</Label>
                       <Input
                         id="bank_name"
                         value={formData.bank_name}
@@ -516,12 +555,13 @@ export default function ConsigneeForm() {
                             bank_name: e.target.value,
                           })
                         }
+                        placeholder="Bank Mandiri"
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="bank_account_holder">
-                        Nama Pemilik Rekening
+                        Bank Account Holder
                       </Label>
                       <Input
                         id="bank_account_holder"
@@ -532,11 +572,19 @@ export default function ConsigneeForm() {
                             bank_account_holder: e.target.value,
                           })
                         }
+                        placeholder="PT. Consignee Indonesia"
                       />
                     </div>
+                  </div>
+                </div>
 
+                {/* Additional Information */}
+                <div className="border-t pt-6 space-y-4">
+                  <h3 className="text-lg font-semibold">Informasi Tambahan</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="payment_terms">Termin Pembayaran</Label>
+                      <Label htmlFor="payment_terms">Payment Terms</Label>
                       <Input
                         id="payment_terms"
                         value={formData.payment_terms}
@@ -546,12 +594,80 @@ export default function ConsigneeForm() {
                             payment_terms: e.target.value,
                           })
                         }
-                        placeholder="e.g., NET 30"
+                        placeholder="Net 30"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="currency">Mata Uang</Label>
+                      <Label htmlFor="category">Category</Label>
+                      <Select
+                        value={formData.category}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, category: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kategori" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Raw Materials">
+                            Bahan Baku
+                          </SelectItem>
+                          <SelectItem value="Work in Process">
+                            Barang Dalam Proses
+                          </SelectItem>
+                          <SelectItem value="Finished Goods">
+                            Barang Jadi
+                          </SelectItem>
+                          <SelectItem value="Resale/Merchandise">
+                            Barang Dagangan
+                          </SelectItem>
+                          <SelectItem value="Kits/Bundles">
+                            Paket/Bundle
+                          </SelectItem>
+                          <SelectItem value="Spare Parts">
+                            Suku Cadang
+                          </SelectItem>
+                          <SelectItem value="MRO">
+                            MRO (Pemeliharaan, Perbaikan, Operasi)
+                          </SelectItem>
+                          <SelectItem value="Consumables">
+                            Barang Habis Pakai
+                          </SelectItem>
+                          <SelectItem value="Packaging">Kemasan</SelectItem>
+                          <SelectItem value="Food">Makanan</SelectItem>
+                          <SelectItem value="Beverage">Minuman</SelectItem>
+                          <SelectItem value="Rentable Units">
+                            Unit Sewa
+                          </SelectItem>
+                          <SelectItem value="Demo/Loaner Units">
+                            Unit Demo/Pinjaman
+                          </SelectItem>
+                          <SelectItem value="Returns">Barang Retur</SelectItem>
+                          <SelectItem value="Defective/Damaged">
+                            Barang Cacat/Rusak
+                          </SelectItem>
+                          <SelectItem value="Obsolete/Expired">
+                            Barang Usang/Kadaluarsa
+                          </SelectItem>
+                          <SelectItem value="Goods in Transit">
+                            Barang Dalam Perjalanan
+                          </SelectItem>
+                          <SelectItem value="Consignment">
+                            Konsinyasi
+                          </SelectItem>
+                          <SelectItem value="Third Party/Owner">
+                            Pihak Ketiga/Pemilik
+                          </SelectItem>
+                          <SelectItem value="Samples/Marketing">
+                            Sampel/Pemasaran
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="currency">Currency *</Label>
                       <Select
                         value={formData.currency}
                         onValueChange={(value) =>
@@ -569,37 +685,9 @@ export default function ConsigneeForm() {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Kategori & Status</h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Kategori</Label>
-                      <Select
-                        value={formData.category}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, category: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kategori" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Import">Import</SelectItem>
-                          <SelectItem value="Export">Export</SelectItem>
-                          <SelectItem value="Domestic">Domestic</SelectItem>
-                          <SelectItem value="International">
-                            International
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="status">Status</Label>
+                      <Label htmlFor="status">Status *</Label>
                       <Select
                         value={formData.status}
                         onValueChange={(value) =>
@@ -618,16 +706,18 @@ export default function ConsigneeForm() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2">
+                {/* Submit Buttons */}
+                <div className="flex gap-4 pt-6">
+                  <Button type="submit" disabled={loading} className="flex-1">
+                    {loading ? "Menyimpan..." : "Simpan Consignee"}
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setIsDialogOpen(false)}
+                    className="flex-1"
                   >
                     Batal
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Menyimpan..." : "Simpan"}
                   </Button>
                 </div>
               </form>
@@ -637,114 +727,135 @@ export default function ConsigneeForm() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Summary Cards with icons */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+          <Card className="border-none shadow-lg bg-purple-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Total Consignees
+              <div className="flex items-center justify-between">
+                <CardDescription className="text-white/90">
+                  Total Consignees
+                </CardDescription>
+                <Users className="h-8 w-8 text-white/80" />
+              </div>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.total}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{summaryData.total}</div>
+              <div className="flex items-center text-sm text-white/90">
+                <Building2 className="mr-2 h-4 w-4" />
+                Semua consignee
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-lg">
+          <Card className="border-none shadow-lg bg-emerald-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Active
+              <div className="flex items-center justify-between">
+                <CardDescription className="text-white/90">
+                  Active
+                </CardDescription>
+                <TrendingUp className="h-8 w-8 text-white/80" />
+              </div>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.active}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{summaryData.active}</div>
+              <div className="flex items-center text-sm text-white/90">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Consignee aktif
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-rose-500 to-rose-600 text-white border-0 shadow-lg">
+          <Card className="border-none shadow-lg bg-pink-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <XCircle className="h-4 w-4" />
-                Inactive
+              <div className="flex items-center justify-between">
+                <CardDescription className="text-white/90">
+                  Inactive
+                </CardDescription>
+                <XCircle className="h-8 w-8 text-white/80" />
+              </div>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.inactive}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{summaryData.inactive}</div>
+              <div className="flex items-center text-sm text-white/90">
+                <XCircle className="mr-2 h-4 w-4" />
+                Tidak aktif
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-0 shadow-lg">
+          <Card className="border-none shadow-lg bg-blue-400/90 text-white hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4" />
-                PKP
+              <div className="flex items-center justify-between">
+                <CardDescription className="text-white/90">
+                  PKP Consignees
+                </CardDescription>
+                <ShieldCheck className="h-8 w-8 text-white/80" />
+              </div>
+              <CardTitle className="text-4xl font-bold">
+                {summaryData.pkp}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{summaryData.pkp}</div>
+              <div className="flex items-center text-sm text-white/90">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Terdaftar PKP
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        <Card className="mb-6 shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filter & Pencarian
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Cari Consignee</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+        {/* Filters and Table */}
+        <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+          <div className="p-6 border-b bg-gradient-to-r from-indigo-50 via-blue-50 to-cyan-50">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <Filter className="h-5 w-5 text-indigo-600" />
+                </div>
+                <span className="text-lg">Filter & Pencarian</span>
+              </div>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
-                    placeholder="Nama, kode, atau contact person..."
+                    placeholder="Cari berdasarkan nama, kode, atau contact person..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
+                    className="pl-10 border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Status</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className="w-[180px] border-slate-300 focus:border-emerald-500 focus:ring-emerald-500">
+                    <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">Semua Status</SelectItem>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    <SelectItem value="ACTIVE">✓ Active</SelectItem>
+                    <SelectItem value="INACTIVE">✗ Inactive</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>PKP</Label>
                 <Select value={pkpFilter} onValueChange={setPkpFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className="w-[180px] border-slate-300 focus:border-blue-500 focus:ring-blue-500">
+                    <SelectValue placeholder="PKP Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALL">Semua</SelectItem>
+                    <SelectItem value="ALL">Semua PKP</SelectItem>
                     <SelectItem value="YES">PKP</SelectItem>
                     <SelectItem value="NO">Non-PKP</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Kategori</Label>
                 <Select
                   value={categoryFilter}
                   onValueChange={setCategoryFilter}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className="w-[200px] border-slate-300 focus:border-purple-500 focus:ring-purple-500">
+                    <SelectValue placeholder="Kategori" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">Semua Kategori</SelectItem>
@@ -757,99 +868,117 @@ export default function ConsigneeForm() {
                 </Select>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Daftar Consignees</CardTitle>
-            <CardDescription>
-              Menampilkan {filteredConsignees.length} dari {consignees.length}{" "}
-              consignees
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
+          {loading ? (
+            <div className="p-8 text-center text-slate-500">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <p className="mt-2">Memuat data consignees...</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50">
-                    <TableHead className="font-semibold">Kode</TableHead>
-                    <TableHead className="font-semibold">Nama Consignee</TableHead>
-                    <TableHead className="font-semibold">
-                      Contact Person
+                  <TableRow className="bg-gradient-to-r from-slate-100 to-blue-100 hover:from-slate-100 hover:to-blue-100">
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Kode Consignee
+                      </div>
                     </TableHead>
-                    <TableHead className="font-semibold">Kontak</TableHead>
-                    <TableHead className="font-semibold">Kategori</TableHead>
-                    <TableHead className="font-semibold">PKP</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Nama Consignee
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Contact Person
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        No. Telepon
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        Email
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4" />
+                        PKP
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        Kategori
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        Status
+                      </div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-                          <span className="text-slate-500">
-                            Memuat data...
-                          </span>
-                        </div>
+                  {filteredConsignees.map((consignee, index) => (
+                    <TableRow
+                      key={consignee.consignee_code}
+                      className={`${
+                        index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                      } hover:bg-indigo-50 transition-colors border-b border-slate-100`}
+                    >
+                      <TableCell className="font-mono font-semibold text-indigo-600">
+                        {consignee.consignee_code}
                       </TableCell>
-                    </TableRow>
-                  ) : filteredConsignees.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <div className="flex flex-col items-center gap-2">
-                          <UserCheck className="h-12 w-12 text-slate-300" />
-                          <p className="text-slate-500">
-                            Tidak ada consignee ditemukan
-                          </p>
-                        </div>
+                      <TableCell className="font-medium text-slate-900">
+                        {consignee.consignee_name}
                       </TableCell>
+                      <TableCell className="text-slate-700">
+                        {consignee.contact_person}
+                      </TableCell>
+                      <TableCell className="text-slate-700">
+                        {consignee.phone_number}
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {consignee.email}
+                      </TableCell>
+                      <TableCell>{getPkpBadge(consignee.is_pkp)}</TableCell>
+                      <TableCell>
+                        {getCategoryBadge(consignee.category)}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(consignee.status)}</TableCell>
                     </TableRow>
-                  ) : (
-                    filteredConsignees.map((consignee) => (
-                      <TableRow key={consignee.consignee_code}>
-                        <TableCell className="font-medium">
-                          {consignee.consignee_code}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <UserCheck className="h-4 w-4 text-slate-400" />
-                            <span className="font-medium">
-                              {consignee.consignee_name}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-slate-400" />
-                            {consignee.contact_person}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Phone className="h-3 w-3 text-slate-400" />
-                              {consignee.phone_number}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-slate-500">
-                              <Mail className="h-3 w-3 text-slate-400" />
-                              {consignee.email}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{getCategoryBadge(consignee.category)}</TableCell>
-                        <TableCell>{getPkpBadge(consignee.is_pkp)}</TableCell>
-                        <TableCell>{getStatusBadge(consignee.status)}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          {!loading && filteredConsignees.length === 0 && (
+            <div className="p-12 text-center">
+              <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
+                <Building2 className="h-12 w-12 text-slate-300" />
+              </div>
+              <p className="text-slate-500 font-medium text-lg">
+                Tidak ada consignee ditemukan
+              </p>
+              <p className="text-sm text-slate-400 mt-1">
+                Coba ubah filter atau tambahkan consignee baru
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

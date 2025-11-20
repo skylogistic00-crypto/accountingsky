@@ -98,6 +98,30 @@ export default function Navigation() {
       ],
     },
     {
+      path: "/consignee",
+      label: "Consignees",
+      icon: Package,
+      roles: [
+        "super_admin",
+        "accounting_staff",
+        "warehouse_manager",
+        "accounting_manager",
+        "read_only",
+      ],
+    },
+    {
+      path: "/customer",
+      label: "Customers",
+      icon: Users,
+      roles: [
+        "super_admin",
+        "accounting_staff",
+        "warehouse_manager",
+        "accounting_manager",
+        "read_only",
+      ],
+    },
+    {
       path: "/stock",
       label: "Stock",
       icon: Warehouse,

@@ -991,15 +991,122 @@ export default function StockForm() {
         created_by: user?.id || null,
       };
 
-      // Remove warehouse_name and supplier display fields before submitting
-      delete dataToSubmit.warehouse_name;
-
       // 🔥 Wajib: ubah "" menjadi null
       Object.keys(dataToSubmit).forEach((key) => {
         if (dataToSubmit[key] === "") {
           dataToSubmit[key] = null;
         }
       });
+
+      // Buang field yang tidak boleh dikirim ketika itemType = 'jasa'
+      if (itemType === "jasa") {
+        delete dataToSubmit.sku;
+        delete dataToSubmit.weight;
+        delete dataToSubmit.volume;
+        delete dataToSubmit.supplier_id;
+        delete dataToSubmit.supplier_name;
+        delete dataToSubmit.warehouses;
+        delete dataToSubmit.warehouse_name;
+        delete dataToSubmit.zones;
+        delete dataToSubmit.racks;
+        delete dataToSubmit.lots;
+        delete dataToSubmit.item_quantity;
+
+        // AWB & HS Code
+        delete dataToSubmit.airwaybills;
+        delete dataToSubmit.hs_code;
+        delete dataToSubmit.hs_category;
+        delete dataToSubmit.hs_sub_category;
+        delete dataToSubmit.hs_description;
+
+        // WMS & CEISA fields
+        delete dataToSubmit.wms_reference_number;
+        delete dataToSubmit.wms_notes;
+        delete dataToSubmit.ceisa_document_number;
+        delete dataToSubmit.ceisa_document_type;
+        delete dataToSubmit.ceisa_document_date;
+        delete dataToSubmit.ceisa_status;
+        delete dataToSubmit.ceisa_notes;
+
+        // Harga Beli tidak digunakan untuk jasa
+        delete dataToSubmit.purchase_price;
+        delete dataToSubmit.purchase_price_after_ppn;
+        delete dataToSubmit.ppn_on_purchase;
+      }
+
+      // ✅ PASTIKAN COA SUDAH ADA DI chart_of_accounts SEBELUM INSERT KE STOCK
+      if (dataToSubmit.coa_account_code) {
+        // Cek apakah COA code sudah ada di database
+        const { data: exists } = await supabase
+          .from("chart_of_accounts")
+          .select("account_code")
+          .eq("account_code", dataToSubmit.coa_account_code)
+          .maybeSingle();
+
+        // Jika TIDAK ADA ➜ buat COA baru
+        if (!exists) {
+          // Validasi: pastikan kategori, jenis, dan deskripsi ada
+          if (
+            !dataToSubmit.service_category ||
+            !dataToSubmit.service_type ||
+            !dataToSubmit.description
+          ) {
+            toast({
+              title: "⚠️ Data Tidak Lengkap",
+              description:
+                "Kategori Layanan, Jenis Layanan, dan Deskripsi harus diisi untuk membuat COA baru",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+
+          // Validasi: pastikan nama akun COA ada
+          if (!dataToSubmit.coa_account_name) {
+            toast({
+              title: "⚠️ Nama Akun COA Kosong",
+              description:
+                "Silakan isi Nama Akun COA untuk kode akun baru ini",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+
+          // Buat COA baru di chart_of_accounts
+          const payload = {
+            account_code: dataToSubmit.coa_account_code,
+            account_name: dataToSubmit.coa_account_name,
+            kategori_layanan: dataToSubmit.service_category,
+            jenis_layanan: dataToSubmit.service_type,
+            description: dataToSubmit.description,
+            account_type: "Revenue", // Default untuk jasa
+            parent_code: null,
+            is_active: true,
+            created_by: user?.id || null,
+          };
+
+          const { error: insertErr } = await supabase
+            .from("chart_of_accounts")
+            .insert([payload]);
+
+          if (insertErr) {
+            toast({
+              title: "❌ Gagal Membuat COA",
+              description: `Error: ${insertErr.message}`,
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+
+          toast({
+            title: "✅ COA Baru Dibuat",
+            description: `Kode akun ${dataToSubmit.coa_account_code} - ${dataToSubmit.coa_account_name} berhasil dibuat`,
+          });
+        }
+        // Jika ADA ➜ lanjut insert stock (tidak perlu else, langsung lanjut)
+      }
 
       if (editingId) {
         const { error } = await supabase
@@ -1757,10 +1864,10 @@ export default function StockForm() {
                             <CommandInput
                               placeholder="Cari atau ketik kode akun baru..."
                               value={formData.coa_account_code}
-                              onValueChange={(value) =>
+                              onInput={(e) =>
                                 setFormData({
                                   ...formData,
-                                  coa_account_code: value,
+                                  coa_account_code: (e.target as HTMLInputElement).value,
                                 })
                               }
                             />
@@ -1827,9 +1934,41 @@ export default function StockForm() {
                       <Label>Nama Akun COA</Label>
                       <Input
                         value={formData.coa_account_name}
-                        disabled
-                        className="bg-slate-50"
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            coa_account_name: e.target.value,
+                          })
+                        }
+                        disabled={
+                          formData.coa_account_code &&
+                          coaAccounts.find(
+                            (acc) =>
+                              acc.account_code === formData.coa_account_code,
+                          )
+                            ? true
+                            : false
+                        }
+                        className={
+                          formData.coa_account_code &&
+                          !coaAccounts.find(
+                            (acc) =>
+                              acc.account_code === formData.coa_account_code,
+                          )
+                            ? "bg-white"
+                            : "bg-slate-50"
+                        }
+                        placeholder="Masukkan nama akun COA baru..."
                       />
+                      {formData.coa_account_code &&
+                        !coaAccounts.find(
+                          (acc) =>
+                            acc.account_code === formData.coa_account_code,
+                        ) && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            ℹ️ Anda dapat mengetik nama akun untuk kode baru ini
+                          </p>
+                        )}
                     </div>
 
                     <div>
@@ -1847,374 +1986,385 @@ export default function StockForm() {
                       />
                     </div>
 
-                    <div>
-                      <Label>SKU *</Label>
-                      <Input
-                        value={formData.sku}
-                        onChange={(e) =>
-                          setFormData({ ...formData, sku: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Satuan *</Label>
-                      <Input
-                        value={formData.unit}
-                        onChange={(e) =>
-                          setFormData({ ...formData, unit: e.target.value })
-                        }
-                        placeholder="pcs, kg, box, dll"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Berat (kg)</Label>
-                      <Input
-                        value={formData.weight}
-                        onChange={(e) =>
-                          setFormData({ ...formData, weight: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Volume (m³)</Label>
-                      <Input
-                        value={formData.volume}
-                        onChange={(e) =>
-                          setFormData({ ...formData, volume: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    {/* Removed duplicate Gudang, Zona, Rak, Lot, Jumlah fields - they are in Informasi Gudang section */}
-                  </div>
-
-                  {/* 6. Pricing Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
-                      Informasi Harga
-                    </h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Status PPN *</Label>
-                        <Select
-                          value={formData.ppn_status}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, ppn_status: value })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Yes">Yes</SelectItem>
-                            <SelectItem value="No">No</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label>Harga Beli *</Label>
-                        <Input
-                          type="number"
-                          value={formData.purchase_price}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              purchase_price: parseFloat(e.target.value),
-                            })
-                          }
-                          required
-                        />
-                        <p className="text-xs text-slate-500 mt-1">
-                          {formatRupiah(formData.purchase_price)}
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label>Harga Jual *</Label>
-                        <Input
-                          type="number"
-                          value={formData.selling_price}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              selling_price: parseFloat(e.target.value),
-                            })
-                          }
-                          required
-                        />
-                        <p className="text-xs text-slate-500 mt-1">
-                          {formatRupiah(formData.selling_price)}
-                        </p>
-                      </div>
-
-                      {formData.ppn_status === "Yes" && (
-                        <>
-                          <div>
-                            <Label>PPN Beli (%)</Label>
-                            <Input
-                              type="number"
-                              value={formData.ppn_on_purchase}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  ppn_on_purchase: parseFloat(e.target.value),
-                                })
-                              }
-                            />
-                          </div>
-
-                          <div>
-                            <Label>PPN Jual (%)</Label>
-                            <Input
-                              type="number"
-                              value={formData.ppn_on_sale}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  ppn_on_sale: parseFloat(e.target.value),
-                                })
-                              }
-                            />
-                          </div>
-
-                          <div>
-                            <Label>Harga Beli Setelah PPN</Label>
-                            <Input
-                              type="number"
-                              value={formData.purchase_price_after_ppn}
-                              disabled
-                              className="bg-slate-50"
-                            />
-                            <p className="text-xs text-slate-500 mt-1">
-                              {formatRupiah(formData.purchase_price_after_ppn)}
-                            </p>
-                          </div>
-
-                          <div>
-                            <Label>Harga Jual Setelah PPN</Label>
-                            <Input
-                              type="number"
-                              value={formData.selling_price_after_ppn}
-                              disabled
-                              className="bg-slate-50"
-                            />
-                            <p className="text-xs text-slate-500 mt-1">
-                              {formatRupiah(formData.selling_price_after_ppn)}
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 2. Supplier Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
-                      Informasi Supplier
-                    </h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {/* COA Recommendation Button */}
-                      <div className="flex justify-start mt-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleCOARecommendation}
-                          disabled={
-                            loadingRecommendation ||
-                            !formData.item_name ||
-                            !formData.service_category ||
-                            !formData.service_type ||
-                            !formData.description
-                          }
-                          className="bg-gradient-to-r from-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 border-indigo-300"
-                        >
-                          {loadingRecommendation ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Mencari Rekomendasi...
-                            </>
-                          ) : (
-                            <>
-                              <Search className="mr-2 h-4 w-4" />
-                              Rekomendasi COA
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Nama Supplier</Label>
-                      <Select
-                        value={formData.supplier_name}
-                        onValueChange={handleSupplierChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih supplier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {suppliers.map((supplier) => (
-                            <SelectItem
-                              key={supplier.id}
-                              value={supplier.supplier_name}
-                            >
-                              {supplier.supplier_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {formData.supplier_name && (
+                    {/* Hide these fields for Jasa */}
+                    {itemType === "barang" && (
                       <>
                         <div>
-                          <Label>Nomor Telepon</Label>
+                          <Label>SKU *</Label>
                           <Input
-                            value={supplierInfo.phone_number}
-                            disabled
-                            className="bg-slate-50"
+                            value={formData.sku}
+                            onChange={(e) =>
+                              setFormData({ ...formData, sku: e.target.value })
+                            }
+                            required
                           />
                         </div>
 
                         <div>
-                          <Label>Email</Label>
+                          <Label>Satuan *</Label>
                           <Input
-                            value={supplierInfo.email}
-                            disabled
-                            className="bg-slate-50"
+                            value={formData.unit}
+                            onChange={(e) =>
+                              setFormData({ ...formData, unit: e.target.value })
+                            }
+                            placeholder="pcs, kg, box, dll"
+                            required
                           />
                         </div>
 
                         <div>
-                          <Label>Alamat</Label>
+                          <Label>Berat (kg)</Label>
                           <Input
-                            value={supplierInfo.address}
-                            disabled
-                            className="bg-slate-50"
+                            value={formData.weight}
+                            onChange={(e) =>
+                              setFormData({ ...formData, weight: e.target.value })
+                            }
+                          />
+                        </div>
+
+                        <div>
+                          <Label>Volume (m³)</Label>
+                          <Input
+                            value={formData.volume}
+                            onChange={(e) =>
+                              setFormData({ ...formData, volume: e.target.value })
+                            }
                           />
                         </div>
                       </>
                     )}
-                  </div>
-                </div>
 
-                {/* 3. Warehouse Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
-                    Informasi Gudang
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Gudang *</Label>
-                      {editingId ? (
-                        <Select
-                          value={formData.warehouses}
-                          onValueChange={(value) => {
-                            const warehouse = warehouses.find(
-                              (wh) => wh.name === value,
-                            );
-                            if (warehouse) {
+                    {/* Removed duplicate Gudang, Zona, Rak, Lot, Jumlah fields - they are in Informasi Gudang section */}
+                  </div>
+
+                  {/* 6. Pricing Information - Hidden for Jasa */}
+                  {itemType === "barang" && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                        Informasi Harga
+                      </h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Status PPN *</Label>
+                          <Select
+                            value={formData.ppn_status}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, ppn_status: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Yes">Yes</SelectItem>
+                              <SelectItem value="No">No</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label>Harga Beli *</Label>
+                          <Input
+                            type="number"
+                            value={formData.purchase_price}
+                            onChange={(e) =>
                               setFormData({
                                 ...formData,
-                                warehouses: warehouse.name,
-                                warehouse_name: warehouse.name,
-                              });
-                              setSelectedWarehouseId(warehouse.id);
+                                purchase_price: parseFloat(e.target.value),
+                              })
                             }
-                          }}
+                            required
+                          />
+                          <p className="text-xs text-slate-500 mt-1">
+                            {formatRupiah(formData.purchase_price)}
+                          </p>
+                        </div>
+
+                        <div>
+                          <Label>Harga Jual *</Label>
+                          <Input
+                            type="number"
+                            value={formData.selling_price}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                selling_price: parseFloat(e.target.value),
+                              })
+                            }
+                            required
+                          />
+                          <p className="text-xs text-slate-500 mt-1">
+                            {formatRupiah(formData.selling_price)}
+                          </p>
+                        </div>
+
+                        {formData.ppn_status === "Yes" && (
+                          <>
+                            <div>
+                              <Label>PPN Beli (%)</Label>
+                              <Input
+                                type="number"
+                                value={formData.ppn_on_purchase}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    ppn_on_purchase: parseFloat(e.target.value),
+                                  })
+                                }
+                              />
+                            </div>
+
+                            <div>
+                              <Label>PPN Jual (%)</Label>
+                              <Input
+                                type="number"
+                                value={formData.ppn_on_sale}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    ppn_on_sale: parseFloat(e.target.value),
+                                  })
+                                }
+                              />
+                            </div>
+
+                            <div>
+                              <Label>Harga Beli Setelah PPN</Label>
+                              <Input
+                                type="number"
+                                value={formData.purchase_price_after_ppn}
+                                disabled
+                                className="bg-slate-50"
+                              />
+                              <p className="text-xs text-slate-500 mt-1">
+                                {formatRupiah(formData.purchase_price_after_ppn)}
+                              </p>
+                            </div>
+
+                            <div>
+                              <Label>Harga Jual Setelah PPN</Label>
+                              <Input
+                                type="number"
+                                value={formData.selling_price_after_ppn}
+                                disabled
+                                className="bg-slate-50"
+                              />
+                              <p className="text-xs text-slate-500 mt-1">
+                                {formatRupiah(formData.selling_price_after_ppn)}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2. Supplier Information - Hidden for Jasa */}
+                  {itemType === "barang" && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                        Informasi Supplier
+                      </h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {/* COA Recommendation Button */}
+                        <div className="flex justify-start mt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCOARecommendation}
+                            disabled={
+                              loadingRecommendation ||
+                              !formData.item_name ||
+                              !formData.service_category ||
+                              !formData.service_type ||
+                              !formData.description
+                            }
+                            className="bg-gradient-to-r from-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 border-indigo-300"
+                          >
+                            {loadingRecommendation ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Mencari Rekomendasi...
+                              </>
+                            ) : (
+                              <>
+                                <Search className="mr-2 h-4 w-4" />
+                                Rekomendasi COA
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Nama Supplier</Label>
+                        <Select
+                          value={formData.supplier_name}
+                          onValueChange={handleSupplierChange}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Pilih gudang" />
+                            <SelectValue placeholder="Pilih supplier" />
                           </SelectTrigger>
                           <SelectContent>
-                            {warehouses.map((warehouse) => (
+                            {suppliers.map((supplier) => (
                               <SelectItem
-                                key={warehouse.id}
-                                value={warehouse.name}
+                                key={supplier.id}
+                                value={supplier.supplier_name}
                               >
-                                {warehouse.name}
+                                {supplier.supplier_name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                      ) : (
+                      </div>
+
+                      {formData.supplier_name && (
                         <>
-                          <Input
-                            value={formData.warehouse_name}
-                            disabled
-                            className="bg-slate-50 font-medium"
-                          />
-                          <p className="text-xs text-slate-500 mt-1">
-                            Gudang dipilih saat membuat stock baru
-                          </p>
+                          <div>
+                            <Label>Nomor Telepon</Label>
+                            <Input
+                              value={supplierInfo.phone_number}
+                              disabled
+                              className="bg-slate-50"
+                            />
+                          </div>
+
+                          <div>
+                            <Label>Email</Label>
+                            <Input
+                              value={supplierInfo.email}
+                              disabled
+                              className="bg-slate-50"
+                            />
+                          </div>
+
+                          <div>
+                            <Label>Alamat</Label>
+                            <Input
+                              value={supplierInfo.address}
+                              disabled
+                              className="bg-slate-50"
+                            />
+                          </div>
                         </>
                       )}
                     </div>
-
-                    <div>
-                      <Label>Zona</Label>
-                      <Input
-                        value={formData.zones}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            zones: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Rak</Label>
-                      <Input
-                        value={formData.racks}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            racks: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Lot</Label>
-                      <Input
-                        value={formData.lots}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            lots: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <Label>Jumlah *</Label>
-                      <Input
-                        type="number"
-                        value={formData.item_quantity}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            item_quantity: parseFloat(e.target.value),
-                          })
-                        }
-                        required
-                      />
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* 4. AWB & HS Code Information - Hidden for Gudang Penjualan */}
-                {!isGudangPenjualan() && (
+                {/* 3. Warehouse Information - Hidden for Jasa */}
+                {itemType === "barang" && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
+                      Informasi Gudang
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Gudang *</Label>
+                        {editingId ? (
+                          <Select
+                            value={formData.warehouses}
+                            onValueChange={(value) => {
+                              const warehouse = warehouses.find(
+                                (wh) => wh.name === value,
+                              );
+                              if (warehouse) {
+                                setFormData({
+                                  ...formData,
+                                  warehouses: warehouse.name,
+                                  warehouse_name: warehouse.name,
+                                });
+                                setSelectedWarehouseId(warehouse.id);
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih gudang" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {warehouses.map((warehouse) => (
+                                <SelectItem
+                                  key={warehouse.id}
+                                  value={warehouse.name}
+                                >
+                                  {warehouse.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <>
+                            <Input
+                              value={formData.warehouse_name}
+                              disabled
+                              className="bg-slate-50 font-medium"
+                            />
+                            <p className="text-xs text-slate-500 mt-1">
+                              Gudang dipilih saat membuat stock baru
+                            </p>
+                          </>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label>Zona</Label>
+                        <Input
+                          value={formData.zones}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              zones: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Rak</Label>
+                        <Input
+                          value={formData.racks}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              racks: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Lot</Label>
+                        <Input
+                          value={formData.lots}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              lots: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Jumlah *</Label>
+                        <Input
+                          type="number"
+                          value={formData.item_quantity}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              item_quantity: parseFloat(e.target.value),
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. AWB & HS Code Information - Hidden for Gudang Penjualan and Jasa */}
+                {itemType === "barang" && !isGudangPenjualan() && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
                       Informasi AWB & HS Code
@@ -2330,8 +2480,8 @@ export default function StockForm() {
                   </div>
                 )}
 
-                {/* 5. WMS & CEISA Information - Hidden for Gudang Penjualan */}
-                {!isGudangPenjualan() && (
+                {/* 5. WMS & CEISA Information - Hidden for Gudang Penjualan and Jasa */}
+                {itemType === "barang" && !isGudangPenjualan() && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
                       Informasi WMS & CEISA
