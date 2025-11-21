@@ -256,14 +256,36 @@ export default function SalesForm() {
     }
 
     if (data) {
+      // Get COA account name if only code is available
+      let coaAccountName = data.coa_account_name || "";
+      
+      if (data.coa_account_code && !coaAccountName) {
+        const { data: coaData } = await supabase
+          .from("chart_of_accounts")
+          .select("account_name")
+          .eq("account_code", data.coa_account_code)
+          .single();
+        
+        coaAccountName = coaData?.account_name || "";
+      }
+
       setFormData((prev) => ({
         ...prev,
         item_id: itemId,
         item_name: data.item_name,
         stock_current: data.item_quantity,
+        // Auto-fill COA from stock
         coa_account_code: data.coa_account_code || "",
-        coa_account_name: data.coa_account_name || "",
+        coa_account_name: coaAccountName,
       }));
+
+      // Show notification if COA is auto-filled
+      if (data.coa_account_code) {
+        toast({
+          title: "COA Otomatis Terisi",
+          description: `Akun COA: ${data.coa_account_code} - ${coaAccountName}`,
+        });
+      }
     }
   };
 
@@ -303,6 +325,14 @@ export default function SalesForm() {
         coa_account_code: data.coa_revenue_code,
         coa_account_name: coaData?.account_name || "",
       }));
+
+      // Show notification if COA is auto-filled
+      if (data.coa_revenue_code) {
+        toast({
+          title: "COA Otomatis Terisi",
+          description: `Akun COA: ${data.coa_revenue_code} - ${coaData?.account_name || ""}`,
+        });
+      }
     }
   };
 
@@ -1007,7 +1037,11 @@ export default function SalesForm() {
                   onValueChange={handleCOAChange}
                 >
                   <SelectTrigger id="coa_account_code" className="border">
-                    <SelectValue placeholder="Pilih akun COA..." />
+                    <SelectValue placeholder="Pilih akun COA...">
+                      {formData.coa_account_code && formData.coa_account_name
+                        ? `${formData.coa_account_code} - ${formData.coa_account_name}`
+                        : "Pilih akun COA..."}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {coaAccounts.map((account) => (
