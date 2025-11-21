@@ -31,6 +31,7 @@ import FinancialDashboard from "./components/FinancialDashboard";
 import CashFlowReport from "./components/CashFlowReport";
 import TaxReportManagement from "./components/TaxReportManagement";
 import CoretaxUploadForm from "./components/CoretaxUploadForm";
+import ServiceItemsForm from "./components/ServiceItemsForm";
 import { Toaster } from "./components/ui/toaster";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -253,6 +254,25 @@ function AppRoutes() {
               <Header />
               <Navigation />
               <CustomerForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/service-items"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+              "read_only",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <ServiceItemsForm />
             </div>
           </ProtectedRoute>
         }

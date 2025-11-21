@@ -18,6 +18,7 @@ import {
   Truck,
   Receipt,
   Upload,
+  Briefcase,
 } from "lucide-react";
 
 export default function Navigation() {
@@ -118,6 +119,17 @@ export default function Navigation() {
         "accounting_staff",
         "warehouse_manager",
         "accounting_manager",
+        "read_only",
+      ],
+    },
+    {
+      path: "/service-items",
+      label: "Service Items",
+      icon: Briefcase,
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
         "read_only",
       ],
     },
