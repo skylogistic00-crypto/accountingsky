@@ -29,6 +29,8 @@ import ProfitLossReport from "./components/ProfitLossReport";
 import BalanceSheetReport from "./components/BalanceSheetReport";
 import FinancialDashboard from "./components/FinancialDashboard";
 import CashFlowReport from "./components/CashFlowReport";
+import TaxReportManagement from "./components/TaxReportManagement";
+import CoretaxUploadForm from "./components/CoretaxUploadForm";
 import { Toaster } from "./components/ui/toaster";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -512,6 +514,42 @@ function AppRoutes() {
               <Header />
               <Navigation />
               <CashFlowReport />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tax-reports"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <TaxReportManagement />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coretax-upload"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <CoretaxUploadForm />
             </div>
           </ProtectedRoute>
         }

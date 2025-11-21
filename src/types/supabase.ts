@@ -443,6 +443,7 @@ export type Database = {
           account_type: string
           balance: number | null
           created_at: string | null
+          created_by: string | null
           current_balance: number | null
           description: string | null
           id: string
@@ -452,6 +453,7 @@ export type Database = {
           kategori_layanan: string | null
           level: number
           normal_balance: string | null
+          parent_code: string | null
           updated_at: string | null
         }
         Insert: {
@@ -460,6 +462,7 @@ export type Database = {
           account_type: string
           balance?: number | null
           created_at?: string | null
+          created_by?: string | null
           current_balance?: number | null
           description?: string | null
           id?: string
@@ -469,6 +472,7 @@ export type Database = {
           kategori_layanan?: string | null
           level?: number
           normal_balance?: string | null
+          parent_code?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -477,6 +481,7 @@ export type Database = {
           account_type?: string
           balance?: number | null
           created_at?: string | null
+          created_by?: string | null
           current_balance?: number | null
           description?: string | null
           id?: string
@@ -486,6 +491,7 @@ export type Database = {
           kategori_layanan?: string | null
           level?: number
           normal_balance?: string | null
+          parent_code?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -619,6 +625,48 @@ export type Database = {
           status?: string
           tax_id?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      coretax_uploads: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_path: string
+          file_type: string
+          id: string
+          notes: string | null
+          period_month: number
+          period_year: number
+          status: string | null
+          upload_date: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          file_type: string
+          id?: string
+          notes?: string | null
+          period_month: number
+          period_year: number
+          status?: string | null
+          upload_date?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          id?: string
+          notes?: string | null
+          period_month?: number
+          period_year?: number
+          status?: string | null
+          upload_date?: string | null
+          uploaded_by?: string | null
         }
         Relationships: []
       }
@@ -1481,6 +1529,10 @@ export type Database = {
           item_name: string
           name: string
           notes: string | null
+          pph_amount: number | null
+          pph_percentage: number | null
+          ppn_amount: number | null
+          ppn_percentage: number | null
           quantity: number
           request_code: string | null
           request_date: string
@@ -1509,6 +1561,10 @@ export type Database = {
           item_name: string
           name: string
           notes?: string | null
+          pph_amount?: number | null
+          pph_percentage?: number | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
           quantity: number
           request_code?: string | null
           request_date: string
@@ -1537,6 +1593,10 @@ export type Database = {
           item_name?: string
           name?: string
           notes?: string | null
+          pph_amount?: number | null
+          pph_percentage?: number | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
           quantity?: number
           request_code?: string | null
           request_date?: string
@@ -1651,6 +1711,10 @@ export type Database = {
           item_name: string
           notes: string | null
           payment_method: string
+          pph_amount: number | null
+          pph_percentage: number | null
+          ppn_amount: number | null
+          ppn_percentage: number | null
           quantity: number
           stock_after: number | null
           stock_before: number | null
@@ -1680,6 +1744,10 @@ export type Database = {
           item_name: string
           notes?: string | null
           payment_method: string
+          pph_amount?: number | null
+          pph_percentage?: number | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
           quantity: number
           stock_after?: number | null
           stock_before?: number | null
@@ -1709,6 +1777,10 @@ export type Database = {
           item_name?: string
           notes?: string | null
           payment_method?: string
+          pph_amount?: number | null
+          pph_percentage?: number | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
           quantity?: number
           stock_after?: number | null
           stock_before?: number | null
@@ -1741,47 +1813,113 @@ export type Database = {
       service_items: {
         Row: {
           category: string | null
+          coa_account_code: string | null
+          coa_account_name: string | null
           coa_expense_code: string | null
           coa_revenue_code: string | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           id: string
           is_active: boolean | null
+          item_arrival_date: string | null
           item_name: string
           jenis_penjualan: string | null
-          price: number
+          ppn_on_sale: number | null
+          ppn_status: string | null
+          price: number | null
+          selling_price: number | null
+          selling_price_after_ppn: number | null
+          service_category: string | null
+          service_type: string | null
           unit: string | null
           updated_at: string | null
         }
         Insert: {
           category?: string | null
+          coa_account_code?: string | null
+          coa_account_name?: string | null
           coa_expense_code?: string | null
           coa_revenue_code?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
+          item_arrival_date?: string | null
           item_name: string
           jenis_penjualan?: string | null
-          price: number
+          ppn_on_sale?: number | null
+          ppn_status?: string | null
+          price?: number | null
+          selling_price?: number | null
+          selling_price_after_ppn?: number | null
+          service_category?: string | null
+          service_type?: string | null
           unit?: string | null
           updated_at?: string | null
         }
         Update: {
           category?: string | null
+          coa_account_code?: string | null
+          coa_account_name?: string | null
           coa_expense_code?: string | null
           coa_revenue_code?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
+          item_arrival_date?: string | null
           item_name?: string
           jenis_penjualan?: string | null
-          price?: number
+          ppn_on_sale?: number | null
+          ppn_status?: string | null
+          price?: number | null
+          selling_price?: number | null
+          selling_price_after_ppn?: number | null
+          service_category?: string | null
+          service_type?: string | null
           unit?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "service_items_coa_account_code_fkey"
+            columns: ["coa_account_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "service_items_coa_account_code_fkey"
+            columns: ["coa_account_code"]
+            isOneToOne: false
+            referencedRelation: "vw_balance_sheet"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "service_items_coa_account_code_fkey"
+            columns: ["coa_account_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "service_items_coa_account_code_fkey"
+            columns: ["coa_account_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "service_items_coa_account_code_fkey"
+            columns: ["coa_account_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+        ]
       }
       shippers: {
         Row: {
@@ -2390,6 +2528,120 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_reminders: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          due_date: string
+          id: string
+          is_completed: boolean | null
+          notes: string | null
+          period_month: number | null
+          period_year: number
+          reminder_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          due_date: string
+          id?: string
+          is_completed?: boolean | null
+          notes?: string | null
+          period_month?: number | null
+          period_year: number
+          reminder_type: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          is_completed?: boolean | null
+          notes?: string | null
+          period_month?: number | null
+          period_year?: number
+          reminder_type?: string
+        }
+        Relationships: []
+      }
+      tax_reports: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          period_month: number
+          period_year: number
+          report_type: string
+          status: string | null
+          total_dpp: number | null
+          total_pph: number | null
+          total_ppn: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          period_month: number
+          period_year: number
+          report_type: string
+          status?: string | null
+          total_dpp?: number | null
+          total_pph?: number | null
+          total_ppn?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          period_month?: number
+          period_year?: number
+          report_type?: string
+          status?: string | null
+          total_dpp?: number | null
+          total_pph?: number | null
+          total_ppn?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      tax_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          effective_date: string
+          id: string
+          is_active: boolean | null
+          rate: number
+          tax_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          effective_date: string
+          id?: string
+          is_active?: boolean | null
+          rate: number
+          tax_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          effective_date?: string
+          id?: string
+          is_active?: boolean | null
+          rate?: number
+          tax_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tax_transactions: {
         Row: {
           amount: number
@@ -2814,6 +3066,7 @@ export type Database = {
       }
     }
     Functions: {
+      create_monthly_tax_reminders: { Args: never; Returns: undefined }
       fn_income_statement: {
         Args: { p_end: string; p_start: string }
         Returns: {

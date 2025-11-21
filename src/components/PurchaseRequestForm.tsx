@@ -58,6 +58,7 @@ interface Supplier {
   phone_number?: string;
   address?: string;
   email?: string;
+  is_pkp?: string;
 }
 
 interface StockItem {
@@ -114,6 +115,7 @@ export default function PurchaseRequestForm({
   );
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
+  const [defaultPPNRate, setDefaultPPNRate] = useState(11);
 
   // PR Items state
   const [prItems, setPrItems] = useState<PRItem[]>([]);
@@ -166,13 +168,32 @@ export default function PurchaseRequestForm({
     }
     fetchSuppliers();
     fetchStockItems();
+    fetchTaxSettings();
   }, [userProfile, user]);
+
+  const fetchTaxSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("tax_settings")
+        .select("rate")
+        .eq("tax_type", "PPN")
+        .eq("is_active", true)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setDefaultPPNRate(data.rate);
+      }
+    } catch (error) {
+      console.error("Error fetching tax settings:", error);
+    }
+  };
 
   const fetchSuppliers = async () => {
     try {
       const { data, error } = await supabase
         .from("suppliers")
-        .select("id, supplier_name, phone_number, address, email")
+        .select("id, supplier_name, phone_number, address, email, is_pkp")
         .eq("status", "ACTIVE")
         .order("supplier_name");
 
@@ -221,6 +242,24 @@ export default function PurchaseRequestForm({
 
     const supplier = suppliers.find((s) => s.id === supplierId);
     setSelectedSupplier(supplier || null);
+
+    // Auto-apply tax if supplier is PKP
+    if (supplier?.is_pkp === "YES") {
+      setCurrentItem((prev) => ({
+        ...prev,
+        tax: defaultPPNRate,
+      }));
+
+      toast({
+        title: "Info",
+        description: `Supplier PKP terdeteksi. PPN ${defaultPPNRate}% otomatis diterapkan.`,
+      });
+    } else {
+      setCurrentItem((prev) => ({
+        ...prev,
+        tax: 0,
+      }));
+    }
   };
 
   const handleItemSelect = (item: StockItem) => {
@@ -644,15 +683,7 @@ export default function PurchaseRequestForm({
               <Label htmlFor="supplier_id">Supplier Name</Label>
               <Select
                 value={formData.supplier_id}
-                onValueChange={(value) => {
-                  if (value === "add_new") {
-                    setIsSupplierDialogOpen(true);
-                    return;
-                  }
-                  setFormData({ ...formData, supplier_id: value });
-                  const supplier = suppliers.find((s) => s.id === value);
-                  setSelectedSupplier(supplier || null);
-                }}
+                onValueChange={handleSupplierChange}
               >
                 <SelectTrigger id="supplier_id">
                   <SelectValue placeholder="Pilih supplier" />
@@ -661,6 +692,11 @@ export default function PurchaseRequestForm({
                   {suppliers.map((supplier) => (
                     <SelectItem key={supplier.id} value={supplier.id}>
                       {supplier.supplier_name}
+                      {supplier.is_pkp === "YES" && (
+                        <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                          PKP
+                        </span>
+                      )}
                     </SelectItem>
                   ))}
                   <SelectItem
@@ -681,7 +717,7 @@ export default function PurchaseRequestForm({
                   Supplier Information
                 </h4>
 
-                <div className="grid md:grid-cols-3 gap-3 text-sm">
+                <div className="grid md:grid-cols-4 gap-3 text-sm">
                   <div>
                     <Label className="text-xs text-slate-600">Phone</Label>
                     <p className="font-medium">
@@ -698,6 +734,18 @@ export default function PurchaseRequestForm({
                     <Label className="text-xs text-slate-600">Address</Label>
                     <p className="font-medium">
                       {selectedSupplier.address || "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-600">Status PKP</Label>
+                    <p className="font-medium">
+                      {selectedSupplier.is_pkp === "YES" ? (
+                        <span className="text-green-600 font-semibold">
+                          ✓ PKP (PPN {defaultPPNRate}%)
+                        </span>
+                      ) : (
+                        <span className="text-gray-600">Non-PKP</span>
+                      )}
                     </p>
                   </div>
                 </div>

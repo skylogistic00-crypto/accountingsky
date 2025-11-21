@@ -7,19 +7,17 @@ import {
   Package,
   Warehouse,
   Building2,
-  ArrowUpFromLine,
   Layers,
   Plane,
-  Receipt,
-  BookOpen,
-  BarChart3,
-  DollarSign,
-  PackageX,
-  Link2,
   LayoutDashboard,
+  FileText,
+  DollarSign,
+  ArrowUpFromLine,
   ClipboardList,
   Wallet,
   Truck,
+  Receipt,
+  Upload,
 } from "lucide-react";
 
 export default function Navigation() {
@@ -27,26 +25,28 @@ export default function Navigation() {
   const location = useLocation();
 
   const role = userProfile?.roles?.role_name || "guest";
+  
+  console.log("Current user role:", role);
+  console.log("User profile:", userProfile);
 
   // 🚀 Definisikan semua menu dan role yang boleh mengakses
   const navItems = [
     {
-      path: "/dashboard",
+      path: "/",
       label: "Dashboard",
       icon: Home,
       roles: [
         "super_admin",
-        // "warehouse_manager",
         "accounting_manager",
-        "customs_specialist",
         "accounting_staff",
-        "accounting_manager",
-        // "warehouse_staff",
+        "warehouse_manager",
+        "warehouse_staff",
+        "customs_specialist",
         "read_only",
       ],
     },
     {
-      path: "/financial-dashboard",
+      path: "/dashboard-keuangan",
       label: "Dashboard Keuangan",
       icon: LayoutDashboard,
       roles: [
@@ -205,21 +205,41 @@ export default function Navigation() {
       roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
+      path: "/tax-reports",
+      label: "Laporan Pajak",
+      icon: Receipt,
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
+      ],
+    },
+    {
+      path: "/coretax-upload",
+      label: "Upload Coretax",
+      icon: Upload,
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
+      ],
+    },
+    {
       path: "/coa-management",
       label: "Chart of Accounts",
-      icon: BookOpen,
+      icon: FileText,
       roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
       path: "/coa-mapping",
       label: "COA Mapping",
-      icon: Link2,
+      icon: FileText,
       roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
       path: "/report-barang-lama",
       label: "Report Barang Lama",
-      icon: BarChart3,
+      icon: FileText,
       roles: ["super_admin", "accounting_staff", "accounting_manager"],
     },
   ];

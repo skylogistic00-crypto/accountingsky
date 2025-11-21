@@ -47,8 +47,11 @@ interface ServiceItem {
 
 interface Customer {
   id: string;
-  customer_code: string;
-  customer_name: string;
+  // customer_code: string;
+  name: string;
+  phone: string;
+  address: string;
+  email: string;
 }
 
 interface COAAccount {
@@ -67,20 +70,20 @@ export default function SalesForm() {
   const [coaAccounts, setCOAAccounts] = useState<COAAccount[]>([]);
   const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false);
   const [newCustomerData, setNewCustomerData] = useState({
-    customer_name: "",
-    contact_person: "",
-    phone_number: "",
+    name: "",
+    //contact_person: "",
+    phone: "",
     email: "",
-    city: "",
-    country: "",
-    is_pkp: "",
-    tax_id: "",
-    bank_name: "",
-    bank_account_holder: "",
-    payment_terms: "",
-    category: "",
-    currency: "IDR",
-    status: "ACTIVE",
+    // city: "",
+    // country: "",
+    // is_pkp: "",
+    // tax_id: "",
+    // bank_name: "",
+    // bank_account_holder: "",
+    //  payment_terms: "",
+    //  category: "",
+    // currency: "IDR",
+    //  status: "ACTIVE",
     address: "",
   });
 
@@ -199,9 +202,9 @@ export default function SalesForm() {
   const fetchCustomers = async () => {
     const { data, error } = await supabase
       .from("customers")
-      .select("id, customer_code, customer_name")
-      .eq("status", "ACTIVE")
-      .order("customer_name");
+      .select("id, email, name, phone, address")
+      // .eq("status", "ACTIVE")
+      .order("name");
 
     if (error) {
       console.error("Error fetching customers:", error);
@@ -314,7 +317,7 @@ export default function SalesForm() {
       setFormData((prev) => ({
         ...prev,
         customer_id: customerId,
-        customer_name: selectedCustomer.customer_name,
+        name: selectedCustomer.name,
       }));
     }
   };
@@ -472,7 +475,7 @@ export default function SalesForm() {
           total_amount: formData.total_amount,
           payment_method: formData.payment_method,
           customer_id: formData.customer_id,
-          customer_name: formData.customer_name,
+          // name: formData.name,
           coa_cash_code:
             formData.payment_method === "Piutang" ? "1-1200" : "1-1100",
           coa_revenue_code: formData.coa_account_code,
@@ -957,7 +960,7 @@ export default function SalesForm() {
                   <SelectContent>
                     {customers.map((customer) => (
                       <SelectItem key={customer.id} value={customer.id}>
-                        {customer.customer_name}
+                        {customer.name}
                       </SelectItem>
                     ))}
                     <SelectItem
