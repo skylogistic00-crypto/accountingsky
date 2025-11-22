@@ -38,7 +38,7 @@ export default function Header() {
     email: "",
     password: "",
     fullName: "",
-    role: "read_only",
+    roleName: "read_only",
   });
 
   const handleSignIn = async (e: React.FormEvent) => {
