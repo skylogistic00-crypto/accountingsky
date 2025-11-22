@@ -78,7 +78,7 @@ export default function Header() {
         signUpData.email,
         signUpData.password,
         signUpData.fullName,
-        signUpData.role,
+        signUpData.roleName,
       );
       toast({
         title: "Success",
@@ -94,6 +94,7 @@ export default function Header() {
     } finally {
       setLoading(false);
     }
+    console.log("SIGNUP DATA:", signUpData);
   };
 
   const handleSignOut = async () => {
@@ -312,9 +313,9 @@ export default function Header() {
                 <div className="space-y-2">
                   <Label htmlFor="signup-role">Role</Label>
                   <Select
-                    value={signUpData.role}
+                    value={signUpData.roleName}
                     onValueChange={(value) =>
-                      setSignUpData({ ...signUpData, role: value })
+                      setSignUpData({ ...signUpData, roleName: value })
                     }
                   >
                     <SelectTrigger id="signup-role">

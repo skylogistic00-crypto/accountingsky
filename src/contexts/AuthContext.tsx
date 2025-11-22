@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from("users")
         .select("id, status")
         .eq("email", email)
-        .single();
+        .maybeSingle();
 
       if (userError || !userCheck) {
         throw { type: "not_found", message: "Akun tidak ditemukan" };
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     fullName: string,
-    role_name: string = "read_only",
+    roleName: string = "read_only",
   ) => {
     const { error } = await supabase.auth.signUp({
       email,
@@ -161,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailRedirectTo: window.location.origin,
         data: {
           full_name: fullName,
-          role_name: roleName,
+          role: roleName, // ✔ FIXED
         },
       },
     });

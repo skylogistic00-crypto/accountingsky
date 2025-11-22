@@ -58,7 +58,7 @@ export default function AuthForm() {
         signUpData.email,
         signUpData.password,
         signUpData.fullName,
-        signUpData.role,
+        signUpData.roleName,
       );
       toast({
         title: "Success",
@@ -167,9 +167,9 @@ export default function AuthForm() {
                 <div className="space-y-2">
                   <Label htmlFor="signup-role">Role</Label>
                   <Select
-                    value={signUpData.role}
+                    value={signUpData.roleName}
                     onValueChange={(value) =>
-                      setSignUpData({ ...signUpData, role: value })
+                      setSignUpData({ ...signUpData, roleName: value })
                     }
                   >
                     <SelectTrigger id="signup-role">
