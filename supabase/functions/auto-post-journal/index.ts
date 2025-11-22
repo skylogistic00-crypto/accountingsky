@@ -406,13 +406,34 @@ Deno.serve(async (req) => {
     }
 
     // Insert journal entries
-    const { error: journalError } = await supabase
+    const { data: insertedJournals, error: journalError } = await supabase
       .from('journal_entries')
-      .insert(journalEntries);
+      .insert(journalEntries)
+      .select();
 
     if (journalError) {
       console.error('Journal insert error:', journalError);
       throw journalError;
+    }
+
+    // Insert journal_entry_lines for each journal entry
+    if (insertedJournals && insertedJournals.length > 0) {
+      const journalLines = insertedJournals.map((journal: any) => ({
+        journal_id: journal.id,
+        account_code: journal.account_code,
+        account_name: journal.account_name,
+        debit: journal.debit,
+        credit: journal.credit,
+        description: journal.description,
+      }));
+
+      const { error: linesError } = await supabase
+        .from('journal_entry_lines')
+        .insert(journalLines);
+
+      if (linesError) {
+        console.error('Journal lines error:', linesError);
+      }
     }
 
     console.log('Success! Inserted', journalEntries.length, 'entries');

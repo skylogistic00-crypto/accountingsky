@@ -237,6 +237,16 @@ export default function Navigation() {
       ],
     },
     {
+      path: "/coretax-report",
+      label: "Daftar Upload Coretax",
+      icon: FileText,
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
+      ],
+    },
+    {
       path: "/coa-management",
       label: "Chart of Accounts",
       icon: FileText,

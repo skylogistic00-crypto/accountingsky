@@ -1254,6 +1254,7 @@ export default function StockForm() {
         ...formData,
         warehouses: warehouse.name, // Store warehouse name in warehouses column
         warehouse_name: warehouse.name, // Store name for display
+        warehouse_id: warehouseId, // Store warehouse_id for foreign key
       });
       setShowWarehouseModal(false);
       setShowForm(true);

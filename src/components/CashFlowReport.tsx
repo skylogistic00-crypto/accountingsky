@@ -24,7 +24,9 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
+  ArrowLeft,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface CashFlowViewData {
   tahun: number;
@@ -36,6 +38,7 @@ interface CashFlowViewData {
 
 export default function CashFlowReport() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [cashFlowData, setCashFlowData] = useState<CashFlowViewData | null>(
     null,
@@ -152,10 +155,22 @@ export default function CashFlowReport() {
     <div className="min-h-screen bg-slate-50 p-6">
       <Card className="max-w-7xl mx-auto bg-white shadow-md rounded-2xl border">
         <CardHeader className="p-4">
-          <CardTitle className="text-2xl">💰 Laporan Arus Kas</CardTitle>
-          <CardDescription>
-            Laporan arus kas masuk, kas keluar, dan saldo kas bersih per periode
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">💰 Laporan Arus Kas</CardTitle>
+              <CardDescription>
+                Laporan arus kas masuk, kas keluar, dan saldo kas bersih per periode
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => navigate(-1)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-4">
           {/* Filter Year & Month */}

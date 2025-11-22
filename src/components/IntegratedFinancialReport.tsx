@@ -58,23 +58,45 @@ export default function IntegratedFinancialReport() {
   const fetchReportData = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("vw_laporan_keuangan_all")
+    // Fetch from journal_entries directly
+    const { data: journalEntries, error: journalError } = await supabase
+      .from("journal_entries")
       .select("*")
-      .order("report_type", { ascending: true })
       .order("account_code", { ascending: true });
 
-    if (error) {
+
+    if (journalError) {
       toast({
         title: "Error",
-        description: "Gagal memuat data laporan keuangan",
+        description: `Gagal memuat data laporan keuangan: ${journalError.message}`,
         variant: "destructive",
       });
-      console.error("Error fetching report data:", error);
-    } else {
-      setReportData(data || []);
+      setLoading(false);
+      return;
     }
 
+    // Group by account and calculate totals
+    const grouped = (journalEntries || []).reduce((acc: any, entry: any) => {
+      const key = entry.account_code;
+      if (!acc[key]) {
+        acc[key] = {
+          account_code: entry.account_code,
+          account_name: entry.account_name,
+          debit_total: 0,
+          credit_total: 0,
+          amount: 0,
+          report_type: "GENERAL_LEDGER",
+          section: "Accounts",
+        };
+      }
+      acc[key].debit_total += entry.debit || 0;
+      acc[key].credit_total += entry.credit || 0;
+      acc[key].amount += (entry.debit || 0) - (entry.credit || 0);
+      return acc;
+    }, {});
+
+    const reportDataArray = Object.values(grouped);
+    setReportData(reportDataArray as FinancialReportData[]);
     setLoading(false);
   };
 

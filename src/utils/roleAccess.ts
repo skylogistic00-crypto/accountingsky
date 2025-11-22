@@ -45,3 +45,25 @@ export const CAN_CLICK_ROLES = [
 export function canClick(role: string | null) {
   return CAN_CLICK_ROLES.includes(role || "");
 }
+
+// Roles yang bisa approve purchase request
+export const CAN_APPROVE_PR_ROLES = [
+  "super_admin",
+  "accounting_manager",
+  "warehouse_manager",
+];
+
+export function canApprovePR(role: string | null) {
+  return CAN_APPROVE_PR_ROLES.includes(role || "");
+}
+
+// Roles yang bisa complete purchase request
+export const CAN_COMPLETE_PR_ROLES = [
+  "super_admin",
+  "warehouse_manager",
+  "warehouse_staff",
+];
+
+export function canCompletePR(role: string | null) {
+  return CAN_COMPLETE_PR_ROLES.includes(role || "");
+}

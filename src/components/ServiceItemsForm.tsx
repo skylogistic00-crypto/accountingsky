@@ -194,6 +194,30 @@ export default function ServiceItemsForm() {
     setIsDialogOpen(true);
   };
 
+  const handleToggleStatus = async (item: ServiceItem) => {
+    try {
+      const { error } = await supabase
+        .from("service_items")
+        .update({ is_active: !item.is_active })
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Service item ${!item.is_active ? "diaktifkan" : "dinonaktifkan"}`,
+      });
+
+      fetchServiceItems();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Yakin ingin menghapus service item ini?")) return;
 
@@ -526,9 +550,14 @@ export default function ServiceItemsForm() {
                         {item.coa_revenue_code || "-"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={item.is_active ? "default" : "secondary"}>
+                        <Button
+                          size="sm"
+                          variant={item.is_active ? "default" : "secondary"}
+                          onClick={() => handleToggleStatus(item)}
+                          className="h-7 px-3 text-xs"
+                        >
                           {item.is_active ? "Aktif" : "Nonaktif"}
-                        </Badge>
+                        </Button>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">

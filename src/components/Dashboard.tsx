@@ -10,6 +10,10 @@ import {
   ArrowUpRight,
   Plus,
   Receipt,
+  BookOpen,
+  FileSpreadsheet,
+  Scale,
+  PieChart,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -17,6 +21,13 @@ import { supabase } from "../lib/supabase";
 import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import Navigation from "./Navigation";
+import GeneralLedgerView from "./GeneralLedgerView";
+import TrialBalanceView from "./TrialBalanceView";
+import PurchaseRequestForm from "./PurchaseRequestForm";
+import SupplierForm from "./SupplierForm";
+import PermohonanDanaForm from "./PermohonanDanaForm";
+import { Button } from "./ui/button";
+import { canClick } from "@/utils/roleAccess";
 import {
   Table,
   TableBody,
@@ -25,11 +36,6 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-import PurchaseRequestForm from "./PurchaseRequestForm";
-import SupplierForm from "./SupplierForm";
-import PermohonanDanaForm from "./PermohonanDanaForm";
-import { Button } from "./ui/button";
-import { canClick } from "@/utils/roleAccess";
 
 type ViewType =
   | "overview"
@@ -40,7 +46,10 @@ type ViewType =
   | "create-request"
   | "create-supplier"
   | "permohonan-dana"
-  | "create-permohonan";
+  | "create-permohonan"
+  | "general-ledger"
+  | "trial-balance"
+  | "financial-report";
 
 export default function Dashboard() {
   const { userProfile } = useAuth();
@@ -165,15 +174,10 @@ export default function Dashboard() {
               >
                 {/* Accounting Card */}
                 <div
-                  onClick={() => {
-                    if (canClick(userRole)) {
-                      setCurrentView("permohonan-dana");
-                    }
-                  }}
-                  className="relative cursor-pointer group"
+                  className="relative group"
                   style={{
                     transform: "rotateY(-8deg) rotateX(2deg)",
-                    transformStyle: "preserve-3d",
+                    transformStyle: "flat",
                     transition: "all 0.5s ease",
                   }}
                   onMouseEnter={(e) => {
@@ -265,36 +269,88 @@ export default function Dashboard() {
 
                     {/* Request List */}
                     <div
-                      className="bg-white rounded-2xl p-5"
+                      className="bg-white rounded-2xl p-5 relative"
                       style={{
                         boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
-                        transform: "translateZ(15px)",
+                        transform: "translateZ(0)",
+                        zIndex: 10,
                       }}
                     >
                       <h3 className="text-slate-800 font-bold text-lg mb-4">
-                        Permohonan Dana
+                        Laporan Keuangan
                       </h3>
-                      <div className="space-y-3">
-                        {permohonanDana.slice(0, 4).map((req, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
-                          >
-                            <div>
-                              <div className="text-slate-700 font-semibold text-sm">
-                                {req.nama_pemohon}
-                              </div>
-                              <div className="text-slate-500 text-xs">
-                                {req.departemen}
-                              </div>
-                            </div>
-                            <span
-                              className={`${getStatusColor(req.status)} text-white px-3 py-1 rounded-full text-xs font-medium shadow-md`}
-                            >
-                              {req.status}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="grid grid-cols-2 gap-3 relative" style={{ zIndex: 999, pointerEvents: 'auto', position: 'relative', transform: 'translateZ(0)' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate("/cash-book");
+                          }}
+                          className="flex items-center gap-2 p-3 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-xl transition-all cursor-pointer relative" style={{ zIndex: 999, pointerEvents: 'auto', position: 'relative' }}
+                        >
+                          <BookOpen className="w-5 h-5 text-blue-600" />
+                          <span className="text-sm font-semibold text-blue-700">
+                            Jurnal
+                          </span>
+                        </button>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentView("general-ledger");
+                          }}
+                          className="flex items-center gap-2 p-3 bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 rounded-xl transition-all cursor-pointer relative"
+                          style={{ zIndex: 999, pointerEvents: 'auto', position: 'relative' }}
+                        >
+                          <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                          <span className="text-sm font-semibold text-green-700">
+                            General Ledger
+                          </span>
+                        </button>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentView("trial-balance");
+                          }}
+                          className="flex items-center gap-2 p-3 bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-xl transition-all cursor-pointer relative"
+                          style={{ zIndex: 999, pointerEvents: 'auto', position: 'relative' }}
+                        >
+                          <Scale className="w-5 h-5 text-purple-600" />
+                          <span className="text-sm font-semibold text-purple-700">
+                            Trial Balance
+                          </span>
+                        </button>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentView("financial-report");
+                          }}
+                          className="flex items-center gap-2 p-3 bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 rounded-xl transition-all cursor-pointer relative"
+                          style={{ zIndex: 999, pointerEvents: 'auto', position: 'relative' }}
+                        >
+                          <PieChart className="w-5 h-5 text-orange-600" />
+                          <span className="text-sm font-semibold text-orange-700">
+                            Laporan Keuangan
+                          </span>
+                        </button>
+                      </div>
+                      
+                      <div className="mt-4 pt-4 border-t border-slate-200">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentView("permohonan-dana");
+                          }}
+                          className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-teal-50 to-cyan-50 hover:from-teal-100 hover:to-cyan-100 rounded-xl transition-all"
+                        >
+                          <span className="text-sm font-semibold text-teal-700">
+                            Permohonan Dana
+                          </span>
+                          <span className="bg-teal-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                            {permohonanDana.filter((p) => p.status === "PENDING").length}
+                          </span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -595,6 +651,75 @@ export default function Dashboard() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          ) : currentView === "general-ledger" ? (
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800">
+                  General Ledger
+                </h2>
+                <button
+                  onClick={() => setCurrentView("overview")}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-slate-700 font-medium"
+                >
+                  Back to Dashboard
+                </button>
+              </div>
+              <GeneralLedgerView />
+            </div>
+          ) : currentView === "trial-balance" ? (
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800">
+                  Trial Balance
+                </h2>
+                <button
+                  onClick={() => setCurrentView("overview")}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-slate-700 font-medium"
+                >
+                  Back to Dashboard
+                </button>
+              </div>
+              <TrialBalanceView />
+            </div>
+          ) : currentView === "financial-report" ? (
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800">
+                  Laporan Keuangan
+                </h2>
+                <button
+                  onClick={() => setCurrentView("overview")}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-slate-700 font-medium"
+                >
+                  Back to Dashboard
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <button
+                    onClick={() => navigate("/balance-sheet")}
+                    className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-all"
+                  >
+                    <h3 className="font-semibold text-blue-900">Balance Sheet</h3>
+                    <p className="text-sm text-blue-600">Neraca</p>
+                  </button>
+                  <button
+                    onClick={() => navigate("/profit-loss")}
+                    className="p-4 bg-green-50 hover:bg-green-100 rounded-lg text-left transition-all"
+                  >
+                    <h3 className="font-semibold text-green-900">Profit & Loss</h3>
+                    <p className="text-sm text-green-600">Laba Rugi</p>
+                  </button>
+                  <button
+                    onClick={() => navigate("/cash-flow")}
+                    className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg text-left transition-all"
+                  >
+                    <h3 className="font-semibold text-purple-900">Cash Flow</h3>
+                    <p className="text-sm text-purple-600">Arus Kas</p>
+                  </button>
+                </div>
+              </div>
             </div>
           ) : currentView === "create-request" ? (
             <div>

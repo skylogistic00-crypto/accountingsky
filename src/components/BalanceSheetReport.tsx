@@ -19,7 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Download, Filter, FileText } from "lucide-react";
+import { Loader2, Download, Filter, FileText, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface BalanceSheetData {
   account_code: string;
@@ -30,6 +31,7 @@ interface BalanceSheetData {
 
 export default function BalanceSheetReport() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   const [assets, setAssets] = useState<BalanceSheetData[]>([]);
@@ -226,11 +228,23 @@ export default function BalanceSheetReport() {
     <div className="min-h-screen bg-slate-50 p-6">
       <Card className="max-w-7xl mx-auto bg-white shadow-md rounded-2xl border">
         <CardHeader className="p-4">
-          <CardTitle className="text-2xl">Laporan Neraca</CardTitle>
-          <CardDescription>
-            Laporan posisi keuangan yang menunjukkan aset, kewajiban, dan
-            ekuitas perusahaan
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">Laporan Neraca</CardTitle>
+              <CardDescription>
+                Laporan posisi keuangan yang menunjukkan aset, kewajiban, dan
+                ekuitas perusahaan
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => navigate(-1)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-4">
           {/* Filter Date */}

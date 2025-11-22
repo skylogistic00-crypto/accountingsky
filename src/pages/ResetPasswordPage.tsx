@@ -124,11 +124,10 @@ export default function ResetPasswordPage() {
 
   // ------------------ Handle form submit -------------------
   const handleSubmit = async (values: ResetPasswordFormValues) => {
-    setIsSubmitting(true);
-    setError(null);
-    setMessage(null);
-
     try {
+      setIsSubmitting(true);
+      setError(null);
+      setMessage(null);
       console.log("[ResetPassword] Attempting to update password...");
 
       // Update password (session already set in useEffect)

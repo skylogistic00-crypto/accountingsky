@@ -291,7 +291,20 @@ export default function StockAdjustmentForm() {
     try {
       const { data, error } = await supabase
         .from("stock")
-        .select("id, item_name, sku, unit, item_quantity, warehouses, zones, racks, lots, supplier_id")
+        .select(`
+          id, 
+          item_name, 
+          sku, 
+          unit, 
+          item_quantity, 
+          warehouses, 
+          zones, 
+          racks, 
+          lots, 
+          supplier_id,
+          warehouse_id,
+          warehouses:warehouse_id(id, name, code)
+        `)
         .order("item_name");
 
       if (error) throw error;
@@ -310,14 +323,19 @@ export default function StockAdjustmentForm() {
     if (stock) {
       console.log('Selected stock:', stock);
       console.log('Supplier ID from stock:', stock.supplier_id);
+      console.log('Warehouse from stock:', stock.warehouses);
       
       setSelectedStock(stock);
+      
+      // Get warehouse name from the joined data
+      const warehouseName = stock.warehouses?.name || stock.warehouses || "";
+      
       setFormData(prev => ({
         ...prev,
         item_name: stock.item_name,
         sku: stock.sku,
         unit: stock.unit,
-        warehouse: stock.warehouses || "",
+        warehouse: warehouseName,
         zone: stock.zones || "",
         rack: stock.racks || "",
         lot: stock.lots || "",
@@ -326,10 +344,15 @@ export default function StockAdjustmentForm() {
         stock_id: stock.id,
       }));
       
-      // Log formData after update
-      setTimeout(() => {
-        console.log('FormData after update:', formData);
-      }, 100);
+      // Show success toast
+      const supplierName = stock.supplier_id 
+        ? suppliers.find(s => s.id === stock.supplier_id)?.supplier_name 
+        : "Tidak ada";
+      
+      toast({
+        title: "✅ Data Auto-Filled",
+        description: `Supplier: ${supplierName || "Tidak ada"}\nGudang: ${warehouseName || "-"}\nZone: ${stock.zones || "-"}\nRak: ${stock.racks || "-"}\nLot: ${stock.lots || "-"}`,
+      });
     }
   };
 
@@ -773,23 +796,35 @@ export default function StockAdjustmentForm() {
 
                     <div>
                       <Label>Supplier</Label>
-                      <Select
-                        value={formData.supplier_id}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, supplier_id: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih supplier..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {suppliers.map((supplier) => (
-                            <SelectItem key={supplier.id} value={supplier.id}>
-                              {supplier.supplier_code} - {supplier.supplier_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {selectedStock && formData.supplier_id ? (
+                        <Input
+                          value={
+                            suppliers.find(s => s.id === formData.supplier_id)
+                              ? `${suppliers.find(s => s.id === formData.supplier_id)?.supplier_code} - ${suppliers.find(s => s.id === formData.supplier_id)?.supplier_name}`
+                              : "Supplier tidak ditemukan"
+                          }
+                          readOnly
+                          className="bg-slate-50"
+                        />
+                      ) : (
+                        <Select
+                          value={formData.supplier_id}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, supplier_id: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih supplier..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {suppliers.map((supplier) => (
+                              <SelectItem key={supplier.id} value={supplier.id}>
+                                {supplier.supplier_code} - {supplier.supplier_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
 
                     <div>
@@ -909,6 +944,8 @@ export default function StockAdjustmentForm() {
                         onChange={(e) =>
                           setFormData({ ...formData, warehouse: e.target.value })
                         }
+                        readOnly={!!selectedStock}
+                        className={selectedStock ? "bg-slate-50" : ""}
                       />
                     </div>
 
@@ -919,6 +956,8 @@ export default function StockAdjustmentForm() {
                         onChange={(e) =>
                           setFormData({ ...formData, zone: e.target.value })
                         }
+                        readOnly={!!selectedStock}
+                        className={selectedStock ? "bg-slate-50" : ""}
                       />
                     </div>
 
@@ -929,6 +968,8 @@ export default function StockAdjustmentForm() {
                         onChange={(e) =>
                           setFormData({ ...formData, rack: e.target.value })
                         }
+                        readOnly={!!selectedStock}
+                        className={selectedStock ? "bg-slate-50" : ""}
                       />
                     </div>
 
@@ -939,6 +980,8 @@ export default function StockAdjustmentForm() {
                         onChange={(e) =>
                           setFormData({ ...formData, lot: e.target.value })
                         }
+                        readOnly={!!selectedStock}
+                        className={selectedStock ? "bg-slate-50" : ""}
                       />
                     </div>
                   </div>

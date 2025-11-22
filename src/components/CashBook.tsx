@@ -231,13 +231,18 @@ export default function CashBook() {
   };
 
   const handleServiceTypeChange = async (value: string) => {
-    setFormData({ ...formData, service_type: value });
+    // Get current category from formData
+    const currentCategory = formData.service_category;
+    const currentPaymentType = formData.payment_type;
+
+    // Update service_type first
+    setFormData((prev) => ({ ...prev, service_type: value }));
 
     // Auto-fetch COA mapping
-    if (formData.service_category && value) {
+    if (currentCategory && value) {
       try {
         const { data, error } = await supabase.rpc("get_coa_mapping", {
-          p_service_category: formData.service_category,
+          p_service_category: currentCategory,
           p_service_type: value,
         });
 
@@ -249,12 +254,12 @@ export default function CashBook() {
           let accountName = "";
 
           // Untuk Persediaan, gunakan asset_account
-          if (formData.service_category === "Persediaan") {
+          if (currentCategory === "Persediaan") {
             accountCode = mapping.asset_account_code || "";
             accountName = mapping.asset_account_name || "";
           }
           // Untuk kategori lain, gunakan revenue atau cogs berdasarkan payment type
-          else if (formData.payment_type === "Penerimaan Kas") {
+          else if (currentPaymentType === "Penerimaan Kas") {
             accountCode = mapping.revenue_account_code || "";
             accountName = mapping.revenue_account_name || "";
           } else {
@@ -266,17 +271,18 @@ export default function CashBook() {
 
           setFormData((prev) => ({
             ...prev,
+            service_type: value,
             account_number: accountCode,
             account_name: accountName,
           }));
 
           toast({
-            title: "COA Auto-Selected",
+            title: "✅ COA Auto-Selected",
             description: `${accountCode} - ${accountName}`,
           });
         } else {
           toast({
-            title: "Info",
+            title: "ℹ️ Info",
             description: "Mapping COA tidak ditemukan untuk kategori ini",
             variant: "default",
           });
@@ -284,7 +290,7 @@ export default function CashBook() {
       } catch (error) {
         console.error("Error fetching COA mapping:", error);
         toast({
-          title: "Error",
+          title: "❌ Error",
           description: "Gagal mengambil mapping COA",
           variant: "destructive",
         });
@@ -434,6 +440,13 @@ export default function CashBook() {
         <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
           <div className="container mx-auto px-4 py-6 flex justify-between items-center">
             <div className="flex items-center gap-3">
+              <Button
+                onClick={() => navigate(-1)}
+                variant="outline"
+                className="bg-white/20 text-white hover:bg-white/30 border-white/30"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/20 rounded-lg">
                   <Receipt className="h-6 w-6 text-white" />

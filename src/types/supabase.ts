@@ -639,7 +639,7 @@ export type Database = {
           period_month: number
           period_year: number
           status: string | null
-          upload_date: string | null
+          uploaded_at: string | null
           uploaded_by: string | null
         }
         Insert: {
@@ -652,7 +652,7 @@ export type Database = {
           period_month: number
           period_year: number
           status?: string | null
-          upload_date?: string | null
+          uploaded_at?: string | null
           uploaded_by?: string | null
         }
         Update: {
@@ -665,7 +665,7 @@ export type Database = {
           period_month?: number
           period_year?: number
           status?: string | null
-          upload_date?: string | null
+          uploaded_at?: string | null
           uploaded_by?: string | null
         }
         Relationships: []
@@ -727,54 +727,6 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           updated_at?: string | null
-        }
-        Relationships: []
-      }
-      general_ledger: {
-        Row: {
-          account_code: string
-          account_type: string | null
-          amount_signed: number | null
-          created_at: string
-          credit: number
-          date: string
-          debit: number
-          description: string | null
-          id: string
-          journal_entry_id: string
-          posting_date: string | null
-          running_balance: number | null
-          updated_at: string
-        }
-        Insert: {
-          account_code: string
-          account_type?: string | null
-          amount_signed?: number | null
-          created_at?: string
-          credit?: number
-          date: string
-          debit?: number
-          description?: string | null
-          id?: string
-          journal_entry_id: string
-          posting_date?: string | null
-          running_balance?: number | null
-          updated_at?: string
-        }
-        Update: {
-          account_code?: string
-          account_type?: string | null
-          amount_signed?: number | null
-          created_at?: string
-          credit?: number
-          date?: string
-          debit?: number
-          description?: string | null
-          id?: string
-          journal_entry_id?: string
-          posting_date?: string | null
-          running_balance?: number | null
-          updated_at?: string
         }
         Relationships: []
       }
@@ -1114,6 +1066,7 @@ export type Database = {
           make: string | null
           model: string | null
           nama: string | null
+          reference: string | null
           service_type: string | null
           source_id: string | null
           source_table: string | null
@@ -1145,6 +1098,7 @@ export type Database = {
           make?: string | null
           model?: string | null
           nama?: string | null
+          reference?: string | null
           service_type?: string | null
           source_id?: string | null
           source_table?: string | null
@@ -1176,6 +1130,7 @@ export type Database = {
           make?: string | null
           model?: string | null
           nama?: string | null
+          reference?: string | null
           service_type?: string | null
           source_id?: string | null
           source_table?: string | null
@@ -1245,6 +1200,65 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      journal_entry_lines: {
+        Row: {
+          account_code: string
+          account_name: string | null
+          created_at: string | null
+          credit: number | null
+          debit: number | null
+          description: string | null
+          id: string
+          journal_id: string
+        }
+        Insert: {
+          account_code: string
+          account_name?: string | null
+          created_at?: string | null
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          id?: string
+          journal_id: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string | null
+          created_at?: string | null
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          id?: string
+          journal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entry_lines_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journals: {
+        Row: {
+          description: string | null
+          entry_date: string | null
+          id: string
+        }
+        Insert: {
+          description?: string | null
+          entry_date?: string | null
+          id?: string
+        }
+        Update: {
+          description?: string | null
+          entry_date?: string | null
+          id?: string
+        }
+        Relationships: []
       }
       kas_transaksi: {
         Row: {
@@ -1547,6 +1561,7 @@ export type Database = {
           unit: string | null
           unit_price: number
           updated_at: string | null
+          warehouse_id: string | null
         }
         Insert: {
           barcode?: string | null
@@ -1579,6 +1594,7 @@ export type Database = {
           unit?: string | null
           unit_price: number
           updated_at?: string | null
+          warehouse_id?: string | null
         }
         Update: {
           barcode?: string | null
@@ -1611,8 +1627,16 @@ export type Database = {
           unit?: string | null
           unit_price?: number
           updated_at?: string | null
+          warehouse_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_requests_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "skema_PR_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -1723,6 +1747,7 @@ export type Database = {
           tax_percentage: number | null
           total_amount: number
           transaction_date: string
+          transaction_id: string | null
           transaction_type: string
           unit_price: number
           updated_at: string | null
@@ -1756,6 +1781,7 @@ export type Database = {
           tax_percentage?: number | null
           total_amount: number
           transaction_date?: string
+          transaction_id?: string | null
           transaction_type: string
           unit_price: number
           updated_at?: string | null
@@ -1789,6 +1815,7 @@ export type Database = {
           tax_percentage?: number | null
           total_amount?: number
           transaction_date?: string
+          transaction_id?: string | null
           transaction_type?: string
           unit_price?: number
           updated_at?: string | null
@@ -1799,13 +1826,6 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_transactions_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
         ]
@@ -1889,13 +1909,6 @@ export type Database = {
             columns: ["coa_account_code"]
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "service_items_coa_account_code_fkey"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "vw_balance_sheet"
             referencedColumns: ["account_code"]
           },
           {
@@ -2027,6 +2040,7 @@ export type Database = {
           unit: string | null
           updated_at: string | null
           volume: string | null
+          warehouse_id: string | null
           warehouses: string | null
           weight: number | null
           wms_notes: string | null
@@ -2072,6 +2086,7 @@ export type Database = {
           unit?: string | null
           updated_at?: string | null
           volume?: string | null
+          warehouse_id?: string | null
           warehouses?: string | null
           weight?: number | null
           wms_notes?: string | null
@@ -2117,6 +2132,7 @@ export type Database = {
           unit?: string | null
           updated_at?: string | null
           volume?: string | null
+          warehouse_id?: string | null
           warehouses?: string | null
           weight?: number | null
           wms_notes?: string | null
@@ -2129,13 +2145,6 @@ export type Database = {
             columns: ["coa_account_code"]
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_stock_coa"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "vw_balance_sheet"
             referencedColumns: ["account_code"]
           },
           {
@@ -2178,6 +2187,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
@@ -2348,6 +2364,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stock_coa_backfill_audit: {
+        Row: {
+          backup_at: string | null
+          coa_account_code: string | null
+          coa_account_name: string | null
+          id: string | null
+        }
+        Insert: {
+          backup_at?: string | null
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          id?: string | null
+        }
+        Update: {
+          backup_at?: string | null
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          id?: string | null
+        }
+        Relationships: []
       }
       stock_movement: {
         Row: {
@@ -2687,69 +2724,6 @@ export type Database = {
         }
         Relationships: []
       }
-      trial_balance: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          balance: number | null
-          closing_balance: number | null
-          created_at: string | null
-          credit: number | null
-          credit_balance: number | null
-          debit: number | null
-          debit_balance: number | null
-          id: string
-          net_balance: number | null
-          opening_balance: number | null
-          period: string | null
-          period_end: string | null
-          period_start: string | null
-          total_credit: number | null
-          total_debit: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          account_code?: string | null
-          account_name?: string | null
-          balance?: number | null
-          closing_balance?: number | null
-          created_at?: string | null
-          credit?: number | null
-          credit_balance?: number | null
-          debit?: number | null
-          debit_balance?: number | null
-          id?: string
-          net_balance?: number | null
-          opening_balance?: number | null
-          period?: string | null
-          period_end?: string | null
-          period_start?: string | null
-          total_credit?: number | null
-          total_debit?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          account_code?: string | null
-          account_name?: string | null
-          balance?: number | null
-          closing_balance?: number | null
-          created_at?: string | null
-          credit?: number | null
-          credit_balance?: number | null
-          debit?: number | null
-          debit_balance?: number | null
-          id?: string
-          net_balance?: number | null
-          opening_balance?: number | null
-          period?: string | null
-          period_end?: string | null
-          period_start?: string | null
-          total_credit?: number | null
-          total_debit?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       trial_balance_backup: {
         Row: {
           account_code: string | null
@@ -2957,15 +2931,69 @@ export type Database = {
       }
     }
     Views: {
-      vw_balance_sheet: {
+      balance_sheet: {
         Row: {
           account_code: string | null
           account_name: string | null
-          account_type: string | null
           balance: number | null
-          credit_balance: number | null
+          category: string | null
+        }
+        Relationships: []
+      }
+      cashflow: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          cash_type: string | null
+          credit: number | null
           date: string | null
-          debit_balance: number | null
+          debit: number | null
+          net_cash: number | null
+        }
+        Relationships: []
+      }
+      cashflow_summary: {
+        Row: {
+          net_cash: number | null
+          total_cash_in: number | null
+          total_cash_out: number | null
+        }
+        Relationships: []
+      }
+      general_ledger: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          credit: number | null
+          date: string | null
+          debit: number | null
+          jenis_layanan: string | null
+          journal_description: string | null
+          kategori_layanan: string | null
+          line_id: string | null
+          normal_balance: string | null
+          parent_code: string | null
+          reference: string | null
+          transaction_id: string | null
+        }
+        Relationships: []
+      }
+      income_statement: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          amount: number | null
+          category: string | null
+        }
+        Relationships: []
+      }
+      trial_balance: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          balance: number | null
+          total_credit: number | null
+          total_debit: number | null
         }
         Relationships: []
       }
@@ -3022,18 +3050,6 @@ export type Database = {
           report_type: string | null
           section: string | null
           transaction_date: string | null
-        }
-        Relationships: []
-      }
-      vw_laporan_keuangan_all: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          amount: number | null
-          credit_total: number | null
-          debit_total: number | null
-          report_type: string | null
-          section: string | null
         }
         Relationships: []
       }
@@ -3109,6 +3125,7 @@ export type Database = {
           service_type: string
         }[]
       }
+      insert_journal_entries: { Args: { entries: Json }; Returns: undefined }
       kas_autonumber: { Args: never; Returns: string }
       match_hs_codes: {
         Args: {

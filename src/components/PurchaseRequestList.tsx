@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "./ui/dialog";
 import {
   Select,
@@ -55,12 +56,13 @@ import {
   AlertCircle,
   ShoppingCart,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import PurchaseRequestForm from "./PurchaseRequestForm";
 import Header from "./Header";
 import Navigation from "./Navigation";
 import { useNavigate } from "react-router-dom";
-import { canClick, canDelete, canEdit } from "@/utils/roleAccess";
+import { canClick, canDelete, canEdit, canApprovePR, canCompletePR } from "@/utils/roleAccess";
 
 interface PurchaseRequest {
   request_date: string;
@@ -90,6 +92,10 @@ export default function PurchaseRequestList() {
   const [updatingCode, setUpdatingCode] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
+  const [showWarehouseDialog, setShowWarehouseDialog] = useState(false);
+  const [selectedRequestCode, setSelectedRequestCode] = useState<string | null>(null);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
+  const [warehouses, setWarehouses] = useState<any[]>([]);
 
   const handleBack = () => {
     if (isDialogOpen) {
@@ -101,6 +107,7 @@ export default function PurchaseRequestList() {
   useEffect(() => {
     fetchRequests();
     fetchNameOptions();
+    fetchWarehouses();
 
     const channel = supabase
       .channel("purchase-requests-changes")
@@ -196,10 +203,35 @@ export default function PurchaseRequestList() {
     }
   };
 
+  const fetchWarehouses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("warehouses")
+        .select("id, name, code")
+        .eq("is_active", true)
+        .order("name");
+
+      if (error) throw error;
+      setWarehouses(data || []);
+    } catch (error: any) {
+      console.error("Error fetching warehouses:", error);
+    }
+  };
+
   const handleUpdateStatus = async (
     requestCode: string,
     newStatus: "APPROVED" | "REJECTED",
   ) => {
+    // Check role permission for approve
+    if (!canApprovePR(userRole)) {
+      toast({
+        title: "Akses Ditolak",
+        description: "Anda tidak memiliki akses untuk approve/reject purchase request",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUpdatingCode(requestCode);
     try {
       const { error } = await supabase
@@ -227,9 +259,32 @@ export default function PurchaseRequestList() {
   };
 
   const handleComplete = async (requestCode: string) => {
-    if (!user?.id) return;
+    // Check role permission for complete
+    if (!canCompletePR(userRole)) {
+      toast({
+        title: "Akses Ditolak",
+        description: "Anda tidak memiliki akses untuk complete purchase request",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    setUpdatingCode(requestCode);
+    // Show warehouse selection dialog
+    setSelectedRequestCode(requestCode);
+    setShowWarehouseDialog(true);
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!user?.id || !selectedRequestCode || !selectedWarehouseId) {
+      toast({
+        title: "Error",
+        description: "Mohon pilih gudang terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUpdatingCode(selectedRequestCode);
     try {
       const { error } = await supabase
         .from("purchase_requests")
@@ -237,14 +292,71 @@ export default function PurchaseRequestList() {
           status: "COMPLETED",
           completed_by: user.id,
           completed_at: new Date().toISOString(),
+          warehouse_id: selectedWarehouseId,
         })
+        .eq("request_code", selectedRequestCode);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Request completed dan barang akan masuk ke gudang yang dipilih",
+      });
+
+      await fetchRequests();
+      setShowWarehouseDialog(false);
+      setSelectedRequestCode(null);
+      setSelectedWarehouseId("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingCode(null);
+    }
+  };
+
+  const handleEdit = (request: any) => {
+    // Check role permission for edit
+    if (!canEdit(userRole)) {
+      toast({
+        title: "Akses Ditolak",
+        description: "Anda tidak memiliki akses untuk edit purchase request",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEditingItem(request);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (requestCode: string) => {
+    // Check role permission for delete
+    if (!canDelete(userRole)) {
+      toast({
+        title: "Akses Ditolak",
+        description: "Anda tidak memiliki akses untuk delete purchase request",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!confirm("Apakah Anda yakin ingin menghapus purchase request ini?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("purchase_requests")
+        .delete()
         .eq("request_code", requestCode);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Request completed",
+        description: "Purchase request berhasil dihapus",
       });
 
       await fetchRequests();
@@ -254,8 +366,6 @@ export default function PurchaseRequestList() {
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setUpdatingCode(null);
     }
   };
 
@@ -621,6 +731,7 @@ export default function PurchaseRequestList() {
                                 )
                               }
                               disabled={updatingCode === request.request_code}
+                              title="Approve"
                             >
                               <Check className="h-4 w-4" />
                             </Button>
@@ -635,6 +746,7 @@ export default function PurchaseRequestList() {
                                 )
                               }
                               disabled={updatingCode === request.request_code}
+                              title="Reject"
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -653,14 +765,27 @@ export default function PurchaseRequestList() {
                           </Button>
                         )}
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(request)}
-                          className="hover:bg-orange-50"
-                        >
-                          <Pencil className="w-4 h-4 text-orange-600" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(request)}
+                            className="hover:bg-orange-50"
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4 text-orange-600" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(request.request_code)}
+                            className="hover:bg-red-50"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -684,6 +809,50 @@ export default function PurchaseRequestList() {
           )}
         </div>
       </div>
+
+      {/* Warehouse Selection Dialog */}
+      <Dialog open={showWarehouseDialog} onOpenChange={setShowWarehouseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pilih Gudang Tujuan</DialogTitle>
+            <DialogDescription>
+              Pilih gudang dimana barang akan disimpan setelah purchase request completed
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih gudang..." />
+              </SelectTrigger>
+              <SelectContent>
+                {warehouses.map((warehouse) => (
+                  <SelectItem key={warehouse.id} value={warehouse.id}>
+                    {warehouse.code} - {warehouse.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowWarehouseDialog(false);
+                setSelectedRequestCode(null);
+                setSelectedWarehouseId("");
+              }}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleConfirmComplete}
+              disabled={!selectedWarehouseId || updatingCode !== null}
+            >
+              Confirm Complete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

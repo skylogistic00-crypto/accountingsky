@@ -51,28 +51,38 @@ export default function PermohonanDanaForm({ onSuccess }: PermohonanDanaFormProp
       // Create journal entries (double entry bookkeeping)
       const journalEntries = [
         {
-          permohonan_dana_id: permohonan.id,
-          entry_date: formData.tanggal_permohonan,
-          account_name: 'Kas Kecil',
+          transaction_id: permohonan.id,
+          transaction_date: formData.tanggal_permohonan,
+          account_code: '2-1100',
+          account_name: 'Hutang Usaha',
           debit: parseFloat(formData.jumlah),
           credit: 0,
           description: `Permohonan dana - ${formData.nama_pemohon} - ${formData.keterangan}`
         },
         {
-          permohonan_dana_id: permohonan.id,
-          entry_date: formData.tanggal_permohonan,
-          account_name: 'Hutang Permohonan Dana',
+          transaction_id: permohonan.id,
+          transaction_date: formData.tanggal_permohonan,
+          account_code: '5-1100',
+          account_name: 'Beban Operasional',
           debit: 0,
           credit: parseFloat(formData.jumlah),
           description: `Permohonan dana - ${formData.nama_pemohon} - ${formData.keterangan}`
         }
       ];
 
-      const { error: journalError } = await supabase
-        .from('journal_entries')
-        .insert(journalEntries);
+      // Use RPC function to insert journal entries
+      const { error: journalError } = await supabase.rpc('insert_journal_entries', {
+        entries: journalEntries
+      });
 
-      if (journalError) throw journalError;
+      if (journalError) {
+        console.error('Journal error:', journalError);
+        toast({
+          title: 'Warning',
+          description: 'Permohonan dana tersimpan tapi jurnal gagal dibuat',
+          variant: 'destructive',
+        });
+      }
 
       toast({
         title: 'Berhasil!',

@@ -674,10 +674,11 @@ export default function SalesForm() {
         }
       }
 
-      // Insert journal entries
-      const { error: journalError } = await supabase
+      // Insert journal entries using simple await without onConflict
+      const { data: insertedJournals, error: journalError } = await supabase
         .from("journal_entries")
-        .insert(journalEntries);
+        .insert(journalEntries)
+        .select();
 
       if (journalError) {
         console.error("Journal error:", journalError);
@@ -691,6 +692,26 @@ export default function SalesForm() {
           title: "📝 Jurnal Otomatis Dibuat",
           description: `${journalEntries.length} entri jurnal berhasil dibuat untuk transaksi ${transactionId}`,
         });
+
+        // Insert journal_entry_lines for each journal entry
+        if (insertedJournals && insertedJournals.length > 0) {
+          const journalLines = insertedJournals.map((journal: any) => ({
+            journal_id: journal.id,
+            account_code: journal.account_code,
+            account_name: journal.account_name,
+            debit: journal.debit,
+            credit: journal.credit,
+            description: journal.description,
+          }));
+
+          const { error: linesError } = await supabase
+            .from("journal_entry_lines")
+            .insert(journalLines);
+
+          if (linesError) {
+            console.error("Journal lines error:", linesError);
+          }
+        }
       }
 
       // Step 5: Show success notification

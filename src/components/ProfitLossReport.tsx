@@ -33,7 +33,9 @@ import {
   FileText,
   TrendingUp,
   TrendingDown,
+  ArrowLeft,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface LabaRugiDetail {
   account_code: string;
@@ -44,6 +46,7 @@ interface LabaRugiDetail {
 
 export default function ProfitLossReport() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   const [revenues, setRevenues] = useState<LabaRugiDetail[]>([]);
@@ -215,11 +218,23 @@ export default function ProfitLossReport() {
     <div className="min-h-screen bg-slate-50 p-6">
       <Card className="max-w-7xl mx-auto bg-white shadow-md rounded-2xl border">
         <CardHeader className="p-4">
-          <CardTitle className="text-2xl">Laporan Laba Rugi</CardTitle>
-          <CardDescription>
-            Laporan keuangan yang menunjukkan pendapatan, beban, dan laba/rugi
-            perusahaan
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">Laporan Laba Rugi</CardTitle>
+              <CardDescription>
+                Laporan keuangan yang menunjukkan pendapatan, beban, dan laba/rugi
+                perusahaan
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => navigate(-1)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-4">
           {/* Filter */}

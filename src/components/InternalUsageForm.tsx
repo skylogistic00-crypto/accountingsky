@@ -287,7 +287,7 @@ export default function InternalUsageForm() {
 
       // Step 3: Update stock and create journal entries with type = "USAGE"
       const { error: updateError } = await supabase.functions.invoke(
-        "supabase-functions-update-stock-after-transaction",
+        "update-stock-after-transaction",
         {
           body: {
             transaction_id: transaction.id,

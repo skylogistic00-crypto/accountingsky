@@ -22,7 +22,7 @@ BEGIN
   RETURN NEW;
 EXCEPTION
   WHEN OTHERS THEN
-    RAISE LOG 'Error in handle_new_user: %', SQLERRM;
+    RAISE NOTICE 'Error in handle_new_user: %', SQLERRM;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
