@@ -497,9 +497,39 @@ export default function CashBook() {
                       <Label htmlFor="payment_type">Payment Type *</Label>
                       <Select
                         value={formData.payment_type}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, payment_type: value })
-                        }
+                        onValueChange={(value) => {
+                          // Set default category based on payment type
+                          let defaultCategory = "";
+                          if (value === "Penerimaan Kas") {
+                            // Find a revenue category (Pendapatan)
+                            const revenueCategory = serviceCategories.find(
+                              (cat) =>
+                                cat.toLowerCase().includes("pendapatan") ||
+                                cat.toLowerCase().includes("jasa")
+                            );
+                            defaultCategory = revenueCategory || "";
+                          } else if (value === "Pengeluaran Kas") {
+                            // Find an expense category (Beban)
+                            const expenseCategory = serviceCategories.find(
+                              (cat) => cat.toLowerCase().includes("beban")
+                            );
+                            defaultCategory = expenseCategory || "";
+                          }
+
+                          setFormData({
+                            ...formData,
+                            payment_type: value,
+                            service_category: defaultCategory,
+                            service_type: "",
+                            account_number: "",
+                            account_name: "",
+                          });
+
+                          // Fetch service types for the default category
+                          if (defaultCategory) {
+                            fetchServiceTypesByCategory(defaultCategory);
+                          }
+                        }}
                       >
                         <SelectTrigger id="payment_type">
                           <SelectValue />

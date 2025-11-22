@@ -622,8 +622,10 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppRoutes />
-        <Toaster />
+        <>
+          <AppRoutes />
+          <Toaster />
+        </>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -72,14 +72,23 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (retryCount = 0) => {
+    let hasError = false;
     try {
       const { data: requests, error: reqError } = await supabase
         .from("purchase_requests")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (reqError) throw reqError;
+      if (reqError) {
+        hasError = true;
+        if (reqError.message?.includes("Failed to fetch") && retryCount < 2) {
+          console.log(`Retrying dashboard fetch (attempt ${retryCount + 1})...`);
+          setTimeout(() => fetchDashboardData(retryCount + 1), 1000);
+          return;
+        }
+        throw reqError;
+      }
 
       const pendingCount =
         requests?.filter((r) => r.status === "PENDING").length || 0;
@@ -118,10 +127,23 @@ export default function Dashboard() {
       setAllRequests(requests || []);
       setAllSuppliers(suppliers || []);
       setAllUsers(users || []);
-    } catch (error) {
+    } catch (error: any) {
+      hasError = true;
       console.error("Error fetching dashboard data:", error);
+      // Only show error state after retries
+      if (retryCount >= 2) {
+        // Set empty data so UI doesn't break
+        setStats({
+          totalRequests: 0,
+          pendingRequests: 0,
+          totalSuppliers: 0,
+          totalUsers: 0,
+        });
+      }
     } finally {
-      setLoading(false);
+      if (retryCount >= 2 || !hasError) {
+        setLoading(false);
+      }
     }
   };
 

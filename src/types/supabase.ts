@@ -730,6 +730,53 @@ export type Database = {
         }
         Relationships: []
       }
+      general_ledger: {
+        Row: {
+          account_code: string
+          account_number: string | null
+          created_at: string | null
+          credit: number | null
+          date: string
+          debit: number | null
+          description: string | null
+          id: string
+          journal_entry_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_code: string
+          account_number?: string | null
+          created_at?: string | null
+          credit?: number | null
+          date: string
+          debit?: number | null
+          description?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_code?: string
+          account_number?: string | null
+          created_at?: string | null
+          credit?: number | null
+          date?: string
+          debit?: number | null
+          description?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "general_ledger_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hs_code_embeddings: {
         Row: {
           content: string
@@ -2931,72 +2978,6 @@ export type Database = {
       }
     }
     Views: {
-      balance_sheet: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          balance: number | null
-          category: string | null
-        }
-        Relationships: []
-      }
-      cashflow: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          cash_type: string | null
-          credit: number | null
-          date: string | null
-          debit: number | null
-          net_cash: number | null
-        }
-        Relationships: []
-      }
-      cashflow_summary: {
-        Row: {
-          net_cash: number | null
-          total_cash_in: number | null
-          total_cash_out: number | null
-        }
-        Relationships: []
-      }
-      general_ledger: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          credit: number | null
-          date: string | null
-          debit: number | null
-          jenis_layanan: string | null
-          journal_description: string | null
-          kategori_layanan: string | null
-          line_id: string | null
-          normal_balance: string | null
-          parent_code: string | null
-          reference: string | null
-          transaction_id: string | null
-        }
-        Relationships: []
-      }
-      income_statement: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          amount: number | null
-          category: string | null
-        }
-        Relationships: []
-      }
-      trial_balance: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          balance: number | null
-          total_credit: number | null
-          total_debit: number | null
-        }
-        Relationships: []
-      }
       vw_cash_flow_report: {
         Row: {
           bulan: string | null
@@ -3099,6 +3080,7 @@ export type Database = {
       }
       fn_update_coa_balance: { Args: never; Returns: undefined }
       gen_stock_code: { Args: never; Returns: string }
+      generate_kas_document_number: { Args: never; Returns: string }
       generate_pr_code: { Args: never; Returns: string }
       generate_supplier_code: {
         Args: { pad_len?: number; prefix?: string }
