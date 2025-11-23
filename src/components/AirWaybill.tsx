@@ -40,6 +40,7 @@ import {
   CheckCircle,
   Plane,
   DollarSign,
+  ArrowLeft,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -437,21 +438,24 @@ export default function AirWaybill() {
       {/* Header with gradient */}
       <div className="border-b bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 shadow-lg">
         <div className="container mx-auto px-4 py-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-1">
-              Air Waybill Management
-            </h1>
-            <p className="text-sky-100">
-              Kelola data pengiriman dan customs clearance
-            </p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/")}
+              className="text-white hover:bg-white/20"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-1">
+                Air Waybill Management
+              </h1>
+              <p className="text-sky-100">
+                Kelola data pengiriman dan customs clearance
+              </p>
+            </div>
           </div>
-          <Button
-            onClick={() => navigate("/dashboard")}
-            variant="outline"
-            className="bg-white/10 text-white border-white/20 hover:bg-white/20"
-          >
-            Kembali ke Dashboard
-          </Button>
         </div>
       </div>
 

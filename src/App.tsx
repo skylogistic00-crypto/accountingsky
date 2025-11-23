@@ -5,6 +5,7 @@ import { useAuth } from "./contexts/AuthContext";
 import Header from "./components/Header";
 import Navigation from "./components/Navigation";
 import HeroSection from "./components/HeroSection";
+import Home from "./components/home";
 import UserManagement from "./components/UserManagement";
 import SupplierForm from "./components/SupplierForm";
 import ShipperForm from "./components/ShipperForm";
@@ -75,7 +76,7 @@ function HomePage() {
 
   console.log("🧾 User from Auth:", user);
   console.log("👤 User Profile:", userProfile);
-  console.log("🔐 Role detected:", userProfile?.roles?.role_name);
+  console.log("🔐 Role detected:", userProfile?.role);
 
   // ⏳ Saat data user masih loading → tampilkan spinner
   if (loading) {
@@ -86,24 +87,15 @@ function HomePage() {
     );
   }
 
-  // 🧍‍♂️ Jika sudah login → redirect sesuai role
-  if (user && userProfile?.roles?.role_name) {
-    const role = userProfile.roles.role_name;
-
-    switch (role) {
-      case "super_admin":
-        return <Navigate to="/transaksi-keuangan" replace />;
-      case "warehouse_manager":
-        return <Navigate to="/warehouses" replace />;
-      case "warehouse_staff":
-        return <Navigate to="/warehouses" replace />;
-      case "purchasing":
-        return <Navigate to="/transaksi-keuangan" replace />;
-      case "finance":
-        return <Navigate to="/dashboard-keuangan" replace />;
-      default:
-        return <Navigate to="/transaksi-keuangan" replace />;
-    }
+  // 🧍‍♂️ Jika sudah login → tampilkan Menu Utama
+  if (user && userProfile) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Header />
+        <Navigation />
+        <Home />
+      </div>
+    );
   }
 
   // 🌐 Jika belum login → tampilkan landing page biasa

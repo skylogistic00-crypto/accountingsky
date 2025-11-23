@@ -32,6 +32,21 @@ export default function Navigation() {
 
   // 🚀 Definisikan semua menu dan role yang boleh mengakses
   const navItems = [
+    // Home / Menu Utama
+    {
+      path: "/",
+      label: "Menu Utama",
+      icon: Home,
+      color: "indigo",
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
+        "warehouse_manager",
+        "warehouse_staff",
+        "read_only",
+      ],
+    },
     // Dashboard & Overview
     {
       path: "/dashboard-keuangan",
