@@ -203,6 +203,7 @@ export default function ShipperForm() {
       const { data, error } = await supabase
         .from("shippers")
         .insert({
+          shipper_code: "",
           shipper_name: formData.shipper_name,
           contact_person: formData.contact_person,
           phone_number: formData.phone_number,

@@ -300,7 +300,6 @@ export default function StockAdjustmentForm() {
           warehouses, 
           zones, 
           racks, 
-          lots, 
           supplier_id,
           warehouse_id,
           warehouses:warehouse_id(id, name, code)
@@ -308,7 +307,7 @@ export default function StockAdjustmentForm() {
         .order("item_name");
 
       if (error) throw error;
-      setStockItems(data || []);
+      setStockItems((data || []) as any);
     } catch (error: any) {
       toast({
         title: "Error",

@@ -200,7 +200,7 @@ export default function SalesForm() {
       });
     } else {
       // Map item_quantity to quantity for consistency
-      const mappedItems = (data || []).map((item) => ({
+      const mappedItems = (data || []).map((item: any) => ({
         id: item.id,
         item_name: item.item_name,
         brand: item.brand,

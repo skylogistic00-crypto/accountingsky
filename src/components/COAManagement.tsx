@@ -340,7 +340,7 @@ export default function COAManagement() {
         engineForm.meta || undefined
       );
 
-      if (result.message) {
+      if (result && 'message' in result && result.message) {
         toast({
           title: "Info",
           description: result.message,

@@ -350,7 +350,7 @@ export default function BarangLini1() {
       if (updateError) throw updateError;
 
       const { error: insertError } = await supabase.from("barang_lini_2").insert({
-        nama_barang: item.nama_barang,
+        item_name: item.nama_barang || item.item_name,
         sku: item.sku,
         kode_barang: item.kode_barang,
         nomor_dokumen_pabean: item.nomor_dokumen_pabean,

@@ -105,7 +105,7 @@ export default function InternalUsageForm() {
   const fetchItems = async () => {
     const { data, error } = await supabase
       .from("stock")
-      .select("id, item_name, cost_per_unit, unit, brand, model")
+      .select("id, item_name, cost_per_unit, unit, brand, model, qty_available")
       .order("item_name");
     
     if (error) {
