@@ -112,7 +112,6 @@ export default function BarangLini2() {
         sku: formData.sku,
         status: formData.status,
         item_name: formData.item_name,
-        nama_barang: formData.item_name,
         awb: formData.awb || null,
         item_arrival_date: formData.item_arrival_date || null,
         item_arrival_date_lini_2: formData.item_arrival_date_lini_2 || null,

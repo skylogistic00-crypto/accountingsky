@@ -203,6 +203,7 @@ export default function ConsigneeForm() {
       const { data, error } = await supabase
         .from("consignees")
         .insert({
+          consignee_code: `CNS-${Date.now()}`,
           consignee_name: formData.consignee_name,
           contact_person: formData.contact_person,
           phone_number: formData.phone_number,

@@ -25,7 +25,7 @@ export default function Navigation() {
   const { userProfile } = useAuth();
   const location = useLocation();
 
-  const role = userProfile?.roles?.role_name || "guest";
+  const role = userProfile?.role || "guest";
   
   console.log("Current user role:", role);
   console.log("User profile:", userProfile);

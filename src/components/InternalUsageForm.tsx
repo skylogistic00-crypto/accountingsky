@@ -24,7 +24,6 @@ import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 interface Item {
   id: string;
   item_name: string;
-  qty_available: number;
   cost_per_unit: number;
   unit?: string;
   brand?: string;
@@ -106,7 +105,7 @@ export default function InternalUsageForm() {
   const fetchItems = async () => {
     const { data, error } = await supabase
       .from("stock")
-      .select("id, item_name, qty_available, cost_per_unit, unit, brand, model")
+      .select("id, item_name, cost_per_unit, unit, brand, model")
       .order("item_name");
     
     if (error) {
@@ -182,7 +181,7 @@ export default function InternalUsageForm() {
         ...prev,
         item_id: itemId,
         item_name: selectedItem.item_name,
-        stock_current: selectedItem.qty_available,
+        stock_current: 0,
         unit_cost: selectedItem.cost_per_unit || 0,
       }));
     }
@@ -307,18 +306,7 @@ export default function InternalUsageForm() {
         console.error("Update stock error:", updateError);
       }
 
-      // Step 4: Refresh stock data
-      const { data: updatedItem } = await supabase
-        .from("stock")
-        .select("qty_available")
-        .eq("id", formData.item_id)
-        .single();
-
-      if (updatedItem) {
-        setFormData(prev => ({ ...prev, stock_current: updatedItem.qty_available }));
-      }
-
-      // Step 5: Show success notification
+      // Step 4: Show success notification
       toast({
         title: "✅ Berhasil!",
         description: "Transaksi berhasil disimpan dan stok telah diperbarui.",

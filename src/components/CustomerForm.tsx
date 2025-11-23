@@ -247,7 +247,7 @@ export default function CustomerForm() {
         .insert({
           customer_name: formData.customer_name,
           contact_person: formData.contact_person,
-          phone_number: formData.phone_number,
+          phone_number: parseInt(formData.phone_number) || null,
           email: formData.email,
           city: formData.city,
           country: formData.country,
