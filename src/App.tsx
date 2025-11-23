@@ -6,9 +6,6 @@ import Header from "./components/Header";
 import Navigation from "./components/Navigation";
 import HeroSection from "./components/HeroSection";
 import UserManagement from "./components/UserManagement";
-import Dashboard from "./components/Dashboard";
-import PurchaseRequestForm from "./components/PurchaseRequestForm";
-import PurchaseRequestList from "./components/PurchaseRequestList";
 import SupplierForm from "./components/SupplierForm";
 import ShipperForm from "./components/ShipperForm";
 import ConsigneeForm from "./components/ConsigneeForm";
@@ -18,11 +15,10 @@ import WarehousesForm from "./components/WarehousesForm";
 import BarangLini from "./components/BarangLini";
 import BarangKeluar from "./components/BarangKeluar";
 import AirWaybill from "./components/AirWaybill";
-import CashBook from "./components/CashBook";
+import TransaksiKeuanganForm from "./components/TransaksiKeuanganForm";
 import AdminSetup from "./components/AdminSetup";
 import COAManagement from "./components/COAManagement";
 import BarangLamaReport from "./components/BarangLamaReport";
-import SalesForm from "./components/SalesForm";
 import COAMappingManager from "./components/COAMappingManager";
 import IntegratedFinancialReport from "./components/IntegratedFinancialReport";
 import ProfitLossReport from "./components/ProfitLossReport";
@@ -96,17 +92,17 @@ function HomePage() {
 
     switch (role) {
       case "super_admin":
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/transaksi-keuangan" replace />;
       case "warehouse_manager":
         return <Navigate to="/warehouses" replace />;
       case "warehouse_staff":
         return <Navigate to="/warehouses" replace />;
       case "purchasing":
-        return <Navigate to="/purchase-request" replace />;
+        return <Navigate to="/transaksi-keuangan" replace />;
       case "finance":
-        return <Navigate to="/financial-dashboard" replace />;
+        return <Navigate to="/dashboard-keuangan" replace />;
       default:
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/transaksi-keuangan" replace />;
     }
   }
 
@@ -136,23 +132,6 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/admin-setup" element={<AdminSetup />} />
       <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "warehouse_staff",
-              "accounting_manager",
-              "accounting_staff",
-              "read_only",
-            ]}
-          >
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/users"
         element={
           <ProtectedRoute allowedRoles={["super_admin"]}>
@@ -161,21 +140,6 @@ function AppRoutes() {
               <Navigation />
               <UserManagement />
             </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/purchase-request"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-              "read_only",
-            ]}
-          >
-            <PurchaseRequestList />
           </ProtectedRoute>
         }
       />
@@ -398,17 +362,16 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/cash-book"
+        path="/transaksi-keuangan"
         element={
           <ProtectedRoute
             allowedRoles={[
               "super_admin",
               "accounting_manager",
               "accounting_staff",
-              "read_only",
             ]}
           >
-            <CashBook />
+            <TransaksiKeuanganForm />
           </ProtectedRoute>
         }
       />
@@ -455,25 +418,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/sales"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <SalesForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/financial-dashboard"
+        path="/dashboard-keuangan"
         element={
           <ProtectedRoute
             allowedRoles={[

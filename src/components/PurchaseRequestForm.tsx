@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import AddStockItemModal from "./AddStockItemModal";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -121,6 +122,7 @@ export default function PurchaseRequestForm({
   const [prItems, setPrItems] = useState<PRItem[]>([]);
   const [currentItem, setCurrentItem] = useState({
     item_name: "",
+    brand: "",
     quantity: 1,
     unit: "",
     unit_price: 0,
@@ -129,6 +131,19 @@ export default function PurchaseRequestForm({
     hs_category: "",
   });
   const [openItemCombobox, setOpenItemCombobox] = useState(false);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [filteredBrands, setFilteredBrands] = useState<any[]>([]);
+  const [stockInfo, setStockInfo] = useState<any>(null);
+  const [loadingStock, setLoadingStock] = useState(false);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [zones, setZones] = useState<any[]>([]);
+  const [racks, setRacks] = useState<any[]>([]);
+  const [lots, setLots] = useState<any[]>([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState("");
+  const [selectedZone, setSelectedZone] = useState("");
+  const [selectedRack, setSelectedRack] = useState("");
+  const [selectedLot, setSelectedLot] = useState("");
+  const [openStockItemModal, setOpenStockItemModal] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -169,6 +184,8 @@ export default function PurchaseRequestForm({
     fetchSuppliers();
     fetchStockItems();
     fetchTaxSettings();
+    fetchBrands();
+    fetchWarehouses();
   }, [userProfile, user]);
 
   const fetchTaxSettings = async () => {
@@ -232,6 +249,101 @@ export default function PurchaseRequestForm({
     }
   };
 
+  const fetchBrands = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("brands")
+        .select("*")
+        .order("brand_name");
+
+      if (error) throw error;
+      setBrands(data || []);
+    } catch (error) {
+      console.error("Error fetching brands:", error);
+    }
+  };
+
+  const fetchWarehouses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("warehouses")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+
+      if (error) throw error;
+      setWarehouses(data || []);
+    } catch (error) {
+      console.error("Error fetching warehouses:", error);
+    }
+  };
+
+  const fetchStockInfo = async (itemName: string, brand: string) => {
+    if (!itemName || !brand) {
+      setStockInfo(null);
+      return;
+    }
+
+    setLoadingStock(true);
+    try {
+      const { data, error } = await supabase
+        .from("stock")
+        .select(`
+          *,
+          warehouses!warehouse_id(name, code, address)
+        `)
+        .eq("item_name", itemName)
+        .eq("brand", brand)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      setStockInfo(data);
+    } catch (error) {
+      console.error("Error fetching stock info:", error);
+      setStockInfo(null);
+    } finally {
+      setLoadingStock(false);
+    }
+  };
+
+  // Filter brands based on selected item
+  useEffect(() => {
+    const filterBrandsByItem = async () => {
+      if (!currentItem.item_name) {
+        setFilteredBrands(brands);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("product_reference")
+          .select("brand")
+          .eq("item_name", currentItem.item_name);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const brandNames = data.map(item => item.brand).filter(Boolean);
+          const filtered = brands.filter(b => brandNames.includes(b.brand_name));
+          setFilteredBrands(filtered);
+        } else {
+          setFilteredBrands(brands);
+        }
+      } catch (error) {
+        console.error("Error filtering brands:", error);
+        setFilteredBrands(brands);
+      }
+    };
+
+    filterBrandsByItem();
+  }, [currentItem.item_name, brands]);
+
+  // Fetch stock info when item and brand change
+  useEffect(() => {
+    fetchStockInfo(currentItem.item_name, currentItem.brand);
+  }, [currentItem.item_name, currentItem.brand]);
+
   const handleSupplierChange = (supplierId: string) => {
     if (supplierId === "add_new") {
       setIsSupplierDialogOpen(true);
@@ -270,6 +382,7 @@ export default function PurchaseRequestForm({
 
     setCurrentItem({
       item_name: item.item_name,
+      brand: "", // Reset brand when item changes
       quantity: 1,
       unit: item.unit || "",
       unit_price: item.purchase_price || 0,
@@ -796,15 +909,11 @@ export default function PurchaseRequestForm({
                               className="w-full"
                               onClick={() => {
                                 setOpenItemCombobox(false);
-                                toast({
-                                  title: "Item Baru",
-                                  description: `Item "${currentItem.item_name}" akan ditambahkan sebagai item baru`,
-                                });
+                                setOpenStockItemModal(true);
                               }}
                             >
                               <Plus className="h-4 w-4 mr-2" />
-                              Gunakan "{currentItem.item_name}" sebagai item
-                              baru
+                              Tambah Item & Stock Baru
                             </Button>
                           </div>
                         </CommandEmpty>
@@ -828,6 +937,80 @@ export default function PurchaseRequestForm({
                     </Command>
                   </PopoverContent>
                 </Popover>
+              </div>
+
+              {/* Brand Field */}
+              <div className="space-y-2">
+                <Label htmlFor="brand">Brand</Label>
+                <Select 
+                  value={currentItem.brand} 
+                  onValueChange={(value) => setCurrentItem({ ...currentItem, brand: value })}
+                  disabled={!currentItem.item_name}
+                >
+                  <SelectTrigger id="brand">
+                    <SelectValue placeholder={currentItem.item_name ? "-- pilih brand --" : "Pilih item terlebih dahulu"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredBrands.map((b) => (
+                      <SelectItem key={b.id} value={b.brand_name}>
+                        {b.brand_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Stock Information Display */}
+              {currentItem.item_name && currentItem.brand && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2 md:col-span-2">
+                  <h4 className="font-semibold text-blue-900 flex items-center gap-2">
+                    📦 Informasi Stock Saat Ini
+                  </h4>
+                  {loadingStock ? (
+                    <p className="text-sm text-gray-600">Memuat data stock...</p>
+                  ) : stockInfo ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-700">Sisa Stock:</span>
+                        <span className="ml-2 text-gray-900 font-bold">{stockInfo.quantity || 0} {stockInfo.unit || 'pcs'}</span>
+                      </div>
+                      {stockInfo.warehouses && (
+                        <div>
+                          <span className="font-medium text-gray-700">Gudang:</span>
+                          <span className="ml-2 text-gray-900">{stockInfo.warehouses.name} ({stockInfo.warehouses.code})</span>
+                        </div>
+                      )}
+                      {stockInfo.location && (
+                        <div>
+                          <span className="font-medium text-gray-700">Lokasi:</span>
+                          <span className="ml-2 text-gray-900">{stockInfo.location}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-amber-600">⚠️ Stock tidak ditemukan untuk item dan brand ini</p>
+                  )}
+                </div>
+              )}
+
+              {/* Warehouse Selection for New Stock */}
+              <div className="space-y-2">
+                <Label htmlFor="warehouse">Gudang Tujuan *</Label>
+                <Select 
+                  value={selectedWarehouse} 
+                  onValueChange={setSelectedWarehouse}
+                >
+                  <SelectTrigger id="warehouse">
+                    <SelectValue placeholder="-- Pilih Gudang --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warehouses.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.name} ({w.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -1476,6 +1659,20 @@ export default function PurchaseRequestForm({
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Add Stock Item Modal */}
+      <AddStockItemModal
+        open={openStockItemModal}
+        onClose={() => setOpenStockItemModal(false)}
+        onAdded={() => {
+          fetchStockItems();
+          fetchBrands();
+          toast({
+            title: "✅ Berhasil",
+            description: "Item dan stock berhasil ditambahkan!",
+          });
+        }}
+      />
     </div>
   );
 }

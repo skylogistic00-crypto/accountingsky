@@ -27,7 +27,9 @@ import {
   TableRow,
 } from "./ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Plus, Edit, Trash2, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Zap } from "lucide-react";
+import { COA_ENGINE, generateCOAForItem } from "@/lib/coaEngine";
+import { Checkbox } from "./ui/checkbox";
 import Header from "./Header";
 import Navigation from "./Navigation";
 import { canClick, canDelete, canEdit, canView } from "@/utils/roleAccess";
@@ -88,6 +90,16 @@ export default function COAManagement() {
     description: "",
     is_active: true,
   });
+
+  const [engineForm, setEngineForm] = useState({
+    type: "VEHICLE" as "VEHICLE" | "SPKLU" | "WAREHOUSE" | "DRIVER" | "BARANG" | "JASA",
+    identifier: "",
+    meta: "",
+    autoGenerateItem: false,
+    itemName: "",
+    itemCode: ""
+  });
+  const [isEngineLoading, setIsEngineLoading] = useState(false);
 
   useEffect(() => {
     fetchCoaAccounts();
@@ -307,6 +319,59 @@ export default function COAManagement() {
     }
   };
 
+  const handleEngineSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsEngineLoading(true);
+
+    try {
+      // Generate item COA if checkbox is checked
+      if (engineForm.autoGenerateItem && engineForm.itemName && engineForm.itemCode) {
+        await generateCOAForItem(engineForm.itemName, engineForm.itemCode);
+        toast({
+          title: "Berhasil",
+          description: `COA untuk item ${engineForm.itemName} berhasil dibuat`,
+        });
+      }
+
+      // Generate blueprint COA
+      const result = await COA_ENGINE(
+        engineForm.type,
+        engineForm.identifier,
+        engineForm.meta || undefined
+      );
+
+      if (result.message) {
+        toast({
+          title: "Info",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Berhasil",
+          description: `COA untuk ${engineForm.type} berhasil dibuat`,
+        });
+        setEngineForm({ 
+          type: "VEHICLE", 
+          identifier: "", 
+          meta: "",
+          autoGenerateItem: false,
+          itemName: "",
+          itemCode: ""
+        });
+        fetchCoaAccounts();
+      }
+    } catch (error: any) {
+      console.error("Error creating COA:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Gagal membuat COA",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEngineLoading(false);
+    }
+  };
+
   const resetCoaForm = () => {
     setCoaForm({
       account_code: "",
@@ -377,9 +442,13 @@ export default function COAManagement() {
           </div>
 
           <Tabs defaultValue="coa" className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className="grid w-full max-w-2xl grid-cols-3">
               <TabsTrigger value="coa">Chart of Accounts</TabsTrigger>
               <TabsTrigger value="mapping">Mapping Rules</TabsTrigger>
+              <TabsTrigger value="engine">
+                <Zap className="w-4 h-4 mr-2" />
+                COA Engine
+              </TabsTrigger>
             </TabsList>
 
             {/* COA Tab */}
@@ -970,6 +1039,261 @@ export default function COAManagement() {
                     </TableBody>
                   </Table>
                 </div>
+              </div>
+            </TabsContent>
+
+            {/* COA Engine Tab */}
+            <TabsContent value="engine" className="space-y-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold text-slate-800 mb-2 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-yellow-500" />
+                    COA Auto-Generator
+                  </h2>
+                  <p className="text-slate-600 text-sm">
+                    Buat COA otomatis untuk Kendaraan, SPKLU, Warehouse, atau Driver
+                  </p>
+                </div>
+
+                <form onSubmit={handleEngineSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="engine-type">Tipe Blueprint</Label>
+                      <Select
+                        value={engineForm.type}
+                        onValueChange={(value: any) =>
+                          setEngineForm({ ...engineForm, type: value })
+                        }
+                      >
+                        <SelectTrigger id="engine-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="VEHICLE">Kendaraan</SelectItem>
+                          <SelectItem value="SPKLU">SPKLU</SelectItem>
+                          <SelectItem value="WAREHOUSE">Warehouse</SelectItem>
+                          <SelectItem value="DRIVER">Driver</SelectItem>
+                          <SelectItem value="BARANG">Barang</SelectItem>
+                          <SelectItem value="JASA">Jasa</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="engine-identifier">
+                        Identifier
+                        {engineForm.type === "VEHICLE" && " (Plat Nomor)"}
+                        {engineForm.type === "SPKLU" && " (Lokasi)"}
+                        {engineForm.type === "WAREHOUSE" && " (Kode Rak)"}
+                        {engineForm.type === "DRIVER" && " (ID Driver)"}
+                        {engineForm.type === "BARANG" && " (Nama Barang)"}
+                        {engineForm.type === "JASA" && " (Nama Jasa)"}
+                      </Label>
+                      <Input
+                        id="engine-identifier"
+                        value={engineForm.identifier}
+                        onChange={(e) =>
+                          setEngineForm({ ...engineForm, identifier: e.target.value })
+                        }
+                        placeholder={
+                          engineForm.type === "VEHICLE"
+                            ? "B 1234 XYZ"
+                            : engineForm.type === "SPKLU"
+                            ? "Jakarta Selatan"
+                            : engineForm.type === "WAREHOUSE"
+                            ? "RAK-A1"
+                            : engineForm.type === "DRIVER"
+                            ? "DRV001"
+                            : engineForm.type === "BARANG"
+                            ? "Laptop Dell XPS"
+                            : "Jasa Konsultasi"
+                        }
+                        required
+                      />
+                    </div>
+
+                    {engineForm.type === "VEHICLE" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="engine-meta">Jenis Kendaraan (Opsional)</Label>
+                        <Input
+                          id="engine-meta"
+                          value={engineForm.meta}
+                          onChange={(e) =>
+                            setEngineForm({ ...engineForm, meta: e.target.value })
+                          }
+                          placeholder="Truk, Mobil Box, dll"
+                        />
+                      </div>
+                    )}
+
+                    {engineForm.type === "DRIVER" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="engine-meta">Nama Driver</Label>
+                        <Input
+                          id="engine-meta"
+                          value={engineForm.meta}
+                          onChange={(e) =>
+                            setEngineForm({ ...engineForm, meta: e.target.value })
+                          }
+                          placeholder="Nama lengkap driver"
+                          required
+                        />
+                      </div>
+                    )}
+
+                    {(engineForm.type === "BARANG" || engineForm.type === "JASA") && (
+                      <div className="space-y-2">
+                        <Label htmlFor="engine-meta">
+                          {engineForm.type === "BARANG" ? "Kode Barang" : "Kode Jasa"}
+                        </Label>
+                        <Input
+                          id="engine-meta"
+                          value={engineForm.meta}
+                          onChange={(e) =>
+                            setEngineForm({ ...engineForm, meta: e.target.value })
+                          }
+                          placeholder={engineForm.type === "BARANG" ? "BRG001" : "JSA001"}
+                          required
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Auto-generate Item COA Section */}
+                  <div className="border-t pt-6 space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="auto-generate-item"
+                        checked={engineForm.autoGenerateItem}
+                        onCheckedChange={(checked) =>
+                          setEngineForm({ ...engineForm, autoGenerateItem: checked as boolean })
+                        }
+                      />
+                      <Label htmlFor="auto-generate-item" className="font-semibold">
+                        Buat COA untuk Item/Barang secara otomatis
+                      </Label>
+                    </div>
+
+                    {engineForm.autoGenerateItem && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="item-name">Nama Item</Label>
+                          <Input
+                            id="item-name"
+                            value={engineForm.itemName}
+                            onChange={(e) =>
+                              setEngineForm({ ...engineForm, itemName: e.target.value })
+                            }
+                            placeholder="Contoh: Laptop Dell XPS"
+                            required={engineForm.autoGenerateItem}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="item-code">Kode Item</Label>
+                          <Input
+                            id="item-code"
+                            value={engineForm.itemCode}
+                            onChange={(e) =>
+                              setEngineForm({ ...engineForm, itemCode: e.target.value })
+                            }
+                            placeholder="Contoh: LPT001"
+                            required={engineForm.autoGenerateItem}
+                          />
+                        </div>
+
+                        <div className="col-span-2 bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-sm text-green-800 font-semibold mb-1">
+                            COA Item yang akan dibuat:
+                          </p>
+                          <ul className="text-xs text-green-700 space-y-1">
+                            <li>• Pendapatan {engineForm.itemName || "Item"}</li>
+                            <li>• HPP {engineForm.itemName || "Item"}</li>
+                            <li>• Beban Komisi {engineForm.itemName || "Item"}</li>
+                            <li>• Beban Operasional {engineForm.itemName || "Item"}</li>
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-blue-900 mb-2">
+                      Akun yang akan dibuat:
+                    </h3>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      {engineForm.type === "VEHICLE" && (
+                        <>
+                          <li>• Aset Kendaraan</li>
+                          <li>• Pendapatan Transportasi</li>
+                          <li>• HPP Kendaraan</li>
+                          <li>• BBM Kendaraan</li>
+                          <li>• Servis Kendaraan</li>
+                          <li>• Asuransi Kendaraan</li>
+                          <li>• Penyusutan Kendaraan</li>
+                        </>
+                      )}
+                      {engineForm.type === "SPKLU" && (
+                        <>
+                          <li>• Aset SPKLU</li>
+                          <li>• Pendapatan Charging</li>
+                          <li>• HPP Charging</li>
+                          <li>• Beban Operasional SPKLU</li>
+                          <li>• Penyusutan SPKLU</li>
+                        </>
+                      )}
+                      {engineForm.type === "WAREHOUSE" && (
+                        <>
+                          <li>• Aset Warehouse</li>
+                          <li>• Pendapatan Sewa Rak</li>
+                          <li>• HPP Warehouse</li>
+                          <li>• Beban Operasional Warehouse</li>
+                          <li>• Penyusutan Warehouse</li>
+                        </>
+                      )}
+                      {engineForm.type === "DRIVER" && (
+                        <>
+                          <li>• Pendapatan Driver</li>
+                          <li>• Beban Driver</li>
+                        </>
+                      )}
+                      {engineForm.type === "BARANG" && (
+                        <>
+                          <li>• Persediaan Barang</li>
+                          <li>• Pendapatan Barang</li>
+                          <li>• HPP Barang</li>
+                          <li>• Beban Komisi</li>
+                          <li>• Beban Operasional Barang</li>
+                        </>
+                      )}
+                      {engineForm.type === "JASA" && (
+                        <>
+                          <li>• Pendapatan Jasa</li>
+                          <li>• Beban Langsung Jasa</li>
+                          <li>• Beban Komisi Jasa</li>
+                          <li>• Beban Operasional Jasa</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={isEngineLoading || !canEdit(userRole)}
+                      className="bg-yellow-500 hover:bg-yellow-600"
+                    >
+                      {isEngineLoading ? (
+                        <>Membuat COA...</>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4 mr-2" />
+                          Generate COA
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
               </div>
             </TabsContent>
           </Tabs>

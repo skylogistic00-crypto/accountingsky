@@ -113,6 +113,14 @@ interface CategoryMapping {
 interface COAAccount {
   account_code: string;
   account_name: string;
+  account_type?: string;
+}
+
+interface ItemMaster {
+  id: string;
+  item_name: string;
+  jenis_barang: string;
+  brand: string;
 }
 
 interface Warehouse {
@@ -181,6 +189,8 @@ export default function StockForm() {
   const [racks, setRacks] = useState<Rack[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [itemNameList, setItemNameList] = useState<ItemMaster[]>([]);
+  const [brandList, setBrandList] = useState<string[]>([]);
   const [hsCategories, setHsCategories] = useState<string[]>([]);
   const [hsSubCategories, setHsSubCategories] = useState<HSCode[]>([]);
   const [hsDescriptions, setHsDescriptions] = useState<HSCode[]>([]);
@@ -202,6 +212,11 @@ export default function StockForm() {
   const [itemType, setItemType] = useState<"barang" | "jasa">("barang");
   const [formData, setFormData] = useState({
     item_name: "",
+    brand: "",
+    isManualItem: false,
+    manualItemName: "",
+    isManualBrand: false,
+    manualBrand: "",
     service_category: "",
     service_type: "",
     description: "",
@@ -257,6 +272,8 @@ export default function StockForm() {
     fetchLots();
     fetchSuppliers();
     fetchHSCategories();
+    fetchItemNames();
+    fetchBrands();
   }, []);
 
   // Re-fetch categories when item type changes
@@ -276,22 +293,6 @@ export default function StockForm() {
       fetchServiceTypes(formData.service_category);
     }
   }, [formData.service_category]);
-
-  useEffect(() => {
-    if (formData.service_type) {
-      fetchDescriptions(formData.service_type);
-    }
-  }, [formData.service_type]);
-
-  useEffect(() => {
-    if (
-      formData.description &&
-      formData.service_category &&
-      formData.service_type
-    ) {
-      fetchCOAAccounts(formData.description);
-    }
-  }, [formData.description]);
 
   useEffect(() => {
     if (formData.coa_account_code) {
@@ -643,39 +644,19 @@ export default function StockForm() {
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
-        .from("chart_of_accounts")
+        .from("brands")
         .select("kategori_layanan")
-        .eq("is_active", true)
         .not("kategori_layanan", "is", null)
         .order("kategori_layanan");
 
       if (error) throw error;
 
       // Get unique values from kategori_layanan
-      let uniqueCategories = [
+      const uniqueCategories = [
         ...new Set(
           data?.map((item) => item.kategori_layanan).filter(Boolean) || [],
         ),
       ];
-
-      // Filter categories based on item type
-      if (itemType === "jasa") {
-        // For services, only show categories related to revenue/income (Pendapatan)
-        uniqueCategories = uniqueCategories.filter((cat) =>
-          cat.toLowerCase().includes("pendapatan") ||
-          cat.toLowerCase().includes("revenue") ||
-          cat.toLowerCase().includes("income")
-        );
-      } else {
-        // For goods, show categories related to inventory/COGS (Persediaan/HPP)
-        uniqueCategories = uniqueCategories.filter((cat) =>
-          cat.toLowerCase().includes("persediaan") ||
-          cat.toLowerCase().includes("inventory") ||
-          cat.toLowerCase().includes("hpp") ||
-          cat.toLowerCase().includes("cogs") ||
-          cat.toLowerCase().includes("barang")
-        );
-      }
 
       setCategories(uniqueCategories);
     } catch (error: any) {
@@ -690,10 +671,9 @@ export default function StockForm() {
   const fetchServiceTypes = async (category: string) => {
     try {
       const { data, error } = await supabase
-        .from("chart_of_accounts")
+        .from("brands")
         .select("jenis_layanan")
         .eq("kategori_layanan", category)
-        .eq("is_active", true)
         .not("jenis_layanan", "is", null)
         .order("jenis_layanan");
 
@@ -716,95 +696,13 @@ export default function StockForm() {
   };
 
   const fetchDescriptions = async (serviceType: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("chart_of_accounts")
-        .select("description, account_name, account_code")
-        .eq("kategori_layanan", formData.service_category)
-        .eq("jenis_layanan", serviceType)
-        .eq("is_active", true)
-        .not("description", "is", null)
-        .order("description");
-
-      if (error) throw error;
-
-      // Get unique descriptions
-      const uniqueDescriptions = [
-        ...new Set(data?.map((item) => item.description).filter(Boolean) || []),
-      ];
-      setDescriptions(uniqueDescriptions);
-
-      // Auto-fill description if only one result
-      if (data && data.length === 1) {
-        setFormData((prev) => ({
-          ...prev,
-          description: data[0].description,
-          coa_account_code: data[0].account_code,
-          coa_account_name: data[0].account_name,
-        }));
-        // Set COA accounts for the dropdown
-        setCOAAccounts([
-          {
-            account_code: data[0].account_code,
-            account_name: data[0].account_name,
-          },
-        ]);
-      } else {
-        // Reset description if more than one option
-        setFormData((prev) => ({
-          ...prev,
-          description: "",
-          coa_account_code: "",
-          coa_account_name: "",
-        }));
-        setCOAAccounts([]);
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    // Description is no longer fetched from COA, it's auto-populated from brands
+    // This function is kept for compatibility but does nothing
   };
 
   const fetchCOAAccounts = async (description: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("chart_of_accounts")
-        .select("account_code, account_name")
-        .eq("kategori_layanan", formData.service_category)
-        .eq("jenis_layanan", formData.service_type)
-        .eq("description", description)
-        .eq("is_active", true)
-        .order("account_code");
-
-      if (error) throw error;
-
-      setCOAAccounts(data || []);
-
-      // Auto-fill COA account code if only one result
-      if (data && data.length === 1) {
-        setFormData((prev) => ({
-          ...prev,
-          coa_account_code: data[0].account_code,
-          coa_account_name: data[0].account_name,
-        }));
-      } else if (data && data.length > 1) {
-        // Reset COA fields if more than one option
-        setFormData((prev) => ({
-          ...prev,
-          coa_account_code: "",
-          coa_account_name: "",
-        }));
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    // COA accounts are now auto-populated from brands
+    // This function is kept for compatibility but does nothing
   };
 
   const fetchWarehouses = async () => {
@@ -921,6 +819,153 @@ export default function StockForm() {
         title: "Error",
         description: error.message,
         variant: "destructive",
+      });
+    }
+  };
+
+  const fetchItemNames = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("item_master")
+        .select("*")
+        .order("item_name");
+
+      if (error) throw error;
+      setItemNameList(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchBrands = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("brands")
+        .select("brand_name")
+        .order("brand_name");
+
+      if (error) throw error;
+
+      const uniqueBrands = [...new Set(data?.map(b => b.brand_name) || [])];
+      setBrandList(uniqueBrands);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Fetch brands filtered by item name from item_brand_mapping
+  const fetchBrandsByItemName = async (itemName: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("item_brand_mapping")
+        .select("brand_name")
+        .eq("item_name", itemName)
+        .eq("is_active", true)
+        .order("brand_name");
+
+      if (error) throw error;
+
+      const uniqueBrands = [...new Set(data?.map(b => b.brand_name).filter(Boolean) || [])];
+      
+      // Always set the filtered brands, even if empty
+      setBrandList(uniqueBrands);
+      
+      if (uniqueBrands.length > 0) {
+        toast({
+          title: "Brand Filter Applied",
+          description: `Showing ${uniqueBrands.length} brands for ${itemName}`,
+        });
+      } else {
+        toast({
+          title: "No Brands Found",
+          description: `No brands available for ${itemName}. Please add brand mapping or use manual input.`,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setBrandList([]);
+    }
+  };
+
+  // Auto-populate fields based on brand data
+  const autoPopulateFields = async (itemName: string, brand: string) => {
+    try {
+      console.log("🔍 Auto-populate called with:", { itemName, brand });
+      
+      // Fetch brand data with all fields including COA
+      const { data, error } = await supabase
+        .from("brands")
+        .select("*")
+        .eq("brand_name", brand)
+        .limit(1)
+        .maybeSingle();
+
+      console.log("📊 FULL Brand data result:", { data, error });
+
+      if (error) {
+        console.error("❌ Error fetching brand data:", error);
+        throw error;
+      }
+
+      if (data) {
+        console.log("✅ Found brand data:", data);
+        console.log("📝 Field values:", {
+          satuan: data.satuan,
+          berat: data.berat,
+          volume: data.volume,
+          kategori_layanan: data.kategori_layanan,
+          jenis_layanan: data.jenis_layanan,
+          coa_account_code: data.coa_account_code,
+          coa_account_name: data.coa_account_name,
+        });
+        
+        // Force update with explicit values
+        const newFormData = {
+          ...formData,
+          service_category: data.kategori_layanan || "",
+          service_type: data.jenis_layanan || "",
+          unit: data.satuan || "",
+          weight: data.berat ? data.berat.toString() : "",
+          volume: data.volume ? data.volume.toString() : "",
+          coa_account_code: data.coa_account_code || "",
+          coa_account_name: data.coa_account_name || "",
+        };
+        
+        console.log("🔄 Setting new form data:", newFormData);
+        setFormData(newFormData);
+
+        // Close comboboxes after state update
+        setTimeout(() => {
+          setOpenCategoryCombobox(false);
+          setOpenServiceTypeCombobox(false);
+        }, 100);
+
+        toast({
+          title: "✅ Auto-populated",
+          description: `${data.kategori_layanan || '-'} - ${data.jenis_layanan || '-'} | Satuan: ${data.satuan || '-'}`,
+        });
+      } else {
+        console.warn("⚠️ No data returned from query");
+      }
+    } catch (error: any) {
+      console.log("⚠️ No brand data found:", error.message);
+      toast({
+        title: "Info",
+        description: "Tidak ada data brand. Silakan isi manual.",
+        variant: "default",
       });
     }
   };
@@ -1567,409 +1612,183 @@ export default function StockForm() {
                     Informasi Dasar
                   </h3>
                   <div className="grid md:grid-cols-2 gap-4">
+                    {/* Item Name */}
                     <div>
                       <Label>Nama {itemType === "barang" ? "Barang" : "Jasa"} *</Label>
+                      {formData.isManualItem ? (
+                        <div className="flex gap-2">
+                          <Input
+                            value={formData.manualItemName}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                manualItemName: e.target.value,
+                              })
+                            }
+                            placeholder="Masukkan nama item"
+                            required
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                isManualItem: false,
+                                manualItemName: "",
+                              });
+                            }}
+                          >
+                            Batal
+                          </Button>
+                        </div>
+                      ) : (
+                        <Select
+                          value={formData.item_name}
+                          onValueChange={(value) => {
+                            if (value === "manual") {
+                              setFormData({
+                                ...formData,
+                                isManualItem: true,
+                                item_name: "",
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                item_name: value,
+                              });
+                              // Fetch brands specific to this item
+                              fetchBrandsByItemName(value);
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih item name" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="manual">+ Input Manual</SelectItem>
+                            {itemNameList.map((item) => (
+                              <SelectItem key={item.id} value={item.item_name}>
+                                {item.item_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+
+                    {/* Brand */}
+                    <div>
+                      <Label>Brand</Label>
+                      {formData.isManualBrand ? (
+                        <div className="flex gap-2">
+                          <Input
+                            value={formData.manualBrand}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                manualBrand: e.target.value,
+                              })
+                            }
+                            placeholder="Masukkan nama brand"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                isManualBrand: false,
+                                manualBrand: "",
+                              });
+                            }}
+                          >
+                            Batal
+                          </Button>
+                        </div>
+                      ) : (
+                        <Select
+                          value={formData.brand}
+                          onValueChange={(value) => {
+                            console.log("🎯 Brand selected:", value, "Item name:", formData.item_name);
+                            if (value === "manual") {
+                              setFormData({
+                                ...formData,
+                                isManualBrand: true,
+                                brand: "",
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                brand: value,
+                              });
+                              // Auto-populate fields when both item name and brand are selected
+                              if (formData.item_name) {
+                                console.log("🚀 Calling autoPopulateFields...");
+                                autoPopulateFields(formData.item_name, value);
+                              } else {
+                                console.warn("⚠️ Item name not selected yet");
+                              }
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih brand" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="manual">+ Input Manual</SelectItem>
+                            {brandList.map((brandName) => (
+                              <SelectItem key={brandName} value={brandName}>
+                                {brandName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Kategori Layanan/Produk *</Label>
                       <Input
-                        value={formData.item_name}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            item_name: e.target.value,
-                          })
-                        }
-                        required
+                        value={formData.service_category}
+                        readOnly
+                        className="bg-slate-50"
+                        placeholder="Auto-filled dari brand"
                       />
                     </div>
 
                     <div>
-                      <Label>Kategori Layanan/Produk *</Label>
-                      <Popover
-                        open={openCategoryCombobox}
-                        onOpenChange={setOpenCategoryCombobox}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openCategoryCombobox}
-                            className="w-full justify-between"
-                          >
-                            {formData.service_category ||
-                              "Pilih atau ketik kategori baru..."}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" align="start">
-                          <Command>
-                            <CommandInput
-                              placeholder="Cari atau ketik kategori baru..."
-                              value={formData.service_category}
-                              onValueChange={(value) =>
-                                setFormData({
-                                  ...formData,
-                                  service_category: value,
-                                  service_type: "",
-                                  description: "",
-                                })
-                              }
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                <div className="p-4 space-y-2">
-                                  <p className="text-sm text-slate-600">
-                                    Kategori "{formData.service_category}" tidak
-                                    ditemukan di list.
-                                  </p>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={() => {
-                                      setOpenCategoryCombobox(false);
-                                      toast({
-                                        title: "Kategori Baru",
-                                        description: `Kategori "${formData.service_category}" akan ditambahkan sebagai kategori baru`,
-                                      });
-                                    }}
-                                  >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Gunakan "{formData.service_category}"
-                                    sebagai kategori baru
-                                  </Button>
-                                </div>
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {categories.map((cat) => (
-                                  <CommandItem
-                                    key={cat}
-                                    value={cat}
-                                    onSelect={() => {
-                                      setFormData({
-                                        ...formData,
-                                        service_category: cat,
-                                        service_type: "",
-                                        description: "",
-                                      });
-                                      setOpenCategoryCombobox(false);
-                                    }}
-                                  >
-                                    {cat}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      {formData.service_category &&
-                        !categories.includes(formData.service_category) && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            ℹ️ Kategori baru akan dibuat: "
-                            {formData.service_category}"
-                          </p>
-                        )}
-                    </div>
-
-                    <div>
                       <Label>Jenis Layanan/Produk *</Label>
-                      <Popover
-                        open={openServiceTypeCombobox}
-                        onOpenChange={setOpenServiceTypeCombobox}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openServiceTypeCombobox}
-                            className="w-full justify-between"
-                            disabled={!formData.service_category}
-                          >
-                            {formData.service_type ||
-                              "Pilih atau ketik jenis layanan baru..."}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" align="start">
-                          <Command>
-                            <CommandInput
-                              placeholder="Cari atau ketik jenis layanan baru..."
-                              value={formData.service_type}
-                              onValueChange={(value) =>
-                                setFormData({
-                                  ...formData,
-                                  service_type: value,
-                                  description: "",
-                                })
-                              }
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                <div className="p-4 space-y-2">
-                                  <p className="text-sm text-slate-600">
-                                    Jenis layanan "{formData.service_type}"
-                                    tidak ditemukan di list.
-                                  </p>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={() => {
-                                      setOpenServiceTypeCombobox(false);
-                                      toast({
-                                        title: "Jenis Layanan Baru",
-                                        description: `Jenis layanan "${formData.service_type}" akan ditambahkan sebagai jenis baru`,
-                                      });
-                                    }}
-                                  >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Gunakan "{formData.service_type}" sebagai
-                                    jenis layanan baru
-                                  </Button>
-                                </div>
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {serviceTypes.map((type) => (
-                                  <CommandItem
-                                    key={type}
-                                    value={type}
-                                    onSelect={() => {
-                                      setFormData({
-                                        ...formData,
-                                        service_type: type,
-                                        description: "",
-                                      });
-                                      setOpenServiceTypeCombobox(false);
-                                    }}
-                                  >
-                                    {type}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      {formData.service_type &&
-                        !serviceTypes.includes(formData.service_type) && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            ℹ️ Jenis layanan baru akan dibuat: "
-                            {formData.service_type}"
-                          </p>
-                        )}
-                    </div>
-
-                    <div>
-                      <Label>Deskripsi *</Label>
-                      <Popover
-                        open={openDescriptionCombobox}
-                        onOpenChange={setOpenDescriptionCombobox}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openDescriptionCombobox}
-                            className="w-full justify-between"
-                            disabled={!formData.service_type}
-                          >
-                            {formData.description ||
-                              "Pilih atau ketik deskripsi baru..."}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" align="start">
-                          <Command>
-                            <CommandInput
-                              placeholder="Cari atau ketik deskripsi baru..."
-                              value={formData.description}
-                              onValueChange={(value) =>
-                                setFormData({
-                                  ...formData,
-                                  description: value,
-                                })
-                              }
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                <div className="p-4 space-y-2">
-                                  <p className="text-sm text-slate-600">
-                                    Deskripsi "{formData.description}" tidak
-                                    ditemukan di list.
-                                  </p>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={() => {
-                                      setOpenDescriptionCombobox(false);
-                                      toast({
-                                        title: "Deskripsi Baru",
-                                        description: `Deskripsi "${formData.description}" akan ditambahkan sebagai deskripsi baru`,
-                                      });
-                                    }}
-                                  >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Gunakan "{formData.description}" sebagai
-                                    deskripsi baru
-                                  </Button>
-                                </div>
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {descriptions.map((desc) => (
-                                  <CommandItem
-                                    key={desc}
-                                    value={desc}
-                                    onSelect={() => {
-                                      setFormData({
-                                        ...formData,
-                                        description: desc,
-                                      });
-                                      setOpenDescriptionCombobox(false);
-                                    }}
-                                  >
-                                    {desc}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      {formData.description &&
-                        !descriptions.includes(formData.description) && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            ℹ️ Deskripsi baru akan dibuat: "
-                            {formData.description}"
-                          </p>
-                        )}
+                      <Input
+                        value={formData.service_type}
+                        readOnly
+                        className="bg-slate-50"
+                        placeholder="Auto-filled dari brand"
+                      />
                     </div>
 
                     <div>
                       <Label>Kode Akun COA *</Label>
-                      <Popover
-                        open={openCOACombobox}
-                        onOpenChange={setOpenCOACombobox}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openCOACombobox}
-                            className="w-full justify-between"
-                            disabled={!formData.description}
-                          >
-                            {formData.coa_account_code
-                              ? `${formData.coa_account_code} - ${formData.coa_account_name}`
-                              : "Pilih atau ketik kode akun baru..."}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" align="start">
-                          <Command>
-                            <CommandInput
-                              placeholder="Cari atau ketik kode akun baru..."
-                              value={formData.coa_account_code}
-                              onInput={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  coa_account_code: (e.target as HTMLInputElement).value,
-                                })
-                              }
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                <div className="p-4 space-y-2">
-                                  <p className="text-sm text-slate-600">
-                                    Kode akun "{formData.coa_account_code}"
-                                    tidak ditemukan di list.
-                                  </p>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={() => {
-                                      setOpenCOACombobox(false);
-                                      toast({
-                                        title: "Kode Akun Baru",
-                                        description: `Kode akun "${formData.coa_account_code}" akan ditambahkan sebagai akun baru`,
-                                      });
-                                    }}
-                                  >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Gunakan "{formData.coa_account_code}"
-                                    sebagai kode akun baru
-                                  </Button>
-                                </div>
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {coaAccounts.map((acc) => (
-                                  <CommandItem
-                                    key={acc.account_code}
-                                    value={acc.account_code}
-                                    onSelect={() => {
-                                      setFormData({
-                                        ...formData,
-                                        coa_account_code: acc.account_code,
-                                        coa_account_name: acc.account_name,
-                                      });
-                                      setOpenCOACombobox(false);
-                                    }}
-                                  >
-                                    {acc.account_code} - {acc.account_name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      {formData.coa_account_code &&
-                        !coaAccounts.find(
-                          (acc) =>
-                            acc.account_code === formData.coa_account_code,
-                        ) && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            ℹ️ Kode akun baru akan dibuat: "
-                            {formData.coa_account_code}"
-                          </p>
-                        )}
+                      <Input
+                        value={formData.coa_account_code}
+                        readOnly
+                        className="bg-slate-50"
+                        placeholder="Auto-filled dari brand"
+                      />
                     </div>
 
                     <div>
                       <Label>Nama Akun COA</Label>
                       <Input
                         value={formData.coa_account_name}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            coa_account_name: e.target.value,
-                          })
-                        }
-                        disabled={
-                          formData.coa_account_code &&
-                          coaAccounts.find(
-                            (acc) =>
-                              acc.account_code === formData.coa_account_code,
-                          )
-                            ? true
-                            : false
-                        }
-                        className={
-                          formData.coa_account_code &&
-                          !coaAccounts.find(
-                            (acc) =>
-                              acc.account_code === formData.coa_account_code,
-                          )
-                            ? "bg-white"
-                            : "bg-slate-50"
-                        }
-                        placeholder="Masukkan nama akun COA baru..."
+                        readOnly
+                        className="bg-slate-50"
+                        placeholder="Auto-filled dari brand"
                       />
-                      {formData.coa_account_code &&
-                        !coaAccounts.find(
-                          (acc) =>
-                            acc.account_code === formData.coa_account_code,
-                        ) && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            ℹ️ Anda dapat mengetik nama akun untuk kode baru ini
-                          </p>
-                        )}
                     </div>
 
                     <div>
@@ -2005,10 +1824,9 @@ export default function StockForm() {
                           <Label>Satuan *</Label>
                           <Input
                             value={formData.unit}
-                            onChange={(e) =>
-                              setFormData({ ...formData, unit: e.target.value })
-                            }
-                            placeholder="pcs, kg, box, dll"
+                            readOnly
+                            className="bg-slate-50"
+                            placeholder="Auto-filled dari brand"
                             required
                           />
                         </div>
@@ -2017,9 +1835,9 @@ export default function StockForm() {
                           <Label>Berat (kg)</Label>
                           <Input
                             value={formData.weight}
-                            onChange={(e) =>
-                              setFormData({ ...formData, weight: e.target.value })
-                            }
+                            readOnly
+                            className="bg-slate-50"
+                            placeholder="Auto-filled dari brand"
                           />
                         </div>
 
@@ -2027,9 +1845,9 @@ export default function StockForm() {
                           <Label>Volume (m³)</Label>
                           <Input
                             value={formData.volume}
-                            onChange={(e) =>
-                              setFormData({ ...formData, volume: e.target.value })
-                            }
+                            readOnly
+                            className="bg-slate-50"
+                            placeholder="Auto-filled dari brand"
                           />
                         </div>
                       </>

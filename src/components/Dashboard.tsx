@@ -305,7 +305,7 @@ export default function Dashboard() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate("/cash-book");
+                            navigate("/transaksi-keuangan");
                           }}
                           className="flex items-center gap-2 p-3 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-xl transition-all cursor-pointer relative" style={{ zIndex: 999, pointerEvents: 'auto', position: 'relative' }}
                         >
@@ -570,7 +570,7 @@ export default function Dashboard() {
                 <div
                   onClick={() => {
                     if (canClick(userRole)) {
-                      navigate("/cash-book");
+                      navigate("/transaksi-keuangan");
                     }
                   }}
                   className="bg-gradient-to-br from-[#2d3250] to-[#1f2235] rounded-2xl p-6 shadow-xl hover:scale-105 transition-all cursor-pointer"
@@ -584,7 +584,7 @@ export default function Dashboard() {
                     <ArrowUpRight className="text-slate-400 w-6 h-6" />
                   </div>
                   <div className="text-white text-4xl font-bold mb-2">
-                    Cash Book
+                    Transaksi Keuangan
                   </div>
                   <div className="text-slate-400 text-sm font-medium">
                     Penerimaan & Pengeluaran Kas

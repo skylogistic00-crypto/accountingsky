@@ -27,11 +27,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { AlertCircle, CheckCircle2, Loader2, Plus } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Plus, Search } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Item {
   id: string;
   item_name: string;
+  brand?: string;
   quantity: number;
   coa_account_code: string;
   coa_account_name: string;
@@ -60,6 +69,22 @@ interface COAAccount {
   account_type: string;
 }
 
+interface SalesTransaction {
+  id: string;
+  transaction_date: string;
+  transaction_type: string;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  payment_method: string;
+  customer_name: string;
+  notes: string;
+  created_at: string;
+}
+
 export default function SalesForm() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -68,6 +93,9 @@ export default function SalesForm() {
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [coaAccounts, setCOAAccounts] = useState<COAAccount[]>([]);
+  const [salesTransactions, setSalesTransactions] = useState<SalesTransaction[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false);
   const [newCustomerData, setNewCustomerData] = useState({
     name: "",
@@ -92,6 +120,7 @@ export default function SalesForm() {
     transaction_type: "Barang",
     item_id: "",
     item_name: "",
+    brand: "",
     stock_current: 0,
     quantity: 0,
     stock_after: 0,
@@ -116,6 +145,7 @@ export default function SalesForm() {
     fetchServiceItems();
     fetchCustomers();
     fetchCOAAccounts();
+    fetchSalesTransactions();
   }, []);
 
   useEffect(() => {
@@ -157,7 +187,7 @@ export default function SalesForm() {
     const { data, error } = await supabase
       .from("stock")
       .select(
-        "id, item_name, item_quantity, coa_account_code, coa_account_name",
+        "id, item_name, brand, item_quantity, coa_account_code, coa_account_name",
       )
       .gt("item_quantity", 0)
       .order("item_name");
@@ -173,6 +203,7 @@ export default function SalesForm() {
       const mappedItems = (data || []).map((item) => ({
         id: item.id,
         item_name: item.item_name,
+        brand: item.brand,
         quantity: item.item_quantity,
         coa_account_code: item.coa_account_code,
         coa_account_name: item.coa_account_name,
@@ -196,6 +227,21 @@ export default function SalesForm() {
       });
     } else {
       setServiceItems(data || []);
+    }
+  };
+
+  const fetchSalesTransactions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("sales_transactions")
+        .select("*")
+        .order("transaction_date", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setSalesTransactions(data || []);
+    } catch (error) {
+      console.error("Error fetching sales transactions:", error);
     }
   };
 
@@ -241,7 +287,7 @@ export default function SalesForm() {
     const { data, error } = await supabase
       .from("stock")
       .select(
-        "id, item_name, item_quantity, coa_account_code, coa_account_name",
+        "id, item_name, brand, item_quantity, coa_account_code, coa_account_name",
       )
       .eq("id", itemId)
       .single();
@@ -273,6 +319,7 @@ export default function SalesForm() {
         ...prev,
         item_id: itemId,
         item_name: data.item_name,
+        brand: data.brand || "",
         stock_current: data.item_quantity,
         // Auto-fill COA from stock
         coa_account_code: data.coa_account_code || "",
@@ -489,6 +536,7 @@ export default function SalesForm() {
           transaction_type: formData.transaction_type,
           item_id: formData.item_id,
           item_name: formData.item_name,
+          brand: formData.brand,
           stock_before:
             formData.transaction_type === "Barang"
               ? formData.stock_current
@@ -746,6 +794,7 @@ export default function SalesForm() {
 
       // Refresh items to get updated stock
       fetchItems();
+      fetchSalesTransactions();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -775,16 +824,28 @@ export default function SalesForm() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
-      <Card className="max-w-5xl mx-auto rounded-2xl shadow-md">
-        <CardHeader className="p-4">
-          <CardTitle className="text-2xl">
-            Form Penjualan Barang & Jasa
-          </CardTitle>
-          <CardDescription>
-            Catat transaksi penjualan barang atau jasa dengan otomatis update
-            stok dan jurnal
-          </CardDescription>
-        </CardHeader>
+      {isFormOpen && (
+        <Card className="max-w-5xl mx-auto rounded-2xl shadow-md mb-6">
+          <CardHeader className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl">
+                  Form Penjualan Barang & Jasa
+                </CardTitle>
+                <CardDescription>
+                  Catat transaksi penjualan barang atau jasa dengan otomatis update
+                  stok dan jurnal
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setIsFormOpen(false)}
+                className="ml-4"
+              >
+                Tutup
+              </Button>
+            </div>
+          </CardHeader>
         <CardContent className="p-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Grid 2 Columns with gap-3 */}
@@ -1124,6 +1185,7 @@ export default function SalesForm() {
           </form>
         </CardContent>
       </Card>
+      )}
 
       {/* Add Customer Dialog */}
       <Dialog
@@ -1447,6 +1509,143 @@ export default function SalesForm() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Sales Transactions Report */}
+      <Card className="max-w-7xl mx-auto mt-6 rounded-2xl shadow-md">
+        <CardHeader className="p-4 bg-gradient-to-r from-green-600 to-emerald-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl text-white">
+                Laporan Transaksi Penjualan
+              </CardTitle>
+              <CardDescription className="text-green-50">
+                Daftar semua transaksi penjualan barang dan jasa
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => setIsFormOpen(true)}
+              className="bg-white text-green-600 hover:bg-green-50"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Penjualan
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Cari berdasarkan nama barang/jasa atau customer..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Transactions Table */}
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold">Tanggal</TableHead>
+                  <TableHead className="font-semibold">Tipe</TableHead>
+                  <TableHead className="font-semibold">Nama Barang/Jasa</TableHead>
+                  <TableHead className="font-semibold">Customer</TableHead>
+                  <TableHead className="font-semibold text-right">Qty</TableHead>
+                  <TableHead className="font-semibold text-right">Harga</TableHead>
+                  <TableHead className="font-semibold text-right">Subtotal</TableHead>
+                  <TableHead className="font-semibold text-right">Pajak</TableHead>
+                  <TableHead className="font-semibold text-right">Total</TableHead>
+                  <TableHead className="font-semibold">Pembayaran</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {salesTransactions
+                  .filter(
+                    (transaction) =>
+                      transaction.item_name
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase()) ||
+                      transaction.customer_name
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase())
+                  )
+                  .map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>
+                        {new Date(transaction.transaction_date).toLocaleDateString(
+                          "id-ID"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            transaction.transaction_type === "Barang"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-purple-100 text-purple-700"
+                          }`}
+                        >
+                          {transaction.transaction_type}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {transaction.item_name}
+                      </TableCell>
+                      <TableCell>{transaction.customer_name}</TableCell>
+                      <TableCell className="text-right">
+                        {transaction.quantity}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatRupiah(transaction.unit_price)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatRupiah(transaction.subtotal)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatRupiah(transaction.tax_amount)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {formatRupiah(transaction.total_amount)}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            transaction.payment_method === "Tunai"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}
+                        >
+                          {transaction.payment_method}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                {salesTransactions.filter(
+                  (transaction) =>
+                    transaction.item_name
+                      .toLowerCase()
+                      .includes(searchTerm.toLowerCase()) ||
+                    transaction.customer_name
+                      .toLowerCase()
+                      .includes(searchTerm.toLowerCase())
+                ).length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={10}
+                      className="text-center py-8 text-gray-500"
+                    >
+                      Tidak ada data transaksi penjualan
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

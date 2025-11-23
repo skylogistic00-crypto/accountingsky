@@ -69,8 +69,8 @@ interface CustomerFormData {
   tax_id: string;
   bank_name: string;
   bank_account_holder: string;
-  payment_terms: string;
-  category: string;
+  bank_account_number: string;
+  payment_term_id: string;
   currency: string;
   status: string;
   address: string;
@@ -97,8 +97,38 @@ export default function CustomerForm() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [pkpFilter, setPkpFilter] = useState("ALL");
-  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [paymentTerms, setPaymentTerms] = useState<any[]>([]);
+  
+  // Indonesian Banks List
+  const indonesianBanks = [
+    "Bank Mandiri",
+    "Bank Rakyat Indonesia (BRI)",
+    "Bank Central Asia (BCA)",
+    "Bank Negara Indonesia (BNI)",
+    "Bank Tabungan Negara (BTN)",
+    "Bank CIMB Niaga",
+    "Bank Danamon",
+    "Bank Permata",
+    "Bank Maybank Indonesia",
+    "Bank OCBC NISP",
+    "Bank Panin",
+    "Bank UOB Indonesia",
+    "Bank BTPN",
+    "Bank Mega",
+    "Bank Sinarmas",
+    "Bank Commonwealth",
+    "Bank BCA Syariah",
+    "Bank Syariah Indonesia (BSI)",
+    "Bank Muamalat",
+    "Bank BRI Syariah",
+    "Bank Mandiri Syariah",
+    "Bank BNI Syariah",
+    "Bank Jago",
+    "Bank Neo Commerce",
+    "Bank Seabank Indonesia",
+  ];
+  
   const [formData, setFormData] = useState<CustomerFormData>({
     customer_code: "",
     customer_name: "",
@@ -111,8 +141,8 @@ export default function CustomerForm() {
     tax_id: "",
     bank_name: "",
     bank_account_holder: "",
-    payment_terms: "",
-    category: "",
+    bank_account_number: "",
+    payment_term_id: "",
     currency: "IDR",
     status: "ACTIVE",
     address: "",
@@ -120,6 +150,7 @@ export default function CustomerForm() {
 
   useEffect(() => {
     fetchCustomers();
+    fetchPaymentTerms();
 
     const channel = supabase
       .channel("customers-changes")
@@ -148,10 +179,6 @@ export default function CustomerForm() {
       filtered = filtered.filter((cust) => cust.is_pkp === pkpFilter);
     }
 
-    if (categoryFilter !== "ALL") {
-      filtered = filtered.filter((cust) => cust.category === categoryFilter);
-    }
-
     if (searchTerm) {
       filtered = filtered.filter(
         (cust) =>
@@ -162,7 +189,7 @@ export default function CustomerForm() {
     }
 
     setFilteredCustomers(filtered);
-  }, [searchTerm, statusFilter, pkpFilter, categoryFilter, customers]);
+  }, [searchTerm, statusFilter, pkpFilter, customers]);
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -185,6 +212,21 @@ export default function CustomerForm() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPaymentTerms = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("payment_terms")
+        .select("*")
+        .eq("is_active", true)
+        .order("days", { ascending: true });
+
+      if (error) throw error;
+      setPaymentTerms(data || []);
+    } catch (error: any) {
+      console.error("Error loading payment terms:", error);
     }
   };
 
@@ -213,8 +255,8 @@ export default function CustomerForm() {
           tax_id: formData.tax_id,
           bank_name: formData.bank_name,
           bank_account_holder: formData.bank_account_holder,
-          payment_terms: formData.payment_terms,
-          category: formData.category,
+          bank_account_number: formData.bank_account_number,
+          payment_term_id: formData.payment_term_id || null,
           currency: formData.currency,
           status: formData.status,
           address: formData.address,
@@ -243,8 +285,8 @@ export default function CustomerForm() {
         tax_id: "",
         bank_name: "",
         bank_account_holder: "",
-        payment_terms: "",
-        category: "",
+        bank_account_number: "",
+        payment_term_id: "",
         currency: "IDR",
         status: "ACTIVE",
         address: "",
@@ -341,10 +383,7 @@ export default function CustomerForm() {
     pkp: customers.filter((c) => c.is_pkp === "YES").length,
   };
 
-  // Get unique categories for filter
-  const uniqueCategories = Array.from(
-    new Set(customers.map((c) => c.category).filter(Boolean)),
-  );
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -546,17 +585,23 @@ export default function CustomerForm() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="bank_name">Bank Name</Label>
-                      <Input
-                        id="bank_name"
+                      <Select
                         value={formData.bank_name}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            bank_name: e.target.value,
-                          })
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, bank_name: value })
                         }
-                        placeholder="Bank Mandiri"
-                      />
+                      >
+                        <SelectTrigger id="bank_name">
+                          <SelectValue placeholder="Pilih bank" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {indonesianBanks.map((bank) => (
+                            <SelectItem key={bank} value={bank}>
+                              {bank}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
@@ -575,6 +620,23 @@ export default function CustomerForm() {
                         placeholder="PT. Customer Indonesia"
                       />
                     </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="bank_account_number">
+                        Bank Account Number
+                      </Label>
+                      <Input
+                        id="bank_account_number"
+                        value={formData.bank_account_number}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bank_account_number: e.target.value,
+                          })
+                        }
+                        placeholder="1234567890"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -584,90 +646,28 @@ export default function CustomerForm() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="payment_terms">Payment Terms</Label>
-                      <Input
-                        id="payment_terms"
-                        value={formData.payment_terms}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            payment_terms: e.target.value,
-                          })
-                        }
-                        placeholder="Net 30"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Category</Label>
+                      <Label htmlFor="payment_term_id">Payment Terms</Label>
                       <Select
-                        value={formData.category}
+                        value={formData.payment_term_id}
                         onValueChange={(value) =>
-                          setFormData({ ...formData, category: value })
+                          setFormData({ ...formData, payment_term_id: value })
                         }
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kategori" />
+                        <SelectTrigger id="payment_term_id">
+                          <SelectValue placeholder="Pilih payment terms" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Raw Materials">
-                            Bahan Baku
-                          </SelectItem>
-                          <SelectItem value="Work in Process">
-                            Barang Dalam Proses
-                          </SelectItem>
-                          <SelectItem value="Finished Goods">
-                            Barang Jadi
-                          </SelectItem>
-                          <SelectItem value="Resale/Merchandise">
-                            Barang Dagangan
-                          </SelectItem>
-                          <SelectItem value="Kits/Bundles">
-                            Paket/Bundle
-                          </SelectItem>
-                          <SelectItem value="Spare Parts">
-                            Suku Cadang
-                          </SelectItem>
-                          <SelectItem value="MRO">
-                            MRO (Pemeliharaan, Perbaikan, Operasi)
-                          </SelectItem>
-                          <SelectItem value="Consumables">
-                            Barang Habis Pakai
-                          </SelectItem>
-                          <SelectItem value="Packaging">Kemasan</SelectItem>
-                          <SelectItem value="Food">Makanan</SelectItem>
-                          <SelectItem value="Beverage">Minuman</SelectItem>
-                          <SelectItem value="Rentable Units">
-                            Unit Sewa
-                          </SelectItem>
-                          <SelectItem value="Demo/Loaner Units">
-                            Unit Demo/Pinjaman
-                          </SelectItem>
-                          <SelectItem value="Returns">Barang Retur</SelectItem>
-                          <SelectItem value="Defective/Damaged">
-                            Barang Cacat/Rusak
-                          </SelectItem>
-                          <SelectItem value="Obsolete/Expired">
-                            Barang Usang/Kadaluarsa
-                          </SelectItem>
-                          <SelectItem value="Goods in Transit">
-                            Barang Dalam Perjalanan
-                          </SelectItem>
-                          <SelectItem value="Consignment">
-                            Konsinyasi
-                          </SelectItem>
-                          <SelectItem value="Third Party/Owner">
-                            Pihak Ketiga/Pemilik
-                          </SelectItem>
-                          <SelectItem value="Samples/Marketing">
-                            Sampel/Pemasaran
-                          </SelectItem>
+                          {paymentTerms.map((term) => (
+                            <SelectItem key={term.id} value={term.id}>
+                              {term.term_name} - {term.description}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="currency">Currency *</Label>
+                      <Label htmlFor="currency">Currency</Label>
                       <Select
                         value={formData.currency}
                         onValueChange={(value) =>
@@ -675,19 +675,19 @@ export default function CustomerForm() {
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Pilih mata uang" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="IDR">IDR</SelectItem>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="EUR">EUR</SelectItem>
-                          <SelectItem value="SGD">SGD</SelectItem>
+                          <SelectItem value="IDR">IDR - Rupiah</SelectItem>
+                          <SelectItem value="USD">USD - US Dollar</SelectItem>
+                          <SelectItem value="EUR">EUR - Euro</SelectItem>
+                          <SelectItem value="SGD">SGD - Singapore Dollar</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="status">Status *</Label>
+                      <Label htmlFor="status">Status</Label>
                       <Select
                         value={formData.status}
                         onValueChange={(value) =>
@@ -695,7 +695,7 @@ export default function CustomerForm() {
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Pilih status" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ACTIVE">Active</SelectItem>
@@ -848,22 +848,6 @@ export default function CustomerForm() {
                     <SelectItem value="ALL">Semua PKP</SelectItem>
                     <SelectItem value="YES">PKP</SelectItem>
                     <SelectItem value="NO">Non-PKP</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={categoryFilter}
-                  onValueChange={setCategoryFilter}
-                >
-                  <SelectTrigger className="w-[200px] border-slate-300 focus:border-purple-500 focus:ring-purple-500">
-                    <SelectValue placeholder="Kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Semua Kategori</SelectItem>
-                    {uniqueCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
                   </SelectContent>
                 </Select>
               </div>

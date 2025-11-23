@@ -327,15 +327,7 @@ export type Database = {
           warehouses?: string | null
           zones?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "barang_lini_1_stock_id_fkey"
-            columns: ["stock_id"]
-            isOneToOne: false
-            referencedRelation: "stock"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       barang_lini_2: {
         Row: {
@@ -406,6 +398,126 @@ export type Database = {
         }
         Relationships: []
       }
+      borrowers: {
+        Row: {
+          address: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          borrower_code: string | null
+          borrower_name: string
+          borrower_type: string | null
+          created_at: string | null
+          credit_limit: number | null
+          default_late_fee_percentage: number | null
+          default_tax_percentage: number | null
+          default_tax_type: string | null
+          email: string | null
+          id: string
+          identity_number: string | null
+          identity_type: string | null
+          loan_calculation_method: string | null
+          notes: string | null
+          phone: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          borrower_code?: string | null
+          borrower_name: string
+          borrower_type?: string | null
+          created_at?: string | null
+          credit_limit?: number | null
+          default_late_fee_percentage?: number | null
+          default_tax_percentage?: number | null
+          default_tax_type?: string | null
+          email?: string | null
+          id?: string
+          identity_number?: string | null
+          identity_type?: string | null
+          loan_calculation_method?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          borrower_code?: string | null
+          borrower_name?: string
+          borrower_type?: string | null
+          created_at?: string | null
+          credit_limit?: number | null
+          default_late_fee_percentage?: number | null
+          default_tax_percentage?: number | null
+          default_tax_type?: string | null
+          email?: string | null
+          id?: string
+          identity_number?: string | null
+          identity_type?: string | null
+          loan_calculation_method?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      brands: {
+        Row: {
+          berat: number | null
+          brand_name: string
+          category: string
+          coa_account_code: string | null
+          coa_account_name: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          jenis_layanan: string | null
+          kategori_layanan: string | null
+          satuan: string | null
+          updated_at: string | null
+          volume: number | null
+        }
+        Insert: {
+          berat?: number | null
+          brand_name: string
+          category: string
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          jenis_layanan?: string | null
+          kategori_layanan?: string | null
+          satuan?: string | null
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Update: {
+          berat?: number | null
+          brand_name?: string
+          category?: string
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          jenis_layanan?: string | null
+          kategori_layanan?: string | null
+          satuan?: string | null
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Relationships: []
+      }
       cash_book: {
         Row: {
           account_name: string | null
@@ -436,6 +548,120 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_receipts_payments: {
+        Row: {
+          account_number: string | null
+          amount: number
+          bank_name: string | null
+          category: string | null
+          coa_cash_code: string
+          coa_contra_code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          journal_ref: string | null
+          payment_method: string | null
+          reference_number: string | null
+          source_destination: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          amount: number
+          bank_name?: string | null
+          category?: string | null
+          coa_cash_code: string
+          coa_contra_code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          journal_ref?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+          source_destination?: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          amount?: number
+          bank_name?: string | null
+          category?: string | null
+          coa_cash_code?: string
+          coa_contra_code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          journal_ref?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+          source_destination?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_contra"
+            columns: ["coa_contra_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_contra"
+            columns: ["coa_contra_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_contra"
+            columns: ["coa_contra_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_contra"
+            columns: ["coa_contra_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+        ]
+      }
       chart_of_accounts: {
         Row: {
           account_code: string
@@ -446,6 +672,7 @@ export type Database = {
           created_by: string | null
           current_balance: number | null
           description: string | null
+          flow_type: string | null
           id: string
           is_active: boolean | null
           is_header: boolean | null
@@ -454,7 +681,9 @@ export type Database = {
           level: number
           normal_balance: string | null
           parent_code: string | null
+          trans_type: string | null
           updated_at: string | null
+          usage_role: string | null
         }
         Insert: {
           account_code: string
@@ -465,6 +694,7 @@ export type Database = {
           created_by?: string | null
           current_balance?: number | null
           description?: string | null
+          flow_type?: string | null
           id?: string
           is_active?: boolean | null
           is_header?: boolean | null
@@ -473,7 +703,9 @@ export type Database = {
           level?: number
           normal_balance?: string | null
           parent_code?: string | null
+          trans_type?: string | null
           updated_at?: string | null
+          usage_role?: string | null
         }
         Update: {
           account_code?: string
@@ -484,6 +716,7 @@ export type Database = {
           created_by?: string | null
           current_balance?: number | null
           description?: string | null
+          flow_type?: string | null
           id?: string
           is_active?: boolean | null
           is_header?: boolean | null
@@ -492,7 +725,9 @@ export type Database = {
           level?: number
           normal_balance?: string | null
           parent_code?: string | null
+          trans_type?: string | null
           updated_at?: string | null
+          usage_role?: string | null
         }
         Relationships: []
       }
@@ -673,32 +908,85 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          category: string | null
+          city: string | null
+          contact_person: string | null
+          country: string | null
           created_at: string | null
+          currency: string | null
+          customer_code: string | null
+          customer_name: string | null
           email: string | null
           id: string
+          is_pkp: string | null
           name: string
+          payment_term_id: string | null
           phone: string | null
+          phone_number: number | null
+          status: string | null
+          tax_id: string | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          category?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
           created_at?: string | null
+          currency?: string | null
+          customer_code?: string | null
+          customer_name?: string | null
           email?: string | null
           id?: string
-          name: string
+          is_pkp?: string | null
+          name?: string
+          payment_term_id?: string | null
           phone?: string | null
+          phone_number?: number | null
+          status?: string | null
+          tax_id?: string | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          category?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
           created_at?: string | null
+          currency?: string | null
+          customer_code?: string | null
+          customer_name?: string | null
           email?: string | null
           id?: string
+          is_pkp?: string | null
           name?: string
+          payment_term_id?: string | null
           phone?: string | null
+          phone_number?: number | null
+          status?: string | null
+          tax_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_payment_term_id_fkey"
+            columns: ["payment_term_id"]
+            isOneToOne: false
+            referencedRelation: "payment_terms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       departments: {
         Row: {
@@ -1069,6 +1357,60 @@ export type Database = {
           },
         ]
       }
+      item_brand_mapping: {
+        Row: {
+          brand_name: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          item_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          brand_name: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          brand_name?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      item_master: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          item_name: string
+          jenis_barang: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_name: string
+          jenis_barang: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_name?: string
+          jenis_barang?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       items: {
         Row: {
           created_at: string | null
@@ -1093,6 +1435,30 @@ export type Database = {
         }
         Relationships: []
       }
+      jenis_barang: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           account_code: string | null
@@ -1103,12 +1469,17 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           credit: number | null
+          credit_account: string | null
           date: string | null
           debit: number | null
+          debit_account: string | null
           description: string | null
           entry_date: string | null
           entry_type: string | null
           id: string
+          jenis_transaksi: string | null
+          journal_ref: string | null
+          kategori: string | null
           license_plate: string | null
           make: string | null
           model: string | null
@@ -1119,6 +1490,7 @@ export type Database = {
           source_table: string | null
           stock_adjustment_id: string | null
           stock_movement_id: string | null
+          tanggal: string | null
           total_credit: number | null
           total_debit: number | null
           transaction_date: string | null
@@ -1135,12 +1507,17 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           credit?: number | null
+          credit_account?: string | null
           date?: string | null
           debit?: number | null
+          debit_account?: string | null
           description?: string | null
           entry_date?: string | null
           entry_type?: string | null
           id?: string
+          jenis_transaksi?: string | null
+          journal_ref?: string | null
+          kategori?: string | null
           license_plate?: string | null
           make?: string | null
           model?: string | null
@@ -1151,6 +1528,7 @@ export type Database = {
           source_table?: string | null
           stock_adjustment_id?: string | null
           stock_movement_id?: string | null
+          tanggal?: string | null
           total_credit?: number | null
           total_debit?: number | null
           transaction_date?: string | null
@@ -1167,12 +1545,17 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           credit?: number | null
+          credit_account?: string | null
           date?: string | null
           debit?: number | null
+          debit_account?: string | null
           description?: string | null
           entry_date?: string | null
           entry_type?: string | null
           id?: string
+          jenis_transaksi?: string | null
+          journal_ref?: string | null
+          kategori?: string | null
           license_plate?: string | null
           make?: string | null
           model?: string | null
@@ -1183,6 +1566,7 @@ export type Database = {
           source_table?: string | null
           stock_adjustment_id?: string | null
           stock_movement_id?: string | null
+          tanggal?: string | null
           total_credit?: number | null
           total_debit?: number | null
           transaction_date?: string | null
@@ -1321,6 +1705,9 @@ export type Database = {
           service_category: string | null
           service_type: string | null
           tanggal: string
+          tax_amount: number | null
+          tax_percentage: number | null
+          tax_type: string | null
           updated_at: string
         }
         Insert: {
@@ -1336,6 +1723,9 @@ export type Database = {
           service_category?: string | null
           service_type?: string | null
           tanggal: string
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          tax_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -1351,6 +1741,9 @@ export type Database = {
           service_category?: string | null
           service_type?: string | null
           tanggal?: string
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          tax_type?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1390,6 +1783,281 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      loan_installments: {
+        Row: {
+          actual_payment_date: string | null
+          created_at: string | null
+          days_late: number | null
+          due_date: string
+          id: string
+          installment_number: number
+          interest_amount: number
+          late_fee: number | null
+          late_fee_percentage: number | null
+          loan_id: string
+          notes: string | null
+          paid_amount: number | null
+          payment_date: string | null
+          principal_amount: number
+          remaining_balance: number | null
+          status: string | null
+          tax_amount: number | null
+          tax_percentage: number | null
+          tax_type: string | null
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          actual_payment_date?: string | null
+          created_at?: string | null
+          days_late?: number | null
+          due_date: string
+          id?: string
+          installment_number: number
+          interest_amount?: number
+          late_fee?: number | null
+          late_fee_percentage?: number | null
+          loan_id: string
+          notes?: string | null
+          paid_amount?: number | null
+          payment_date?: string | null
+          principal_amount?: number
+          remaining_balance?: number | null
+          status?: string | null
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          tax_type?: string | null
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Update: {
+          actual_payment_date?: string | null
+          created_at?: string | null
+          days_late?: number | null
+          due_date?: string
+          id?: string
+          installment_number?: number
+          interest_amount?: number
+          late_fee?: number | null
+          late_fee_percentage?: number | null
+          loan_id?: string
+          notes?: string | null
+          paid_amount?: number | null
+          payment_date?: string | null
+          principal_amount?: number
+          remaining_balance?: number | null
+          status?: string | null
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          tax_type?: string | null
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_installments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_installments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "vw_loan_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loans: {
+        Row: {
+          borrower_id: string | null
+          coa_cash_code: string
+          coa_interest_code: string | null
+          coa_loan_code: string
+          created_at: string | null
+          id: string
+          interest_rate: number | null
+          journal_ref: string | null
+          late_fee_per_day: number | null
+          late_fee_percentage: number | null
+          lender_name: string
+          lender_type: string | null
+          loan_date: string
+          loan_number: string | null
+          loan_term_months: number | null
+          maturity_date: string | null
+          notes: string | null
+          payment_history: Json | null
+          payment_schedule: string | null
+          principal_amount: number
+          purpose: string | null
+          remaining_balance: number | null
+          status: string | null
+          tax_amount: number | null
+          tax_percentage: number | null
+          tax_type: string | null
+          total_interest_paid: number | null
+          total_paid: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          borrower_id?: string | null
+          coa_cash_code: string
+          coa_interest_code?: string | null
+          coa_loan_code: string
+          created_at?: string | null
+          id?: string
+          interest_rate?: number | null
+          journal_ref?: string | null
+          late_fee_per_day?: number | null
+          late_fee_percentage?: number | null
+          lender_name: string
+          lender_type?: string | null
+          loan_date: string
+          loan_number?: string | null
+          loan_term_months?: number | null
+          maturity_date?: string | null
+          notes?: string | null
+          payment_history?: Json | null
+          payment_schedule?: string | null
+          principal_amount: number
+          purpose?: string | null
+          remaining_balance?: number | null
+          status?: string | null
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          tax_type?: string | null
+          total_interest_paid?: number | null
+          total_paid?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          borrower_id?: string | null
+          coa_cash_code?: string
+          coa_interest_code?: string | null
+          coa_loan_code?: string
+          created_at?: string | null
+          id?: string
+          interest_rate?: number | null
+          journal_ref?: string | null
+          late_fee_per_day?: number | null
+          late_fee_percentage?: number | null
+          lender_name?: string
+          lender_type?: string | null
+          loan_date?: string
+          loan_number?: string | null
+          loan_term_months?: number | null
+          maturity_date?: string | null
+          notes?: string | null
+          payment_history?: Json | null
+          payment_schedule?: string | null
+          principal_amount?: number
+          purpose?: string | null
+          remaining_balance?: number | null
+          status?: string | null
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          tax_type?: string | null
+          total_interest_paid?: number | null
+          total_paid?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_borrower"
+            columns: ["borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrowers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+        ]
       }
       locations: {
         Row: {
@@ -1458,6 +2126,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_terms: {
+        Row: {
+          created_at: string | null
+          days: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          term_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          days: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          term_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          days?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          term_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       permissions: {
         Row: {
@@ -1571,6 +2269,69 @@ export type Database = {
           tanggal_masuk_lini_1?: string | null
           tanggal_pindah_lini_2?: string
           total_biaya_lini_1?: number | null
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Relationships: []
+      }
+      product_reference: {
+        Row: {
+          berat: number | null
+          brand: string | null
+          coa_account_code: string | null
+          coa_account_name: string | null
+          created_at: string | null
+          description: string | null
+          hs_code: string | null
+          id: string
+          item_name: string
+          jenis_layanan: string | null
+          kategori_layanan: string | null
+          satuan: string | null
+          service_category: string | null
+          service_type: string | null
+          typical_weight: string | null
+          unit: string | null
+          updated_at: string | null
+          volume: number | null
+        }
+        Insert: {
+          berat?: number | null
+          brand?: string | null
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          hs_code?: string | null
+          id?: string
+          item_name: string
+          jenis_layanan?: string | null
+          kategori_layanan?: string | null
+          satuan?: string | null
+          service_category?: string | null
+          service_type?: string | null
+          typical_weight?: string | null
+          unit?: string | null
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Update: {
+          berat?: number | null
+          brand?: string | null
+          coa_account_code?: string | null
+          coa_account_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          hs_code?: string | null
+          id?: string
+          item_name?: string
+          jenis_layanan?: string | null
+          kategori_layanan?: string | null
+          satuan?: string | null
+          service_category?: string | null
+          service_type?: string | null
+          typical_weight?: string | null
+          unit?: string | null
           updated_at?: string | null
           volume?: number | null
         }
@@ -1693,6 +2454,231 @@ export type Database = {
           },
         ]
       }
+      purchase_transactions: {
+        Row: {
+          brand: string | null
+          coa_cash_code: string | null
+          coa_expense_code: string | null
+          coa_inventory_code: string | null
+          coa_payable_code: string | null
+          coa_tax_code: string | null
+          created_at: string | null
+          id: string
+          item_name: string | null
+          journal_ref: string | null
+          notes: string | null
+          payment_method: string | null
+          ppn_amount: number | null
+          ppn_percentage: number | null
+          quantity: number | null
+          subtotal: number
+          supplier_name: string | null
+          tax_amount: number | null
+          tax_percentage: number | null
+          tax_type: string | null
+          total_amount: number
+          transaction_date: string
+          transaction_type: string
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          brand?: string | null
+          coa_cash_code?: string | null
+          coa_expense_code?: string | null
+          coa_inventory_code?: string | null
+          coa_payable_code?: string | null
+          coa_tax_code?: string | null
+          created_at?: string | null
+          id?: string
+          item_name?: string | null
+          journal_ref?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
+          quantity?: number | null
+          subtotal: number
+          supplier_name?: string | null
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          tax_type?: string | null
+          total_amount: number
+          transaction_date: string
+          transaction_type: string
+          unit_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          brand?: string | null
+          coa_cash_code?: string | null
+          coa_expense_code?: string | null
+          coa_inventory_code?: string | null
+          coa_payable_code?: string | null
+          coa_tax_code?: string | null
+          created_at?: string | null
+          id?: string
+          item_name?: string | null
+          journal_ref?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
+          quantity?: number | null
+          subtotal?: number
+          supplier_name?: string | null
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          tax_type?: string | null
+          total_amount?: number
+          transaction_date?: string
+          transaction_type?: string
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_expense"
+            columns: ["coa_expense_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_expense"
+            columns: ["coa_expense_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_expense"
+            columns: ["coa_expense_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_expense"
+            columns: ["coa_expense_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_inventory"
+            columns: ["coa_inventory_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_inventory"
+            columns: ["coa_inventory_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_inventory"
+            columns: ["coa_inventory_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_inventory"
+            columns: ["coa_inventory_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_payable"
+            columns: ["coa_payable_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_payable"
+            columns: ["coa_payable_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_payable"
+            columns: ["coa_payable_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_payable"
+            columns: ["coa_payable_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_tax"
+            columns: ["coa_tax_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_tax"
+            columns: ["coa_tax_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_tax"
+            columns: ["coa_tax_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_tax"
+            columns: ["coa_tax_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+        ]
+      }
       racks: {
         Row: {
           capacity: number | null
@@ -1766,6 +2752,7 @@ export type Database = {
       }
       sales_transactions: {
         Row: {
+          brand: string | null
           coa_account_code: string | null
           coa_account_name: string | null
           coa_cash_code: string | null
@@ -1780,6 +2767,7 @@ export type Database = {
           id: string
           item_id: string | null
           item_name: string
+          journal_ref: string | null
           notes: string | null
           payment_method: string
           pph_amount: number | null
@@ -1792,6 +2780,7 @@ export type Database = {
           subtotal: number
           tax_amount: number | null
           tax_percentage: number | null
+          tax_type: string | null
           total_amount: number
           transaction_date: string
           transaction_id: string | null
@@ -1800,6 +2789,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          brand?: string | null
           coa_account_code?: string | null
           coa_account_name?: string | null
           coa_cash_code?: string | null
@@ -1814,6 +2804,7 @@ export type Database = {
           id?: string
           item_id?: string | null
           item_name: string
+          journal_ref?: string | null
           notes?: string | null
           payment_method: string
           pph_amount?: number | null
@@ -1826,6 +2817,7 @@ export type Database = {
           subtotal: number
           tax_amount?: number | null
           tax_percentage?: number | null
+          tax_type?: string | null
           total_amount: number
           transaction_date?: string
           transaction_id?: string | null
@@ -1834,6 +2826,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          brand?: string | null
           coa_account_code?: string | null
           coa_account_name?: string | null
           coa_cash_code?: string | null
@@ -1848,6 +2841,7 @@ export type Database = {
           id?: string
           item_id?: string | null
           item_name?: string
+          journal_ref?: string | null
           notes?: string | null
           payment_method?: string
           pph_amount?: number | null
@@ -1860,6 +2854,7 @@ export type Database = {
           subtotal?: number
           tax_amount?: number | null
           tax_percentage?: number | null
+          tax_type?: string | null
           total_amount?: number
           transaction_date?: string
           transaction_id?: string | null
@@ -1873,6 +2868,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "vw_customers"
             referencedColumns: ["id"]
           },
         ]
@@ -2049,191 +3051,95 @@ export type Database = {
       }
       stock: {
         Row: {
-          airwaybills: string | null
-          ceisa_document_date: string | null
-          ceisa_document_number: string | null
-          ceisa_document_type: string | null
-          ceisa_notes: string | null
-          ceisa_status: string | null
+          barcode: string | null
+          brand: string | null
           coa_account_code: string | null
+          coa_account_expense: string | null
+          coa_account_hpp: string | null
+          coa_account_inventory: string | null
           coa_account_name: string | null
           created_at: string | null
-          created_by: string | null
           description: string | null
-          hs_category: string | null
-          hs_code: string | null
-          hs_description: string | null
-          hs_sub_category: string | null
           id: string
-          item_arrival_date: string
-          item_id: string | null
           item_name: string
-          item_quantity: number
-          lots: string | null
-          ppn_on_purchase: number | null
-          ppn_on_sale: number | null
-          ppn_status: string | null
-          purchase_price: number
-          purchase_price_after_ppn: number | null
-          racks: string | null
+          jenis_barang: string | null
+          kode_barang: string | null
+          location: string | null
+          nominal_barang: number | null
+          part_number: string | null
+          ppn_type: string | null
+          purchase_price: number | null
+          quantity: number | null
           selling_price: number | null
-          selling_price_after_ppn: number | null
-          service_category: string | null
-          service_type: string | null
           sku: string | null
-          stock_code: string | null
           supplier_id: string | null
           supplier_name: string | null
           unit: string | null
           updated_at: string | null
-          volume: string | null
           warehouse_id: string | null
-          warehouses: string | null
-          weight: number | null
-          wms_notes: string | null
-          wms_reference_number: string | null
-          zones: string | null
         }
         Insert: {
-          airwaybills?: string | null
-          ceisa_document_date?: string | null
-          ceisa_document_number?: string | null
-          ceisa_document_type?: string | null
-          ceisa_notes?: string | null
-          ceisa_status?: string | null
+          barcode?: string | null
+          brand?: string | null
           coa_account_code?: string | null
+          coa_account_expense?: string | null
+          coa_account_hpp?: string | null
+          coa_account_inventory?: string | null
           coa_account_name?: string | null
           created_at?: string | null
-          created_by?: string | null
           description?: string | null
-          hs_category?: string | null
-          hs_code?: string | null
-          hs_description?: string | null
-          hs_sub_category?: string | null
           id?: string
-          item_arrival_date: string
-          item_id?: string | null
           item_name: string
-          item_quantity: number
-          lots?: string | null
-          ppn_on_purchase?: number | null
-          ppn_on_sale?: number | null
-          ppn_status?: string | null
-          purchase_price?: number
-          purchase_price_after_ppn?: number | null
-          racks?: string | null
+          jenis_barang?: string | null
+          kode_barang?: string | null
+          location?: string | null
+          nominal_barang?: number | null
+          part_number?: string | null
+          ppn_type?: string | null
+          purchase_price?: number | null
+          quantity?: number | null
           selling_price?: number | null
-          selling_price_after_ppn?: number | null
-          service_category?: string | null
-          service_type?: string | null
           sku?: string | null
-          stock_code?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           unit?: string | null
           updated_at?: string | null
-          volume?: string | null
           warehouse_id?: string | null
-          warehouses?: string | null
-          weight?: number | null
-          wms_notes?: string | null
-          wms_reference_number?: string | null
-          zones?: string | null
         }
         Update: {
-          airwaybills?: string | null
-          ceisa_document_date?: string | null
-          ceisa_document_number?: string | null
-          ceisa_document_type?: string | null
-          ceisa_notes?: string | null
-          ceisa_status?: string | null
+          barcode?: string | null
+          brand?: string | null
           coa_account_code?: string | null
+          coa_account_expense?: string | null
+          coa_account_hpp?: string | null
+          coa_account_inventory?: string | null
           coa_account_name?: string | null
           created_at?: string | null
-          created_by?: string | null
           description?: string | null
-          hs_category?: string | null
-          hs_code?: string | null
-          hs_description?: string | null
-          hs_sub_category?: string | null
           id?: string
-          item_arrival_date?: string
-          item_id?: string | null
           item_name?: string
-          item_quantity?: number
-          lots?: string | null
-          ppn_on_purchase?: number | null
-          ppn_on_sale?: number | null
-          ppn_status?: string | null
-          purchase_price?: number
-          purchase_price_after_ppn?: number | null
-          racks?: string | null
+          jenis_barang?: string | null
+          kode_barang?: string | null
+          location?: string | null
+          nominal_barang?: number | null
+          part_number?: string | null
+          ppn_type?: string | null
+          purchase_price?: number | null
+          quantity?: number | null
           selling_price?: number | null
-          selling_price_after_ppn?: number | null
-          service_category?: string | null
-          service_type?: string | null
           sku?: string | null
-          stock_code?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           unit?: string | null
           updated_at?: string | null
-          volume?: string | null
           warehouse_id?: string | null
-          warehouses?: string | null
-          weight?: number | null
-          wms_notes?: string | null
-          wms_reference_number?: string | null
-          zones?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_stock_coa"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_stock_coa"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_stock_coa"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_stock_coa"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_stock_supplier"
+            foreignKeyName: "stock_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_stock_suppliers"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stock_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "items"
             referencedColumns: ["id"]
           },
           {
@@ -2341,13 +3247,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_adjustment_stock"
-            columns: ["stock_id"]
-            isOneToOne: false
-            referencedRelation: "stock"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "fk_adjustment_supplier"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -2359,13 +3258,6 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_stock_adjustments_stock"
-            columns: ["stock_id"]
-            isOneToOne: false
-            referencedRelation: "stock"
             referencedColumns: ["id"]
           },
         ]
@@ -2771,6 +3663,137 @@ export type Database = {
         }
         Relationships: []
       }
+      transaction_cart: {
+        Row: {
+          brand: string | null
+          coa_selected: string | null
+          consignee: string | null
+          created_at: string | null
+          customer: string | null
+          description: string | null
+          harga_beli: number | null
+          harga_jual: number | null
+          id: string
+          item_name: string | null
+          jenis_layanan: string | null
+          jenis_transaksi: string
+          kas_sumber: string | null
+          kas_tujuan: string | null
+          kategori: string | null
+          kategori_pengeluaran: string | null
+          nominal: number
+          payment_type: string | null
+          ppn_amount: number | null
+          ppn_percentage: number | null
+          quantity: number | null
+          selected_bank: string | null
+          selected_kas: string | null
+          session_id: string | null
+          status: string | null
+          stock_info: Json | null
+          sumber_penerimaan: string | null
+          supplier: string | null
+          tanggal: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          brand?: string | null
+          coa_selected?: string | null
+          consignee?: string | null
+          created_at?: string | null
+          customer?: string | null
+          description?: string | null
+          harga_beli?: number | null
+          harga_jual?: number | null
+          id?: string
+          item_name?: string | null
+          jenis_layanan?: string | null
+          jenis_transaksi: string
+          kas_sumber?: string | null
+          kas_tujuan?: string | null
+          kategori?: string | null
+          kategori_pengeluaran?: string | null
+          nominal: number
+          payment_type?: string | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
+          quantity?: number | null
+          selected_bank?: string | null
+          selected_kas?: string | null
+          session_id?: string | null
+          status?: string | null
+          stock_info?: Json | null
+          sumber_penerimaan?: string | null
+          supplier?: string | null
+          tanggal: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          brand?: string | null
+          coa_selected?: string | null
+          consignee?: string | null
+          created_at?: string | null
+          customer?: string | null
+          description?: string | null
+          harga_beli?: number | null
+          harga_jual?: number | null
+          id?: string
+          item_name?: string | null
+          jenis_layanan?: string | null
+          jenis_transaksi?: string
+          kas_sumber?: string | null
+          kas_tujuan?: string | null
+          kategori?: string | null
+          kategori_pengeluaran?: string | null
+          nominal?: number
+          payment_type?: string | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
+          quantity?: number | null
+          selected_bank?: string | null
+          selected_kas?: string | null
+          session_id?: string | null
+          status?: string | null
+          stock_info?: Json | null
+          sumber_penerimaan?: string | null
+          supplier?: string | null
+          tanggal?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_coa_selected"
+            columns: ["coa_selected"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_selected"
+            columns: ["coa_selected"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_selected"
+            columns: ["coa_selected"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_selected"
+            columns: ["coa_selected"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+        ]
+      }
       trial_balance_backup: {
         Row: {
           account_code: string | null
@@ -2998,6 +4021,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_customers: {
+        Row: {
+          address: string | null
+          bank_account_number: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          name: string | null
+          payment_term_days: number | null
+          payment_term_id: string | null
+          payment_term_name: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_payment_term_id_fkey"
+            columns: ["payment_term_id"]
+            isOneToOne: false
+            referencedRelation: "payment_terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_dashboard_summary: {
         Row: {
           account_type: string | null
@@ -3034,6 +4081,184 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_loan_summary: {
+        Row: {
+          coa_cash_code: string | null
+          coa_interest_code: string | null
+          coa_loan_code: string | null
+          created_at: string | null
+          id: string | null
+          interest_rate: number | null
+          journal_ref: string | null
+          jumlah_pembayaran: number | null
+          lender_name: string | null
+          lender_type: string | null
+          loan_date: string | null
+          loan_number: string | null
+          loan_term_months: number | null
+          maturity_date: string | null
+          notes: string | null
+          payment_history: Json | null
+          payment_schedule: string | null
+          principal_amount: number | null
+          purpose: string | null
+          remaining_balance: number | null
+          sisa_pokok: number | null
+          status: string | null
+          status_pembayaran: string | null
+          total_bunga_dibayar: number | null
+          total_interest_paid: number | null
+          total_paid: number | null
+          total_principal_dibayar: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          coa_cash_code?: string | null
+          coa_interest_code?: string | null
+          coa_loan_code?: string | null
+          created_at?: string | null
+          id?: string | null
+          interest_rate?: number | null
+          journal_ref?: string | null
+          jumlah_pembayaran?: never
+          lender_name?: string | null
+          lender_type?: string | null
+          loan_date?: string | null
+          loan_number?: string | null
+          loan_term_months?: number | null
+          maturity_date?: string | null
+          notes?: string | null
+          payment_history?: Json | null
+          payment_schedule?: string | null
+          principal_amount?: number | null
+          purpose?: string | null
+          remaining_balance?: number | null
+          sisa_pokok?: never
+          status?: string | null
+          status_pembayaran?: never
+          total_bunga_dibayar?: never
+          total_interest_paid?: number | null
+          total_paid?: number | null
+          total_principal_dibayar?: never
+          updated_at?: string | null
+        }
+        Update: {
+          coa_cash_code?: string | null
+          coa_interest_code?: string | null
+          coa_loan_code?: string | null
+          created_at?: string | null
+          id?: string | null
+          interest_rate?: number | null
+          journal_ref?: string | null
+          jumlah_pembayaran?: never
+          lender_name?: string | null
+          lender_type?: string | null
+          loan_date?: string | null
+          loan_number?: string | null
+          loan_term_months?: number | null
+          maturity_date?: string | null
+          notes?: string | null
+          payment_history?: Json | null
+          payment_schedule?: string | null
+          principal_amount?: number | null
+          purpose?: string | null
+          remaining_balance?: number | null
+          sisa_pokok?: never
+          status?: string | null
+          status_pembayaran?: never
+          total_bunga_dibayar?: never
+          total_interest_paid?: number | null
+          total_paid?: number | null
+          total_principal_dibayar?: never
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+        ]
+      }
       vw_purchase_requests: {
         Row: {
           item_name: string | null
@@ -3063,6 +4288,42 @@ export type Database = {
       }
     }
     Functions: {
+      add_loan_payment: {
+        Args: {
+          p_bank_name?: string
+          p_interest_amount?: number
+          p_loan_id: string
+          p_notes?: string
+          p_payment_date: string
+          p_payment_method?: string
+          p_principal_amount: number
+          p_reference_number?: string
+        }
+        Returns: Json
+      }
+      calculate_late_fee:
+        | {
+            Args: {
+              p_due_date: string
+              p_installment_amount: number
+              p_payment_date: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_due_date: string
+              p_installment_amount: number
+              p_late_fee_percentage?: number
+              p_payment_date: string
+            }
+            Returns: number
+          }
+      calculate_tax: {
+        Args: { p_base_amount: number; p_tax_percentage: number }
+        Returns: number
+      }
+      cleanup_old_cart_items: { Args: never; Returns: undefined }
       create_monthly_tax_reminders: { Args: never; Returns: undefined }
       fn_income_statement: {
         Args: { p_end: string; p_start: string }
@@ -3086,6 +4347,12 @@ export type Database = {
         Args: { pad_len?: number; prefix?: string }
         Returns: string
       }
+      get_brands_by_item: {
+        Args: { p_item_name: string }
+        Returns: {
+          brand_name: string
+        }[]
+      }
       get_coa_mapping: {
         Args: { p_service_category: string; p_service_type: string }
         Returns: {
@@ -3099,6 +4366,20 @@ export type Database = {
       }
       get_hari_di_gudang: { Args: { tanggal_masuk: string }; Returns: number }
       get_hari_di_lini: { Args: { tanggal_masuk: string }; Returns: number }
+      get_product_reference: {
+        Args: { p_brand?: string; p_item_name: string }
+        Returns: {
+          brand: string
+          coa_account_code: string
+          coa_account_name: string
+          description: string
+          item_name: string
+          service_category: string
+          service_type: string
+          typical_weight: string
+          unit: string
+        }[]
+      }
       get_service_types_by_category: {
         Args: { p_category: string }
         Returns: {

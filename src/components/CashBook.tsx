@@ -79,6 +79,7 @@ export default function CashBook() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [coaAccounts, setCoaAccounts] = useState<any[]>([]);
+  const [filteredCoaAccounts, setFilteredCoaAccounts] = useState<any[]>([]);
   const [serviceCategories, setServiceCategories] = useState<string[]>([]);
   const [categoryMappings, setCategoryMappings] = useState<any[]>([]);
   const { userRole } = useAuth();
@@ -98,7 +99,6 @@ export default function CashBook() {
   useEffect(() => {
     fetchTransactions();
     fetchCoaAccounts();
-    fetchServiceCategories();
 
     const channel = supabase
       .channel("kas-changes")
@@ -177,12 +177,13 @@ export default function CashBook() {
 
       if (error) throw error;
       setCoaAccounts(data || []);
+      setFilteredCoaAccounts(data || []);
     } catch (error) {
       console.error("Error fetching COA accounts:", error);
     }
   };
 
-  const fetchServiceCategories = async () => {
+  const fetchServiceCategories = async (paymentType?: string) => {
     try {
       const { data, error } = await supabase
         .from("coa_category_mapping")
@@ -191,9 +192,29 @@ export default function CashBook() {
 
       if (error) throw error;
 
-      const uniqueCategories = Array.from(
+      let uniqueCategories = Array.from(
         new Set(data?.map((item) => item.service_category).filter(Boolean)),
       ) as string[];
+
+      // Filter categories based on payment type
+      if (paymentType === "Penerimaan Kas") {
+        // Show categories for income: Pendapatan, Penerimaan, Pinjaman
+        uniqueCategories = uniqueCategories.filter(
+          (cat) =>
+            cat.toLowerCase().includes("pendapatan") ||
+            cat.toLowerCase().includes("penerimaan") ||
+            cat.toLowerCase().includes("pinjaman")
+        );
+      } else if (paymentType === "Pengeluaran Kas") {
+        // Show categories for expenses: Pengeluaran, Beban, Pinjaman (for repayment)
+        uniqueCategories = uniqueCategories.filter(
+          (cat) =>
+            cat.toLowerCase().includes("pengeluaran") ||
+            cat.toLowerCase().includes("beban") ||
+            cat.toLowerCase().includes("pinjaman")
+        );
+      }
+
       setServiceCategories(uniqueCategories);
     } catch (error) {
       console.error("Error fetching service categories:", error);
@@ -227,6 +248,7 @@ export default function CashBook() {
       account_number: "",
       account_name: "",
     });
+    setFilteredCoaAccounts(coaAccounts);
     fetchServiceTypesByCategory(value);
   };
 
@@ -238,7 +260,7 @@ export default function CashBook() {
     // Update service_type first
     setFormData((prev) => ({ ...prev, service_type: value }));
 
-    // Auto-fetch COA mapping
+    // Auto-fetch COA mapping and filter COA accounts
     if (currentCategory && value) {
       try {
         const { data, error } = await supabase.rpc("get_coa_mapping", {
@@ -269,6 +291,22 @@ export default function CashBook() {
               mapping.cogs_account_name || mapping.asset_account_name || "";
           }
 
+          // Filter COA accounts based on mapping
+          const filtered = coaAccounts.filter((acc) => {
+            if (currentCategory === "Persediaan") {
+              return acc.account_code === mapping.asset_account_code;
+            } else if (currentPaymentType === "Penerimaan Kas") {
+              return acc.account_code === mapping.revenue_account_code;
+            } else {
+              return (
+                acc.account_code === mapping.cogs_account_code ||
+                acc.account_code === mapping.asset_account_code
+              );
+            }
+          });
+
+          setFilteredCoaAccounts(filtered);
+
           setFormData((prev) => ({
             ...prev,
             service_type: value,
@@ -281,6 +319,8 @@ export default function CashBook() {
             description: `${accountCode} - ${accountName}`,
           });
         } else {
+          // If no mapping found, show all COA accounts
+          setFilteredCoaAccounts(coaAccounts);
           toast({
             title: "ℹ️ Info",
             description: "Mapping COA tidak ditemukan untuk kategori ini",
@@ -289,12 +329,16 @@ export default function CashBook() {
         }
       } catch (error) {
         console.error("Error fetching COA mapping:", error);
+        setFilteredCoaAccounts(coaAccounts);
         toast({
           title: "❌ Error",
           description: "Gagal mengambil mapping COA",
           variant: "destructive",
         });
       }
+    } else {
+      // Reset filtered COA if no category/service type
+      setFilteredCoaAccounts(coaAccounts);
     }
   };
 
@@ -407,6 +451,7 @@ export default function CashBook() {
       keterangan: "",
     });
     setEditingItem(null);
+    setFilteredCoaAccounts(coaAccounts);
   };
 
   const formatCurrency = (amount: number) => {
@@ -498,37 +543,17 @@ export default function CashBook() {
                       <Select
                         value={formData.payment_type}
                         onValueChange={(value) => {
-                          // Set default category based on payment type
-                          let defaultCategory = "";
-                          if (value === "Penerimaan Kas") {
-                            // Find a revenue category (Pendapatan)
-                            const revenueCategory = serviceCategories.find(
-                              (cat) =>
-                                cat.toLowerCase().includes("pendapatan") ||
-                                cat.toLowerCase().includes("jasa")
-                            );
-                            defaultCategory = revenueCategory || "";
-                          } else if (value === "Pengeluaran Kas") {
-                            // Find an expense category (Beban)
-                            const expenseCategory = serviceCategories.find(
-                              (cat) => cat.toLowerCase().includes("beban")
-                            );
-                            defaultCategory = expenseCategory || "";
-                          }
-
                           setFormData({
                             ...formData,
                             payment_type: value,
-                            service_category: defaultCategory,
+                            service_category: "",
                             service_type: "",
                             account_number: "",
                             account_name: "",
                           });
 
-                          // Fetch service types for the default category
-                          if (defaultCategory) {
-                            fetchServiceTypesByCategory(defaultCategory);
-                          }
+                          // Fetch filtered categories based on payment type
+                          fetchServiceCategories(value);
                         }}
                       >
                         <SelectTrigger id="payment_type">
@@ -605,7 +630,7 @@ export default function CashBook() {
                       <Select
                         value={formData.account_number}
                         onValueChange={(value) => {
-                          const selectedAccount = coaAccounts.find(
+                          const selectedAccount = filteredCoaAccounts.find(
                             (acc) => acc.account_code === value,
                           );
                           setFormData({
@@ -619,17 +644,30 @@ export default function CashBook() {
                         <SelectTrigger id="account_number">
                           <SelectValue placeholder="Pilih akun COA" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {coaAccounts.map((account) => (
-                            <SelectItem
-                              key={account.account_code}
-                              value={account.account_code}
-                            >
-                              {account.account_code} - {account.account_name}
-                            </SelectItem>
-                          ))}
+                        <SelectContent className="max-h-[300px]">
+                          {filteredCoaAccounts.length > 0 ? (
+                            filteredCoaAccounts.map((account) => (
+                              <SelectItem
+                                key={account.account_code}
+                                value={account.account_code}
+                              >
+                                {account.account_code} - {account.account_name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="p-4 text-sm text-gray-500 text-center">
+                              {formData.service_category && formData.service_type
+                                ? "Tidak ada COA yang sesuai"
+                                : "Pilih kategori dan jenis layanan terlebih dahulu"}
+                            </div>
+                          )}
                         </SelectContent>
                       </Select>
+                      {formData.service_category && formData.service_type && (
+                        <p className="text-xs text-gray-500">
+                          {filteredCoaAccounts.length} akun COA tersedia untuk kategori ini
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
