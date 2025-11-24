@@ -518,6 +518,57 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_and_bank_receipts: {
+        Row: {
+          amount: number
+          category: string | null
+          coa_cash_code: string | null
+          coa_contra_code: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          journal_ref: string | null
+          payment_method: string | null
+          reference_number: string | null
+          source_destination: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          coa_cash_code?: string | null
+          coa_contra_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          journal_ref?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+          source_destination?: string | null
+          transaction_date: string
+          transaction_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          coa_cash_code?: string | null
+          coa_contra_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          journal_ref?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+          source_destination?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       cash_book: {
         Row: {
           account_name: string | null

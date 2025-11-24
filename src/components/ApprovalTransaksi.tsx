@@ -26,16 +26,20 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface PendingTransaction {
   id: string;
-  type: "purchase" | "expense";
+  type: "purchase" | "expense" | "cash_disbursement";
   transaction_date?: string;
   tanggal?: string;
   item_name?: string;
   supplier_name?: string;
+  payee_name?: string;
   payment_type?: string;
   service_category?: string;
   service_type?: string;
+  category?: string;
+  description?: string;
   keterangan?: string;
   total_amount?: number;
+  amount?: number;
   nominal?: number;
   payment_method?: string;
   transaction_type?: string;
@@ -94,20 +98,30 @@ export default function ApprovalTransaksi() {
 
       if (purchaseError) throw purchaseError;
 
-      // Fetch pending expense transactions
+      // Fetch pending expense transactions from kas_transaksi
       const { data: expenseData, error: expenseError } = await supabase
         .from("kas_transaksi")
+        .select("*")
         .eq("approval_status", "waiting_approval")
         .eq("payment_type", "Pengeluaran Kas")
-        .select("*")
         .order("tanggal", { ascending: false });
 
       if (expenseError) throw expenseError;
+
+      // Fetch pending cash disbursement transactions
+      const { data: cashDisbursementData, error: cashDisbursementError } = await supabase
+        .from("cash_disbursement")
+        .select("*")
+        .eq("approval_status", "waiting_approval")
+        .order("transaction_date", { ascending: false });
+
+      if (cashDisbursementError) throw cashDisbursementError;
 
       // Combine and format transactions
       const combined: PendingTransaction[] = [
         ...(purchaseData || []).map((t) => ({ ...t, type: "purchase" as const })),
         ...(expenseData || []).map((t) => ({ ...t, type: "expense" as const })),
+        ...(cashDisbursementData || []).map((t) => ({ ...t, type: "cash_disbursement" as const })),
       ];
 
       setPendingTransactions(combined);
@@ -137,6 +151,9 @@ export default function ApprovalTransaksi() {
       if (transaction.type === "purchase") {
         // Approve purchase transaction
         await approvePurchaseTransaction(transaction, user.id);
+      } else if (transaction.type === "cash_disbursement") {
+        // Approve cash disbursement transaction
+        await approveCashDisbursementTransaction(transaction, user.id);
       } else {
         // Approve expense transaction
         await approveExpenseTransaction(transaction, user.id);
@@ -232,6 +249,41 @@ export default function ApprovalTransaksi() {
     if (updateError) throw updateError;
   };
 
+  const approveCashDisbursementTransaction = async (transaction: PendingTransaction, userId: string) => {
+    // Create journal entry for cash disbursement
+    const journalRef = transaction.journal_ref || `JRN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // For cash disbursement: Debit expense account, Credit cash account
+    const debitAccount = transaction.coa_expense_code || "6-1100";
+    const creditAccount = transaction.coa_cash_code || "1-1100";
+
+    const { error: journalError } = await supabase.from("journal_entries").insert({
+      journal_ref: journalRef,
+      debit_account: debitAccount,
+      credit_account: creditAccount,
+      debit: transaction.amount,
+      credit: transaction.amount,
+      description: transaction.description || "Pengeluaran Kas",
+      tanggal: transaction.transaction_date,
+      kategori: transaction.category,
+      jenis_transaksi: "Pengeluaran Kas",
+    });
+
+    if (journalError) throw journalError;
+
+    // Update cash_disbursement status
+    const { error: updateError } = await supabase
+      .from("cash_disbursement")
+      .update({
+        approval_status: "approved",
+        approved_by: userId,
+        approved_at: new Date().toISOString(),
+      })
+      .eq("id", transaction.id);
+
+    if (updateError) throw updateError;
+  };
+
   const handleReject = (transaction: PendingTransaction) => {
     setSelectedTransaction(transaction);
     setShowRejectDialog(true);
@@ -250,7 +302,11 @@ export default function ApprovalTransaksi() {
         throw new Error("User not authenticated");
       }
 
-      const table = selectedTransaction.type === "purchase" ? "purchase_transactions" : "kas_transaksi";
+      const table = selectedTransaction.type === "purchase" 
+        ? "purchase_transactions" 
+        : selectedTransaction.type === "cash_disbursement"
+        ? "cash_disbursement"
+        : "kas_transaksi";
 
       const { error } = await supabase
         .from(table)
@@ -318,7 +374,7 @@ export default function ApprovalTransaksi() {
               Approval Transaksi
             </CardTitle>
             <p className="text-blue-100 text-sm">
-              Kelola persetujuan untuk Pembelian Barang dan Pengeluaran Kas
+              Kelola persetujuan untuk Pembelian Barang, Pengeluaran Kas, dan Cash Disbursement
             </p>
           </CardHeader>
           <CardContent className="p-6">
@@ -358,21 +414,29 @@ export default function ApprovalTransaksi() {
                         </TableCell>
                         <TableCell>
                           <Badge variant={transaction.type === "purchase" ? "default" : "secondary"}>
-                            {transaction.type === "purchase" ? "Pembelian" : "Pengeluaran"}
+                            {transaction.type === "purchase" 
+                              ? "Pembelian" 
+                              : transaction.type === "cash_disbursement"
+                              ? "Pengeluaran Kas"
+                              : "Pengeluaran"}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           {transaction.type === "purchase"
                             ? transaction.item_name
+                            : transaction.type === "cash_disbursement"
+                            ? transaction.description
                             : transaction.keterangan}
                         </TableCell>
                         <TableCell>
                           {transaction.type === "purchase"
                             ? transaction.supplier_name
+                            : transaction.type === "cash_disbursement"
+                            ? transaction.payee_name || transaction.category
                             : transaction.service_category}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
-                          {formatCurrency(transaction.total_amount || transaction.nominal || 0)}
+                          {formatCurrency(transaction.total_amount || transaction.amount || transaction.nominal || 0)}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">

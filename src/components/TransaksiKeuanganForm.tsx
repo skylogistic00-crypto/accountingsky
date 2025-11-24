@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Search, Receipt, TrendingUp, TrendingDown, DollarSign, Filter, CalendarIcon, ArrowLeft } from "lucide-react";
+import { Plus, Search, Receipt, TrendingUp, TrendingDown, DollarSign, Filter, CalendarIcon, ArrowLeft, Clock } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -224,6 +224,11 @@ export default function TransaksiKeuanganForm() {
   const [kategoriPengeluaran, setKategoriPengeluaran] = useState("");
 
   const { toast } = useToast();
+
+  // Load transactions on component mount
+  useEffect(() => {
+    loadTransactions();
+  }, []);
 
   /** Conditional Logic - Determine field visibility and state */
   const shouldShowField = (fieldName: string): boolean => {
@@ -620,33 +625,33 @@ export default function TransaksiKeuanganForm() {
       setLoadingTransactions(true);
       console.log("🔄 Loading transactions from all tables...");
       
-      // Load from kas_transaksi (only approved transactions)
+      // Load from kas_transaksi (approved and waiting approval)
       const { data: kasData, error: kasError } = await supabase
         .from("kas_transaksi")
         .select("*")
-        .or("approval_status.eq.approved,approval_status.is.null")
+        .or("approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.is.null")
         .order("tanggal", { ascending: false });
       
       if (kasError) {
         console.error("❌ Error loading kas_transaksi:", kasError);
       }
       
-      // Load from cash_disbursement (only approved transactions)
+      // Load from cash_disbursement (approved and waiting approval)
       const { data: cashDisbursementData, error: cashDisbursementError } = await supabase
         .from("cash_disbursement")
         .select("*")
-        .eq("approval_status", "approved")
+        .or("approval_status.eq.approved,approval_status.eq.waiting_approval")
         .order("transaction_date", { ascending: false });
       
       if (cashDisbursementError) {
         console.error("❌ Error loading cash_disbursement:", cashDisbursementError);
       }
       
-      // Load from purchase_transactions (only approved transactions)
+      // Load from purchase_transactions (approved and waiting approval)
       const { data: purchaseData, error: purchaseError } = await supabase
         .from("purchase_transactions")
         .select("*")
-        .or("approval_status.eq.approved,approval_status.is.null")
+        .or("approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.is.null")
         .order("transaction_date", { ascending: false });
       
       if (purchaseError) {
@@ -673,6 +678,17 @@ export default function TransaksiKeuanganForm() {
         console.error("❌ Error loading internal_usage:", internalError);
       }
       
+      // Load from cash_and_bank_receipts (Penerimaan Kas & Bank)
+      const { data: cashReceiptsData, error: cashReceiptsError } = await supabase
+        .from("cash_and_bank_receipts")
+        .select("*")
+        .eq("transaction_type", "Penerimaan")
+        .order("transaction_date", { ascending: false });
+      
+      if (cashReceiptsError) {
+        console.error("❌ Error loading cash_and_bank_receipts:", cashReceiptsError);
+      }
+      
       // Note: expenses and loans tables are not used in this view
       
       console.log("📊 Query results:", {
@@ -680,7 +696,8 @@ export default function TransaksiKeuanganForm() {
         cashDisbursement: cashDisbursementData?.length || 0,
         purchase: purchaseData?.length || 0,
         sales: salesData?.length || 0,
-        internal: internalData?.length || 0
+        internal: internalData?.length || 0,
+        cashReceipts: cashReceiptsData?.length || 0
       });
       
       // Combine all transactions with source identifier
@@ -694,6 +711,15 @@ export default function TransaksiKeuanganForm() {
           keterangan: t.description,
           payment_type: 'Pengeluaran Kas',
           document_number: t.document_number
+        })),
+        ...(cashReceiptsData || []).map(t => ({ 
+          ...t, 
+          source: 'cash_and_bank_receipts', 
+          tanggal: t.transaction_date,
+          nominal: t.amount,
+          keterangan: t.description,
+          payment_type: 'Penerimaan Kas',
+          document_number: t.reference_number
         })),
         ...(purchaseData || []).map(t => ({ ...t, source: 'purchase_transactions', tanggal: t.transaction_date, jenis: 'Pembelian', nominal: t.total_amount })),
         ...(salesData || []).map(t => ({ ...t, source: 'sales_transactions', tanggal: t.transaction_date, jenis: 'Penjualan', nominal: t.total_amount })),
@@ -1575,6 +1601,33 @@ export default function TransaksiKeuanganForm() {
         }
       }
 
+      // Step 8b: Save to cash_and_bank_receipts if Penerimaan Kas
+      if (jenisTransaksi === "Penerimaan Kas") {
+        const debitLine = previewLines.find(l => l.dc === "D");
+        const creditLine = previewLines.find(l => l.dc === "C");
+
+        const { error: cashReceiptError } = await supabase.from("cash_and_bank_receipts").insert({
+          transaction_date: previewTanggal,
+          transaction_type: "Penerimaan",
+          category: kategori || sumberPenerimaan,
+          source_destination: sumberPenerimaan || customer || supplier || "Penerimaan Kas",
+          amount: nominal,
+          payment_method: paymentType === "cash" ? "Tunai" : "Bank",
+          coa_cash_code: debitLine?.account_code || "1-1100",
+          coa_contra_code: creditLine?.account_code || "4-1100",
+          description: previewMemo,
+          reference_number: `PKM-${Date.now()}`,
+          journal_ref: journalRef,
+        });
+
+        if (cashReceiptError) {
+          console.error("❌ Error saving to cash_and_bank_receipts:", cashReceiptError);
+          throw new Error(`Cash Receipt: ${cashReceiptError.message}`);
+        } else {
+          console.log("✅ Cash and bank receipt saved successfully");
+        }
+      }
+
       // Step 9: Create Sales Transaction if Penjualan Barang or Penjualan Jasa
       if (jenisTransaksi === "Penjualan Barang" || jenisTransaksi === "Penjualan Jasa") {
         const mainDebitLine = previewLines.find(l => l.dc === "D");
@@ -1925,14 +1978,41 @@ export default function TransaksiKeuanganForm() {
             coa_cash_code: cashLine?.account_code || "1-1100",
             notes: item.description,
             created_by: user?.id,
-            approval_status: 'approved',
+            approval_status: 'waiting_approval',
           });
           
           if (cashDisbursementError) {
             console.error("❌ Error saving to cash_disbursement:", cashDisbursementError);
             throw new Error(`Cash Disbursement: ${cashDisbursementError.message}`);
           } else {
-            console.log("✅ Cash disbursement saved successfully");
+            console.log("✅ Cash disbursement saved successfully - waiting for approval");
+          }
+        }
+
+        // Step 6c: If Penerimaan Kas, save to cash_and_bank_receipts table
+        if (item.jenisTransaksi === "Penerimaan Kas") {
+          const debitLine = journalData.lines.find(l => l.dc === "D");
+          const creditLine = journalData.lines.find(l => l.dc === "C");
+
+          const { error: cashReceiptError } = await supabase.from("cash_and_bank_receipts").insert({
+            transaction_date: journalData.tanggal,
+            transaction_type: "Penerimaan",
+            category: item.kategori || item.sumberPenerimaan,
+            source_destination: item.sumberPenerimaan || item.customer || item.supplier || "Penerimaan Kas",
+            amount: normalizedInput.nominal,
+            payment_method: item.paymentType === "cash" ? "Tunai" : "Bank",
+            coa_cash_code: debitLine?.account_code || "1-1100",
+            coa_contra_code: creditLine?.account_code || "4-1100",
+            description: journalData.memo,
+            reference_number: `PKM-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            journal_ref: journalRef,
+          });
+
+          if (cashReceiptError) {
+            console.error("❌ Error saving to cash_and_bank_receipts:", cashReceiptError);
+            throw new Error(`Cash Receipt: ${cashReceiptError.message}`);
+          } else {
+            console.log("✅ Cash and bank receipt saved successfully");
           }
         }
 
@@ -2324,6 +2404,15 @@ export default function TransaksiKeuanganForm() {
       // Clear cart and close
       setCart([]);
       setShowCart(false);
+      
+      // Show success message
+      toast({
+        title: "✅ Berhasil",
+        description: "Transaksi berhasil disimpan",
+      });
+      
+      // Reload transactions to show new data
+      await loadTransactions();
     } catch (error: any) {
       console.error("❌ Checkout Error:", error);
       toast({
@@ -2363,6 +2452,7 @@ export default function TransaksiKeuanganForm() {
         return false;
       })
       .reduce((sum, t) => sum + parseFloat(t.nominal || 0), 0),
+    waitingApproval: transactions.filter((t) => t.approval_status === "waiting_approval").length,
   };
 
   const netAmount = summaryData.totalPenerimaan - summaryData.totalPengeluaran;
@@ -2448,7 +2538,7 @@ export default function TransaksiKeuanganForm() {
         {showReport && !showForm && (
           <div className="space-y-6">
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <Card className="border-none shadow-lg bg-blue-400/90 text-white hover:shadow-xl transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -2544,6 +2634,26 @@ export default function TransaksiKeuanganForm() {
                   <div className="flex items-center text-sm text-white/90">
                     <DollarSign className="mr-2 h-4 w-4" />
                     Saldo bersih
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-none shadow-lg bg-amber-400/90 text-white hover:shadow-xl transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardDescription className="text-white/90">
+                      Waiting Approval
+                    </CardDescription>
+                    <Clock className="h-8 w-8 text-white/80" />
+                  </div>
+                  <CardTitle className="text-4xl font-bold">
+                    {summaryData.waitingApproval}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center text-sm text-white/90">
+                    <Clock className="mr-2 h-4 w-4" />
+                    Menunggu persetujuan
                   </div>
                 </CardContent>
               </Card>
@@ -2709,6 +2819,7 @@ export default function TransaksiKeuanganForm() {
                           // Determine if it's income or expense
                           const isIncome = transaction.payment_type === "Penerimaan Kas" || 
                                           transaction.source === "sales_transactions" ||
+                                          transaction.source === "cash_and_bank_receipts" ||
                                           transaction.source === "loans" ||
                                           displayJenis === "Penjualan";
                           
@@ -2734,7 +2845,9 @@ export default function TransaksiKeuanganForm() {
                               </TableCell>
                               <TableCell>
                                 <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                  {transaction.source?.replace(/_/g, " ").toUpperCase() || "KAS"}
+                                  {transaction.source === 'cash_and_bank_receipts' 
+                                    ? 'CASH AND BANK RECEIPTS' 
+                                    : transaction.source?.replace(/_/g, " ").toUpperCase() || "KAS"}
                                 </span>
                               </TableCell>
                               <TableCell>
