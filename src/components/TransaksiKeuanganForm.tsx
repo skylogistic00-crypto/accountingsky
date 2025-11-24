@@ -5,6 +5,7 @@ import AddBrandModal from "./AddBrandModal";
 import AddStockItemModal from "./AddStockItemModal";
 import BorrowerForm from "./BorrowerForm";
 import JournalPreviewModal from "./JournalPreviewModal";
+import PengeluaranKasTable from "./PengeluaranKasTable";
 import { generateJournal } from "./journalRules";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Transaction Report Component
 function TransactionReport() {
@@ -1066,6 +1068,14 @@ export default function TransaksiKeuanganForm() {
 
       case "Pembelian Barang":
         debitFilter = { usage_role: "inventory" };
+        creditFilter = payment === "cash" 
+          ? { flow_type: "cash" } 
+          : { usage_role: "hutang" };
+        extras.is_cash_related = payment === "cash";
+        break;
+
+      case "Pembelian Jasa":
+        debitFilter = { usage_role: "beban_operasional" };
         creditFilter = payment === "cash" 
           ? { flow_type: "cash" } 
           : { usage_role: "hutang" };
@@ -2620,7 +2630,16 @@ export default function TransaksiKeuanganForm() {
                         })
                         .map((transaction) => {
                           // Determine display values based on source
-                          const displayJenis = transaction.jenis || transaction.payment_type || transaction.transaction_type || transaction.expense_type || "-";
+                          let displayJenis = transaction.jenis || transaction.payment_type || transaction.transaction_type || transaction.expense_type || "-";
+                          
+                          // Add service category/type for Pengeluaran Kas if available
+                          if (transaction.payment_type === "Pengeluaran Kas" && transaction.service_category) {
+                            displayJenis = `${transaction.payment_type} - ${transaction.service_category}`;
+                            if (transaction.service_type) {
+                              displayJenis += ` (${transaction.service_type})`;
+                            }
+                          }
+                          
                           const displayKeterangan = transaction.keterangan || transaction.description || transaction.notes || transaction.item_name || "-";
                           const displayNominal = transaction.nominal || transaction.total_amount || transaction.amount || transaction.total_value || 0;
                           const displayDocNumber = transaction.document_number || transaction.loan_number || transaction.journal_ref || transaction.id?.substring(0, 8) || "-";
@@ -2680,6 +2699,9 @@ export default function TransaksiKeuanganForm() {
                 </Table>
               </div>
             </div>
+
+            {/* Pengeluaran Kas Table */}
+            <PengeluaranKasTable />
           </div>
         )}
 
