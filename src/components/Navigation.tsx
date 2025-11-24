@@ -222,6 +222,20 @@ export default function Navigation() {
       roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
+      path: "/cash-disbursement",
+      label: "Pengeluaran Kas",
+      icon: DollarSign,
+      color: "red",
+      roles: ["super_admin", "accounting_manager", "accounting_staff"],
+    },
+    {
+      path: "/approval-transaksi",
+      label: "Approval Transaksi",
+      icon: DollarSign,
+      color: "green",
+      roles: ["super_admin", "accounting_manager"],
+    },
+    {
       path: "/coa-management",
       label: "Chart of Accounts",
       icon: FileText,

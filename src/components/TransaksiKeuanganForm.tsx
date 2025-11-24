@@ -5,7 +5,7 @@ import AddBrandModal from "./AddBrandModal";
 import AddStockItemModal from "./AddStockItemModal";
 import BorrowerForm from "./BorrowerForm";
 import JournalPreviewModal from "./JournalPreviewModal";
-import PengeluaranKasTable from "./PengeluaranKasTable";
+import ApprovalTransaksi from "./ApprovalTransaksi";
 import { generateJournal } from "./journalRules";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -620,17 +620,38 @@ export default function TransaksiKeuanganForm() {
       setLoadingTransactions(true);
       console.log("🔄 Loading transactions from all tables...");
       
-      // Load from kas_transaksi
+      // Load from kas_transaksi (only approved transactions)
       const { data: kasData, error: kasError } = await supabase
         .from("kas_transaksi")
         .select("*")
+        .or("approval_status.eq.approved,approval_status.is.null")
         .order("tanggal", { ascending: false });
       
-      // Load from purchase_transactions
+      if (kasError) {
+        console.error("❌ Error loading kas_transaksi:", kasError);
+      }
+      
+      // Load from cash_disbursement (only approved transactions)
+      const { data: cashDisbursementData, error: cashDisbursementError } = await supabase
+        .from("cash_disbursement")
+        .select("*")
+        .eq("approval_status", "approved")
+        .order("transaction_date", { ascending: false });
+      
+      if (cashDisbursementError) {
+        console.error("❌ Error loading cash_disbursement:", cashDisbursementError);
+      }
+      
+      // Load from purchase_transactions (only approved transactions)
       const { data: purchaseData, error: purchaseError } = await supabase
         .from("purchase_transactions")
         .select("*")
+        .or("approval_status.eq.approved,approval_status.is.null")
         .order("transaction_date", { ascending: false });
+      
+      if (purchaseError) {
+        console.error("❌ Error loading purchase_transactions:", purchaseError);
+      }
       
       // Load from sales_transactions
       const { data: salesData, error: salesError } = await supabase
@@ -638,41 +659,45 @@ export default function TransaksiKeuanganForm() {
         .select("*")
         .order("transaction_date", { ascending: false });
       
+      if (salesError) {
+        console.error("❌ Error loading sales_transactions:", salesError);
+      }
+      
       // Load from internal_usage
       const { data: internalData, error: internalError } = await supabase
         .from("internal_usage")
         .select("*")
         .order("usage_date", { ascending: false });
       
-      // Load from expenses
-      const { data: expensesData, error: expensesError } = await supabase
-        .from("expenses")
-        .select("*")
-        .order("expense_date", { ascending: false });
+      if (internalError) {
+        console.error("❌ Error loading internal_usage:", internalError);
+      }
       
-      // Load from loans
-      const { data: loansData, error: loansError } = await supabase
-        .from("loans")
-        .select("*")
-        .order("loan_date", { ascending: false });
+      // Note: expenses and loans tables are not used in this view
       
       console.log("📊 Query results:", {
         kas: kasData?.length || 0,
+        cashDisbursement: cashDisbursementData?.length || 0,
         purchase: purchaseData?.length || 0,
         sales: salesData?.length || 0,
-        internal: internalData?.length || 0,
-        expenses: expensesData?.length || 0,
-        loans: loansData?.length || 0
+        internal: internalData?.length || 0
       });
       
       // Combine all transactions with source identifier
       const allTransactions = [
         ...(kasData || []).map(t => ({ ...t, source: 'kas_transaksi', tanggal: t.tanggal })),
+        ...(cashDisbursementData || []).map(t => ({ 
+          ...t, 
+          source: 'cash_disbursement', 
+          tanggal: t.transaction_date,
+          nominal: t.amount,
+          keterangan: t.description,
+          payment_type: 'Pengeluaran Kas',
+          document_number: t.document_number
+        })),
         ...(purchaseData || []).map(t => ({ ...t, source: 'purchase_transactions', tanggal: t.transaction_date, jenis: 'Pembelian', nominal: t.total_amount })),
         ...(salesData || []).map(t => ({ ...t, source: 'sales_transactions', tanggal: t.transaction_date, jenis: 'Penjualan', nominal: t.total_amount })),
-        ...(internalData || []).map(t => ({ ...t, source: 'internal_usage', tanggal: t.usage_date, jenis: 'Pemakaian Internal', nominal: t.total_value })),
-        ...(expensesData || []).map(t => ({ ...t, source: 'expenses', tanggal: t.expense_date, jenis: t.expense_type, nominal: t.amount })),
-        ...(loansData || []).map(t => ({ ...t, source: 'loans', tanggal: t.loan_date, jenis: 'Pinjaman', nominal: t.principal_amount, keterangan: `Pinjaman dari ${t.lender_name} - ${t.status}` }))
+        ...(internalData || []).map(t => ({ ...t, source: 'internal_usage', tanggal: t.usage_date, jenis: 'Pemakaian Internal', nominal: t.total_value }))
       ];
       
       // Sort by date descending
@@ -1791,6 +1816,9 @@ export default function TransaksiKeuanganForm() {
     setIsConfirming(true);
     try {
       for (const item of cart) {
+        // Check if this transaction needs approval
+        const needsApproval = item.jenisTransaksi === "Pembelian Barang" || item.jenisTransaksi === "Pengeluaran Kas";
+        
         // Step 1: Normalize Input
         const normalizedInput = normalizeInput({
           jenisTransaksi: item.jenisTransaksi,
@@ -1820,11 +1848,11 @@ export default function TransaksiKeuanganForm() {
 
         const journalRef = `JRN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-        // Step 4: Create Journal Entries
+        // Step 4: Create Journal Entries (skip if needs approval)
         const mainDebitLine = journalData.lines.find(l => l.dc === "D");
         const mainCreditLine = journalData.lines.find(l => l.dc === "C");
 
-        if (mainDebitLine && mainCreditLine) {
+        if (!needsApproval && mainDebitLine && mainCreditLine) {
           const { error } = await supabase.from("journal_entries").insert({
             journal_ref: journalRef,
             debit_account: mainDebitLine.account_code,
@@ -1840,8 +1868,8 @@ export default function TransaksiKeuanganForm() {
           if (error) throw new Error(`Journal Entry: ${error.message}`);
         }
 
-        // Step 5: Save HPP entry if exists (for Penjualan Barang)
-        if (journalData.lines.length > 2) {
+        // Step 5: Save HPP entry if exists (for Penjualan Barang) - skip if needs approval
+        if (!needsApproval && journalData.lines.length > 2) {
           const hppDebitLine = journalData.lines[2];
           const hppCreditLine = journalData.lines[3];
 
@@ -1860,8 +1888,8 @@ export default function TransaksiKeuanganForm() {
           if (error) throw new Error(`HPP Entry: ${error.message}`);
         }
 
-        // Step 6: Create Cash Book if needed
-        if (result.is_cash_related) {
+        // Step 6: Create Cash Book if needed - skip if needs approval
+        if (!needsApproval && result.is_cash_related) {
           const cashLine = journalData.lines.find(
             l => l.account_code.startsWith("1-11")
           );
@@ -1876,6 +1904,35 @@ export default function TransaksiKeuanganForm() {
               tanggal: journalData.tanggal,
               keterangan: journalData.memo,
             });
+          }
+        }
+        
+        // Step 6b: If Pengeluaran Kas, save to cash_disbursement table
+        if (item.jenisTransaksi === "Pengeluaran Kas") {
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          const expenseLine = journalData.lines.find(l => l.dc === "D");
+          const cashLine = journalData.lines.find(l => l.dc === "C");
+
+          const { error: cashDisbursementError } = await supabase.from("cash_disbursement").insert({
+            transaction_date: journalData.tanggal,
+            payee_name: item.supplier || item.customer || "Pengeluaran Kas",
+            description: journalData.memo,
+            category: item.kategori,
+            amount: normalizedInput.nominal,
+            payment_method: item.paymentType === "cash" ? "Tunai" : "Transfer Bank",
+            coa_expense_code: expenseLine?.account_code || "6-1100",
+            coa_cash_code: cashLine?.account_code || "1-1100",
+            notes: item.description,
+            created_by: user?.id,
+            approval_status: 'approved',
+          });
+          
+          if (cashDisbursementError) {
+            console.error("❌ Error saving to cash_disbursement:", cashDisbursementError);
+            throw new Error(`Cash Disbursement: ${cashDisbursementError.message}`);
+          } else {
+            console.log("✅ Cash disbursement saved successfully");
           }
         }
 
@@ -2204,6 +2261,7 @@ export default function TransaksiKeuanganForm() {
             coa_payable_code: item.paymentType !== "cash" ? mainCreditLine?.account_code : null,
             notes: item.description || null,
             journal_ref: journalRef,
+            approval_status: needsApproval ? 'waiting_approval' : 'approved',
           };
 
           console.log("📦 Purchase Transaction Data:", purchaseData);
@@ -2570,25 +2628,27 @@ export default function TransaksiKeuanganForm() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50 hover:bg-slate-50">
+                      <TableHead className="font-semibold w-16">No</TableHead>
                       <TableHead className="font-semibold">Tanggal</TableHead>
                       <TableHead className="font-semibold">No. Dokumen</TableHead>
                       <TableHead className="font-semibold">Jenis</TableHead>
                       <TableHead className="font-semibold">Source</TableHead>
                       <TableHead className="font-semibold">Akun</TableHead>
                       <TableHead className="font-semibold">Keterangan</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
                       <TableHead className="font-semibold text-right">Nominal</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loadingTransactions ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                        <TableCell colSpan={9} className="text-center text-gray-500 py-8">
                           Memuat data...
                         </TableCell>
                       </TableRow>
                     ) : transactions.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                        <TableCell colSpan={9} className="text-center text-gray-500 py-8">
                           Belum ada transaksi. Klik "Tambah Transaksi" untuk memulai.
                         </TableCell>
                       </TableRow>
@@ -2628,7 +2688,7 @@ export default function TransaksiKeuanganForm() {
                             t.source?.toLowerCase().includes(query)
                           );
                         })
-                        .map((transaction) => {
+                        .map((transaction, index) => {
                           // Determine display values based on source
                           let displayJenis = transaction.jenis || transaction.payment_type || transaction.transaction_type || transaction.expense_type || "-";
                           
@@ -2654,6 +2714,9 @@ export default function TransaksiKeuanganForm() {
                           
                           return (
                             <TableRow key={transaction.id} className="hover:bg-slate-50">
+                              <TableCell className="text-center font-medium text-gray-600">
+                                {index + 1}
+                              </TableCell>
                               <TableCell>
                                 {new Date(transaction.tanggal).toLocaleDateString("id-ID")}
                               </TableCell>
@@ -2685,6 +2748,25 @@ export default function TransaksiKeuanganForm() {
                               <TableCell className="max-w-xs truncate">
                                 {displayKeterangan}
                               </TableCell>
+                              <TableCell>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  transaction.approval_status === "approved" 
+                                    ? "bg-green-100 text-green-800" 
+                                    : transaction.approval_status === "rejected"
+                                    ? "bg-red-100 text-red-800"
+                                    : transaction.approval_status === "waiting_approval"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}>
+                                  {transaction.approval_status === "approved" 
+                                    ? "✓ Approved" 
+                                    : transaction.approval_status === "rejected"
+                                    ? "✗ Rejected"
+                                    : transaction.approval_status === "waiting_approval"
+                                    ? "⏳ Waiting"
+                                    : "-"}
+                                </span>
+                              </TableCell>
                               <TableCell className="text-right font-medium">
                                 <span className={isIncome ? "text-green-600" : "text-red-600"}>
                                   {isIncome ? "+" : "-"}
@@ -2699,9 +2781,6 @@ export default function TransaksiKeuanganForm() {
                 </Table>
               </div>
             </div>
-
-            {/* Pengeluaran Kas Table */}
-            <PengeluaranKasTable />
           </div>
         )}
 
@@ -4486,6 +4565,11 @@ export default function TransaksiKeuanganForm() {
         onConfirm={handleConfirmSave}
         isLoading={isConfirming}
       />
+
+      {/* Approval Transaksi Section */}
+      <div className="mt-8">
+        <ApprovalTransaksi />
+      </div>
     </div>
   );
 }

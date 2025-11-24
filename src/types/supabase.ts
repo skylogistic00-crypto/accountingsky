@@ -548,6 +548,78 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_disbursement: {
+        Row: {
+          amount: number
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          attachment_url: string | null
+          bank_account: string | null
+          category: string | null
+          coa_cash_code: string | null
+          coa_expense_code: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string
+          document_number: string | null
+          id: string
+          journal_ref: string | null
+          notes: string | null
+          payee_name: string
+          payment_method: string | null
+          rejection_reason: string | null
+          transaction_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attachment_url?: string | null
+          bank_account?: string | null
+          category?: string | null
+          coa_cash_code?: string | null
+          coa_expense_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description: string
+          document_number?: string | null
+          id?: string
+          journal_ref?: string | null
+          notes?: string | null
+          payee_name: string
+          payment_method?: string | null
+          rejection_reason?: string | null
+          transaction_date: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attachment_url?: string | null
+          bank_account?: string | null
+          category?: string | null
+          coa_cash_code?: string | null
+          coa_expense_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string
+          document_number?: string | null
+          id?: string
+          journal_ref?: string | null
+          notes?: string | null
+          payee_name?: string
+          payment_method?: string | null
+          rejection_reason?: string | null
+          transaction_date?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       cash_receipts_payments: {
         Row: {
           account_number: string | null
@@ -1743,7 +1815,11 @@ export type Database = {
         Row: {
           account_name: string
           account_number: string
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           bukti: string | null
+          bukti_url: string | null
           created_at: string
           document_number: string
           id: string
@@ -1751,6 +1827,8 @@ export type Database = {
           nominal: number
           nominal_signed: number | null
           payment_type: string
+          quantity: number | null
+          rejection_reason: string | null
           service_category: string | null
           service_type: string | null
           tanggal: string
@@ -1762,7 +1840,11 @@ export type Database = {
         Insert: {
           account_name: string
           account_number: string
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           bukti?: string | null
+          bukti_url?: string | null
           created_at?: string
           document_number?: string
           id?: string
@@ -1770,6 +1852,8 @@ export type Database = {
           nominal: number
           nominal_signed?: number | null
           payment_type: string
+          quantity?: number | null
+          rejection_reason?: string | null
           service_category?: string | null
           service_type?: string | null
           tanggal: string
@@ -1781,7 +1865,11 @@ export type Database = {
         Update: {
           account_name?: string
           account_number?: string
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           bukti?: string | null
+          bukti_url?: string | null
           created_at?: string
           document_number?: string
           id?: string
@@ -1789,6 +1877,8 @@ export type Database = {
           nominal?: number
           nominal_signed?: number | null
           payment_type?: string
+          quantity?: number | null
+          rejection_reason?: string | null
           service_category?: string | null
           service_type?: string | null
           tanggal?: string
@@ -2507,6 +2597,9 @@ export type Database = {
       }
       purchase_transactions: {
         Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           brand: string | null
           coa_cash_code: string | null
           coa_expense_code: string | null
@@ -2522,6 +2615,7 @@ export type Database = {
           ppn_amount: number | null
           ppn_percentage: number | null
           quantity: number | null
+          rejection_reason: string | null
           subtotal: number
           supplier_name: string | null
           tax_amount: number | null
@@ -2534,6 +2628,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           brand?: string | null
           coa_cash_code?: string | null
           coa_expense_code?: string | null
@@ -2549,6 +2646,7 @@ export type Database = {
           ppn_amount?: number | null
           ppn_percentage?: number | null
           quantity?: number | null
+          rejection_reason?: string | null
           subtotal: number
           supplier_name?: string | null
           tax_amount?: number | null
@@ -2561,6 +2659,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           brand?: string | null
           coa_cash_code?: string | null
           coa_expense_code?: string | null
@@ -2576,6 +2677,7 @@ export type Database = {
           ppn_amount?: number | null
           ppn_percentage?: number | null
           quantity?: number | null
+          rejection_reason?: string | null
           subtotal?: number
           supplier_name?: string | null
           tax_amount?: number | null
@@ -3120,6 +3222,7 @@ export type Database = {
           part_number: string | null
           ppn_type: string | null
           purchase_price: number | null
+          quantity: number | null
           racks: string | null
           selling_price: number | null
           selling_price_after_ppn: number | null
@@ -3151,6 +3254,7 @@ export type Database = {
           part_number?: string | null
           ppn_type?: string | null
           purchase_price?: number | null
+          quantity?: number | null
           racks?: string | null
           selling_price?: number | null
           selling_price_after_ppn?: number | null
@@ -3182,6 +3286,7 @@ export type Database = {
           part_number?: string | null
           ppn_type?: string | null
           purchase_price?: number | null
+          quantity?: number | null
           racks?: string | null
           selling_price?: number | null
           selling_price_after_ppn?: number | null

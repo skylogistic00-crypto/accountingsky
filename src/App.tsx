@@ -31,6 +31,8 @@ import TaxReportManagement from "./components/TaxReportManagement";
 import CoretaxUploadForm from "./components/CoretaxUploadForm";
 import CoretaxReportList from "./components/CoretaxReportList";
 import ServiceItemsForm from "./components/ServiceItemsForm";
+import ApprovalTransaksi from "./components/ApprovalTransaksi";
+import CashDisbursementForm from "./components/CashDisbursementForm";
 import { Toaster } from "./components/ui/toaster";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -384,6 +386,41 @@ function AppRoutes() {
             ]}
           >
             <TransaksiKeuanganForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cash-disbursement"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <CashDisbursementForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/approval-transaksi"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <ApprovalTransaksi />
+            </div>
           </ProtectedRoute>
         }
       />
