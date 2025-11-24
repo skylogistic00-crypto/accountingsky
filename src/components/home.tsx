@@ -61,6 +61,14 @@ function Home() {
       roles: ["super_admin", "warehouse_manager", "warehouse_staff"]
     },
     {
+      title: "Delivery",
+      description: "Kelola pengiriman barang",
+      icon: Truck,
+      path: "/delivery",
+      color: "bg-cyan-600",
+      roles: ["super_admin", "warehouse_manager", "warehouse_staff"]
+    },
+    {
       title: "Supplier",
       description: "Kelola data supplier",
       icon: Truck,

@@ -13,6 +13,7 @@ import ConsigneeForm from "./components/ConsigneeForm";
 import CustomerForm from "./components/CustomerForm";
 import StockForm from "./components/StockForm";
 import WarehousesForm from "./components/WarehousesForm";
+import DeliveryForm from "./components/DeliveryForm";
 import BarangLini from "./components/BarangLini";
 import BarangKeluar from "./components/BarangKeluar";
 import AirWaybill from "./components/AirWaybill";
@@ -270,6 +271,25 @@ function AppRoutes() {
               <Header />
               <Navigation />
               <WarehousesForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/delivery"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "warehouse_manager",
+              "warehouse_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <DeliveryForm />
             </div>
           </ProtectedRoute>
         }

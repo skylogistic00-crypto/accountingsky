@@ -988,6 +988,54 @@ export type Database = {
           },
         ]
       }
+      deliveries: {
+        Row: {
+          city: string | null
+          created_at: string | null
+          customer_name: string
+          customer_phone: string | null
+          delivery_address: string
+          delivery_date: string | null
+          delivery_number: string
+          id: string
+          notes: string | null
+          postal_code: string | null
+          province: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          delivery_address: string
+          delivery_date?: string | null
+          delivery_number: string
+          id?: string
+          notes?: string | null
+          postal_code?: string | null
+          province?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          delivery_address?: string
+          delivery_date?: string | null
+          delivery_number?: string
+          id?: string
+          notes?: string | null
+          postal_code?: string | null
+          province?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           code: string
