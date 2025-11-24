@@ -1743,6 +1743,7 @@ export type Database = {
         Row: {
           account_name: string
           account_number: string
+          bukti: string | null
           created_at: string
           document_number: string
           id: string
@@ -1761,6 +1762,7 @@ export type Database = {
         Insert: {
           account_name: string
           account_number: string
+          bukti?: string | null
           created_at?: string
           document_number?: string
           id?: string
@@ -1779,6 +1781,7 @@ export type Database = {
         Update: {
           account_name?: string
           account_number?: string
+          bukti?: string | null
           created_at?: string
           document_number?: string
           id?: string
@@ -3110,21 +3113,24 @@ export type Database = {
           description: string | null
           id: string
           item_name: string
+          item_quantity: number | null
           jenis_barang: string | null
           kode_barang: string | null
-          location: string | null
           nominal_barang: number | null
           part_number: string | null
           ppn_type: string | null
           purchase_price: number | null
-          quantity: number | null
+          racks: string | null
           selling_price: number | null
+          selling_price_after_ppn: number | null
           sku: string | null
           supplier_id: string | null
           supplier_name: string | null
           unit: string | null
           updated_at: string | null
           warehouse_id: string | null
+          warehouses: string | null
+          zones: string | null
         }
         Insert: {
           barcode?: string | null
@@ -3138,21 +3144,24 @@ export type Database = {
           description?: string | null
           id?: string
           item_name: string
+          item_quantity?: number | null
           jenis_barang?: string | null
           kode_barang?: string | null
-          location?: string | null
           nominal_barang?: number | null
           part_number?: string | null
           ppn_type?: string | null
           purchase_price?: number | null
-          quantity?: number | null
+          racks?: string | null
           selling_price?: number | null
+          selling_price_after_ppn?: number | null
           sku?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           unit?: string | null
           updated_at?: string | null
           warehouse_id?: string | null
+          warehouses?: string | null
+          zones?: string | null
         }
         Update: {
           barcode?: string | null
@@ -3166,21 +3175,24 @@ export type Database = {
           description?: string | null
           id?: string
           item_name?: string
+          item_quantity?: number | null
           jenis_barang?: string | null
           kode_barang?: string | null
-          location?: string | null
           nominal_barang?: number | null
           part_number?: string | null
           ppn_type?: string | null
           purchase_price?: number | null
-          quantity?: number | null
+          racks?: string | null
           selling_price?: number | null
+          selling_price_after_ppn?: number | null
           sku?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           unit?: string | null
           updated_at?: string | null
           warehouse_id?: string | null
+          warehouses?: string | null
+          zones?: string | null
         }
         Relationships: [
           {

@@ -194,6 +194,8 @@ export default function TransaksiKeuanganForm() {
     new Date().toISOString().split("T")[0]
   );
   const [description, setDescription] = useState("");
+  const [buktiFile, setBuktiFile] = useState<File | null>(null);
+  const [buktiUrl, setBuktiUrl] = useState("");
 
   const [coaSelected, setCoaSelected] = useState("");
 
@@ -1491,6 +1493,31 @@ export default function TransaksiKeuanganForm() {
         );
 
         if (cashLine) {
+          // Upload bukti file if exists
+          let uploadedBuktiUrl = "";
+          if (buktiFile) {
+            const fileExt = buktiFile.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = `bukti-transaksi/${fileName}`;
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('documents')
+              .upload(filePath, buktiFile);
+
+            if (uploadError) {
+              console.error("❌ File Upload Error:", uploadError);
+              throw new Error(`File Upload: ${uploadError.message}`);
+            }
+
+            // Get public URL
+            const { data: urlData } = supabase.storage
+              .from('documents')
+              .getPublicUrl(filePath);
+            
+            uploadedBuktiUrl = urlData.publicUrl;
+            console.log("✅ File uploaded:", uploadedBuktiUrl);
+          }
+
           // Generate document number
           const docNumber = `${jenisTransaksi === "Penerimaan Kas" ? "PKM" : "PKK"}-${Date.now()}`;
           
@@ -1502,6 +1529,7 @@ export default function TransaksiKeuanganForm() {
             account_name: cashLine.account_name,
             nominal: cashLine.amount,
             keterangan: previewMemo,
+            bukti: uploadedBuktiUrl || null,
           });
 
           if (error) {
@@ -2674,7 +2702,7 @@ export default function TransaksiKeuanganForm() {
                   <SelectItem value="Penjualan Jasa">Penjualan Jasa</SelectItem>
                   <SelectItem value="Pembelian Barang">Pembelian Barang</SelectItem>
                   <SelectItem value="Pembelian Jasa">Pembelian Jasa</SelectItem>
-                  <SelectItem value="Penerimaan Kas">Penerimaan Kas</SelectItem>
+                  <SelectItem value="Penerimaan Kas">Penerimaan Kas & Bank</SelectItem>
                   <SelectItem value="Pengeluaran Kas">
                     Pengeluaran Kas
                   </SelectItem>
@@ -2686,25 +2714,23 @@ export default function TransaksiKeuanganForm() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="payment_type">Payment Type *</Label>
-              <Select 
-                value={paymentType} 
-                onValueChange={setPaymentType} 
-                disabled={shouldDisableField("paymentType")}
-              >
-                <SelectTrigger id="payment_type">
-                  <SelectValue placeholder="-- pilih --" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="Transfer Bank">Transfer Bank</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">
-                Otomatis terisi berdasarkan Jenis Transaksi
-              </p>
-            </div>
+            {jenisTransaksi === "Penerimaan Kas" && (
+              <div className="space-y-2">
+                <Label htmlFor="payment_type">Payment Type *</Label>
+                <Select 
+                  value={paymentType} 
+                  onValueChange={setPaymentType}
+                >
+                  <SelectTrigger id="payment_type">
+                    <SelectValue placeholder="-- pilih --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cash">Cash</SelectItem>
+                    <SelectItem value="Transfer Bank">Bank Transfer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {/* Bank Selection - Show only if Transfer Bank */}
@@ -4185,6 +4211,28 @@ export default function TransaksiKeuanganForm() {
               placeholder="Masukkan deskripsi transaksi"
               rows={3}
             />
+          </div>
+
+          {/* UPLOAD BUKTI */}
+          <div className="space-y-2">
+            <Label htmlFor="bukti">Upload Bukti</Label>
+            <Input
+              id="bukti"
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setBuktiFile(file);
+                }
+              }}
+              className="cursor-pointer"
+            />
+            {buktiFile && (
+              <p className="text-sm text-slate-600">
+                File terpilih: {buktiFile.name}
+              </p>
+            )}
           </div>
 
           {/* BUTTONS */}

@@ -62,7 +62,7 @@ interface DeliveryType {
   delivery_address: string;
   city?: string;
 province
-  postal_code?: string;
+
   status: 'pending' | 'in_transit' | 'delivered' | 'cancelled';
   delivery_date?: string;
   notes?: string;
@@ -76,7 +76,7 @@ interface Supplier {
   phone_number?: string;
   address?: string;
   city?: string;
-  postal_code?: string;
+
 }
 
 export default function DeliveryForm() {
@@ -101,7 +101,6 @@ export default function DeliveryForm() {
     customer_phone: '',
     delivery_address: '',
     city: '',
-    postal_code: '',
     status: 'pending',
     delivery_date: '',
     notes: '',
@@ -145,7 +144,7 @@ export default function DeliveryForm() {
     try {
       const { data, error } = await supabase
         .from('suppliers')
-        .select('id, supplier_name, phone_number, address, city, postal_code')
+        .select('id, supplier_name, phone_number, address, city')
         .order('supplier_name');
 
       if (error) throw error;
@@ -517,7 +516,6 @@ export default function DeliveryForm() {
                         customer_phone: selectedSupplier?.phone_number || '',
                         delivery_address: selectedSupplier?.address || '',
                         city: selectedSupplier?.city || '',
-                        postal_code: selectedSupplier?.postal_code || '',
                       });
                     }}
                   >
