@@ -456,7 +456,7 @@ export default function ApprovalTransaksi() {
           </Button>
         </div>
         */}
-        {canView(userRole) && (
+        {canEdit(userRole) && (
           <Card className="shadow-lg">
             <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
               <CardTitle className="flex items-center gap-2 text-2xl">
