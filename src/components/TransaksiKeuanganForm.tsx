@@ -286,8 +286,11 @@ export default function TransaksiKeuanganForm() {
   const [openEmployeeCombobox, setOpenEmployeeCombobox] = useState(false);
   const [searchEmployee, setSearchEmployee] = useState("");
 
-  // Cart state
-  const [cart, setCart] = useState<any[]>([]);
+  // Cart state - load from localStorage on mount
+  const [cart, setCart] = useState<any[]>(() => {
+    const savedCart = localStorage.getItem('transaksi_keuangan_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
   const [showCart, setShowCart] = useState(false);
 
   // Conditional fields state
@@ -305,6 +308,11 @@ export default function TransaksiKeuanganForm() {
   );
 
   const { toast } = useToast();
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('transaksi_keuangan_cart', JSON.stringify(cart));
+  }, [cart]);
 
   // Load transactions on component mount
   useEffect(() => {
@@ -638,7 +646,7 @@ export default function TransaksiKeuanganForm() {
   const loadBrands = async () => {
     const { data } = await supabase.from("brands").select("*");
     setBrands(data || []);
-    
+
     // Always show all brands - don't filter by stock
     // This allows newly added brands to appear immediately
     setFilteredBrands(data || []);
@@ -2744,6 +2752,7 @@ export default function TransaksiKeuanganForm() {
 
       // Clear cart and close
       setCart([]);
+      localStorage.removeItem('transaksi_keuangan_cart');
       setShowCart(false);
 
       // Show success message
@@ -3556,6 +3565,7 @@ export default function TransaksiKeuanganForm() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {/*
                         <Button
                           type="button"
                           size="icon"
@@ -3563,6 +3573,7 @@ export default function TransaksiKeuanganForm() {
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
+                        */}
                       </div>
                     </div>
                   )}
@@ -5175,8 +5186,9 @@ export default function TransaksiKeuanganForm() {
                             className="w-full justify-between"
                           >
                             {selectedEmployee
-                              ? employees.find((emp) => emp.id === selectedEmployee)
-                                  ?.full_name
+                              ? employees.find(
+                                  (emp) => emp.id === selectedEmployee,
+                                )?.full_name
                               : "-- pilih karyawan --"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -5194,7 +5206,7 @@ export default function TransaksiKeuanganForm() {
                               .filter((emp) =>
                                 emp.full_name
                                   .toLowerCase()
-                                  .includes(searchEmployee.toLowerCase())
+                                  .includes(searchEmployee.toLowerCase()),
                               )
                               .map((emp) => (
                                 <div
@@ -5214,7 +5226,9 @@ export default function TransaksiKeuanganForm() {
                                     }`}
                                   />
                                   <div>
-                                    <div className="font-medium">{emp.full_name}</div>
+                                    <div className="font-medium">
+                                      {emp.full_name}
+                                    </div>
                                     <div className="text-xs text-muted-foreground">
                                       {emp.email}
                                     </div>
@@ -5224,7 +5238,7 @@ export default function TransaksiKeuanganForm() {
                             {employees.filter((emp) =>
                               emp.full_name
                                 .toLowerCase()
-                                .includes(searchEmployee.toLowerCase())
+                                .includes(searchEmployee.toLowerCase()),
                             ).length === 0 && (
                               <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                                 Tidak ada karyawan ditemukan.

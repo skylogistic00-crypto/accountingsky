@@ -257,6 +257,41 @@ export default function Header() {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="signup-role">Role</Label>
+                  <Select
+                    value={signUpData.roleName}
+                    onValueChange={(value) =>
+                      setSignUpData({ ...signUpData, roleName: value })
+                    }
+                  >
+                    <SelectTrigger id="signup-role">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                      <SelectItem value="accounting_manager">
+                        Accounting Manager
+                      </SelectItem>
+                      <SelectItem value="accounting_staff">
+                        Accounting Staff
+                      </SelectItem>
+                      <SelectItem value="warehouse_manager">
+                        Warehouse Manager
+                      </SelectItem>
+                      <SelectItem value="warehouse_staff">
+                        Warehouse Staff
+                      </SelectItem>
+                      <SelectItem value="customs_specialist">
+                        Customs Specialist
+                      </SelectItem>
+                      <SelectItem value="supplier">Suppliers</SelectItem>
+                      <SelectItem value="consignee">Consignees</SelectItem>
+                      <SelectItem value="shipper">Shippers</SelectItem>
+                      <SelectItem value="read_only">Read Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="signup-name">Full Name</Label>
                   <Input
                     id="signup-name"
@@ -310,38 +345,7 @@ export default function Header() {
                     </button>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-role">Role</Label>
-                  <Select
-                    value={signUpData.roleName}
-                    onValueChange={(value) =>
-                      setSignUpData({ ...signUpData, roleName: value })
-                    }
-                  >
-                    <SelectTrigger id="signup-role">
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="super_admin">Super Admin</SelectItem>
-                      <SelectItem value="accounting_manager">
-                        Accounting Manager
-                      </SelectItem>
-                      <SelectItem value="accounting_staff">
-                        Accounting Staff
-                      </SelectItem>
-                      <SelectItem value="warehouse_manager">
-                        Warehouse Manager
-                      </SelectItem>
-                      <SelectItem value="warehouse_staff">
-                        Warehouse Staff
-                      </SelectItem>
-                      <SelectItem value="customs_specialist">
-                        Customs Specialist
-                      </SelectItem>
-                      <SelectItem value="read_only">Read Only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
                 <Button
                   type="submit"
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md"
