@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -19,11 +19,13 @@ import {
   SelectValue,
 } from "./ui/select";
 import { useToast } from "./ui/use-toast";
+import { supabase } from "@/lib/supabase";
 
 export default function AuthForm() {
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [roles, setRoles] = useState<any[]>([]);
 
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({
@@ -32,6 +34,24 @@ export default function AuthForm() {
     fullName: "",
     role: "read_only",
   });
+
+  // Load roles from database
+  useEffect(() => {
+    loadRoles();
+  }, []);
+
+  const loadRoles = async () => {
+    const { data, error } = await supabase
+      .from("roles")
+      .select("id, role_name")
+      .order("role_name", { ascending: true });
+
+    if (error) {
+      console.error("Error loading roles:", error);
+    } else {
+      setRoles(data || []);
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,6 +147,26 @@ export default function AuthForm() {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="signup-role">Role</Label>
+                  <Select
+                    value={signUpData.roleName}
+                    onValueChange={(value) =>
+                      setSignUpData({ ...signUpData, roleName: value })
+                    }
+                  >
+                    <SelectTrigger id="signup-role">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={role.role_name}>
+                          {role.role_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="signup-name">Full Name</Label>
                   <Input
                     id="signup-name"
@@ -163,38 +203,6 @@ export default function AuthForm() {
                     }
                     required
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-role">Role</Label>
-                  <Select
-                    value={signUpData.roleName}
-                    onValueChange={(value) =>
-                      setSignUpData({ ...signUpData, roleName: value })
-                    }
-                  >
-                    <SelectTrigger id="signup-role">
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="super_admin">Super Admin</SelectItem>
-                      <SelectItem value="accounting_manager">
-                        Accounting Manager
-                      </SelectItem>
-                      <SelectItem value="accounting_staff">
-                        Accounting Staff
-                      </SelectItem>
-                      <SelectItem value="warehouse_manager">
-                        Warehouse Manager
-                      </SelectItem>
-                      <SelectItem value="warehouse_staff">
-                        Warehouse Staff
-                      </SelectItem>
-                      <SelectItem value="customs_specialist">
-                        Customs Specialist
-                      </SelectItem>
-                      <SelectItem value="read_only">Read Only</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Creating account..." : "Sign Up"}

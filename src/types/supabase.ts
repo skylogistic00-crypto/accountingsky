@@ -1983,6 +1983,8 @@ export type Database = {
           bukti_url: string | null
           created_at: string
           document_number: string
+          employee_id: string | null
+          employee_name: string | null
           id: string
           keterangan: string | null
           nominal: number
@@ -2008,6 +2010,8 @@ export type Database = {
           bukti_url?: string | null
           created_at?: string
           document_number?: string
+          employee_id?: string | null
+          employee_name?: string | null
           id?: string
           keterangan?: string | null
           nominal: number
@@ -2033,6 +2037,8 @@ export type Database = {
           bukti_url?: string | null
           created_at?: string
           document_number?: string
+          employee_id?: string | null
+          employee_name?: string | null
           id?: string
           keterangan?: string | null
           nominal?: number
@@ -4189,6 +4195,7 @@ export type Database = {
           created_at: string | null
           department: string | null
           email: string
+          entitas: string | null
           full_name: string | null
           id: string
           is_active: boolean | null
@@ -4204,6 +4211,7 @@ export type Database = {
           created_at?: string | null
           department?: string | null
           email: string
+          entitas?: string | null
           full_name?: string | null
           id: string
           is_active?: boolean | null
@@ -4219,6 +4227,7 @@ export type Database = {
           created_at?: string | null
           department?: string | null
           email?: string
+          entitas?: string | null
           full_name?: string | null
           id?: string
           is_active?: boolean | null

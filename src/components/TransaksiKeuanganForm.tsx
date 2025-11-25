@@ -280,6 +280,12 @@ export default function TransaksiKeuanganForm() {
   const [openAccountNameCombobox, setOpenAccountNameCombobox] = useState(false);
   const [searchAccountName, setSearchAccountName] = useState("");
 
+  // Employee state for Beban Gaji
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [openEmployeeCombobox, setOpenEmployeeCombobox] = useState(false);
+  const [searchEmployee, setSearchEmployee] = useState("");
+
   // Cart state
   const [cart, setCart] = useState<any[]>([]);
   const [showCart, setShowCart] = useState(false);
@@ -304,7 +310,23 @@ export default function TransaksiKeuanganForm() {
   useEffect(() => {
     loadTransactions();
     loadCOAAccounts();
+    loadEmployees();
   }, []);
+
+  // Load employees from users table
+  const loadEmployees = async () => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, full_name, email, entitas")
+      .eq("entitas", "Karyawan")
+      .order("full_name", { ascending: true });
+
+    if (error) {
+      console.error("Error loading employees:", error);
+    } else {
+      setEmployees(data || []);
+    }
+  };
 
   // Load COA accounts for kategori pengeluaran
   const loadCOAAccounts = async () => {
@@ -602,39 +624,11 @@ export default function TransaksiKeuanganForm() {
     refreshLoanData();
   }, [selectedBorrower, jenisTransaksi, showForm]);
 
-  // Filter brands based on selected item
+  // No longer filtering brands by item - show all brands
+  // This allows newly added brands to appear immediately
   useEffect(() => {
-    const filterBrandsByItem = async () => {
-      if (!itemName) {
-        setFilteredBrands(brands);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("product_reference")
-          .select("brand")
-          .eq("item_name", itemName);
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          const brandNames = data.map((item) => item.brand).filter(Boolean);
-          const filtered = brands.filter((b) =>
-            brandNames.includes(b.brand_name),
-          );
-          setFilteredBrands(filtered);
-        } else {
-          setFilteredBrands(brands);
-        }
-      } catch (error) {
-        console.error("Error filtering brands:", error);
-        setFilteredBrands(brands);
-      }
-    };
-
-    filterBrandsByItem();
-  }, [itemName, brands]);
+    setFilteredBrands(brands);
+  }, [brands]);
 
   const loadItems = async () => {
     const { data } = await supabase.from("item_master").select("*");
@@ -644,7 +638,10 @@ export default function TransaksiKeuanganForm() {
   const loadBrands = async () => {
     const { data } = await supabase.from("brands").select("*");
     setBrands(data || []);
-    setFilteredBrands(data || []); // Initialize filtered brands
+    
+    // Always show all brands - don't filter by stock
+    // This allows newly added brands to appear immediately
+    setFilteredBrands(data || []);
   };
 
   // Fetch stock information when item and brand are selected
@@ -2027,6 +2024,21 @@ export default function TransaksiKeuanganForm() {
       return;
     }
 
+    // Validate employee selection for Beban Gaji
+    if (selectedAccountName === "Beban Gaji & Karyawan" && !selectedEmployee) {
+      toast({
+        title: "⚠️ Peringatan",
+        description: "Pilih nama karyawan terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Get employee name if selected
+    const employeeName = selectedEmployee
+      ? employees.find((emp) => emp.id === selectedEmployee)?.full_name
+      : "";
+
     // Create cart item
     const cartItem = {
       id: Date.now().toString(),
@@ -2055,6 +2067,10 @@ export default function TransaksiKeuanganForm() {
       selectedBank,
       selectedKas,
       stockInfo,
+      selectedAccountType,
+      selectedAccountName,
+      employeeId: selectedEmployee,
+      employeeName,
       // Loan fields
       borrowerName: selectedBorrower,
       loanType,
@@ -5141,6 +5157,84 @@ export default function TransaksiKeuanganForm() {
                       </Popover>
                     </div>
                   ) : null}
+
+                  {/* Employee Selection - Show when Beban Gaji & Karyawan is selected */}
+                  {selectedAccountName === "Beban Gaji & Karyawan" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="employee_name">Nama Karyawan *</Label>
+
+                      <Popover
+                        open={openEmployeeCombobox}
+                        onOpenChange={setOpenEmployeeCombobox}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openEmployeeCombobox}
+                            className="w-full justify-between"
+                          >
+                            {selectedEmployee
+                              ? employees.find((emp) => emp.id === selectedEmployee)
+                                  ?.full_name
+                              : "-- pilih karyawan --"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+
+                        <PopoverContent className="w-full p-2">
+                          <Input
+                            placeholder="Cari nama karyawan..."
+                            value={searchEmployee}
+                            onChange={(e) => setSearchEmployee(e.target.value)}
+                            className="mb-2"
+                          />
+                          <div className="max-h-64 overflow-auto">
+                            {employees
+                              .filter((emp) =>
+                                emp.full_name
+                                  .toLowerCase()
+                                  .includes(searchEmployee.toLowerCase())
+                              )
+                              .map((emp) => (
+                                <div
+                                  key={emp.id}
+                                  className="flex items-center px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                                  onClick={() => {
+                                    setSelectedEmployee(emp.id);
+                                    setOpenEmployeeCombobox(false);
+                                    setSearchEmployee("");
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      selectedEmployee === emp.id
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    }`}
+                                  />
+                                  <div>
+                                    <div className="font-medium">{emp.full_name}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {emp.email}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            {employees.filter((emp) =>
+                              emp.full_name
+                                .toLowerCase()
+                                .includes(searchEmployee.toLowerCase())
+                            ).length === 0 && (
+                              <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                Tidak ada karyawan ditemukan.
+                              </div>
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
                 </div>
               )}
 
