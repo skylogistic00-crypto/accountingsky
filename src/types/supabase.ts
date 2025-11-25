@@ -398,6 +398,53 @@ export type Database = {
         }
         Relationships: []
       }
+      bookings: {
+        Row: {
+          created_at: string | null
+          duration_minutes: number | null
+          end_time: string | null
+          facility_id: string | null
+          id: string
+          metadata: Json | null
+          price: number | null
+          start_time: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_minutes?: number | null
+          end_time?: string | null
+          facility_id?: string | null
+          id?: string
+          metadata?: Json | null
+          price?: number | null
+          start_time: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_minutes?: number | null
+          end_time?: string | null
+          facility_id?: string | null
+          id?: string
+          metadata?: Json | null
+          price?: number | null
+          start_time?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_facility_id_fkey"
+            columns: ["facility_id"]
+            isOneToOne: false
+            referencedRelation: "facilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       borrowers: {
         Row: {
           address: string | null
@@ -521,6 +568,9 @@ export type Database = {
       cash_and_bank_receipts: {
         Row: {
           amount: number
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           category: string | null
           coa_cash_code: string | null
           coa_contra_code: string | null
@@ -537,6 +587,9 @@ export type Database = {
         }
         Insert: {
           amount: number
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           category?: string | null
           coa_cash_code?: string | null
           coa_contra_code?: string | null
@@ -553,6 +606,9 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           category?: string | null
           coa_cash_code?: string | null
           coa_contra_code?: string | null
@@ -1186,6 +1242,60 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          content: string
+          created_at: string | null
+          embedding: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      facilities: {
+        Row: {
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          price_per_hour: number | null
+          price_per_visit: number | null
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          price_per_hour?: number | null
+          price_per_visit?: number | null
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          price_per_hour?: number | null
+          price_per_visit?: number | null
+          type?: string | null
         }
         Relationships: []
       }
@@ -4517,6 +4627,30 @@ export type Database = {
         }
         Returns: Json
       }
+      ai_cancel_booking: {
+        Args: { p_booking_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      ai_create_booking: {
+        Args: {
+          p_end: string
+          p_facility_id: string
+          p_metadata?: Json
+          p_price: number
+          p_start: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      ai_update_booking_time: {
+        Args: {
+          p_booking_id: string
+          p_end: string
+          p_start: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       calculate_late_fee:
         | {
             Args: {
@@ -4538,6 +4672,10 @@ export type Database = {
       calculate_tax: {
         Args: { p_base_amount: number; p_tax_percentage: number }
         Returns: number
+      }
+      check_availability: {
+        Args: { e: string; f_id: string; s: string }
+        Returns: boolean
       }
       cleanup_old_cart_items: { Args: never; Returns: undefined }
       create_monthly_tax_reminders: { Args: never; Returns: undefined }
@@ -4606,6 +4744,19 @@ export type Database = {
       }
       insert_journal_entries: { Args: { entries: Json }; Returns: undefined }
       kas_autonumber: { Args: never; Returns: string }
+      match_documents: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          id: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
       match_hs_codes: {
         Args: {
           match_count?: number

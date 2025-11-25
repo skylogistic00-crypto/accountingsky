@@ -5095,13 +5095,17 @@ export default function TransaksiKeuanganForm() {
                           <Input
                             placeholder="Cari account name..."
                             value={searchAccountName}
-                            onChange={(e) => setSearchAccountName(e.target.value)}
+                            onChange={(e) =>
+                              setSearchAccountName(e.target.value)
+                            }
                             className="mb-2"
                           />
                           <div className="max-h-64 overflow-auto">
                             {filteredAccountNames
                               .filter((name) =>
-                                name.toLowerCase().includes(searchAccountName.toLowerCase())
+                                name
+                                  .toLowerCase()
+                                  .includes(searchAccountName.toLowerCase()),
                               )
                               .map((name) => (
                                 <div
@@ -5124,7 +5128,9 @@ export default function TransaksiKeuanganForm() {
                                 </div>
                               ))}
                             {filteredAccountNames.filter((name) =>
-                              name.toLowerCase().includes(searchAccountName.toLowerCase())
+                              name
+                                .toLowerCase()
+                                .includes(searchAccountName.toLowerCase()),
                             ).length === 0 && (
                               <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                                 Tidak ada account name ditemukan.
@@ -5568,6 +5574,7 @@ export default function TransaksiKeuanganForm() {
       />
 
       {/* Approval Transaksi Section */}
+
       <div className="mt-8">
         <ApprovalTransaksi />
       </div>
