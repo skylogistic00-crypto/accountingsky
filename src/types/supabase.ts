@@ -3541,7 +3541,7 @@ export type Database = {
           item_name: string
           journal_ref: string | null
           notes: string | null
-          payment_method: string
+          payment_method: string | null
           pph_amount: number | null
           pph_percentage: number | null
           ppn_amount: number | null
@@ -3579,7 +3579,7 @@ export type Database = {
           item_name: string
           journal_ref?: string | null
           notes?: string | null
-          payment_method: string
+          payment_method?: string | null
           pph_amount?: number | null
           pph_percentage?: number | null
           ppn_amount?: number | null
@@ -3617,7 +3617,7 @@ export type Database = {
           item_name?: string
           journal_ref?: string | null
           notes?: string | null
-          payment_method?: string
+          payment_method?: string | null
           pph_amount?: number | null
           pph_percentage?: number | null
           ppn_amount?: number | null
@@ -4608,48 +4608,86 @@ export type Database = {
       }
       tax_transactions: {
         Row: {
-          amount: number
-          coa_tax_code: string
+          amount: number | null
+          coa_tax_code: string | null
           coa_tax_name: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
           id: string
+          item_name: string | null
+          quantity: number | null
           related_doc_no: string | null
           related_transaction_id: string | null
-          tax_type: string
+          sales_transaction_id: string | null
+          sales_transactions_id: string | null
+          subtotal: number | null
+          tax_amount: number | null
+          tax_percentage: string | null
+          tax_type: string | null
+          total_amount: number | null
           transaction_date: string
+          transaction_type: string | null
+          unit_price: number | null
           updated_at: string | null
         }
         Insert: {
-          amount: number
-          coa_tax_code: string
+          amount?: number | null
+          coa_tax_code?: string | null
           coa_tax_name?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           id?: string
+          item_name?: string | null
+          quantity?: number | null
           related_doc_no?: string | null
           related_transaction_id?: string | null
-          tax_type: string
+          sales_transaction_id?: string | null
+          sales_transactions_id?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          tax_percentage?: string | null
+          tax_type?: string | null
+          total_amount?: number | null
           transaction_date?: string
+          transaction_type?: string | null
+          unit_price?: number | null
           updated_at?: string | null
         }
         Update: {
-          amount?: number
-          coa_tax_code?: string
+          amount?: number | null
+          coa_tax_code?: string | null
           coa_tax_name?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           id?: string
+          item_name?: string | null
+          quantity?: number | null
           related_doc_no?: string | null
           related_transaction_id?: string | null
-          tax_type?: string
+          sales_transaction_id?: string | null
+          sales_transactions_id?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          tax_percentage?: string | null
+          tax_type?: string | null
+          total_amount?: number | null
           transaction_date?: string
+          transaction_type?: string | null
+          unit_price?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tax_transactions_sales_fk"
+            columns: ["sales_transactions_id"]
+            isOneToOne: false
+            referencedRelation: "sales_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transaction_cart: {
         Row: {
@@ -4880,8 +4918,13 @@ export type Database = {
       }
       users: {
         Row: {
+          address: string | null
           avatar_url: string | null
+          bank_account_holder: string | null
           birth_place: string | null
+          city: string | null
+          contact_person: string | null
+          country: string | null
           created_at: string | null
           department: string | null
           education: string | null
@@ -4904,6 +4947,7 @@ export type Database = {
           license_number: string | null
           phone: string | null
           phone_number: string | null
+          pkp_status: string | null
           religion: string | null
           role: string
           role_id: number | null
@@ -4912,11 +4956,17 @@ export type Database = {
           sim_url: string | null
           skck_url: string | null
           status: Database["public"]["Enums"]["user_status"]
+          supplier_name: string | null
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
+          bank_account_holder?: string | null
           birth_place?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
           created_at?: string | null
           department?: string | null
           education?: string | null
@@ -4939,6 +4989,7 @@ export type Database = {
           license_number?: string | null
           phone?: string | null
           phone_number?: string | null
+          pkp_status?: string | null
           religion?: string | null
           role?: string
           role_id?: number | null
@@ -4947,11 +4998,17 @@ export type Database = {
           sim_url?: string | null
           skck_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          supplier_name?: string | null
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
+          bank_account_holder?: string | null
           birth_place?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
           created_at?: string | null
           department?: string | null
           education?: string | null
@@ -4974,6 +5031,7 @@ export type Database = {
           license_number?: string | null
           phone?: string | null
           phone_number?: string | null
+          pkp_status?: string | null
           religion?: string | null
           role?: string
           role_id?: number | null
@@ -4982,6 +5040,7 @@ export type Database = {
           sim_url?: string | null
           skck_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          supplier_name?: string | null
           updated_at?: string | null
         }
         Relationships: [

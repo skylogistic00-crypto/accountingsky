@@ -84,17 +84,31 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Prepare users table data
+    const usersData: Record<string, any> = {
+      id: authUser.user.id,
+      email,
+      full_name,
+      role,
+      phone,
+      is_active: false, // Inactive until verified
+    };
+
+    // For suppliers, add supplier-specific fields to users table
+    if (normalizedEntityType === 'supplier') {
+      usersData.supplier_name = details.entity_name || full_name;
+      usersData.contact_person = details.contact_person;
+      usersData.city = details.city;
+      usersData.country = details.country;
+      usersData.address = details.address;
+      usersData.pkp_status = details.is_pkp; // Already 'PKP' or 'Non PKP'
+      usersData.bank_account_holder = details.bank_account_holder;
+    }
+
     // Upsert into users table (handles duplicate key errors)
     const { error: userError } = await supabase
       .from('users')
-      .upsert({
-        id: authUser.user.id,
-        email,
-        full_name,
-        role,
-        phone,
-        is_active: false, // Inactive until verified
-      }, {
+      .upsert(usersData, {
         onConflict: 'id'
       });
 

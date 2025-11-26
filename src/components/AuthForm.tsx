@@ -423,8 +423,8 @@ export default function AuthForm() {
                               <SelectValue placeholder="Pilih status PKP" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="YES">Ya</SelectItem>
-                              <SelectItem value="NO">Tidak</SelectItem>
+                              <SelectItem value="PKP">PKP</SelectItem>
+                              <SelectItem value="Non PKP">Non PKP</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -625,8 +625,8 @@ export default function AuthForm() {
                               <SelectValue placeholder="Pilih status PKP" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="YES">Ya</SelectItem>
-                              <SelectItem value="NO">Tidak</SelectItem>
+                              <SelectItem value="PKP">PKP</SelectItem>
+                              <SelectItem value="Non PKP">Non PKP</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -827,8 +827,8 @@ export default function AuthForm() {
                               <SelectValue placeholder="Pilih status PKP" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="YES">Ya</SelectItem>
-                              <SelectItem value="NO">Tidak</SelectItem>
+                              <SelectItem value="PKP">PKP</SelectItem>
+                              <SelectItem value="Non PKP">Non PKP</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

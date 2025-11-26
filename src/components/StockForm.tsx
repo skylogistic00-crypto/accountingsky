@@ -647,17 +647,17 @@ export default function StockForm() {
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
-        .from("brands")
-        .select("kategori_layanan")
-        .not("kategori_layanan", "is", null)
-        .order("kategori_layanan");
+        .from("stock")
+        .select("jenis_barang")
+        .not("jenis_barang", "is", null)
+        .order("jenis_barang");
 
       if (error) throw error;
 
-      // Get unique values from kategori_layanan
+      // Get unique values from jenis_barang
       const uniqueCategories = [
         ...new Set(
-          data?.map((item) => item.kategori_layanan).filter(Boolean) || [],
+          data?.map((item) => item.jenis_barang).filter(Boolean) || [],
         ),
       ];
 
@@ -674,18 +674,18 @@ export default function StockForm() {
   const fetchServiceTypes = async (category: string) => {
     try {
       const { data, error } = await supabase
-        .from("brands")
-        .select("jenis_layanan")
-        .eq("kategori_layanan", category)
-        .not("jenis_layanan", "is", null)
-        .order("jenis_layanan");
+        .from("stock")
+        .select("service_type")
+        .eq("service_category", category)
+        .not("service_type", "is", null)
+        .order("service_type");
 
       if (error) throw error;
 
-      // Get unique values from jenis_layanan
+      // Get unique values from service_type
       const uniqueTypes = [
         ...new Set(
-          data?.map((item) => item.jenis_layanan).filter(Boolean) || [],
+          data?.map((item) => item.service_type).filter(Boolean) || [],
         ),
       ];
       setServiceTypes(uniqueTypes);
@@ -695,6 +695,83 @@ export default function StockForm() {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  // Fetch categories filtered by item name from stock table (jenis_barang column)
+  const fetchCategoriesByItemName = async (itemName: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("stock")
+        .select("jenis_barang")
+        .eq("item_name", itemName)
+        .not("jenis_barang", "is", null)
+        .order("jenis_barang");
+
+      if (error) throw error;
+
+      const uniqueCategories = [...new Set(data?.map(b => b.jenis_barang).filter(Boolean) || [])];
+      
+      setCategories(uniqueCategories);
+      
+      if (uniqueCategories.length > 0) {
+        toast({
+          title: "Jenis Barang Loaded",
+          description: `Showing ${uniqueCategories.length} jenis barang for ${itemName}`,
+        });
+      } else {
+        toast({
+          title: "No Jenis Barang Found",
+          description: `No jenis barang available for ${itemName}.`,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setCategories([]);
+    }
+  };
+
+  // Fetch brands filtered by item name and jenis_barang from stock table
+  const fetchBrandsByItemAndCategory = async (itemName: string, category: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("stock")
+        .select("brand")
+        .eq("item_name", itemName)
+        .eq("jenis_barang", category)
+        .not("brand", "is", null)
+        .order("brand");
+
+      if (error) throw error;
+
+      const uniqueBrands = [...new Set(data?.map(b => b.brand).filter(Boolean) || [])];
+      
+      setBrandList(uniqueBrands);
+      
+      if (uniqueBrands.length > 0) {
+        toast({
+          title: "Brand Filter Applied",
+          description: `Showing ${uniqueBrands.length} brands for ${itemName} - ${category}`,
+        });
+      } else {
+        toast({
+          title: "No Brands Found",
+          description: `No brands available for ${itemName} - ${category}.`,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setBrandList([]);
     }
   };
 
@@ -828,13 +905,24 @@ export default function StockForm() {
 
   const fetchItemNames = async () => {
     try {
+      // Fetch distinct item names from stock table
       const { data, error } = await supabase
-        .from("item_master")
-        .select("*")
+        .from("stock")
+        .select("item_name")
+        .not("item_name", "is", null)
         .order("item_name");
 
       if (error) throw error;
-      setItemNameList(data || []);
+      
+      // Create unique list of item names
+      const uniqueItems = Array.from(
+        new Set(data?.map((item) => item.item_name) || [])
+      ).map((name, index) => ({
+        id: index.toString(),
+        item_name: name,
+      }));
+      
+      setItemNameList(uniqueItems);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -846,14 +934,16 @@ export default function StockForm() {
 
   const fetchBrands = async () => {
     try {
+      // Fetch distinct brands from stock table
       const { data, error } = await supabase
-        .from("brands")
-        .select("brand_name")
-        .order("brand_name");
+        .from("stock")
+        .select("brand")
+        .not("brand", "is", null)
+        .order("brand");
 
       if (error) throw error;
 
-      const uniqueBrands = [...new Set(data?.map(b => b.brand_name) || [])];
+      const uniqueBrands = [...new Set(data?.map(b => b.brand) || [])];
       setBrandList(uniqueBrands);
     } catch (error: any) {
       toast({
@@ -864,19 +954,19 @@ export default function StockForm() {
     }
   };
 
-  // Fetch brands filtered by item name from item_brand_mapping
+  // Fetch brands filtered by item name from stock table
   const fetchBrandsByItemName = async (itemName: string) => {
     try {
       const { data, error } = await supabase
-        .from("item_brand_mapping")
-        .select("brand_name")
+        .from("stock")
+        .select("brand")
         .eq("item_name", itemName)
-        .eq("is_active", true)
-        .order("brand_name");
+        .not("brand", "is", null)
+        .order("brand");
 
       if (error) throw error;
 
-      const uniqueBrands = [...new Set(data?.map(b => b.brand_name).filter(Boolean) || [])];
+      const uniqueBrands = [...new Set(data?.map(b => b.brand).filter(Boolean) || [])];
       
       // Always set the filtered brands, even if empty
       setBrandList(uniqueBrands);
@@ -889,7 +979,7 @@ export default function StockForm() {
       } else {
         toast({
           title: "No Brands Found",
-          description: `No brands available for ${itemName}. Please add brand mapping or use manual input.`,
+          description: `No brands available for ${itemName}. Please use manual input.`,
           variant: "destructive",
         });
       }
@@ -903,48 +993,51 @@ export default function StockForm() {
     }
   };
 
-  // Auto-populate fields based on brand data
+  // Auto-populate fields based on stock data
   const autoPopulateFields = async (itemName: string, brand: string) => {
     try {
       console.log("🔍 Auto-populate called with:", { itemName, brand });
       
-      // Fetch brand data with all fields including COA
+      // Fetch stock data with matching item_name and brand
       const { data, error } = await supabase
-        .from("brands")
+        .from("stock")
         .select("*")
-        .eq("brand_name", brand)
+        .eq("item_name", itemName)
+        .eq("brand", brand)
         .limit(1)
         .maybeSingle();
 
-      console.log("📊 FULL Brand data result:", { data, error });
+      console.log("📊 FULL Stock data result:", { data, error });
 
       if (error) {
-        console.error("❌ Error fetching brand data:", error);
+        console.error("❌ Error fetching stock data:", error);
         throw error;
       }
 
       if (data) {
-        console.log("✅ Found brand data:", data);
+        console.log("✅ Found stock data:", data);
         console.log("📝 Field values:", {
-          satuan: data.satuan,
-          berat: data.berat,
+          unit: data.unit,
+          weight: data.weight,
           volume: data.volume,
-          kategori_layanan: data.kategori_layanan,
-          jenis_layanan: data.jenis_layanan,
+          service_category: data.service_category,
+          service_type: data.service_type,
           coa_account_code: data.coa_account_code,
           coa_account_name: data.coa_account_name,
         });
         
-        // Force update with explicit values
+        // Force update with explicit values from stock
         const newFormData = {
           ...formData,
-          service_category: data.kategori_layanan || "",
-          service_type: data.jenis_layanan || "",
-          unit: data.satuan || "",
-          weight: data.berat ? data.berat.toString() : "",
+          service_category: data.service_category || "",
+          service_type: data.service_type || "",
+          unit: data.unit || "",
+          weight: data.weight ? data.weight.toString() : "",
           volume: data.volume ? data.volume.toString() : "",
           coa_account_code: data.coa_account_code || "",
           coa_account_name: data.coa_account_name || "",
+          description: data.description || "",
+          sku: data.sku || "",
         };
         
         console.log("🔄 Setting new form data:", newFormData);
@@ -958,16 +1051,16 @@ export default function StockForm() {
 
         toast({
           title: "✅ Auto-populated",
-          description: `${data.kategori_layanan || '-'} - ${data.jenis_layanan || '-'} | Satuan: ${data.satuan || '-'}`,
+          description: `${data.service_category || '-'} - ${data.service_type || '-'} | Satuan: ${data.unit || '-'}`,
         });
       } else {
         console.warn("⚠️ No data returned from query");
       }
     } catch (error: any) {
-      console.log("⚠️ No brand data found:", error.message);
+      console.log("⚠️ No stock data found:", error.message);
       toast({
         title: "Info",
-        description: "Tidak ada data brand. Silakan isi manual.",
+        description: "Tidak ada data stock. Silakan isi manual.",
         variant: "default",
       });
     }
@@ -1614,71 +1707,100 @@ export default function StockForm() {
                   <h3 className="text-lg font-semibold text-slate-700 border-b pb-2">
                     Informasi Dasar
                   </h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {/* Item Name */}
-                    <div>
-                      <Label>Nama {itemType === "barang" ? "Barang" : "Jasa"} *</Label>
-                      {formData.isManualItem ? (
-                        <div className="flex gap-2">
-                          <Input
-                            value={formData.manualItemName}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                manualItemName: e.target.value,
-                              })
-                            }
-                            placeholder="Masukkan nama item"
-                            required
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setFormData({
-                                ...formData,
-                                isManualItem: false,
-                                manualItemName: "",
-                              });
-                            }}
-                          >
-                            Batal
-                          </Button>
-                        </div>
-                      ) : (
-                        <Select
-                          value={formData.item_name}
-                          onValueChange={(value) => {
-                            if (value === "manual") {
-                              setFormData({
-                                ...formData,
-                                isManualItem: true,
-                                item_name: "",
-                              });
-                            } else {
-                              setFormData({
-                                ...formData,
-                                item_name: value,
-                              });
-                              // Fetch brands specific to this item
-                              fetchBrandsByItemName(value);
-                            }
+                  {/* Row 1: Item Name */}
+                  <div>
+                    <Label>Nama {itemType === "barang" ? "Barang" : "Jasa"} *</Label>
+                    {formData.isManualItem ? (
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.manualItemName}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              manualItemName: e.target.value,
+                            })
+                          }
+                          placeholder="Masukkan nama item"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              isManualItem: false,
+                              manualItemName: "",
+                            });
                           }}
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih item name" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="manual">+ Input Manual</SelectItem>
-                            {itemNameList.map((item) => (
-                              <SelectItem key={item.id} value={item.item_name}>
-                                {item.item_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
+                          Batal
+                        </Button>
+                      </div>
+                    ) : (
+                      <Select
+                        value={formData.item_name}
+                        onValueChange={(value) => {
+                          if (value === "manual") {
+                            setFormData({
+                              ...formData,
+                              isManualItem: true,
+                              item_name: "",
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              item_name: value,
+                            });
+                            // Fetch categories specific to this item
+                            fetchCategoriesByItemName(value);
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih item name" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="manual">+ Input Manual</SelectItem>
+                          {itemNameList.map((item) => (
+                            <SelectItem key={item.id} value={item.item_name}>
+                              {item.item_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* Row 2: Jenis Barang and Brand */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Jenis Barang *</Label>
+                      <Select
+                        value={formData.service_category}
+                        onValueChange={(value) => {
+                          setFormData({
+                            ...formData,
+                            service_category: value,
+                          });
+                          // Fetch brands specific to this item and category
+                          if (formData.item_name) {
+                            fetchBrandsByItemAndCategory(formData.item_name, value);
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih jenis barang" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Brand */}
@@ -1727,12 +1849,12 @@ export default function StockForm() {
                                 ...formData,
                                 brand: value,
                               });
-                              // Auto-populate fields when both item name and brand are selected
-                              if (formData.item_name) {
+                              // Auto-populate fields when item name, category and brand are selected
+                              if (formData.item_name && formData.service_category) {
                                 console.log("🚀 Calling autoPopulateFields...");
                                 autoPopulateFields(formData.item_name, value);
                               } else {
-                                console.warn("⚠️ Item name not selected yet");
+                                console.warn("⚠️ Item name or category not selected yet");
                               }
                             }
                           }}
@@ -1754,16 +1876,6 @@ export default function StockForm() {
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Kategori Layanan/Produk *</Label>
-                      <Input
-                        value={formData.service_category}
-                        readOnly
-                        className="bg-slate-50"
-                        placeholder="Auto-filled dari brand"
-                      />
-                    </div>
-
                     <div>
                       <Label>Jenis Layanan/Produk *</Label>
                       <Input
