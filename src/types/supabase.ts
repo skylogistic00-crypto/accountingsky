@@ -185,6 +185,42 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          payload: Json | null
+          resource: string | null
+          target_user_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          payload?: Json | null
+          resource?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          payload?: Json | null
+          resource?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       barang_keluar: {
         Row: {
           awb: string | null
@@ -992,11 +1028,17 @@ export type Database = {
           email: string
           id: string
           is_pkp: string | null
+          npwp: number | null
           payment_terms: string | null
           phone_number: string
           status: string
           tax_id: string | null
           updated_at: string | null
+          user_id: string | null
+          verification_notes: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           address?: string | null
@@ -1013,11 +1055,17 @@ export type Database = {
           email: string
           id?: string
           is_pkp?: string | null
+          npwp?: number | null
           payment_terms?: string | null
           phone_number: string
           status?: string
           tax_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           address?: string | null
@@ -1034,13 +1082,27 @@ export type Database = {
           email?: string
           id?: string
           is_pkp?: string | null
+          npwp?: number | null
           payment_terms?: string | null
           phone_number?: string
           status?: string
           tax_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "consignees_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coretax_uploads: {
         Row: {
@@ -1090,6 +1152,8 @@ export type Database = {
           bank_account_holder: string | null
           bank_account_number: string | null
           bank_name: string | null
+          birth_date: string | null
+          birth_place: string | null
           category: string | null
           city: string | null
           contact_person: string | null
@@ -1099,8 +1163,11 @@ export type Database = {
           customer_code: string | null
           customer_name: string | null
           email: string | null
+          gender: string | null
           id: string
           is_pkp: string | null
+          ktp_address: string | null
+          ktp_number: number | null
           name: string
           payment_term_id: string | null
           phone: string | null
@@ -1108,12 +1175,19 @@ export type Database = {
           status: string | null
           tax_id: string | null
           updated_at: string | null
+          user_id: string | null
+          verification_notes: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           address?: string | null
           bank_account_holder?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
           category?: string | null
           city?: string | null
           contact_person?: string | null
@@ -1123,8 +1197,11 @@ export type Database = {
           customer_code?: string | null
           customer_name?: string | null
           email?: string | null
+          gender?: string | null
           id?: string
           is_pkp?: string | null
+          ktp_address?: string | null
+          ktp_number?: number | null
           name?: string
           payment_term_id?: string | null
           phone?: string | null
@@ -1132,12 +1209,19 @@ export type Database = {
           status?: string | null
           tax_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           address?: string | null
           bank_account_holder?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
           category?: string | null
           city?: string | null
           contact_person?: string | null
@@ -1147,8 +1231,11 @@ export type Database = {
           customer_code?: string | null
           customer_name?: string | null
           email?: string | null
+          gender?: string | null
           id?: string
           is_pkp?: string | null
+          ktp_address?: string | null
+          ktp_number?: number | null
           name?: string
           payment_term_id?: string | null
           phone?: string | null
@@ -1156,6 +1243,11 @@ export type Database = {
           status?: string | null
           tax_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -1163,6 +1255,13 @@ export type Database = {
             columns: ["payment_term_id"]
             isOneToOne: false
             referencedRelation: "payment_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1268,6 +1367,289 @@ export type Database = {
           metadata?: Json | null
         }
         Relationships: []
+      }
+      drivers: {
+        Row: {
+          address: string | null
+          agama: string | null
+          birth_place: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          etnis: string | null
+          foto_selfie_url: string | null
+          full_name: string | null
+          gender: string | null
+          id: string
+          kontak_referensi_nama: string | null
+          kontak_referensi_nomor: string | null
+          ktp_address: string | null
+          ktp_number: number | null
+          license_expiry: string | null
+          license_number: string | null
+          license_type: string | null
+          nama_perusahaan_mitra: string | null
+          nib: string | null
+          nomor_kendaraan: string | null
+          nomor_kk: string | null
+          nomor_sim: string | null
+          nomor_telepon: string | null
+          npwp: string | null
+          pic_name: string | null
+          pic_phone: string | null
+          sensitive_encrypted: boolean | null
+          status: string | null
+          tipe_driver: string | null
+          updated_at: string | null
+          upload_kk_url: string | null
+          upload_ktp_url: string | null
+          upload_sim_url: string | null
+          upload_skck_url: string | null
+          user_id: string | null
+          verification_notes: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          agama?: string | null
+          birth_place?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          etnis?: string | null
+          foto_selfie_url?: string | null
+          full_name?: string | null
+          gender?: string | null
+          id?: string
+          kontak_referensi_nama?: string | null
+          kontak_referensi_nomor?: string | null
+          ktp_address?: string | null
+          ktp_number?: number | null
+          license_expiry?: string | null
+          license_number?: string | null
+          license_type?: string | null
+          nama_perusahaan_mitra?: string | null
+          nib?: string | null
+          nomor_kendaraan?: string | null
+          nomor_kk?: string | null
+          nomor_sim?: string | null
+          nomor_telepon?: string | null
+          npwp?: string | null
+          pic_name?: string | null
+          pic_phone?: string | null
+          sensitive_encrypted?: boolean | null
+          status?: string | null
+          tipe_driver?: string | null
+          updated_at?: string | null
+          upload_kk_url?: string | null
+          upload_ktp_url?: string | null
+          upload_sim_url?: string | null
+          upload_skck_url?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          agama?: string | null
+          birth_place?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          etnis?: string | null
+          foto_selfie_url?: string | null
+          full_name?: string | null
+          gender?: string | null
+          id?: string
+          kontak_referensi_nama?: string | null
+          kontak_referensi_nomor?: string | null
+          ktp_address?: string | null
+          ktp_number?: number | null
+          license_expiry?: string | null
+          license_number?: string | null
+          license_type?: string | null
+          nama_perusahaan_mitra?: string | null
+          nib?: string | null
+          nomor_kendaraan?: string | null
+          nomor_kk?: string | null
+          nomor_sim?: string | null
+          nomor_telepon?: string | null
+          npwp?: string | null
+          pic_name?: string | null
+          pic_phone?: string | null
+          sensitive_encrypted?: boolean | null
+          status?: string | null
+          tipe_driver?: string | null
+          updated_at?: string | null
+          upload_kk_url?: string | null
+          upload_ktp_url?: string | null
+          upload_sim_url?: string | null
+          upload_skck_url?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drivers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_verifications: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          token: string
+          updated_at: string | null
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          token: string
+          updated_at?: string | null
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+          updated_at?: string | null
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          address: string | null
+          agama: string | null
+          birth_place: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          departemen: string | null
+          department: string | null
+          etnis: string | null
+          foto_selfie_url: string | null
+          full_name: string | null
+          hire_date: string | null
+          id: string
+          jabatan: string | null
+          kontak_referensi_nama: string | null
+          kontak_referensi_nomor: string | null
+          ktp_address: string | null
+          ktp_number: number | null
+          nik: string | null
+          nomor_kk: string | null
+          nomor_telepon: string | null
+          position: string | null
+          sensitive_encrypted: boolean | null
+          status: string | null
+          updated_at: string | null
+          upload_kk_url: string | null
+          upload_ktp_url: string | null
+          upload_skck_url: string | null
+          user_id: string | null
+          verification_notes: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          agama?: string | null
+          birth_place?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          departemen?: string | null
+          department?: string | null
+          etnis?: string | null
+          foto_selfie_url?: string | null
+          full_name?: string | null
+          hire_date?: string | null
+          id?: string
+          jabatan?: string | null
+          kontak_referensi_nama?: string | null
+          kontak_referensi_nomor?: string | null
+          ktp_address?: string | null
+          ktp_number?: number | null
+          nik?: string | null
+          nomor_kk?: string | null
+          nomor_telepon?: string | null
+          position?: string | null
+          sensitive_encrypted?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+          upload_kk_url?: string | null
+          upload_ktp_url?: string | null
+          upload_skck_url?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          agama?: string | null
+          birth_place?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          departemen?: string | null
+          department?: string | null
+          etnis?: string | null
+          foto_selfie_url?: string | null
+          full_name?: string | null
+          hire_date?: string | null
+          id?: string
+          jabatan?: string | null
+          kontak_referensi_nama?: string | null
+          kontak_referensi_nomor?: string | null
+          ktp_address?: string | null
+          ktp_number?: number | null
+          nik?: string | null
+          nomor_kk?: string | null
+          nomor_telepon?: string | null
+          position?: string | null
+          sensitive_encrypted?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+          upload_kk_url?: string | null
+          upload_ktp_url?: string | null
+          upload_skck_url?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       facilities: {
         Row: {
@@ -2435,6 +2817,33 @@ export type Database = {
           },
         ]
       }
+      password_resets: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_terms: {
         Row: {
           created_at: string | null
@@ -2774,7 +3183,9 @@ export type Database = {
           coa_payable_code: string | null
           coa_tax_code: string | null
           created_at: string | null
+          description: string | null
           id: string
+          item_id: string | null
           item_name: string | null
           journal_ref: string | null
           notes: string | null
@@ -2805,7 +3216,9 @@ export type Database = {
           coa_payable_code?: string | null
           coa_tax_code?: string | null
           created_at?: string | null
+          description?: string | null
           id?: string
+          item_id?: string | null
           item_name?: string | null
           journal_ref?: string | null
           notes?: string | null
@@ -2836,7 +3249,9 @@ export type Database = {
           coa_payable_code?: string | null
           coa_tax_code?: string | null
           created_at?: string | null
+          description?: string | null
           id?: string
+          item_id?: string | null
           item_name?: string | null
           journal_ref?: string | null
           notes?: string | null
@@ -2997,6 +3412,13 @@ export type Database = {
             referencedRelation: "vw_laporan_keuangan"
             referencedColumns: ["account_code"]
           },
+          {
+            foreignKeyName: "purchase_transactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "stock"
+            referencedColumns: ["id"]
+          },
         ]
       }
       racks: {
@@ -3055,7 +3477,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           description?: string | null
-          id: string
+          id?: string
           permissions?: Json | null
           role_id: number
           role_name: string
@@ -3084,6 +3506,7 @@ export type Database = {
           created_by: string | null
           customer_id: string | null
           customer_name: string | null
+          description: string | null
           id: string
           item_id: string | null
           item_name: string
@@ -3121,6 +3544,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           customer_name?: string | null
+          description?: string | null
           id?: string
           item_id?: string | null
           item_name: string
@@ -3158,6 +3582,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           customer_name?: string | null
+          description?: string | null
           id?: string
           item_id?: string | null
           item_name?: string
@@ -3324,6 +3749,11 @@ export type Database = {
           status: string
           tax_id: string | null
           updated_at: string | null
+          user_id: string | null
+          verification_notes: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           address?: string | null
@@ -3345,6 +3775,11 @@ export type Database = {
           status?: string
           tax_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           address?: string | null
@@ -3366,8 +3801,21 @@ export type Database = {
           status?: string
           tax_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shippers_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock: {
         Row: {
@@ -3378,28 +3826,46 @@ export type Database = {
           coa_account_hpp: string | null
           coa_account_inventory: string | null
           coa_account_name: string | null
+          cost_per_unit: number | null
           created_at: string | null
           description: string | null
+          harga_beli_setelah_pajak: number | null
+          harga_jual: number | null
+          harga_jual_setelah_pajak: number | null
+          hawb: string | null
           id: string
+          is_pajak: boolean | null
           item_name: string
-          item_quantity: number | null
           jenis_barang: string | null
           kode_barang: string | null
+          lot_id: string | null
+          mawb: string | null
           nominal_barang: number | null
+          nomor_plp: string | null
           part_number: string | null
           ppn_type: string | null
           purchase_price: number | null
           quantity: number | null
+          rack_id: string | null
           racks: string | null
           selling_price: number | null
           selling_price_after_ppn: number | null
+          service_category: string | null
+          service_type: string | null
           sku: string | null
+          supplier_address: string | null
+          supplier_email: string | null
           supplier_id: string | null
           supplier_name: string | null
+          supplier_phone: string | null
+          tanggal_masuk_barang: string | null
+          tipe_barang: string | null
+          typical_weight: string | null
           unit: string | null
           updated_at: string | null
           warehouse_id: string | null
           warehouses: string | null
+          zone_id: string | null
           zones: string | null
         }
         Insert: {
@@ -3410,28 +3876,46 @@ export type Database = {
           coa_account_hpp?: string | null
           coa_account_inventory?: string | null
           coa_account_name?: string | null
+          cost_per_unit?: number | null
           created_at?: string | null
           description?: string | null
+          harga_beli_setelah_pajak?: number | null
+          harga_jual?: number | null
+          harga_jual_setelah_pajak?: number | null
+          hawb?: string | null
           id?: string
+          is_pajak?: boolean | null
           item_name: string
-          item_quantity?: number | null
           jenis_barang?: string | null
           kode_barang?: string | null
+          lot_id?: string | null
+          mawb?: string | null
           nominal_barang?: number | null
+          nomor_plp?: string | null
           part_number?: string | null
           ppn_type?: string | null
           purchase_price?: number | null
           quantity?: number | null
+          rack_id?: string | null
           racks?: string | null
           selling_price?: number | null
           selling_price_after_ppn?: number | null
+          service_category?: string | null
+          service_type?: string | null
           sku?: string | null
+          supplier_address?: string | null
+          supplier_email?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
+          supplier_phone?: string | null
+          tanggal_masuk_barang?: string | null
+          tipe_barang?: string | null
+          typical_weight?: string | null
           unit?: string | null
           updated_at?: string | null
           warehouse_id?: string | null
           warehouses?: string | null
+          zone_id?: string | null
           zones?: string | null
         }
         Update: {
@@ -3442,31 +3926,63 @@ export type Database = {
           coa_account_hpp?: string | null
           coa_account_inventory?: string | null
           coa_account_name?: string | null
+          cost_per_unit?: number | null
           created_at?: string | null
           description?: string | null
+          harga_beli_setelah_pajak?: number | null
+          harga_jual?: number | null
+          harga_jual_setelah_pajak?: number | null
+          hawb?: string | null
           id?: string
+          is_pajak?: boolean | null
           item_name?: string
-          item_quantity?: number | null
           jenis_barang?: string | null
           kode_barang?: string | null
+          lot_id?: string | null
+          mawb?: string | null
           nominal_barang?: number | null
+          nomor_plp?: string | null
           part_number?: string | null
           ppn_type?: string | null
           purchase_price?: number | null
           quantity?: number | null
+          rack_id?: string | null
           racks?: string | null
           selling_price?: number | null
           selling_price_after_ppn?: number | null
+          service_category?: string | null
+          service_type?: string | null
           sku?: string | null
+          supplier_address?: string | null
+          supplier_email?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
+          supplier_phone?: string | null
+          tanggal_masuk_barang?: string | null
+          tipe_barang?: string | null
+          typical_weight?: string | null
           unit?: string | null
           updated_at?: string | null
           warehouse_id?: string | null
           warehouses?: string | null
+          zone_id?: string | null
           zones?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_rack_id_fkey"
+            columns: ["rack_id"]
+            isOneToOne: false
+            referencedRelation: "racks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -3479,6 +3995,13 @@ export type Database = {
             columns: ["warehouse_id"]
             isOneToOne: false
             referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
             referencedColumns: ["id"]
           },
         ]
@@ -3776,6 +4299,7 @@ export type Database = {
           is_active: boolean
           is_pkp: string | null
           name: string | null
+          npwp: number | null
           payment_terms: string | null
           phone_number: string | null
           status: string | null
@@ -3783,6 +4307,11 @@ export type Database = {
           supplier_name: string
           tax_id: string | null
           updated_at: string | null
+          user_id: string | null
+          verification_notes: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           address?: string | null
@@ -3801,6 +4330,7 @@ export type Database = {
           is_active?: boolean
           is_pkp?: string | null
           name?: string | null
+          npwp?: number | null
           payment_terms?: string | null
           phone_number?: string | null
           status?: string | null
@@ -3808,6 +4338,11 @@ export type Database = {
           supplier_name: string
           tax_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           address?: string | null
@@ -3826,6 +4361,7 @@ export type Database = {
           is_active?: boolean
           is_pkp?: string | null
           name?: string | null
+          npwp?: number | null
           payment_terms?: string | null
           phone_number?: string | null
           status?: string | null
@@ -3833,8 +4369,21 @@ export type Database = {
           supplier_name?: string
           tax_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tax_reminders: {
         Row: {
@@ -4192,15 +4741,22 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null
+          birth_place: string | null
           created_at: string | null
           department: string | null
           email: string
           entitas: string | null
+          entity_type: string | null
           full_name: string | null
+          gender: string | null
           id: string
           is_active: boolean | null
+          ktp_address: string | null
+          ktp_number: number | null
           last_login: string | null
+          phone: string | null
           phone_number: string | null
+          role: string
           role_id: number | null
           role_name: string | null
           status: Database["public"]["Enums"]["user_status"]
@@ -4208,15 +4764,22 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          birth_place?: string | null
           created_at?: string | null
           department?: string | null
           email: string
           entitas?: string | null
+          entity_type?: string | null
           full_name?: string | null
+          gender?: string | null
           id: string
           is_active?: boolean | null
+          ktp_address?: string | null
+          ktp_number?: number | null
           last_login?: string | null
+          phone?: string | null
           phone_number?: string | null
+          role?: string
           role_id?: number | null
           role_name?: string | null
           status?: Database["public"]["Enums"]["user_status"]
@@ -4224,15 +4787,22 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          birth_place?: string | null
           created_at?: string | null
           department?: string | null
           email?: string
           entitas?: string | null
+          entity_type?: string | null
           full_name?: string | null
+          gender?: string | null
           id?: string
           is_active?: boolean | null
+          ktp_address?: string | null
+          ktp_number?: number | null
           last_login?: string | null
+          phone?: string | null
           phone_number?: string | null
+          role?: string
           role_id?: number | null
           role_name?: string | null
           status?: Database["public"]["Enums"]["user_status"]
@@ -4686,6 +5256,7 @@ export type Database = {
         Args: { e: string; f_id: string; s: string }
         Returns: boolean
       }
+      cleanup_expired_tokens: { Args: never; Returns: undefined }
       cleanup_old_cart_items: { Args: never; Returns: undefined }
       create_monthly_tax_reminders: { Args: never; Returns: undefined }
       fn_income_statement: {
@@ -4800,6 +5371,7 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.repost_gl_for_journal_entry(p_je_id => text), public.repost_gl_for_journal_entry(p_je_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      set_app_user: { Args: { uid: string }; Returns: undefined }
     }
     Enums: {
       airwaybill_status:

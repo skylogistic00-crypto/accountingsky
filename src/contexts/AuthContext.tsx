@@ -53,8 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId: string, retryCount = 0) => {
-    let hasError = false;
+  const fetchUserProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("users")
@@ -70,45 +69,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       `,
         )
         .eq("id", userId)
-        .maybeSingle();
+        .single();
 
       if (error) {
-        hasError = true;
         console.error("Error fetching user profile:", error);
-        throw error;
-      }
-
-      // If user doesn't exist yet (trigger hasn't run), wait and retry
-      if (!data && retryCount < 3) {
-        console.log(`User not found, retrying (attempt ${retryCount + 1})...`);
-        setTimeout(() => fetchUserProfile(userId, retryCount + 1), 1000);
+        setLoading(false);
         return;
       }
-
-      if (!data) {
-        console.error("User profile not found after retries");
-        return;
-      }
-
-      console.log("👤 User Profile with Role:", data);
 
       setUserProfile(data);
 
       const role = data.role_name || data.roles?.role_name || null;
 
       setUserRole((role || "").toLowerCase().trim().replace(/\s+/g, "_"));
+      setLoading(false);
     } catch (error: any) {
-      hasError = true;
       console.error("Error fetching user profile:", error);
-      // Set loading to false even on error so UI doesn't hang
-      if (retryCount >= 2) {
-        // After retries failed, show a more user-friendly state
-        setUserProfile(null);
-      }
-    } finally {
-      if (retryCount >= 2 || !hasError) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
@@ -152,21 +129,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     fullName: string,
-    roleName: string = "read_only",
+    entityType: string = "customer",
+    phone?: string,
+    details?: Record<string, any>,
+    fileUrls?: Record<string, string>
   ) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          full_name: fullName,
-          role: roleName, // ✔ FIXED
-        },
+    const { data, error } = await supabase.functions.invoke('supabase-functions-signup-multi-entity', {
+      body: {
+        email,
+        password,
+        full_name: fullName,
+        entity_type: entityType,
+        phone,
+        details: details || {},
+        file_urls: fileUrls || {},
       },
     });
 
     if (error) throw error;
+
+    // Auto login after successful signup
+    await supabase.auth.signInWithPassword({ email, password });
+
+    return data;
   };
 
   const signOut = async () => {

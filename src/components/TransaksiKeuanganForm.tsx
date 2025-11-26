@@ -197,9 +197,48 @@ export default function TransaksiKeuanganForm() {
   const [kategori, setKategori] = useState("");
   const [jenisLayanan, setJenisLayanan] = useState("");
 
+  // const [items, setItems] = useState<any[]>([]);
+  //const [brands, setBrands] = useState<any[]>([]);
+  //const [filteredBrands, setFilteredBrands] = useState<any[]>([]);
+
+  // Popover states for searchable selects
+  const [openItemPopover, setOpenItemPopover] = useState(false);
+  const [openDescriptionPopover, setOpenDescriptionPopover] = useState(false);
+  // SEARCH STATES
+  const [itemSearchKeyword, setItemSearchKeyword] = useState("");
+  const [descriptionSearchKeyword, setDescriptionSearchKeyword] = useState("");
+
+  // RAW DATA
   const [items, setItems] = useState<any[]>([]);
-  const [brands, setBrands] = useState<any[]>([]);
-  const [filteredBrands, setFilteredBrands] = useState<any[]>([]);
+  const [descriptions, setDescriptions] = useState<any[]>([]);
+
+  // FILTERED ITEMS
+  const filteredItemsComputed = Array.isArray(items)
+    ? items.filter((i) =>
+        (i?.item_name || "")
+          .toLowerCase()
+          .includes(itemSearchKeyword.toLowerCase()),
+      )
+    : [];
+
+  // FILTERED DESCRIPTIONS
+  const filteredDescriptionsComputed = Array.isArray(descriptions)
+    ? descriptions.filter((d) =>
+        (d?.description || "")
+          .toLowerCase()
+          .includes(descriptionSearchKeyword.toLowerCase()),
+      )
+    : [];
+
+  // Safe arrays for rendering
+  const safeFilteredItems = Array.isArray(filteredItemsComputed)
+    ? filteredItemsComputed
+    : [];
+
+  const safeFilteredDescriptions = Array.isArray(filteredDescriptionsComputed)
+    ? filteredDescriptionsComputed
+    : [];
+
   const [coa, setCoa] = useState<any[]>([]);
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
@@ -210,7 +249,7 @@ export default function TransaksiKeuanganForm() {
   const [kasAccounts, setKasAccounts] = useState<any[]>([]);
 
   const [itemName, setItemName] = useState("");
-  const [brand, setBrand] = useState("");
+  const [description, setDescription] = useState("");
   const [customer, setCustomer] = useState("");
   const [consignee, setConsignee] = useState("");
   const [supplier, setSupplier] = useState("");
@@ -258,7 +297,6 @@ export default function TransaksiKeuanganForm() {
   const [tanggal, setTanggal] = useState(
     new Date().toISOString().split("T")[0],
   );
-  const [description, setDescription] = useState("");
   const [buktiFile, setBuktiFile] = useState<File | null>(null);
   const [buktiUrl, setBuktiUrl] = useState("");
 
@@ -272,6 +310,16 @@ export default function TransaksiKeuanganForm() {
 
   const [previewLines, setPreviewLines] = useState<any[]>([]);
   const [previewMemo, setPreviewMemo] = useState("");
+
+  const safeBanks = Array.isArray(banks) ? banks : [];
+  const safeKasAccounts = Array.isArray(kasAccounts) ? kasAccounts : [];
+  const safeCustomers = Array.isArray(customers) ? customers : [];
+  const safeSuppliers = Array.isArray(suppliers) ? suppliers : [];
+  const safeConsignees = Array.isArray(consignees) ? consignees : [];
+  const safeCategories = Array.isArray(availableCategories)
+    ? availableCategories
+    : [];
+  const safeServiceTypes = Array.isArray(serviceTypes) ? serviceTypes : [];
   const [previewTanggal, setPreviewTanggal] = useState("");
   const [previewIsCashRelated, setPreviewIsCashRelated] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -288,7 +336,7 @@ export default function TransaksiKeuanganForm() {
 
   // Cart state - load from localStorage on mount
   const [cart, setCart] = useState<any[]>(() => {
-    const savedCart = localStorage.getItem('transaksi_keuangan_cart');
+    const savedCart = localStorage.getItem("transaksi_keuangan_cart");
     return savedCart ? JSON.parse(savedCart) : [];
   });
   const [showCart, setShowCart] = useState(false);
@@ -311,7 +359,7 @@ export default function TransaksiKeuanganForm() {
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('transaksi_keuangan_cart', JSON.stringify(cart));
+    localStorage.setItem("transaksi_keuangan_cart", JSON.stringify(cart));
   }, [cart]);
 
   // Load transactions on component mount
@@ -386,7 +434,7 @@ export default function TransaksiKeuanganForm() {
         return jenisTransaksi === "Penjualan Jasa";
 
       case "itemBarang":
-      case "brand":
+      case "description":
         return ["Penjualan Barang", "Pembelian Barang"].includes(
           jenisTransaksi,
         );
@@ -540,7 +588,6 @@ export default function TransaksiKeuanganForm() {
     const loadData = async () => {
       await Promise.all([
         loadItems(),
-        loadBrands(),
         loadSuppliers(),
         loadCustomers(),
         loadConsignees(),
@@ -632,29 +679,66 @@ export default function TransaksiKeuanganForm() {
     refreshLoanData();
   }, [selectedBorrower, jenisTransaksi, showForm]);
 
+  // Load descriptions when item changes
+  useEffect(() => {
+    if (itemName) {
+      loadDescriptions(itemName);
+    } else {
+      setDescriptions([]);
+      setDescription("");
+    }
+  }, [itemName]);
+
   // No longer filtering brands by item - show all brands
   // This allows newly added brands to appear immediately
-  useEffect(() => {
+  /*useEffect(() => {
     setFilteredBrands(brands);
   }, [brands]);
+  */
 
   const loadItems = async () => {
-    const { data } = await supabase.from("item_master").select("*");
-    setItems(data || []);
+    const { data } = await supabase
+      .from("stock")
+      .select("item_name, description, quantity, selling_price")
+      .not("item_name", "is", null);
+
+    const uniqueItems = Array.from(
+      new Set(data?.map((item) => item.item_name) || []),
+    ).map((item_name) => {
+      const match = data.find((d) => d.item_name === item_name);
+      return {
+        item_name,
+        description: match?.description || "",
+        quantity: match?.quantity || 0,
+        selling_price: match?.selling_price || 0,
+      };
+    });
+
+    setItems(uniqueItems);
   };
 
-  const loadBrands = async () => {
-    const { data } = await supabase.from("brands").select("*");
-    setBrands(data || []);
+  const loadDescriptions = async (selectedItemName: string) => {
+    if (!selectedItemName) {
+      setDescriptions([]);
+      return;
+    }
 
-    // Always show all brands - don't filter by stock
-    // This allows newly added brands to appear immediately
-    setFilteredBrands(data || []);
+    const { data } = await supabase
+      .from("stock")
+      .select("description")
+      .eq("item_name", selectedItemName)
+      .not("description", "is", null);
+
+    const uniqueDescriptions = Array.from(
+      new Set(data?.map((item) => item.description) || []),
+    ).map((description) => ({ description }));
+
+    setDescriptions(uniqueDescriptions);
   };
 
-  // Fetch stock information when item and brand are selected
-  const fetchStockInfo = async (itemName: string, brand: string) => {
-    if (!itemName || !brand) {
+  // Fetch stock information when item and description are selected
+  const fetchStockInfo = async (itemName: string, description: string) => {
+    if (!itemName || !description) {
       setStockInfo(null);
       return;
     }
@@ -670,7 +754,7 @@ export default function TransaksiKeuanganForm() {
         `,
         )
         .eq("item_name", itemName)
-        .eq("brand", brand)
+        .eq("description", description)
         .maybeSingle();
 
       if (error) throw error;
@@ -689,10 +773,10 @@ export default function TransaksiKeuanganForm() {
     }
   };
 
-  // Update stock info when item or brand changes
+  // Update stock info when item or description changes
   useEffect(() => {
-    fetchStockInfo(itemName, brand);
-  }, [itemName, brand]);
+    fetchStockInfo(itemName, description);
+  }, [itemName, description]);
 
   const loadSuppliers = async (): Promise<void> => {
     try {
@@ -1893,7 +1977,7 @@ export default function TransaksiKeuanganForm() {
             .from("stock")
             .select("quantity, cost_per_unit")
             .eq("item_name", itemName)
-            .eq("brand", brand)
+            .eq("description", description)
             .maybeSingle();
 
           const { data: salesData, error: salesError } = await supabase
@@ -1902,7 +1986,7 @@ export default function TransaksiKeuanganForm() {
               transaction_date: previewTanggal,
               transaction_type: "Barang",
               item_name: itemName,
-              brand: brand,
+              description: description,
               stock_before: stockData?.quantity || 0,
               quantity: quantity,
               stock_after: (stockData?.quantity || 0) - quantity,
@@ -1925,6 +2009,8 @@ export default function TransaksiKeuanganForm() {
           if (salesError) {
             throw new Error(`Sales Transaction: ${salesError.message}`);
           }
+
+          // Stock quantity is automatically updated by database trigger
         } else if (jenisTransaksi === "Penjualan Jasa") {
           // For service sales, no stock tracking needed
           const { data: salesData, error: salesError } = await supabase
@@ -1933,7 +2019,7 @@ export default function TransaksiKeuanganForm() {
               transaction_date: previewTanggal,
               transaction_type: "Jasa",
               item_name: `${kategori} - ${jenisLayanan}`,
-              brand: null,
+              description: null,
               stock_before: null,
               quantity: quantity,
               stock_after: null,
@@ -1989,7 +2075,7 @@ export default function TransaksiKeuanganForm() {
     setKategori("");
     setJenisLayanan("");
     setItemName("");
-    setBrand("");
+    setDescription("");
     setCustomer("");
     setSupplier("");
     setNominal("");
@@ -2055,7 +2141,7 @@ export default function TransaksiKeuanganForm() {
       kategori,
       jenisLayanan,
       itemName,
-      brand,
+      description,
       customer,
       supplier,
       consignee,
@@ -2321,14 +2407,14 @@ export default function TransaksiKeuanganForm() {
               .from("stock")
               .select("quantity, cost_per_unit")
               .eq("item_name", item.itemName)
-              .eq("brand", item.brand)
+              .eq("description", item.description)
               .maybeSingle();
 
             await supabase.from("sales_transactions").insert({
               transaction_date: item.tanggal,
               transaction_type: "Barang",
               item_name: item.itemName,
-              brand: item.brand,
+              description: item.description,
               stock_before: stockData?.quantity || 0,
               quantity: quantity,
               stock_after: (stockData?.quantity || 0) - quantity,
@@ -2347,12 +2433,14 @@ export default function TransaksiKeuanganForm() {
               notes: item.description,
               journal_ref: journalRef,
             });
+
+            // Stock quantity is automatically updated by database trigger
           } else if (item.jenisTransaksi === "Penjualan Jasa") {
             await supabase.from("sales_transactions").insert({
               transaction_date: item.tanggal,
               transaction_type: "Jasa",
               item_name: `${item.kategori} - ${item.jenisLayanan}`,
-              brand: null,
+              description: null,
               stock_before: null,
               quantity: quantity,
               stock_after: null,
@@ -2670,7 +2758,7 @@ export default function TransaksiKeuanganForm() {
               item.jenisTransaksi === "Pembelian Barang" ? "Barang" : "Jasa",
             item_name:
               item.itemName || `${item.kategori} - ${item.jenisLayanan}`,
-            brand: item.brand || null,
+            brand: item.description || null,
             supplier_name: item.supplier || "",
             quantity: quantity,
             unit_price: unitPrice,
@@ -2752,7 +2840,7 @@ export default function TransaksiKeuanganForm() {
 
       // Clear cart and close
       setCart([]);
-      localStorage.removeItem('transaksi_keuangan_cart');
+      localStorage.removeItem("transaksi_keuangan_cart");
       setShowCart(false);
 
       // Show success message
@@ -3504,30 +3592,79 @@ export default function TransaksiKeuanganForm() {
                 )}
               </div>
 
-              {/* ITEM & BRAND */}
+              {/* ITEM & DESCRIPTION */}
               {shouldShowField("itemBarang") && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="item_barang">Item Barang</Label>
                     <div className="flex gap-2">
-                      <Select
-                        value={itemName}
-                        onValueChange={(value) => {
-                          setItemName(value);
-                          setBrand(""); // Reset brand when item changes
-                        }}
+                      <Popover
+                        open={openItemPopover}
+                        onOpenChange={setOpenItemPopover}
                       >
-                        <SelectTrigger id="item_barang" className="flex-1">
-                          <SelectValue placeholder="-- pilih --" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {items.map((i) => (
-                            <SelectItem key={i.id} value={i.item_name}>
-                              {i.item_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="flex-1 justify-between"
+                          >
+                            {itemName || "-- pilih item --"}
+                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+
+                        <PopoverContent className="w-[400px] p-2">
+                          <Input
+                            placeholder="Ketik untuk mencari item..."
+                            value={itemSearchKeyword}
+                            onChange={(e) =>
+                              setItemSearchKeyword(e.target.value)
+                            }
+                            className="mb-2"
+                          />
+
+                          <div className="max-h-[300px] overflow-auto">
+                            {safeFilteredItems
+                              .filter((i) =>
+                                (i.item_name || "")
+                                  .toLowerCase()
+                                  .includes(itemSearchKeyword.toLowerCase()),
+                              )
+                              .map((i, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                                  onClick={() => {
+                                    setItemName(i.item_name);
+                                    setDescription("");
+                                    setOpenItemPopover(false);
+                                    setItemSearchKeyword("");
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      itemName === i.item_name
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    }`}
+                                  />
+                                  {i.item_name}
+                                </div>
+                              ))}
+
+                            {safeFilteredItems.filter((i) =>
+                              (i.item_name || "")
+                                .toLowerCase()
+                                .includes(itemSearchKeyword.toLowerCase()),
+                            ).length === 0 && (
+                              <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                Tidak ada item ditemukan.
+                              </div>
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+
                       <Button
                         type="button"
                         size="icon"
@@ -3539,41 +3676,79 @@ export default function TransaksiKeuanganForm() {
                     </div>
                   </div>
 
-                  {shouldShowField("brand") && (
+                  {shouldShowField("description") && (
                     <div className="space-y-2">
-                      <Label htmlFor="brand">Brand</Label>
+                      <Label htmlFor="description">Deskripsi</Label>
                       <div className="flex gap-2">
-                        <Select
-                          value={brand}
-                          onValueChange={setBrand}
-                          disabled={!itemName}
+                        <Popover
+                          open={openDescriptionPopover}
+                          onOpenChange={setOpenDescriptionPopover}
                         >
-                          <SelectTrigger id="brand" className="flex-1">
-                            <SelectValue
-                              placeholder={
-                                itemName
-                                  ? "-- pilih --"
-                                  : "Pilih item terlebih dahulu"
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="flex-1 justify-between"
+                              disabled={!itemName}
+                            >
+                              {description ||
+                                (itemName
+                                  ? "-- pilih deskripsi --"
+                                  : "Pilih item terlebih dahulu")}
+                              <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+
+                          <PopoverContent className="w-[400px] p-2">
+                            <Input
+                              placeholder="Ketik untuk mencari deskripsi..."
+                              value={descriptionSearchKeyword}
+                              onChange={(e) =>
+                                setDescriptionSearchKeyword(e.target.value)
                               }
+                              className="mb-2"
                             />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filteredBrands.map((b) => (
-                              <SelectItem key={b.id} value={b.brand_name}>
-                                {b.brand_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {/*
-                        <Button
-                          type="button"
-                          size="icon"
-                          onClick={() => setOpenBrandModal(true)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                        */}
+
+                            <div className="max-h-[300px] overflow-auto">
+                              {safeFilteredDescriptions
+                                .filter((d) =>
+                                  (d.description || "")
+                                    .toLowerCase()
+                                    .includes(descriptionSearchKeyword.toLowerCase()),
+                                )
+                                .map((d, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                                    onClick={() => {
+                                      setDescription(d.description);
+                                      setOpenDescriptionPopover(false);
+                                      setDescriptionSearchKeyword("");
+                                    }}
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        description === d.description
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      }`}
+                                    />
+                                    {d.description}
+                                  </div>
+                                ))}
+
+                              {safeFilteredDescriptions.filter((d) =>
+                                (d.description || "")
+                                  .toLowerCase()
+                                  .includes(descriptionSearchKeyword.toLowerCase()),
+                              ).length === 0 && (
+                                <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                  Tidak ada deskripsi ditemukan.
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                   )}
@@ -3581,7 +3756,7 @@ export default function TransaksiKeuanganForm() {
               )}
 
               {/* STOCK INFORMATION */}
-              {shouldShowField("itemBarang") && itemName && brand && (
+              {shouldShowField("itemBarang") && itemName && description && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
                   <h4 className="font-semibold text-blue-900 flex items-center gap-2">
                     📦 Informasi Stock
@@ -3637,14 +3812,14 @@ export default function TransaksiKeuanganForm() {
                     </div>
                   ) : (
                     <p className="text-sm text-amber-600">
-                      ⚠️ Stock tidak ditemukan untuk item dan brand ini
+                      ⚠️ Stock tidak ditemukan untuk item dan deskripsi ini
                     </p>
                   )}
                 </div>
               )}
 
               {/* QUANTITY & HARGA JUAL - Only for Penjualan Barang */}
-              {jenisTransaksi === "Penjualan Barang" && itemName && brand && (
+              {jenisTransaksi === "Penjualan Barang" && itemName && description && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="quantity">Quantity *</Label>
@@ -3694,7 +3869,7 @@ export default function TransaksiKeuanganForm() {
               )}
 
               {/* QUANTITY, HARGA BELI & PPN - Only for Pembelian Barang */}
-              {jenisTransaksi === "Pembelian Barang" && itemName && brand && (
+              {jenisTransaksi === "Pembelian Barang" && itemName && description && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -5308,14 +5483,14 @@ export default function TransaksiKeuanganForm() {
                     Nominal *
                     {jenisTransaksi === "Penjualan Barang" &&
                       itemName &&
-                      brand && (
+                      description && (
                         <span className="text-xs text-muted-foreground ml-2">
                           (Otomatis dari Quantity × Harga Jual)
                         </span>
                       )}
                     {jenisTransaksi === "Pembelian Barang" &&
                       itemName &&
-                      brand && (
+                      description && (
                         <span className="text-xs text-muted-foreground ml-2">
                           (Otomatis dari (Quantity × Harga Beli) + PPN)
                         </span>
@@ -5330,18 +5505,18 @@ export default function TransaksiKeuanganForm() {
                     readOnly={
                       (jenisTransaksi === "Penjualan Barang" &&
                         itemName &&
-                        brand) ||
+                        description) ||
                       (jenisTransaksi === "Pembelian Barang" &&
                         itemName &&
-                        brand)
+                        description)
                     }
                     className={
                       (jenisTransaksi === "Penjualan Barang" &&
                         itemName &&
-                        brand) ||
+                        description) ||
                       (jenisTransaksi === "Pembelian Barang" &&
                         itemName &&
-                        brand)
+                        description)
                         ? "bg-gray-100"
                         : ""
                     }
@@ -5476,12 +5651,12 @@ export default function TransaksiKeuanganForm() {
                                 <span className="ml-2">{item.itemName}</span>
                               </div>
                             )}
-                            {item.brand && (
+                            {item.description && (
                               <div>
                                 <span className="font-medium text-gray-600">
-                                  Brand:
+                                  Deskripsi:
                                 </span>
-                                <span className="ml-2">{item.brand}</span>
+                                <span className="ml-2">{item.description}</span>
                               </div>
                             )}
                             {item.kategori && (
@@ -5653,7 +5828,7 @@ export default function TransaksiKeuanganForm() {
       <AddBrandModal
         open={openBrandModal}
         onClose={() => setOpenBrandModal(false)}
-        onAdded={loadBrands}
+        onAdded={() => {}}
       />
 
       <AddStockItemModal
@@ -5661,8 +5836,7 @@ export default function TransaksiKeuanganForm() {
         onClose={() => setOpenStockItemModal(false)}
         onAdded={() => {
           loadItems();
-          loadBrands();
-          fetchStockInfo(itemName, brand);
+          fetchStockInfo(itemName, description);
         }}
       />
 

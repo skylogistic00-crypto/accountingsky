@@ -1,128 +1,116 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { ThemeProvider } from "./contexts/ThemeContext";
-import { useAuth } from "./contexts/AuthContext";
-import Header from "./components/Header";
-import Navigation from "./components/Navigation";
-import HeroSection from "./components/HeroSection";
-import Home from "./components/home";
-import UserManagement from "./components/UserManagement";
-import SupplierForm from "./components/SupplierForm";
-import ShipperForm from "./components/ShipperForm";
-import ConsigneeForm from "./components/ConsigneeForm";
-import CustomerForm from "./components/CustomerForm";
-import StockForm from "./components/StockForm";
-import WarehousesForm from "./components/WarehousesForm";
-import DeliveryForm from "./components/DeliveryForm";
-import BarangLini from "./components/BarangLini";
-import BarangKeluar from "./components/BarangKeluar";
-import AirWaybill from "./components/AirWaybill";
-import TransaksiKeuanganForm from "./components/TransaksiKeuanganForm";
-import AdminSetup from "./components/AdminSetup";
-import COAManagement from "./components/COAManagement";
-import BarangLamaReport from "./components/BarangLamaReport";
-import COAMappingManager from "./components/COAMappingManager";
-import IntegratedFinancialReport from "./components/IntegratedFinancialReport";
-import ProfitLossReport from "./components/ProfitLossReport";
-import BalanceSheetReport from "./components/BalanceSheetReport";
-import FinancialDashboard from "./components/FinancialDashboard";
-import CashFlowReport from "./components/CashFlowReport";
-import TaxReportManagement from "./components/TaxReportManagement";
-import CoretaxUploadForm from "./components/CoretaxUploadForm";
-import CoretaxReportList from "./components/CoretaxReportList";
-import ServiceItemsForm from "./components/ServiceItemsForm";
-import ApprovalTransaksi from "./components/ApprovalTransaksi";
-import CashDisbursementForm from "./components/CashDisbursementForm";
-import { Toaster } from "./components/ui/toaster";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import StockAdjustmentForm from "./components/StockAdjustmentForm";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
+import Header from "@/components/Header";
+import Navigation from "@/components/Navigation";
+import HeroSection from "@/components/HeroSection";
+import Home from "@/components/home";
+import UserManagement from "@/components/UserManagement";
+import SupplierForm from "@/components/SupplierForm";
+import ShipperForm from "@/components/ShipperForm";
+import ConsigneeForm from "@/components/ConsigneeForm";
+import CustomerForm from "@/components/CustomerForm";
+import StockForm from "@/components/StockForm";
+import WarehousesForm from "@/components/WarehousesForm";
+import DeliveryForm from "@/components/DeliveryForm";
+import BarangLini from "@/components/BarangLini";
+import BarangKeluar from "@/components/BarangKeluar";
+import AirWaybill from "@/components/AirWaybill";
+import TransaksiKeuanganForm from "@/components/TransaksiKeuanganForm";
+import AdminSetup from "@/components/AdminSetup";
+import COAManagement from "@/components/COAManagement";
+import BarangLamaReport from "@/components/BarangLamaReport";
+import COAMappingManager from "@/components/COAMappingManager";
+import IntegratedFinancialReport from "@/components/IntegratedFinancialReport";
+import ProfitLossReport from "@/components/ProfitLossReport";
+import BalanceSheetReport from "@/components/BalanceSheetReport";
+import FinancialDashboard from "@/components/FinancialDashboard";
+import CashFlowReport from "@/components/CashFlowReport";
+import TaxReportManagement from "@/components/TaxReportManagement";
+import CoretaxUploadForm from "@/components/CoretaxUploadForm";
+import CoretaxReportList from "@/components/CoretaxReportList";
+import ServiceItemsForm from "@/components/ServiceItemsForm";
+import ApprovalTransaksi from "@/components/ApprovalTransaksi";
+import CashDisbursementForm from "@/components/CashDisbursementForm";
+import { Toaster } from "@/components/ui/toaster";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import StockAdjustmentForm from "@/components/StockAdjustmentForm";
 
-// 🔐 1️⃣ ProtectedRoute — hanya render jika role diizinkan
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
 }
 
-function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { user, userProfile, loading } = useAuth();
+function App() {
+  function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+    const { user, userProfile, loading } = useAuth();
 
-  // ⏳ Saat masih loading user data
-  if (loading) {
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center text-gray-600">
+          <div className="text-lg">Loading...</div>
+        </div>
+      );
+    }
+
+    if (!user) {
+      return <Navigate to="/" replace />;
+    }
+
+    if (
+      allowedRoles &&
+      userProfile?.roles?.role_name &&
+      !allowedRoles.includes(userProfile.roles.role_name)
+    ) {
+      return null;
+    }
+
+    return <>{children}</>;
+  }
+
+  function HomePage() {
+    const { user, userProfile, loading } = useAuth();
+
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center text-gray-500">
+          <div className="text-lg">Memuat data pengguna...</div>
+        </div>
+      );
+    }
+
+    if (user && userProfile) {
+      return (
+        <div className="min-h-screen bg-slate-50">
+          <Header />
+          <Navigation />
+          <Home />
+        </div>
+      );
+    }
+
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
-  }
-
-  // 🚪 Jika belum login → redirect ke halaman utama
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-
-  // 🔍 Jika role tidak diizinkan → sembunyikan (tidak render)
-  if (
-    allowedRoles &&
-    userProfile?.roles?.role_name &&
-    !allowedRoles.includes(userProfile.roles.role_name)
-  ) {
-    return null; // ✅ aman, tidak error & tidak render
-  }
-
-  return <>{children}</>;
-}
-
-// 🏠 2️⃣ HomePage: arahkan user sesuai role
-function HomePage() {
-  const { user, userProfile, loading } = useAuth();
-
-  console.log("🧾 User from Auth:", user);
-  console.log("👤 User Profile:", userProfile);
-  console.log("🔐 Role detected:", userProfile?.role);
-
-  // ⏳ Saat data user masih loading → tampilkan spinner
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        <div className="text-lg">Memuat data pengguna...</div>
-      </div>
-    );
-  }
-
-  // 🧍‍♂️ Jika sudah login → tampilkan Menu Utama
-  if (user && userProfile) {
-    return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-white">
         <Header />
-        <Navigation />
-        <Home />
+        <HeroSection />
       </div>
     );
   }
 
-  // 🌐 Jika belum login → tampilkan landing page biasa
-  return (
-    <div className="min-h-screen bg-white">
-      <Header />
-      <HeroSection />
-    </div>
-  );
-}
+  function AppRoutes() {
+    const { loading } = useAuth();
 
-// 🧭 3️⃣ AppRoutes: definisikan semua route dengan pembatasan role
-function AppRoutes() {
-  const { loading } = useAuth();
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center text-gray-600">
+          <div className="text-lg">Loading...</div>
+        </div>
+      );
+    }
 
-  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
-  }
-
-  return (
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/admin-setup" element={<AdminSetup />} />
@@ -612,7 +600,6 @@ function AppRoutes() {
   );
 }
 
-function App() {
   return (
     <ThemeProvider>
       <AuthProvider>

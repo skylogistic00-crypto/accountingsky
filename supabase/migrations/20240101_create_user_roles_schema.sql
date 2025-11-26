@@ -27,10 +27,17 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
 
+-- Ensure users can read their own profile
 DROP POLICY IF EXISTS "Users can view all users" ON public.users;
 CREATE POLICY "Users can view all users"
 ON public.users FOR SELECT
 USING (true);
+
+-- Allow service role to insert users (for Edge Function)
+DROP POLICY IF EXISTS "Service role can insert users" ON public.users;
+CREATE POLICY "Service role can insert users"
+ON public.users FOR INSERT
+WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Admins can update users" ON public.users;
 CREATE POLICY "Admins can update users"
