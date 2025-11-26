@@ -198,6 +198,8 @@ export default function StockForm() {
   const [hsSubCategories, setHsSubCategories] = useState<HSCode[]>([]);
   const [hsDescriptions, setHsDescriptions] = useState<HSCode[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showWarehouseModal, setShowWarehouseModal] = useState(false);
@@ -2634,7 +2636,9 @@ export default function StockForm() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredItems.map((item, index) => (
+                  filteredItems
+                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .map((item, index) => (
                     <TableRow
                       key={item.id}
                       className={`${
@@ -2697,6 +2701,36 @@ export default function StockForm() {
               </TableBody>
             </Table>
           </div>
+          
+          {/* Pagination Controls */}
+          {filteredItems.length > 0 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200">
+              <div className="text-sm text-slate-600">
+                Menampilkan {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredItems.length)} dari {filteredItems.length} item
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="text-sm text-slate-600">
+                  Halaman {currentPage} dari {Math.ceil(filteredItems.length / itemsPerPage)}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredItems.length / itemsPerPage), prev + 1))}
+                  disabled={currentPage >= Math.ceil(filteredItems.length / itemsPerPage)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

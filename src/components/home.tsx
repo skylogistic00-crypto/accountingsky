@@ -152,6 +152,21 @@ function Home() {
       roles: ["super_admin", "warehouse_manager", "accounting_manager"],
     },
     {
+      title: "Barang Import",
+      description: "Kelola data stok barang import",
+      icon: Package,
+      path: "/stock-barang-import",
+      color: "bg-violet-500",
+      roles: [
+        "super_admin",
+        "warehouse_manager",
+        "accounting_manager",
+        "accounting_staff",
+        "warehouse_staff",
+        "read_only",
+      ],
+    },
+    {
       title: "Laporan",
       description: "Lihat berbagai laporan keuangan",
       icon: FileText,

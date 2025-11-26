@@ -201,6 +201,20 @@ export default function Navigation() {
       ],
     },
     {
+      path: "/stock-barang-import",
+      label: "Barang Import",
+      icon: Package,
+      color: "violet",
+      roles: [
+        "super_admin",
+        "warehouse_manager",
+        "accounting_manager",
+        "accounting_staff",
+        "warehouse_staff",
+        "read_only",
+      ],
+    },
+    {
       path: "/air-waybill",
       label: "Air Waybill",
       icon: Plane,

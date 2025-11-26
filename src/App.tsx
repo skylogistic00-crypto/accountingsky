@@ -37,6 +37,7 @@ import { Toaster } from "@/components/ui/toaster";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import StockAdjustmentForm from "@/components/StockAdjustmentForm";
+import StockBarangImport from "@/components/StockBarangImport";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -341,6 +342,27 @@ function App() {
               <Header />
               <Navigation />
               <StockAdjustmentForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stock-barang-import"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "warehouse_manager",
+              "accounting_manager",
+              "accounting_staff",
+              "warehouse_staff",
+              "read_only",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <StockBarangImport />
             </div>
           </ProtectedRoute>
         }

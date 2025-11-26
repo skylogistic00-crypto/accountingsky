@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { CheckCircle, XCircle, Clock, ArrowLeft } from "lucide-react";
+import { CheckCircle, XCircle, Clock, ArrowLeft, Info } from "lucide-react";
 import { canClick, canDelete, canView, canEdit } from "@/utils/roleAccess";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -61,6 +61,7 @@ export default function ApprovalTransaksi() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<PendingTransaction | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -82,6 +83,11 @@ export default function ApprovalTransaksi() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "kas_transaksi" },
+        () => fetchPendingTransactions(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "approval_transaksi" },
         () => fetchPendingTransactions(),
       )
       .subscribe();
@@ -134,6 +140,15 @@ export default function ApprovalTransaksi() {
 
       if (cashDisbursementError) throw cashDisbursementError;
 
+      // Fetch pending transactions from approval_transaksi table
+      const { data: approvalData, error: approvalError } = await supabase
+        .from("approval_transaksi")
+        .select("*")
+        .eq("approval_status", "waiting_approval")
+        .order("transaction_date", { ascending: false });
+
+      if (approvalError) throw approvalError;
+
       // Combine and format transactions
       const combined: PendingTransaction[] = [
         ...(purchaseData || []).map((t) => ({
@@ -145,6 +160,10 @@ export default function ApprovalTransaksi() {
         ...(cashDisbursementData || []).map((t) => ({
           ...t,
           type: "cash_disbursement" as const,
+        })),
+        ...(approvalData || []).map((t) => ({
+          ...t,
+          type: t.type || "approval" as const,
         })),
       ];
 
@@ -181,6 +200,11 @@ export default function ApprovalTransaksi() {
       } else if (transaction.type === "income") {
         // Approve income transaction
         await approveIncomeTransaction(transaction, user.id);
+      } else if (transaction.type === "Penjualan Barang" || 
+                 transaction.type === "Penjualan Jasa" || 
+                 transaction.type === "Pembelian Jasa") {
+        // Approve transaction from approval_transaksi table
+        await approveApprovalTransaction(transaction, user.id);
       } else {
         // Approve expense transaction
         await approveExpenseTransaction(transaction, user.id);
@@ -372,6 +396,24 @@ export default function ApprovalTransaksi() {
     if (updateError) throw updateError;
   };
 
+  const approveApprovalTransaction = async (
+    transaction: PendingTransaction,
+    userId: string,
+  ) => {
+    // Simply update the approval status in approval_transaksi table
+    // The journal entries were already created when the transaction was submitted
+    const { error: updateError } = await supabase
+      .from("approval_transaksi")
+      .update({
+        approval_status: "approved",
+        approved_by: userId,
+        approved_at: new Date().toISOString(),
+      })
+      .eq("id", transaction.id);
+
+    if (updateError) throw updateError;
+  };
+
   const handleReject = (transaction: PendingTransaction) => {
     setSelectedTransaction(transaction);
     setShowRejectDialog(true);
@@ -395,7 +437,11 @@ export default function ApprovalTransaksi() {
           ? "purchase_transactions"
           : selectedTransaction.type === "cash_disbursement"
             ? "cash_disbursement"
-            : "kas_transaksi";
+            : selectedTransaction.type === "Penjualan Barang" ||
+              selectedTransaction.type === "Penjualan Jasa" ||
+              selectedTransaction.type === "Pembelian Jasa"
+              ? "approval_transaksi"
+              : "kas_transaksi";
 
       const { error } = await supabase
         .from(table)
@@ -489,25 +535,34 @@ export default function ApprovalTransaksi() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>No</TableHead>
                         <TableHead>Tanggal</TableHead>
+                        <TableHead>No. Dokumen</TableHead>
                         <TableHead>Jenis</TableHead>
-                        <TableHead>Deskripsi</TableHead>
-                        <TableHead>Supplier/Kategori</TableHead>
+                        <TableHead>Source</TableHead>
+                        <TableHead>Akun</TableHead>
+                        <TableHead>Keterangan</TableHead>
                         <TableHead className="text-right">Nominal</TableHead>
-                        <TableHead>Metode</TableHead>
                         <TableHead className="text-center">Status</TableHead>
+                        <TableHead className="text-center">Detail</TableHead>
                         <TableHead className="text-center">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {pendingTransactions.map((transaction) => (
+                      {pendingTransactions.map((transaction, index) => (
                         <TableRow key={transaction.id}>
+                          <TableCell className="font-medium">
+                            {index + 1}
+                          </TableCell>
                           <TableCell className="font-medium">
                             {formatDate(
                               transaction.transaction_date ||
                                 transaction.tanggal ||
                                 "",
                             )}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {transaction.journal_ref || "-"}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -521,8 +576,29 @@ export default function ApprovalTransaksi() {
                                 ? "Pembelian"
                                 : transaction.type === "cash_disbursement"
                                   ? "Pengeluaran Kas"
-                                  : "Pengeluaran"}
+                                  : transaction.type === "Penjualan Barang"
+                                    ? "Penjualan Barang"
+                                    : transaction.type === "Penjualan Jasa"
+                                      ? "Penjualan Jasa"
+                                      : transaction.type === "Pembelian Jasa"
+                                        ? "Pembelian Jasa"
+                                        : "Pengeluaran"}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {transaction.type === "purchase"
+                                ? "CASH DISBURSEMENT"
+                                : transaction.type === "cash_disbursement"
+                                  ? "CASH DISBURSEMENT"
+                                  : "CASH AND BANK RECEIPTS"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {transaction.coa_cash_code || 
+                             transaction.coa_expense_code || 
+                             transaction.account_number || 
+                             "-"}
                           </TableCell>
                           <TableCell>
                             {transaction.type === "purchase"
@@ -530,13 +606,6 @@ export default function ApprovalTransaksi() {
                               : transaction.type === "cash_disbursement"
                                 ? transaction.description
                                 : transaction.keterangan}
-                          </TableCell>
-                          <TableCell>
-                            {transaction.type === "purchase"
-                              ? transaction.supplier_name
-                              : transaction.type === "cash_disbursement"
-                                ? transaction.payee_name || transaction.category
-                                : transaction.service_category}
                           </TableCell>
                           <TableCell className="text-right font-semibold">
                             {formatCurrency(
@@ -546,12 +615,6 @@ export default function ApprovalTransaksi() {
                                 0,
                             )}
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {transaction.payment_method ||
-                                transaction.payment_type}
-                            </Badge>
-                          </TableCell>
                           <TableCell className="text-center">
                             <Badge
                               variant="secondary"
@@ -560,6 +623,18 @@ export default function ApprovalTransaksi() {
                               <Clock className="h-3 w-3 mr-1" />
                               Pending
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedTransaction(transaction);
+                                setShowDetailDialog(true);
+                              }}
+                            >
+                              <Info className="h-4 w-4 text-blue-600" />
+                            </Button>
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2 justify-center">
@@ -594,6 +669,178 @@ export default function ApprovalTransaksi() {
           </Card>
         )}
       </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detail Transaksi</DialogTitle>
+            <DialogDescription>
+              Informasi lengkap transaksi berdasarkan jenis transaksi
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTransaction && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Jenis Transaksi</p>
+                  <p className="text-base font-semibold">
+                    {selectedTransaction.type === "purchase"
+                      ? "Pembelian"
+                      : selectedTransaction.type === "cash_disbursement"
+                        ? "Pengeluaran Kas"
+                        : "Pengeluaran"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Tanggal</p>
+                  <p className="text-base">
+                    {formatDate(
+                      selectedTransaction.transaction_date ||
+                        selectedTransaction.tanggal ||
+                        "",
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-500">No. Dokumen</p>
+                  <p className="text-base font-mono">{selectedTransaction.journal_ref || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Source</p>
+                  <p className="text-base">
+                    {selectedTransaction.type === "purchase"
+                      ? "CASH DISBURSEMENT"
+                      : selectedTransaction.type === "cash_disbursement"
+                        ? "CASH DISBURSEMENT"
+                        : "CASH AND BANK RECEIPTS"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-semibold mb-3">Informasi Detail</h4>
+                <div className="space-y-3">
+                  {selectedTransaction.item_name && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Nama Item</p>
+                      <p className="text-base">{selectedTransaction.item_name}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.supplier_name && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Supplier</p>
+                      <p className="text-base">{selectedTransaction.supplier_name}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.payee_name && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Penerima</p>
+                      <p className="text-base">{selectedTransaction.payee_name}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.category && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Kategori</p>
+                      <p className="text-base">{selectedTransaction.category}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.service_category && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Kategori Layanan</p>
+                      <p className="text-base">{selectedTransaction.service_category}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.service_type && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Jenis Layanan</p>
+                      <p className="text-base">{selectedTransaction.service_type}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.payment_method && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Metode Pembayaran</p>
+                      <p className="text-base">{selectedTransaction.payment_method}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.payment_type && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Tipe Pembayaran</p>
+                      <p className="text-base">{selectedTransaction.payment_type}</p>
+                    </div>
+                  )}
+                  {(selectedTransaction.description || selectedTransaction.keterangan) && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Deskripsi</p>
+                      <p className="text-base">
+                        {selectedTransaction.description || selectedTransaction.keterangan}
+                      </p>
+                    </div>
+                  )}
+                  {selectedTransaction.notes && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Catatan</p>
+                      <p className="text-base">{selectedTransaction.notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-semibold mb-3">Informasi Akuntansi</h4>
+                <div className="space-y-3">
+                  {selectedTransaction.coa_cash_code && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">COA Cash Code</p>
+                      <p className="text-base font-mono">{selectedTransaction.coa_cash_code}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.coa_expense_code && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">COA Expense Code</p>
+                      <p className="text-base font-mono">{selectedTransaction.coa_expense_code}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.coa_inventory_code && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">COA Inventory Code</p>
+                      <p className="text-base font-mono">{selectedTransaction.coa_inventory_code}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.coa_payable_code && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">COA Payable Code</p>
+                      <p className="text-base font-mono">{selectedTransaction.coa_payable_code}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.account_number && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Nomor Akun</p>
+                      <p className="text-base font-mono">{selectedTransaction.account_number}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">Total Nominal</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatCurrency(
+                        selectedTransaction.total_amount ||
+                          selectedTransaction.amount ||
+                          selectedTransaction.nominal ||
+                          0,
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <DialogContent>

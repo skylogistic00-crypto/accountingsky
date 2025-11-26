@@ -34,6 +34,7 @@ export default function AuthForm() {
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({
     roleName: "",
+    roleEntity: "", // Track the entity of the selected role
     firstName: "",
     lastName: "",
     fullName: "",
@@ -82,7 +83,7 @@ export default function AuthForm() {
   const loadRoles = async () => {
     const { data, error } = await supabase
       .from("roles")
-      .select("id, role_name")
+      .select("id, role_name, entity")
       .order("role_name", { ascending: true });
 
     if (error) {
@@ -158,21 +159,21 @@ export default function AuthForm() {
           license_expiry_date: signUpData.licenseExpiryDate,
         });
         
-        // File URLs (placeholder for now)
+        // File URLs for karyawan entity - map to correct database columns
+        if (signUpData.ktpDocument) {
+          fileUrls.upload_ktp_url = `LOCAL:${signUpData.ktpDocument.name}`;
+        }
         if (signUpData.selfiePhoto) {
-          fileUrls.selfie_photo = `LOCAL:${signUpData.selfiePhoto.name}`;
+          fileUrls.foto_selfie_url = `LOCAL:${signUpData.selfiePhoto.name}`;
         }
         if (signUpData.familyCard) {
-          fileUrls.family_card = `LOCAL:${signUpData.familyCard.name}`;
-        }
-        if (signUpData.ktpDocument) {
-          fileUrls.ktp_document = `LOCAL:${signUpData.ktpDocument.name}`;
+          fileUrls.upload_kk_url = `LOCAL:${signUpData.familyCard.name}`;
         }
         if (signUpData.simDocument) {
-          fileUrls.sim_document = `LOCAL:${signUpData.simDocument.name}`;
+          fileUrls.upload_sim_url = `LOCAL:${signUpData.simDocument.name}`;
         }
         if (signUpData.skckDocument) {
-          fileUrls.skck_document = `LOCAL:${signUpData.skckDocument.name}`;
+          fileUrls.upload_skck_url = `LOCAL:${signUpData.skckDocument.name}`;
         }
       }
       
@@ -258,7 +259,12 @@ export default function AuthForm() {
                   <Select
                     value={signUpData.roleName}
                     onValueChange={(value) => {
-                      setSignUpData({ ...signUpData, roleName: value });
+                      const selectedRole = roles.find(r => r.role_name === value);
+                      setSignUpData({ 
+                        ...signUpData, 
+                        roleName: value,
+                        roleEntity: selectedRole?.entity || ""
+                      });
                       // Check if role is supplier, consignee, or shipper
                       const lowerRole = value.toLowerCase();
                       if (lowerRole.includes('supplier')) {
@@ -296,6 +302,95 @@ export default function AuthForm() {
                     {showEntityForm === 'supplier' && <SupplierForm />}
                     {showEntityForm === 'consignee' && <ConsigneeForm />}
                     {showEntityForm === 'shipper' && <ShipperForm />}
+                  </div>
+                )}
+
+                {/* Upload Documents - Only for Karyawan entity */}
+                {signUpData.roleEntity === "karyawan" && (
+                  <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h3 className="text-sm font-semibold text-blue-900 border-b border-blue-200 pb-2">Upload Dokumen Karyawan</h3>
+                    
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="upload-ktp" className="text-sm">KTP *</Label>
+                        <Input
+                          id="upload-ktp"
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) =>
+                            setSignUpData({ 
+                              ...signUpData, 
+                              ktpDocument: e.target.files?.[0] || null 
+                            })
+                          }
+                          className="bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="upload-selfie" className="text-sm">Foto Selfie *</Label>
+                        <Input
+                          id="upload-selfie"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            setSignUpData({ 
+                              ...signUpData, 
+                              selfiePhoto: e.target.files?.[0] || null 
+                            })
+                          }
+                          className="bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="upload-family-card" className="text-sm">Kartu Keluarga *</Label>
+                        <Input
+                          id="upload-family-card"
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) =>
+                            setSignUpData({ 
+                              ...signUpData, 
+                              familyCard: e.target.files?.[0] || null 
+                            })
+                          }
+                          className="bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="upload-sim" className="text-sm">SIM</Label>
+                        <Input
+                          id="upload-sim"
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) =>
+                            setSignUpData({ 
+                              ...signUpData, 
+                              simDocument: e.target.files?.[0] || null 
+                            })
+                          }
+                          className="bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="upload-skck" className="text-sm">SKCK</Label>
+                        <Input
+                          id="upload-skck"
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) =>
+                            setSignUpData({ 
+                              ...signUpData, 
+                              skckDocument: e.target.files?.[0] || null 
+                            })
+                          }
+                          className="bg-white"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1117,94 +1212,6 @@ export default function AuthForm() {
                       </div>
                     </div>
 
-                    {/* Upload Documents - Only for driver_perusahaan */}
-                    {signUpData.roleName === "driver_perusahaan" && (
-                      <div className="space-y-4 bg-amber-50 p-4 rounded-lg border border-amber-200">
-                        <h3 className="text-sm font-semibold text-amber-900 border-b border-amber-200 pb-2">Upload Documents (Driver)</h3>
-                        
-                        <div className="space-y-3">
-                          <div className="space-y-2">
-                            <Label htmlFor="upload-selfie" className="text-sm">Selfie Photo</Label>
-                            <Input
-                              id="upload-selfie"
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) =>
-                                setSignUpData({ 
-                                  ...signUpData, 
-                                  selfiePhoto: e.target.files?.[0] || null 
-                                })
-                              }
-                              className="bg-white"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="upload-family-card" className="text-sm">Family Card</Label>
-                            <Input
-                              id="upload-family-card"
-                              type="file"
-                              accept="image/*,application/pdf"
-                              onChange={(e) =>
-                                setSignUpData({ 
-                                  ...signUpData, 
-                                  familyCard: e.target.files?.[0] || null 
-                                })
-                              }
-                              className="bg-white"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="upload-ktp" className="text-sm">KTP Document</Label>
-                            <Input
-                              id="upload-ktp"
-                              type="file"
-                              accept="image/*,application/pdf"
-                              onChange={(e) =>
-                                setSignUpData({ 
-                                  ...signUpData, 
-                                  ktpDocument: e.target.files?.[0] || null 
-                                })
-                              }
-                              className="bg-white"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="upload-sim" className="text-sm">SIM Document</Label>
-                            <Input
-                              id="upload-sim"
-                              type="file"
-                              accept="image/*,application/pdf"
-                              onChange={(e) =>
-                                setSignUpData({ 
-                                  ...signUpData, 
-                                  simDocument: e.target.files?.[0] || null 
-                                })
-                              }
-                              className="bg-white"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="upload-skck" className="text-sm">SKCK Document</Label>
-                            <Input
-                              id="upload-skck"
-                              type="file"
-                              accept="image/*,application/pdf"
-                              onChange={(e) =>
-                                setSignUpData({ 
-                                  ...signUpData, 
-                                  skckDocument: e.target.files?.[0] || null 
-                                })
-                              }
-                              className="bg-white"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </>
                 )}
 

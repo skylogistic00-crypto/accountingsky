@@ -187,13 +187,16 @@ export type Database = {
       }
       approval_transaksi: {
         Row: {
+          account_number: string | null
           approval_status: string | null
           approved_at: string | null
           approved_by: string | null
+          bank_name: string | null
           coa_cash_code: string | null
           coa_expense_code: string | null
           coa_payable_code: string | null
           created_at: string | null
+          customer_name: string | null
           description: string | null
           id: string
           item_name: string
@@ -210,6 +213,7 @@ export type Database = {
           source: string | null
           subtotal: number | null
           supplier_name: string | null
+          target_table: string | null
           total_amount: number
           transaction_date: string
           type: string
@@ -217,13 +221,16 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          account_number?: string | null
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          bank_name?: string | null
           coa_cash_code?: string | null
           coa_expense_code?: string | null
           coa_payable_code?: string | null
           created_at?: string | null
+          customer_name?: string | null
           description?: string | null
           id?: string
           item_name: string
@@ -240,6 +247,7 @@ export type Database = {
           source?: string | null
           subtotal?: number | null
           supplier_name?: string | null
+          target_table?: string | null
           total_amount: number
           transaction_date: string
           type: string
@@ -247,13 +255,16 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          account_number?: string | null
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          bank_name?: string | null
           coa_cash_code?: string | null
           coa_expense_code?: string | null
           coa_payable_code?: string | null
           created_at?: string | null
+          customer_name?: string | null
           description?: string | null
           id?: string
           item_name?: string
@@ -270,6 +281,7 @@ export type Database = {
           source?: string | null
           subtotal?: number | null
           supplier_name?: string | null
+          target_table?: string | null
           total_amount?: number
           transaction_date?: string
           type?: string
@@ -795,7 +807,7 @@ export type Database = {
           journal_ref: string | null
           notes: string | null
           payee_name: string
-          payment_method: string | null
+          payment_method: string
           rejection_reason: string | null
           transaction_date: string
           updated_at: string | null
@@ -818,7 +830,7 @@ export type Database = {
           journal_ref?: string | null
           notes?: string | null
           payee_name: string
-          payment_method?: string | null
+          payment_method: string
           rejection_reason?: string | null
           transaction_date: string
           updated_at?: string | null
@@ -841,7 +853,7 @@ export type Database = {
           journal_ref?: string | null
           notes?: string | null
           payee_name?: string
-          payment_method?: string | null
+          payment_method?: string
           rejection_reason?: string | null
           transaction_date?: string
           updated_at?: string | null
@@ -2404,24 +2416,6 @@ export type Database = {
           },
         ]
       }
-      journals: {
-        Row: {
-          description: string | null
-          entry_date: string | null
-          id: string
-        }
-        Insert: {
-          description?: string | null
-          entry_date?: string | null
-          id?: string
-        }
-        Update: {
-          description?: string | null
-          entry_date?: string | null
-          id?: string
-        }
-        Relationships: []
-      }
       kas_transaksi: {
         Row: {
           account_name: string
@@ -3498,6 +3492,8 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string | null
+          entitas: string | null
+          entity: string | null
           id: string
           permissions: Json | null
           role_id: number
@@ -3506,6 +3502,8 @@ export type Database = {
         Insert: {
           created_at?: string | null
           description?: string | null
+          entitas?: string | null
+          entity?: string | null
           id?: string
           permissions?: Json | null
           role_id: number
@@ -3514,6 +3512,8 @@ export type Database = {
         Update: {
           created_at?: string | null
           description?: string | null
+          entitas?: string | null
+          entity?: string | null
           id?: string
           permissions?: Json | null
           role_id?: number
@@ -4265,6 +4265,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stock_barang_import: {
+        Row: {
+          berat: number | null
+          consignee: string | null
+          deskripsi_barang: string | null
+          hawb: string | null
+          hs_code: string | null
+          id: string
+          jenis_barang: string | null
+          jumlah: number | null
+          lots: string | null
+          mawb: string | null
+          plp: string | null
+          racks: string | null
+          tanggal_barang_masuk: string | null
+          unit: string | null
+          volume: number | null
+          warehouses: string | null
+          zones: string | null
+        }
+        Insert: {
+          berat?: number | null
+          consignee?: string | null
+          deskripsi_barang?: string | null
+          hawb?: string | null
+          hs_code?: string | null
+          id?: string
+          jenis_barang?: string | null
+          jumlah?: number | null
+          lots?: string | null
+          mawb?: string | null
+          plp?: string | null
+          racks?: string | null
+          tanggal_barang_masuk?: string | null
+          unit?: string | null
+          volume?: number | null
+          warehouses?: string | null
+          zones?: string | null
+        }
+        Update: {
+          berat?: number | null
+          consignee?: string | null
+          deskripsi_barang?: string | null
+          hawb?: string | null
+          hs_code?: string | null
+          id?: string
+          jenis_barang?: string | null
+          jumlah?: number | null
+          lots?: string | null
+          mawb?: string | null
+          plp?: string | null
+          racks?: string | null
+          tanggal_barang_masuk?: string | null
+          unit?: string | null
+          volume?: number | null
+          warehouses?: string | null
+          zones?: string | null
+        }
+        Relationships: []
       }
       stock_coa_backfill_audit: {
         Row: {
@@ -5141,6 +5201,78 @@ export type Database = {
       }
     }
     Views: {
+      vw_all_financial_transactions: {
+        Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          customer_name: string | null
+          description: string | null
+          id: string | null
+          item_name: string | null
+          journal_ref: string | null
+          notes: string | null
+          payment_method: string | null
+          payment_type: string | null
+          ppn_amount: number | null
+          quantity: number | null
+          subtotal: number | null
+          supplier_name: string | null
+          target_table: string | null
+          total_amount: number | null
+          transaction_date: string | null
+          transaction_type: string | null
+          unit_price: number | null
+        }
+        Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          description?: string | null
+          id?: string | null
+          item_name?: string | null
+          journal_ref?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          payment_type?: string | null
+          ppn_amount?: number | null
+          quantity?: number | null
+          subtotal?: number | null
+          supplier_name?: string | null
+          target_table?: string | null
+          total_amount?: number | null
+          transaction_date?: string | null
+          transaction_type?: string | null
+          unit_price?: number | null
+        }
+        Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          description?: string | null
+          id?: string | null
+          item_name?: string | null
+          journal_ref?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          payment_type?: string | null
+          ppn_amount?: number | null
+          quantity?: number | null
+          subtotal?: number | null
+          supplier_name?: string | null
+          target_table?: string | null
+          total_amount?: number | null
+          transaction_date?: string | null
+          transaction_type?: string | null
+          unit_price?: number | null
+        }
+        Relationships: []
+      }
       vw_cash_flow_report: {
         Row: {
           bulan: string | null

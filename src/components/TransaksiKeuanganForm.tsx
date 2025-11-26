@@ -348,6 +348,10 @@ export default function TransaksiKeuanganForm() {
   const [kategoriPengeluaran, setKategoriPengeluaran] = useState("");
   const [selectedAccountType, setSelectedAccountType] = useState("");
   const [selectedAccountName, setSelectedAccountName] = useState("");
+  
+  // Pengeluaran Kas specific fields
+  const [jenisPembayaranPengeluaran, setJenisPembayaranPengeluaran] = useState("Cash");
+  const [namaKaryawanPengeluaran, setNamaKaryawanPengeluaran] = useState("");
 
   // COA accounts for kategori pengeluaran
   const [coaAccounts, setCoaAccounts] = useState<any[]>([]);
@@ -1956,7 +1960,95 @@ export default function TransaksiKeuanganForm() {
         }
       }
 
-      // Step 9: Create Sales Transaction if Penjualan Barang or Penjualan Jasa
+      // Step 8c: Save to cash_disbursement if Pengeluaran Kas
+      if (jenisTransaksi === "Pengeluaran Kas") {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        const expenseLine = previewLines.find((l) => l.dc === "D");
+        const cashLine = previewLines.find((l) => l.dc === "C");
+
+        const { error: cashDisbursementError } = await supabase
+          .from("cash_disbursement")
+          .insert({
+            transaction_date: previewTanggal,
+            payee_name: namaKaryawanPengeluaran || supplier || customer || "Pengeluaran Kas",
+            description: previewMemo,
+            category: kategori,
+            amount: nominal,
+            payment_method: jenisPembayaranPengeluaran || "Cash",
+            coa_expense_code: expenseLine?.account_code || "6-1100",
+            coa_cash_code: cashLine?.account_code || "1-1100",
+            notes: description,
+            created_by: user?.id,
+            approval_status: "waiting_approval",
+          });
+
+        if (cashDisbursementError) {
+          console.error(
+            "❌ Error saving to cash_disbursement:",
+            cashDisbursementError,
+          );
+          throw new Error(`Cash Disbursement: ${cashDisbursementError.message}`);
+        } else {
+          console.log("✅ Cash disbursement saved successfully - waiting for approval");
+        }
+      }
+
+      // Step 9: Route to Approval for Penjualan Barang, Penjualan Jasa, Pembelian Jasa
+      if (
+        jenisTransaksi === "Penjualan Barang" ||
+        jenisTransaksi === "Penjualan Jasa" ||
+        jenisTransaksi === "Pembelian Jasa"
+      ) {
+        const mainDebitLine = previewLines.find((l) => l.dc === "D");
+        const mainCreditLine = previewLines.find((l) => l.dc === "C");
+
+        const unitPrice = Number(nominal) || 0;
+        const quantity = 1; // Default quantity, can be made dynamic
+        const subtotal = unitPrice * quantity;
+        const taxPercentage = 11;
+        const taxAmount = subtotal * (taxPercentage / 100);
+        const totalAmount = subtotal + taxAmount;
+
+        // Insert into approval_transaksi table
+        const { error: approvalError } = await supabase
+          .from("approval_transaksi")
+          .insert({
+            type: jenisTransaksi,
+            source: "Transaksi Keuangan",
+            transaction_date: previewTanggal,
+            service_category: kategori || null,
+            service_type: jenisLayanan || null,
+            item_name: jenisTransaksi === "Penjualan Barang" ? itemName : `${kategori} - ${jenisLayanan}`,
+            supplier_name: supplier || null,
+            quantity: quantity,
+            unit_price: unitPrice,
+            subtotal: subtotal,
+            ppn_percentage: taxPercentage,
+            ppn_amount: taxAmount,
+            total_amount: totalAmount,
+            payment_method: paymentType === "cash" ? "Tunai" : "Piutang",
+            payment_type: paymentType,
+            coa_cash_code: mainDebitLine?.account_code || null,
+            coa_expense_code: jenisTransaksi === "Pembelian Jasa" ? mainDebitLine?.account_code : null,
+            coa_payable_code: paymentType !== "cash" ? mainCreditLine?.account_code : null,
+            journal_ref: journalRef,
+            notes: description,
+            description: previewMemo,
+            approval_status: "waiting_approval",
+          });
+
+        if (approvalError) {
+          console.error("❌ Approval Insert Error:", approvalError);
+          throw new Error(`Approval Insert: ${approvalError.message}`);
+        }
+
+        console.log("✅ Transaction sent to approval");
+      }
+
+      // Step 10: Create Sales Transaction if Penjualan Barang or Penjualan Jasa (kept for backward compatibility)
       if (
         jenisTransaksi === "Penjualan Barang" ||
         jenisTransaksi === "Penjualan Jasa"
@@ -2095,6 +2187,8 @@ export default function TransaksiKeuanganForm() {
     setSelectedBank("");
     setSelectedKas("");
     setStockInfo(null);
+    setJenisPembayaranPengeluaran("Cash");
+    setNamaKaryawanPengeluaran("");
   };
 
   // Add to cart function
@@ -2126,6 +2220,26 @@ export default function TransaksiKeuanganForm() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Validate Pengeluaran Kas fields
+    if (jenisTransaksi === "Pengeluaran Kas") {
+      if (!jenisPembayaranPengeluaran) {
+        toast({
+          title: "⚠️ Peringatan",
+          description: "Pilih jenis pembayaran terlebih dahulu",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!namaKaryawanPengeluaran.trim()) {
+        toast({
+          title: "⚠️ Peringatan",
+          description: "Masukkan nama karyawan terlebih dahulu",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     // Get employee name if selected
@@ -2165,6 +2279,9 @@ export default function TransaksiKeuanganForm() {
       selectedAccountName,
       employeeId: selectedEmployee,
       employeeName,
+      // Pengeluaran Kas fields
+      jenisPembayaranPengeluaran,
+      namaKaryawanPengeluaran,
       // Loan fields
       borrowerName: selectedBorrower,
       loanType,
@@ -2327,12 +2444,11 @@ export default function TransaksiKeuanganForm() {
             .from("cash_disbursement")
             .insert({
               transaction_date: journalData.tanggal,
-              payee_name: item.supplier || item.customer || "Pengeluaran Kas",
+              payee_name: item.namaKaryawanPengeluaran || item.supplier || item.customer || "Pengeluaran Kas",
               description: journalData.memo,
               category: item.kategori,
               amount: normalizedInput.nominal,
-              payment_method:
-                item.paymentType === "cash" ? "Tunai" : "Transfer Bank",
+              payment_method: item.jenisPembayaranPengeluaran || (item.paymentType === "cash" ? "Cash" : "Transfer"),
               coa_expense_code: expenseLine?.account_code || "6-1100",
               coa_cash_code: cashLine?.account_code || "1-1100",
               notes: item.description,
@@ -5462,6 +5578,41 @@ export default function TransaksiKeuanganForm() {
                       </Popover>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Pengeluaran Kas Additional Fields */}
+              {jenisTransaksi === "Pengeluaran Kas" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="jenis_pembayaran_pengeluaran">
+                      Jenis Pembayaran *
+                    </Label>
+                    <Select
+                      value={jenisPembayaranPengeluaran}
+                      onValueChange={setJenisPembayaranPengeluaran}
+                    >
+                      <SelectTrigger id="jenis_pembayaran_pengeluaran">
+                        <SelectValue placeholder="-- pilih --" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Cash">Cash</SelectItem>
+                        <SelectItem value="Transfer">Transfer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nama_karyawan_pengeluaran">
+                      Nama Karyawan *
+                    </Label>
+                    <Input
+                      id="nama_karyawan_pengeluaran"
+                      value={namaKaryawanPengeluaran}
+                      onChange={(e) => setNamaKaryawanPengeluaran(e.target.value)}
+                      placeholder="Masukkan nama karyawan"
+                    />
+                  </div>
                 </div>
               )}
 
