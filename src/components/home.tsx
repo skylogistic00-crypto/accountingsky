@@ -1,13 +1,19 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  LayoutDashboard, 
-  Package, 
-  DollarSign, 
-  Users, 
-  FileText, 
+import {
+  LayoutDashboard,
+  Package,
+  DollarSign,
+  Users,
+  FileText,
   Settings,
   TrendingUp,
   Warehouse,
@@ -20,7 +26,7 @@ import {
   BarChart3,
   BookOpen,
   FileSpreadsheet,
-  Calculator
+  Calculator,
 } from "lucide-react";
 
 function Home() {
@@ -34,7 +40,12 @@ function Home() {
       icon: LayoutDashboard,
       path: "/dashboard-keuangan",
       color: "bg-purple-500",
-      roles: ["super_admin", "accounting_manager", "accounting_staff", "read_only"]
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
+        "read_only",
+      ],
     },
     {
       title: "Transaksi Keuangan",
@@ -42,7 +53,7 @@ function Home() {
       icon: DollarSign,
       path: "/transaksi-keuangan",
       color: "bg-green-500",
-      roles: ["super_admin", "accounting_manager", "accounting_staff"]
+      roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
       title: "Manajemen Stok",
@@ -50,7 +61,7 @@ function Home() {
       icon: Package,
       path: "/stock",
       color: "bg-blue-500",
-      roles: ["super_admin", "warehouse_manager", "warehouse_staff"]
+      roles: ["super_admin", "warehouse_manager", "warehouse_staff"],
     },
     {
       title: "Gudang",
@@ -58,7 +69,7 @@ function Home() {
       icon: Warehouse,
       path: "/warehouses",
       color: "bg-orange-500",
-      roles: ["super_admin", "warehouse_manager", "warehouse_staff"]
+      roles: ["super_admin", "warehouse_manager", "warehouse_staff"],
     },
     {
       title: "Delivery",
@@ -66,7 +77,7 @@ function Home() {
       icon: Truck,
       path: "/delivery",
       color: "bg-cyan-600",
-      roles: ["super_admin", "warehouse_manager", "warehouse_staff"]
+      roles: ["super_admin", "warehouse_manager", "warehouse_staff"],
     },
     {
       title: "Supplier",
@@ -74,7 +85,7 @@ function Home() {
       icon: Truck,
       path: "/supplier",
       color: "bg-teal-500",
-      roles: ["super_admin", "purchasing", "accounting_manager"]
+      roles: ["super_admin", "purchasing", "accounting_manager"],
     },
     {
       title: "Customer",
@@ -82,7 +93,7 @@ function Home() {
       icon: UserCheck,
       path: "/customer",
       color: "bg-pink-500",
-      roles: ["super_admin", "accounting_manager", "accounting_staff"]
+      roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
       title: "Shipper",
@@ -90,7 +101,7 @@ function Home() {
       icon: Building2,
       path: "/shipper",
       color: "bg-amber-500",
-      roles: ["super_admin", "warehouse_manager"]
+      roles: ["super_admin", "warehouse_manager"],
     },
     {
       title: "Consignee",
@@ -98,7 +109,7 @@ function Home() {
       icon: Building2,
       path: "/consignee",
       color: "bg-lime-500",
-      roles: ["super_admin", "warehouse_manager"]
+      roles: ["super_admin", "warehouse_manager"],
     },
     {
       title: "Barang Lini",
@@ -106,7 +117,7 @@ function Home() {
       icon: PackageOpen,
       path: "/barang-lini",
       color: "bg-violet-500",
-      roles: ["super_admin", "warehouse_manager", "warehouse_staff"]
+      roles: ["super_admin", "warehouse_manager", "warehouse_staff"],
     },
     {
       title: "Barang Keluar",
@@ -114,7 +125,7 @@ function Home() {
       icon: PackageOpen,
       path: "/barang-keluar",
       color: "bg-fuchsia-500",
-      roles: ["super_admin", "warehouse_manager", "warehouse_staff"]
+      roles: ["super_admin", "warehouse_manager", "warehouse_staff"],
     },
     {
       title: "Air Waybill",
@@ -122,7 +133,7 @@ function Home() {
       icon: ClipboardList,
       path: "/air-waybill",
       color: "bg-sky-500",
-      roles: ["super_admin", "warehouse_manager", "warehouse_staff"]
+      roles: ["super_admin", "warehouse_manager", "warehouse_staff"],
     },
     {
       title: "COA Management",
@@ -130,7 +141,7 @@ function Home() {
       icon: BookOpen,
       path: "/coa-management",
       color: "bg-emerald-500",
-      roles: ["super_admin", "accounting_manager"]
+      roles: ["super_admin", "accounting_manager"],
     },
     {
       title: "Stock Adjustment",
@@ -138,7 +149,7 @@ function Home() {
       icon: Calculator,
       path: "/stock-adjustment",
       color: "bg-slate-500",
-      roles: ["super_admin", "warehouse_manager", "accounting_manager"]
+      roles: ["super_admin", "warehouse_manager", "accounting_manager"],
     },
     {
       title: "Laporan",
@@ -146,7 +157,12 @@ function Home() {
       icon: FileText,
       path: "/laporan-keuangan",
       color: "bg-indigo-500",
-      roles: ["super_admin", "accounting_manager", "accounting_staff", "read_only"]
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
+        "read_only",
+      ],
     },
     {
       title: "Manajemen User",
@@ -154,13 +170,21 @@ function Home() {
       icon: Users,
       path: "/users",
       color: "bg-red-500",
-      roles: ["super_admin"]
-    }
+      roles: ["super_admin"],
+    },
+    {
+      title: "Laporan Pajak",
+      description: "Kelola pengguna dan hak akses",
+      icon: BookOpen,
+      path: "/tax-reports",
+      color: "bg-red-500",
+      roles: ["super_admin"],
+    },
   ];
 
   const currentRole = userRole || "guest";
-  const filteredMenus = menuCards.filter(menu => 
-    menu.roles.includes(currentRole)
+  const filteredMenus = menuCards.filter((menu) =>
+    menu.roles.includes(currentRole),
   );
 
   console.log("🔍 Debug Home - userRole:", userRole);
@@ -173,30 +197,30 @@ function Home() {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Selamat Datang di Sistem Manajemen
           </h1>
-          <p className="text-gray-600">
-            Pilih menu di bawah untuk memulai
-          </p>
+          <p className="text-gray-600">Pilih menu di bawah untuk memulai</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredMenus.map((menu) => {
             const Icon = menu.icon;
             return (
-              <Card 
+              <Card
                 key={menu.path}
                 className="hover:shadow-lg transition-shadow cursor-pointer group"
                 onClick={() => navigate(menu.path)}
               >
                 <CardHeader>
-                  <div className={`w-12 h-12 ${menu.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <div
+                    className={`w-12 h-12 ${menu.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+                  >
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   <CardTitle className="text-xl">{menu.title}</CardTitle>
                   <CardDescription>{menu.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="w-full"
                     onClick={(e) => {
                       e.stopPropagation();

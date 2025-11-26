@@ -2309,6 +2309,7 @@ export default function TransaksiKeuanganForm() {
               nominal: parseFloat(String(cashLine.amount)),
               tanggal: journalData.tanggal,
               keterangan: journalData.memo,
+              source: item.jenisTransaksi === "Pembelian Jasa" ? "Service Purchase" : null,
             } as any);
           }
         }
@@ -2782,8 +2783,7 @@ export default function TransaksiKeuanganForm() {
 
           console.log("📦 Purchase Transaction Data:", purchaseData);
 
-          const { data: purchaseData_result, error: purchaseError } =
-            await supabase.from("purchase_transactions").insert(purchaseData);
+          const { data: purchaseData_result, error: purchaseError } = await supabase.from("purchase_transactions").insert(purchaseData);
 
           if (purchaseError) {
             console.error("❌ Purchase Transaction Error:", purchaseError);
@@ -2819,9 +2819,7 @@ export default function TransaksiKeuanganForm() {
 
             console.log("📋 Sending to Approval Transaksi (Service Purchase):", approvalData);
 
-            const { error: approvalError } = await supabase
-              .from("approval_transaksi")
-              .insert(approvalData as any);
+            const { error: approvalError } = await supabase.from("approval_transaksi").insert(approvalData as any);
 
             if (approvalError) {
               console.error("❌ Approval Transaksi Error:", approvalError);

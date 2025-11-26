@@ -291,17 +291,18 @@ export default function Dashboard() {
 
                     {/* Request List */}
                     <div
-                      className="bg-white rounded-2xl p-5 relative"
+                      className="bg-white rounded-2xl p-5 relative overflow-visible"
                       style={{
                         boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
                         transform: "translateZ(0)",
                         zIndex: 10,
+                        minHeight: "auto",
                       }}
                     >
                       <h3 className="text-slate-800 font-bold text-lg mb-4">
                         Laporan Keuangan
                       </h3>
-                      <div className="grid grid-cols-2 gap-3 relative" style={{ zIndex: 999, pointerEvents: 'auto', position: 'relative', transform: 'translateZ(0)' }}>
+                      <div className="grid grid-cols-3 gap-3 relative overflow-visible" style={{ zIndex: 999, pointerEvents: 'auto', position: 'relative', transform: 'translateZ(0)' }}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -356,9 +357,25 @@ export default function Dashboard() {
                             Laporan Keuangan
                           </span>
                         </button>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate("/tax-report");
+                          }}
+                          className="flex items-center gap-2 p-3 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 rounded-xl transition-all cursor-pointer relative"
+                          style={{ zIndex: 999, pointerEvents: 'auto', position: 'relative' }}
+                        >
+                          <Receipt className="w-5 h-5 text-red-600" />
+                          <span className="text-sm font-semibold text-red-700">
+                            Laporan Pajak
+                          </span>
+                        </button>
                       </div>
                       
                       <div className="mt-4 pt-4 border-t border-slate-200">
+                      
+                      <div className="pt-4 border-t border-slate-200">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -491,8 +508,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Bottom Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* Stats Cards - Below Laporan Keuangan */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
                 <div
                   onClick={() => {
                     if (canClick(userRole)) {
