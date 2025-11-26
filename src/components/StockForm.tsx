@@ -102,6 +102,9 @@ interface StockItem {
   hs_category: string;
   hs_sub_category: string;
   hs_description: string;
+  cost_per_unit?: number;
+  qty_available?: number;
+  created_at?: string;
 }
 
 interface CategoryMapping {
@@ -631,7 +634,7 @@ export default function StockForm() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setItems(data || []);
+      setItems((data || []) as any);
     } catch (error: any) {
       toast({
         title: "Error",

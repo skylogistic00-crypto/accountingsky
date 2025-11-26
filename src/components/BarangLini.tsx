@@ -129,7 +129,7 @@ export default function BarangLini() {
 
       if (error) throw error;
 
-      setStockItems(data || []);
+      setStockItems((data || []) as any);
 
       // Extract unique dates
       const dates = [

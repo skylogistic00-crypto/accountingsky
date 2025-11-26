@@ -126,7 +126,7 @@ export default function BarangLini2() {
         racks: formData.racks || null,
         lots: formData.lots || null,
         tgl_masuk: formData.item_arrival_date_lini_2 || new Date().toISOString().split("T")[0],
-      };
+      } as any;
 
       const { error } = await supabase.from("barang_lini_2").insert(itemData);
 

@@ -1910,10 +1910,10 @@ export default function TransaksiKeuanganForm() {
             payment_type: jenisTransaksi, // "Penerimaan Kas" or "Pengeluaran Kas"
             account_number: cashLine.account_code,
             account_name: cashLine.account_name,
-            nominal: cashLine.amount,
+            nominal: parseFloat(String(cashLine.amount)),
             keterangan: previewMemo,
             bukti: uploadedBuktiUrl || null,
-          });
+          } as any);
 
           if (error) {
             console.error("❌ Cash Book Error:", error);
@@ -2306,10 +2306,10 @@ export default function TransaksiKeuanganForm() {
               service_category: item.kategori,
               service_type: item.jenisLayanan,
               account_number: cashLine.account_code,
-              nominal: cashLine.amount,
+              nominal: parseFloat(String(cashLine.amount)),
               tanggal: journalData.tanggal,
               keterangan: journalData.memo,
-            });
+            } as any);
           }
         }
 
@@ -2790,6 +2790,46 @@ export default function TransaksiKeuanganForm() {
             throw new Error(`Purchase Transaction: ${purchaseError.message}`);
           }
           console.log("✅ Purchase Transaction saved:", purchaseData_result);
+
+          // Send Pembelian Jasa to approval_transaksi table
+          if (item.jenisTransaksi === "Pembelian Jasa") {
+            const approvalData = {
+              type: "purchase" as const,
+              source: "Service Purchase",
+              transaction_date: item.tanggal,
+              service_category: item.kategori || null,
+              service_type: item.jenisLayanan || null,
+              item_name: item.itemName || `${item.kategori} - ${item.jenisLayanan}`,
+              supplier_name: item.supplier || "",
+              quantity: quantity,
+              unit_price: unitPrice,
+              subtotal: subtotal,
+              ppn_percentage: ppnPercentage,
+              ppn_amount: ppnAmount,
+              total_amount: totalAmount,
+              payment_method: item.paymentType === "cash" ? "Tunai" : "Hutang",
+              payment_type: item.paymentType === "cash" ? "Tunai" : "Hutang",
+              coa_cash_code: item.paymentType === "cash" && mainCreditLine?.account_code ? mainCreditLine.account_code : null,
+              coa_expense_code: mainDebitLine?.account_code || null,
+              coa_payable_code: item.paymentType !== "cash" ? mainCreditLine?.account_code : null,
+              journal_ref: journalRef,
+              notes: item.description || null,
+              description: item.description || null,
+            };
+
+            console.log("📋 Sending to Approval Transaksi (Service Purchase):", approvalData);
+
+            const { error: approvalError } = await supabase
+              .from("approval_transaksi")
+              .insert(approvalData as any);
+
+            if (approvalError) {
+              console.error("❌ Approval Transaksi Error:", approvalError);
+              // Don't throw error, just log it
+            } else {
+              console.log("✅ Sent to Approval Transaksi with source: Service Purchase");
+            }
+          }
         }
       }
 

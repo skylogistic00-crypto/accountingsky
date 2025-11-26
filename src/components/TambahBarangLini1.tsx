@@ -72,7 +72,7 @@ export default function TambahBarangLini1() {
         .order("tanggal_masuk_barang", { ascending: false });
 
       if (error) throw error;
-      setStockItems(data || []);
+      setStockItems((data || []) as any);
     } catch (error) {
       console.error("Error fetching stock items:", error);
     }
@@ -130,16 +130,16 @@ export default function TambahBarangLini1() {
     try {
       const itemData = {
         sku: formData.barcode,
-        nama_barang: formData.nama_barang,
-        nomor_dokumen_pabean: formData.nomor_dokumen_ceisa || null,
-        tanggal_masuk: formData.tanggal_barang_masuk,
-        total_biaya: formData.total_biaya
+        item_name: formData.nama_barang,
+        awb: formData.nomor_dokumen_ceisa || null,
+        item_arrival_date: formData.tanggal_barang_masuk,
+        total_price: formData.total_biaya
           ? parseFloat(formData.total_biaya)
           : null,
-        berat: formData.berat ? parseFloat(formData.berat) : null,
+        weight: formData.berat ? parseFloat(formData.berat) : null,
         volume: formData.volume ? parseFloat(formData.volume) : null,
         status: "aktif",
-      };
+      } as any;
 
       const { error } = await supabase.from("barang_lini_1").insert(itemData);
 

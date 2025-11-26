@@ -120,7 +120,7 @@ export default function BarangLini1() {
       }
       
       console.log("✅ Stock items fetched:", data);
-      setStockItems(data || []);
+      setStockItems((data || []) as any);
       
       // Extract unique dates
       const dates = [...new Set(data?.map(item => item.item_arrival_date).filter(Boolean))];

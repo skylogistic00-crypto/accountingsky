@@ -238,7 +238,7 @@ export default function PurchaseRequestForm({
 
       console.log("Stock items fetched:", data?.length || 0, "items");
       console.log("Sample stock item:", data?.[0]);
-      setStockItems(data || []);
+      setStockItems((data || []) as any);
     } catch (error) {
       console.error("Error fetching stock items:", error);
       toast({

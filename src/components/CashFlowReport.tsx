@@ -75,7 +75,7 @@ export default function CashFlowReport() {
       if (data) {
         setCashFlowData({
           tahun: data.tahun,
-          bulan: data.bulan.trim(), // hapus spasi dari hasil
+          bulan: String(data.bulan).trim(), // hapus spasi dari hasil
           kas_masuk: Number(data.total_kas_masuk) || 0,
           kas_keluar: Number(data.total_kas_keluar) || 0,
           saldo_kas_bersih: Number(data.saldo_kas_bersih) || 0,

@@ -218,12 +218,12 @@ export default function DeliveryForm() {
       if (editingItem) {
         const { error } = await supabase
           .from('deliveries')
-          .update(formData)
+          .update(formData as any)
           .eq('id', editingItem.id);
         if (error) throw error;
         toast({ title: 'Success', description: 'Delivery berhasil diupdate' });
       } else {
-        const { error } = await supabase.from('deliveries').insert([formData]);
+        const { error } = await supabase.from('deliveries').insert([formData as any]);
         if (error) throw error;
         toast({ title: 'Success', description: 'Delivery berhasil ditambahkan' });
       }
@@ -232,6 +232,7 @@ export default function DeliveryForm() {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   };
+
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {

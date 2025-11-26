@@ -185,6 +185,99 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_transaksi: {
+        Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          coa_cash_code: string | null
+          coa_expense_code: string | null
+          coa_payable_code: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          item_name: string
+          journal_ref: string | null
+          notes: string | null
+          payment_method: string | null
+          payment_type: string | null
+          ppn_amount: number | null
+          ppn_percentage: number | null
+          quantity: number | null
+          rejection_reason: string | null
+          service_category: string | null
+          service_type: string | null
+          source: string | null
+          subtotal: number | null
+          supplier_name: string | null
+          total_amount: number
+          transaction_date: string
+          type: string
+          unit_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          coa_cash_code?: string | null
+          coa_expense_code?: string | null
+          coa_payable_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_name: string
+          journal_ref?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          payment_type?: string | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
+          quantity?: number | null
+          rejection_reason?: string | null
+          service_category?: string | null
+          service_type?: string | null
+          source?: string | null
+          subtotal?: number | null
+          supplier_name?: string | null
+          total_amount: number
+          transaction_date: string
+          type: string
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          coa_cash_code?: string | null
+          coa_expense_code?: string | null
+          coa_payable_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_name?: string
+          journal_ref?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          payment_type?: string | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
+          quantity?: number | null
+          rejection_reason?: string | null
+          service_category?: string | null
+          service_type?: string | null
+          source?: string | null
+          subtotal?: number | null
+          supplier_name?: string | null
+          total_amount?: number
+          transaction_date?: string
+          type?: string
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -471,15 +564,7 @@ export type Database = {
           status?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "bookings_facility_id_fkey"
-            columns: ["facility_id"]
-            isOneToOne: false
-            referencedRelation: "facilities"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       borrowers: {
         Row: {
@@ -1651,68 +1736,38 @@ export type Database = {
           },
         ]
       }
-      facilities: {
-        Row: {
-          created_at: string | null
-          id: string
-          metadata: Json | null
-          name: string
-          price_per_hour: number | null
-          price_per_visit: number | null
-          type: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          name: string
-          price_per_hour?: number | null
-          price_per_visit?: number | null
-          type?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          name?: string
-          price_per_hour?: number | null
-          price_per_visit?: number | null
-          type?: string | null
-        }
-        Relationships: []
-      }
       general_ledger: {
         Row: {
-          account_code: string
-          account_number: string | null
           created_at: string | null
           credit: number | null
-          date: string
+          credit_account: string | null
+          date: string | null
           debit: number | null
+          debit_account: string
           description: string | null
           id: string
           journal_entry_id: string | null
           updated_at: string | null
         }
         Insert: {
-          account_code: string
-          account_number?: string | null
           created_at?: string | null
           credit?: number | null
-          date: string
+          credit_account?: string | null
+          date?: string | null
           debit?: number | null
+          debit_account: string
           description?: string | null
           id?: string
           journal_entry_id?: string | null
           updated_at?: string | null
         }
         Update: {
-          account_code?: string
-          account_number?: string | null
           created_at?: string | null
           credit?: number | null
-          date?: string
+          credit_account?: string | null
+          date?: string | null
           debit?: number | null
+          debit_account?: string
           description?: string | null
           id?: string
           journal_entry_id?: string | null
@@ -2147,7 +2202,9 @@ export type Database = {
           make: string | null
           model: string | null
           nama: string | null
+          posting_date: string | null
           reference: string | null
+          sales_transactions_id: string | null
           service_type: string | null
           source_id: string | null
           source_table: string | null
@@ -2185,7 +2242,9 @@ export type Database = {
           make?: string | null
           model?: string | null
           nama?: string | null
+          posting_date?: string | null
           reference?: string | null
+          sales_transactions_id?: string | null
           service_type?: string | null
           source_id?: string | null
           source_table?: string | null
@@ -2223,7 +2282,9 @@ export type Database = {
           make?: string | null
           model?: string | null
           nama?: string | null
+          posting_date?: string | null
           reference?: string | null
+          sales_transactions_id?: string | null
           service_type?: string | null
           source_id?: string | null
           source_table?: string | null
@@ -2243,6 +2304,13 @@ export type Database = {
             columns: ["stock_adjustment_id"]
             isOneToOne: false
             referencedRelation: "stock_adjustments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_sales_transactions_fk"
+            columns: ["sales_transactions_id"]
+            isOneToOne: false
+            referencedRelation: "sales_transactions"
             referencedColumns: ["id"]
           },
           {
@@ -2898,45 +2966,6 @@ export type Database = {
           id?: string
           module?: string
           name?: string
-        }
-        Relationships: []
-      }
-      permohonan_dana: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          departemen: string
-          id: string
-          jumlah: number
-          keterangan: string | null
-          nama_pemohon: string
-          status: string | null
-          tanggal_permohonan: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          departemen: string
-          id?: string
-          jumlah: number
-          keterangan?: string | null
-          nama_pemohon: string
-          status?: string | null
-          tanggal_permohonan: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          departemen?: string
-          id?: string
-          jumlah?: number
-          keterangan?: string | null
-          nama_pemohon?: string
-          status?: string | null
-          tanggal_permohonan?: string
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -3727,6 +3756,84 @@ export type Database = {
             referencedColumns: ["account_code"]
           },
         ]
+      }
+      service_purchase: {
+        Row: {
+          approval_status: string | null
+          coa_cash_code: string | null
+          coa_expense_code: string | null
+          coa_payable_code: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          item_name: string
+          journal_ref: string | null
+          notes: string | null
+          payment_method: string | null
+          payment_type: string | null
+          ppn_amount: number | null
+          ppn_percentage: number | null
+          quantity: number | null
+          service_category: string | null
+          service_type: string | null
+          subtotal: number
+          supplier_name: string | null
+          total_amount: number
+          transaction_date: string
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          approval_status?: string | null
+          coa_cash_code?: string | null
+          coa_expense_code?: string | null
+          coa_payable_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_name: string
+          journal_ref?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          payment_type?: string | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
+          quantity?: number | null
+          service_category?: string | null
+          service_type?: string | null
+          subtotal: number
+          supplier_name?: string | null
+          total_amount: number
+          transaction_date: string
+          unit_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          approval_status?: string | null
+          coa_cash_code?: string | null
+          coa_expense_code?: string | null
+          coa_payable_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_name?: string
+          journal_ref?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          payment_type?: string | null
+          ppn_amount?: number | null
+          ppn_percentage?: number | null
+          quantity?: number | null
+          service_category?: string | null
+          service_type?: string | null
+          subtotal?: number
+          supplier_name?: string | null
+          total_amount?: number
+          transaction_date?: string
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       shippers: {
         Row: {
@@ -4675,6 +4782,39 @@ export type Database = {
           },
         ]
       }
+      trial_balance: {
+        Row: {
+          created_at: string
+          credit_account: string | null
+          debit_account: string | null
+          id: string
+          period_end: string
+          period_start: string
+          total_credit: number
+          total_debit: number
+        }
+        Insert: {
+          created_at?: string
+          credit_account?: string | null
+          debit_account?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          total_credit?: number
+          total_debit?: number
+        }
+        Update: {
+          created_at?: string
+          credit_account?: string | null
+          debit_account?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          total_credit?: number
+          total_debit?: number
+        }
+        Relationships: []
+      }
       trial_balance_backup: {
         Row: {
           account_code: string | null
@@ -4744,21 +4884,33 @@ export type Database = {
           birth_place: string | null
           created_at: string | null
           department: string | null
+          education: string | null
           email: string
           entitas: string | null
           entity_type: string | null
+          ethnicity: string | null
+          expiry_date: string | null
+          family_card_url: string | null
+          first_name: string | null
           full_name: string | null
           gender: string | null
           id: string
           is_active: boolean | null
           ktp_address: string | null
+          ktp_document_url: string | null
           ktp_number: number | null
           last_login: string | null
+          last_name: string | null
+          license_number: string | null
           phone: string | null
           phone_number: string | null
+          religion: string | null
           role: string
           role_id: number | null
           role_name: string | null
+          selfie_url: string | null
+          sim_url: string | null
+          skck_url: string | null
           status: Database["public"]["Enums"]["user_status"]
           updated_at: string | null
         }
@@ -4767,21 +4919,33 @@ export type Database = {
           birth_place?: string | null
           created_at?: string | null
           department?: string | null
+          education?: string | null
           email: string
           entitas?: string | null
           entity_type?: string | null
+          ethnicity?: string | null
+          expiry_date?: string | null
+          family_card_url?: string | null
+          first_name?: string | null
           full_name?: string | null
           gender?: string | null
           id: string
           is_active?: boolean | null
           ktp_address?: string | null
+          ktp_document_url?: string | null
           ktp_number?: number | null
           last_login?: string | null
+          last_name?: string | null
+          license_number?: string | null
           phone?: string | null
           phone_number?: string | null
+          religion?: string | null
           role?: string
           role_id?: number | null
           role_name?: string | null
+          selfie_url?: string | null
+          sim_url?: string | null
+          skck_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string | null
         }
@@ -4790,21 +4954,33 @@ export type Database = {
           birth_place?: string | null
           created_at?: string | null
           department?: string | null
+          education?: string | null
           email?: string
           entitas?: string | null
           entity_type?: string | null
+          ethnicity?: string | null
+          expiry_date?: string | null
+          family_card_url?: string | null
+          first_name?: string | null
           full_name?: string | null
           gender?: string | null
           id?: string
           is_active?: boolean | null
           ktp_address?: string | null
+          ktp_document_url?: string | null
           ktp_number?: number | null
           last_login?: string | null
+          last_name?: string | null
+          license_number?: string | null
           phone?: string | null
           phone_number?: string | null
+          religion?: string | null
           role?: string
           role_id?: number | null
           role_name?: string | null
+          selfie_url?: string | null
+          sim_url?: string | null
+          skck_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string | null
         }
@@ -5258,6 +5434,10 @@ export type Database = {
       }
       cleanup_expired_tokens: { Args: never; Returns: undefined }
       cleanup_old_cart_items: { Args: never; Returns: undefined }
+      create_journal_for_sales: {
+        Args: { p_sales_id: string }
+        Returns: string
+      }
       create_monthly_tax_reminders: { Args: never; Returns: undefined }
       fn_income_statement: {
         Args: { p_end: string; p_start: string }
@@ -5351,6 +5531,10 @@ export type Database = {
           similarity: number
           sub_category: string
         }[]
+      }
+      post_journal_to_general_ledger: {
+        Args: { p_journal_id: string }
+        Returns: undefined
       }
       rebuild_general_ledger: { Args: never; Returns: undefined }
       recalc_journal_totals: { Args: { p_je_id: string }; Returns: undefined }
