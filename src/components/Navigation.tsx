@@ -19,6 +19,7 @@ import {
   Receipt,
   Upload,
   Briefcase,
+  ScanText,
 } from "lucide-react";
 
 export default function Navigation() {
@@ -303,6 +304,18 @@ export default function Navigation() {
         "super_admin",
         "accounting_manager",
         "accounting_staff",
+      ],
+    },
+    {
+      path: "/ocr-scanner",
+      label: "OCR Scanner",
+      icon: ScanText,
+      color: "teal",
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
+        "warehouse_manager",
       ],
     },
     {

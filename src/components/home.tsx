@@ -28,6 +28,7 @@ import {
   FileSpreadsheet,
   Calculator,
   Briefcase,
+  ScanText,
 } from "lucide-react";
 
 function Home() {
@@ -151,6 +152,19 @@ function Home() {
       path: "/stock-adjustment",
       color: "bg-slate-500",
       roles: ["super_admin", "warehouse_manager", "accounting_manager"],
+    },
+    {
+      title: "OCR Scanner",
+      description: "Ekstrak teks dari gambar dokumen",
+      icon: ScanText,
+      path: "/ocr-scanner",
+      color: "bg-teal-500",
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
+        "warehouse_manager",
+      ],
     },
     {
       title: "Barang Import",

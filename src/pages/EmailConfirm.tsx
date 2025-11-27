@@ -5,7 +5,7 @@ export default function EmailConfirm() {
   const [message, setMessage] = useState("Confirming your email...");
 
   useEffect(() => {
-    const hash = window.location.hash.replace("#", "");
+    const hash = window.location.hash.substring(1); // remove "#"
     const params = new URLSearchParams(hash);
 
     const token_hash = params.get("token_hash");
@@ -16,18 +16,14 @@ export default function EmailConfirm() {
       return;
     }
 
-    supabase.auth
-      .verifyOtp({
-        token_hash,
-        type,
-      })
-      .then(({ error }) => {
-        if (error) setMessage("Confirmation failed: " + error.message);
-        else {
-          setMessage("Email confirmed successfully! Redirecting...");
-          setTimeout(() => (window.location.href = "/login"), 2000);
-        }
-      });
+    supabase.auth.verifyOtp({ token_hash, type }).then(({ error }) => {
+      if (error) {
+        setMessage("Confirmation failed: " + error.message);
+      } else {
+        setMessage("Email confirmed! Redirecting...");
+        setTimeout(() => (window.location.href = "/login"), 2000);
+      }
+    });
   }, []);
 
   return <div style={{ padding: 20 }}>{message}</div>;

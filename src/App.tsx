@@ -30,6 +30,7 @@ import CashFlowReport from "@/components/CashFlowReport";
 import TaxReportManagement from "@/components/TaxReportManagement";
 import CoretaxUploadForm from "@/components/CoretaxUploadForm";
 import CoretaxReportList from "@/components/CoretaxReportList";
+import OCRScanner from "@/components/OCRScanner";
 import ServiceItemsForm from "@/components/ServiceItemsForm";
 import ApprovalTransaksi from "@/components/ApprovalTransaksi";
 import CashDisbursementForm from "@/components/CashDisbursementForm";
@@ -593,6 +594,25 @@ function App() {
                 <Header />
                 <Navigation />
                 <CoretaxReportList />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ocr-scanner"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+                "warehouse_manager",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <OCRScanner />
               </div>
             </ProtectedRoute>
           }
