@@ -27,6 +27,7 @@ import {
   BookOpen,
   FileSpreadsheet,
   Calculator,
+  Briefcase,
 } from "lucide-react";
 
 function Home() {
@@ -194,6 +195,14 @@ function Home() {
       path: "/tax-reports",
       color: "bg-red-500",
       roles: ["super_admin"],
+    },
+    {
+      title: "HRD Management",
+      description: "Kelola karyawan, absensi, payroll & kinerja",
+      icon: Briefcase,
+      path: "/hrd-dashboard",
+      color: "bg-blue-600",
+      roles: ["super_admin", "hr_manager", "hr_staff"],
     },
   ];
 

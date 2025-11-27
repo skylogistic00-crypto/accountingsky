@@ -35,9 +35,12 @@ import ApprovalTransaksi from "@/components/ApprovalTransaksi";
 import CashDisbursementForm from "@/components/CashDisbursementForm";
 import { Toaster } from "@/components/ui/toaster";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import EmailConfirm from "@/pages/EmailConfirm";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import StockAdjustmentForm from "@/components/StockAdjustmentForm";
 import StockBarangImport from "@/components/StockBarangImport";
+import HRDDashboard from "@/components/HRDDashboard";
+import DataKaryawan from "@/components/DataKaryawan";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -112,515 +115,543 @@ function App() {
     }
 
     return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/admin-setup" element={<AdminSetup />} />
-      <Route
-        path="/users"
-        element={
-          <ProtectedRoute allowedRoles={["super_admin"]}>
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <UserManagement />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/supplier"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "accounting_manager",
-              "accounting_staff",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <SupplierForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/shipper"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "accounting_manager",
-              "accounting_staff",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <ShipperForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/consignee"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "accounting_manager",
-              "accounting_staff",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <ConsigneeForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/customer"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "accounting_manager",
-              "accounting_staff",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <CustomerForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/service-items"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <ServiceItemsForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/stock"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-              "warehouse_manager",
-              "warehouse_staff",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <StockForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/warehouses"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "warehouse_staff",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <WarehousesForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/admin-setup" element={<AdminSetup />} />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute allowedRoles={["super_admin"]}>
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <UserManagement />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supplier"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "warehouse_manager",
+                "accounting_manager",
+                "accounting_staff",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <SupplierForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shipper"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "warehouse_manager",
+                "accounting_manager",
+                "accounting_staff",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <ShipperForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/consignee"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "warehouse_manager",
+                "accounting_manager",
+                "accounting_staff",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <ConsigneeForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "warehouse_manager",
+                "accounting_manager",
+                "accounting_staff",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <CustomerForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/service-items"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <ServiceItemsForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stock"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+                "warehouse_manager",
+                "warehouse_staff",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <StockForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/warehouses"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "warehouse_manager",
+                "warehouse_staff",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <WarehousesForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/delivery"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "warehouse_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <DeliveryForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/delivery"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "warehouse_manager",
+                "warehouse_staff",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <DeliveryForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/barang-lini"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "warehouse_staff",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <BarangLini />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/barang-keluar"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "accounting_manager",
-              "accounting_staff",
-              "warehouse_staff",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <BarangKeluar />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/stock-adjustment"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "accounting_manager",
-              "accounting_staff",
-              "warehouse_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <StockAdjustmentForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/stock-barang-import"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "warehouse_manager",
-              "accounting_manager",
-              "accounting_staff",
-              "warehouse_staff",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <StockBarangImport />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/air-waybill"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <AirWaybill />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/transaksi-keuangan"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <TransaksiKeuanganForm />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/cash-disbursement"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <CashDisbursementForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/approval-transaksi"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <ApprovalTransaksi />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/coa-management"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <COAManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/coa-mapping"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <COAMappingManager />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/report-barang-lama"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <BarangLamaReport />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/dashboard-keuangan"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_staff",
-              "accounting_manager",
-              "read_only",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <FinancialDashboard />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profit-loss"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <ProfitLossReport />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/balance-sheet"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <BalanceSheetReport />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/cash-flow"
-        element={
-          <ProtectedRoute allowedRoles={["super_admin"]}>
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <CashFlowReport />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tax-reports"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <TaxReportManagement />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/coretax-upload"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <CoretaxUploadForm />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/coretax-report"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <CoretaxReportList />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/laporan-keuangan"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <div className="min-h-screen bg-slate-50">
-              <Header />
-              <Navigation />
-              <IntegratedFinancialReport />
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-}
+        <Route
+          path="/barang-lini"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "warehouse_manager",
+                "warehouse_staff",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <BarangLini />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/barang-keluar"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "warehouse_manager",
+                "accounting_manager",
+                "accounting_staff",
+                "warehouse_staff",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <BarangKeluar />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stock-adjustment"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "warehouse_manager",
+                "accounting_manager",
+                "accounting_staff",
+                "warehouse_staff",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <StockAdjustmentForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stock-barang-import"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "warehouse_manager",
+                "accounting_manager",
+                "accounting_staff",
+                "warehouse_staff",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <StockBarangImport />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/air-waybill"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <AirWaybill />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transaksi-keuangan"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <TransaksiKeuanganForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cash-disbursement"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <CashDisbursementForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/approval-transaksi"
+          element={
+            <ProtectedRoute
+              allowedRoles={["super_admin", "accounting_manager"]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <ApprovalTransaksi />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/coa-management"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <COAManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/coa-mapping"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <COAMappingManager />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/report-barang-lama"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <BarangLamaReport />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard-keuangan"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_staff",
+                "accounting_manager",
+                "read_only",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <FinancialDashboard />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profit-loss"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <ProfitLossReport />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/balance-sheet"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <BalanceSheetReport />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cash-flow"
+          element={
+            <ProtectedRoute allowedRoles={["super_admin"]}>
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <CashFlowReport />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tax-reports"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <TaxReportManagement />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/coretax-upload"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <CoretaxUploadForm />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/coretax-report"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <CoretaxReportList />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/laporan-keuangan"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "super_admin",
+                "accounting_manager",
+                "accounting_staff",
+              ]}
+            >
+              <div className="min-h-screen bg-slate-50">
+                <Header />
+                <Navigation />
+                <IntegratedFinancialReport />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/auth/confirm" element={<EmailConfirm />} />
+        <Route path="/verify" element={<EmailConfirm />} />
+
+        <Route
+          path="/hrd-dashboard"
+          element={
+            <ProtectedRoute
+              allowedRoles={["super_admin", "hr_manager", "hr_staff"]}
+            >
+              <div className="min-h-screen bg-white">
+                <Header />
+                <Navigation />
+                <HRDDashboard />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/data-karyawan"
+          element={
+            <ProtectedRoute
+              allowedRoles={["super_admin", "hr_manager", "hr_staff", "admin"]}
+            >
+              <div className="min-h-screen bg-white">
+                <Header />
+                <Navigation />
+                <DataKaryawan />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
 
   return (
     <ThemeProvider>

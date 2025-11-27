@@ -70,6 +70,13 @@ export default function Navigation() {
       roles: ["super_admin"],
     },
     {
+      path: "/hrd-dashboard",
+      label: "HRD Management",
+      icon: Briefcase,
+      color: "blue",
+      roles: ["super_admin", "hr_manager", "hr_staff"],
+    },
+    {
       path: "/supplier",
       label: "Suppliers",
       icon: Package,

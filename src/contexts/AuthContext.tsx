@@ -132,24 +132,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     entityType: string = "customer",
     phone?: string,
     details?: Record<string, any>,
-    fileUrls?: Record<string, string>
+    fileUrls?: Record<string, string>,
   ) => {
-    const { data, error } = await supabase.functions.invoke('supabase-functions-signup-multi-entity', {
-      body: {
-        email,
-        password,
-        full_name: fullName,
-        entity_type: entityType,
-        phone,
-        details: details || {},
-        file_urls: fileUrls || {},
+    const { data, error } = await supabase.functions.invoke(
+      "supabase-functions-signup-multi-entity",
+      {
+        body: {
+          email,
+          password,
+          full_name: fullName,
+          entity_type: entityType,
+          phone,
+          details: details || {},
+          file_urls: fileUrls || {},
+        },
       },
-    });
+    );
 
     if (error) throw error;
 
     // Auto login after successful signup
-    await supabase.auth.signInWithPassword({ email, password });
+    //await supabase.auth.signInWithPassword({ email, password });
 
     return data;
   };
