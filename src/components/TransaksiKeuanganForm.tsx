@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Popover,
   PopoverContent,
@@ -340,6 +341,27 @@ export default function TransaksiKeuanganForm() {
     return savedCart ? JSON.parse(savedCart) : [];
   });
   const [showCart, setShowCart] = useState(false);
+  
+  // Toggle checkbox for cart item
+  const toggleCartItemSelection = (itemId: string) => {
+    setCart((prevCart) => {
+      const updatedCart = prevCart.map((item) =>
+        item.id === itemId ? { ...item, selected: !item.selected } : item
+      );
+      localStorage.setItem("transaksi_keuangan_cart", JSON.stringify(updatedCart));
+      return updatedCart;
+    });
+  };
+  
+  // Select/Deselect all items
+  const toggleSelectAll = () => {
+    const allSelected = cart.every((item) => item.selected);
+    setCart((prevCart) => {
+      const updatedCart = prevCart.map((item) => ({ ...item, selected: !allSelected }));
+      localStorage.setItem("transaksi_keuangan_cart", JSON.stringify(updatedCart));
+      return updatedCart;
+    });
+  };
 
   // Conditional fields state
   const [sumberPenerimaan, setSumberPenerimaan] = useState("");
@@ -2299,6 +2321,8 @@ export default function TransaksiKeuanganForm() {
       taxAmount,
       taxPercentage,
       taxType,
+      // Checkbox selection
+      selected: true,
     };
 
     setCart([...cart, cartItem]);
@@ -2325,10 +2349,12 @@ export default function TransaksiKeuanganForm() {
 
   // Checkout all items in cart
   const handleCheckoutCart = async () => {
-    if (cart.length === 0) {
+    const selectedItems = cart.filter((item) => item.selected);
+    
+    if (selectedItems.length === 0) {
       toast({
         title: "⚠️ Peringatan",
-        description: "Keranjang kosong",
+        description: "Pilih minimal satu transaksi untuk di-checkout",
         variant: "destructive",
       });
       return;
@@ -2336,7 +2362,7 @@ export default function TransaksiKeuanganForm() {
 
     setIsConfirming(true);
     try {
-      for (const item of cart) {
+      for (const item of selectedItems) {
         // Check if this transaction needs approval
         const needsApproval =
           item.jenisTransaksi === "Pembelian Barang" ||
@@ -2992,10 +3018,14 @@ export default function TransaksiKeuanganForm() {
         }
       }
 
-      // Clear cart and close
-      setCart([]);
-      localStorage.removeItem("transaksi_keuangan_cart");
-      setShowCart(false);
+      // Remove only checked items from cart
+      const remainingItems = cart.filter((item) => !item.selected);
+      setCart(remainingItems);
+      localStorage.setItem("transaksi_keuangan_cart", JSON.stringify(remainingItems));
+      
+      if (remainingItems.length === 0) {
+        setShowCart(false);
+      }
 
       // Show success message
       toast({
@@ -5807,6 +5837,21 @@ export default function TransaksiKeuanganForm() {
               </div>
             ) : (
               <>
+                {/* Select All Checkbox */}
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b">
+                  <Checkbox
+                    id="select-all"
+                    checked={cart.every((item) => item.selected)}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                  <label
+                    htmlFor="select-all"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Pilih Semua ({cart.filter((item) => item.selected).length} dipilih)
+                  </label>
+                </div>
+
                 <div className="space-y-4 mb-6">
                   {cart.map((item, index) => (
                     <div
@@ -5814,20 +5859,30 @@ export default function TransaksiKeuanganForm() {
                       className="border rounded-lg p-4 bg-gray-50"
                     >
                       <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-bold text-lg">
-                              #{index + 1}
-                            </span>
-                            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                              {item.jenisTransaksi}
-                            </span>
-                            {item.paymentType && (
-                              <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs">
-                                {item.paymentType === "cash"
-                                  ? "Tunai"
-                                  : "Kredit"}
+                        <div className="flex gap-3 flex-1">
+                          {/* Checkbox */}
+                          <div className="pt-1">
+                            <Checkbox
+                              id={`item-${item.id}`}
+                              checked={item.selected || false}
+                              onCheckedChange={() => toggleCartItemSelection(item.id)}
+                            />
+                          </div>
+                          
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-bold text-lg">
+                                #{index + 1}
                               </span>
+                              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                {item.jenisTransaksi}
+                              </span>
+                              {item.paymentType && (
+                                <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs">
+                                  {item.paymentType === "cash"
+                                    ? "Tunai"
+                                    : "Kredit"}
+                                </span>
                             )}
                           </div>
 
@@ -5953,6 +6008,7 @@ export default function TransaksiKeuanganForm() {
                               </p>
                             )}
                           </div>
+                          </div>
                         </div>
 
                         <Button
@@ -5972,15 +6028,17 @@ export default function TransaksiKeuanganForm() {
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-sm text-gray-600">
-                        Total Transaksi: {cart.length} item
+                        Total Transaksi: {cart.length} item ({cart.filter((item) => item.selected).length} dipilih)
                       </p>
                       <p className="text-2xl font-bold text-gray-900">
                         Total Nominal: Rp{" "}
                         {new Intl.NumberFormat("id-ID").format(
-                          cart.reduce(
-                            (sum, item) => sum + Number(item.nominal),
-                            0,
-                          ),
+                          cart
+                            .filter((item) => item.selected)
+                            .reduce(
+                              (sum, item) => sum + Number(item.nominal),
+                              0,
+                            ),
                         )}
                       </p>
                     </div>
@@ -5993,10 +6051,10 @@ export default function TransaksiKeuanganForm() {
                       </Button>
                       <Button
                         onClick={handleCheckoutCart}
-                        disabled={isConfirming}
+                        disabled={isConfirming || cart.filter((item) => item.selected).length === 0}
                         className="bg-green-600 hover:bg-green-700"
                       >
-                        {isConfirming ? "Memproses..." : "✅ Checkout Semua"}
+                        {isConfirming ? "Memproses..." : `✅ Checkout Semua (${cart.filter((item) => item.selected).length})`}
                       </Button>
                     </div>
                   </div>
