@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { createWorker } from "tesseract.js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,19 +35,19 @@ export default function OCRScanner() {
 
   const initializeOCRTable = async () => {
     try {
-      // Try to create the table if it doesn't exist
-      const { data, error } = await supabase.functions.invoke('supabase-functions-create-ocr-table', {});
+      // Check if ocr_results table exists by trying to query it
+      const { error } = await supabase
+        .from('ocr_results')
+        .select('id')
+        .limit(1);
       
-      if (error) {
-        console.warn('Table initialization warning:', error);
-      } else {
-        console.log('OCR table ready:', data);
+      if (!error) {
         setTableReady(true);
       }
     } catch (error) {
-      console.warn('Could not initialize OCR table:', error);
+      console.warn('OCR table not available:', error);
     } finally {
-      // Always try to load history regardless of table creation result
+      // Always try to load history regardless of table check result
       loadHistory();
     }
   };
@@ -76,30 +75,28 @@ export default function OCRScanner() {
 
     setIsProcessing(true);
     try {
-      const worker = await createWorker("eng", 1, {
-        workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core.wasm.js',
-      });
-      
-      const { data } = await worker.recognize(selectedFile);
-      
-      setExtractedText(data.text);
-      setConfidence(data.confidence);
+      // Create FormData and send file directly to Edge Function
+      const formData = new FormData();
+      formData.append('file', selectedFile);
 
-      await worker.terminate();
+      // Call OpenAI Vision OCR Edge Function
+      const { data: ocrData, error: ocrError } = await supabase.functions.invoke(
+        'supabase-functions-openai-vision-ocr',
+        {
+          body: formData
+        }
+      );
 
-      // Upload image to Supabase storage
-      const fileName = `ocr_${Date.now()}_${selectedFile.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(fileName, selectedFile);
+      if (ocrError) throw ocrError;
 
-      if (uploadError) throw uploadError;
+      if (!ocrData.message || ocrData.message !== 'OCR success') {
+        throw new Error(ocrData.error || 'OCR processing failed');
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("documents")
-        .getPublicUrl(fileName);
+      // Extract text from the returned data
+      const extractedContent = JSON.stringify(ocrData.data, null, 2);
+      setExtractedText(extractedContent);
+      setConfidence(95); // Default confidence for successful OCR
 
       // Save to database - skip if table doesn't exist
       try {
@@ -107,9 +104,9 @@ export default function OCRScanner() {
           .from("ocr_results")
           .insert({
             file_name: selectedFile.name,
-            extracted_text: data.text,
-            confidence: data.confidence,
-            image_url: publicUrl,
+            extracted_text: extractedContent,
+            confidence: 95,
+            image_url: ocrData.file_url,
             created_by: user?.id,
           });
 
@@ -122,10 +119,9 @@ export default function OCRScanner() {
         console.warn("Database not available:", dbErr);
       }
 
-      const confidenceNum = typeof data.confidence === 'number' ? data.confidence : Number(data.confidence) || 0;
       toast({
         title: "✅ Berhasil",
-        description: `Teks berhasil diekstrak dengan confidence ${confidenceNum.toFixed(2)}%`,
+        description: `Teks berhasil diekstrak dengan confidence ${ocrData.confidence.toFixed(2)}%`,
       });
     } catch (error: any) {
       console.error("OCR Error:", error);

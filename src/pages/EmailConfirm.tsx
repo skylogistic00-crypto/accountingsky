@@ -5,27 +5,32 @@ export default function EmailConfirm() {
   const [message, setMessage] = useState("Confirming your email...");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    // Ambil token dari query (?token=xxx)
+    const paramsQuery = new URLSearchParams(window.location.search);
+    let token = paramsQuery.get("token");
+    let type = paramsQuery.get("type");
+    let email = paramsQuery.get("email");
 
-    const token_hash = params.get("token_hash");
-    const typeFromSupabase = params.get("type");
+    // Jika token tidak ada di query, cari dari hash (#token=xxx)
+    if (!token) {
+      const hash = window.location.hash.replace("#", "");
+      const paramsHash = new URLSearchParams(hash);
 
-    if (!token_hash) {
+      token = paramsHash.get("token");
+      type = paramsHash.get("type") || "signup";
+      email = paramsHash.get("email");
+    }
+
+    if (!token || !type) {
       setMessage("Invalid or missing confirmation token.");
       return;
     }
 
-    // MAP SUPABASE TYPE → VERIFYOTP TYPE
-    let type: any = "signup"; // default untuk confirm signup
-
-    if (typeFromSupabase === "recovery") type = "recovery";
-    if (typeFromSupabase === "email_change") type = "email_change";
-    if (typeFromSupabase === "invite") type = "invite";
-
     supabase.auth
       .verifyOtp({
-        token_hash,
+        token,
         type,
+        email: email ?? undefined,
       })
       .then(({ error }) => {
         if (error) {

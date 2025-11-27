@@ -58,44 +58,31 @@ export default function IntegratedFinancialReport() {
   const fetchReportData = async () => {
     setLoading(true);
 
-    // Fetch from journal_entries directly
-    const { data: journalEntries, error: journalError } = await supabase
-      .from("journal_entries")
-      .select("*")
+    // Fetch from vw_financial_report_from_journal_entries view
+    const { data, error } = await supabase
+      .from("vw_financial_report_from_journal_entries")
+      .select("account_code, account_name, debit_total, credit_total, amount")
       .order("account_code", { ascending: true });
 
-
-    if (journalError) {
+    if (error) {
       toast({
         title: "Error",
-        description: `Gagal memuat data laporan keuangan: ${journalError.message}`,
+        description: `Gagal memuat data laporan keuangan: ${error.message}`,
         variant: "destructive",
       });
       setLoading(false);
       return;
     }
 
-    // Group by account and calculate totals
-    const grouped = (journalEntries || []).reduce((acc: any, entry: any) => {
-      const key = entry.account_code;
-      if (!acc[key]) {
-        acc[key] = {
-          account_code: entry.account_code,
-          account_name: entry.account_name,
-          debit_total: 0,
-          credit_total: 0,
-          amount: 0,
-          report_type: "GENERAL_LEDGER",
-          section: "Accounts",
-        };
-      }
-      acc[key].debit_total += entry.debit || 0;
-      acc[key].credit_total += entry.credit || 0;
-      acc[key].amount += (entry.debit || 0) - (entry.credit || 0);
-      return acc;
-    }, {});
+    console.log("📊 Data from vw_financial_report_from_journal_entries:", data);
 
-    const reportDataArray = Object.values(grouped);
+    // Map data to include report_type and section for compatibility
+    const reportDataArray = (data || []).map((item: any) => ({
+      ...item,
+      report_type: "GENERAL_LEDGER",
+      section: "Accounts",
+    }));
+
     setReportData(reportDataArray as FinancialReportData[]);
     setLoading(false);
   };

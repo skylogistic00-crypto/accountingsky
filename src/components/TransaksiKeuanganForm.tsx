@@ -52,6 +52,7 @@ import {
   Clock,
   Check,
   ChevronsUpDown,
+  Trash2,
 } from "lucide-react";
 import {
   Table,
@@ -396,6 +397,30 @@ export default function TransaksiKeuanganForm() {
     loadTransactions();
     loadCOAAccounts();
     loadEmployees();
+
+    // Subscribe to realtime changes
+    const subscription = supabase
+      .channel("transactions-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "approval_transaksi" },
+        () => loadTransactions()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "kas_transaksi" },
+        () => loadTransactions()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sales_transactions" },
+        () => loadTransactions()
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Load employees from users table
@@ -890,7 +915,7 @@ export default function TransaksiKeuanganForm() {
   };
 
   // Load transactions from database - combining all transaction tables
-  const loadTransactions = async (): Promise<void> => {
+  const loadTransactions = async () => {
     try {
       setLoadingTransactions(true);
       console.log("🔄 Loading transactions from all tables...");
@@ -1021,7 +1046,7 @@ export default function TransaksiKeuanganForm() {
         })),
         ...(purchaseData || []).map((t) => ({
           ...t,
-          source: "purchase_transactions",
+          source: "PURCHASE TRANSACTIONS",
           tanggal: t.transaction_date,
           jenis: "Pembelian",
           nominal: t.total_amount,
@@ -1042,9 +1067,9 @@ export default function TransaksiKeuanganForm() {
         })),
         ...(approvalData || []).map((t) => ({
           ...t,
-          source: "approval_transaksi",
+          source: t.type === "Pembelian Jasa" ? "PURCHASE TRANSACTIONS" : "approval_transaksi",
           tanggal: t.transaction_date,
-          jenis: t.type, // "Penjualan Jasa", "Service Purchase", etc
+          jenis: t.type === "Pembelian Jasa" ? "Pembelian" : t.type,
           nominal: t.total_amount,
           keterangan: t.description || t.notes,
           payment_type: t.type,
@@ -1081,6 +1106,36 @@ export default function TransaksiKeuanganForm() {
       });
     } finally {
       setLoadingTransactions(false);
+    }
+  };
+
+  // Handle delete transaction
+  const handleDeleteTransaction = async (transaction: any) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from(transaction.source)
+        .delete()
+        .eq("id", transaction.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Berhasil",
+        description: "Transaksi berhasil dihapus",
+      });
+
+      // Reload transactions
+      await loadTransactions();
+    } catch (err: any) {
+      toast({
+        title: "❌ Error",
+        description: err.message || "Gagal menghapus transaksi",
+        variant: "destructive",
+      });
     }
   };
 
@@ -2043,11 +2098,11 @@ export default function TransaksiKeuanganForm() {
         }
       }
 
-      // Step 9: Route to Approval for Penjualan Barang, Penjualan Jasa, Pembelian Jasa
+      // Step 9: Route to Approval for Penjualan Barang, Penjualan Jasa only
+      // Pembelian Jasa will be handled in batch processing to avoid duplication
       if (
         jenisTransaksi === "Penjualan Barang" ||
-        jenisTransaksi === "Penjualan Jasa" ||
-        jenisTransaksi === "Pembelian Jasa"
+        jenisTransaksi === "Penjualan Jasa"
       ) {
         const mainDebitLine = previewLines.find((l) => l.dc === "D");
         const mainCreditLine = previewLines.find((l) => l.dc === "C");
@@ -2079,7 +2134,7 @@ export default function TransaksiKeuanganForm() {
             payment_method: paymentType === "cash" ? "Tunai" : "Piutang",
             payment_type: paymentType,
             coa_cash_code: mainDebitLine?.account_code || null,
-            coa_expense_code: jenisTransaksi === "Pembelian Jasa" ? mainDebitLine?.account_code : null,
+            coa_expense_code: null,
             coa_payable_code: paymentType !== "cash" ? mainCreditLine?.account_code : null,
             journal_ref: journalRef,
             notes: description,
@@ -2391,6 +2446,7 @@ export default function TransaksiKeuanganForm() {
         // Check if this transaction needs approval
         const needsApproval =
           item.jenisTransaksi === "Pembelian Barang" ||
+          item.jenisTransaksi === "Pembelian Jasa" ||
           item.jenisTransaksi === "Pengeluaran Kas";
 
         // Step 1: Normalize Input
@@ -2909,10 +2965,7 @@ export default function TransaksiKeuanganForm() {
         }
 
         // Step 9: Create Purchase Transaction if applicable
-        if (
-          item.jenisTransaksi === "Pembelian Barang" ||
-          item.jenisTransaksi === "Pembelian Jasa"
-        ) {
+        if (item.jenisTransaksi === "Pembelian Barang") {
           const unitPrice = Number(item.hargaBeli || item.nominal) || 0;
           const quantity = Number(item.quantity) || 1;
           const subtotal = unitPrice * quantity;
@@ -2922,8 +2975,7 @@ export default function TransaksiKeuanganForm() {
 
           const purchaseData: any = {
             transaction_date: item.tanggal,
-            transaction_type:
-              item.jenisTransaksi === "Pembelian Barang" ? "Barang" : "Jasa",
+            transaction_type: "Barang",
             item_name:
               item.itemName || `${item.kategori} - ${item.jenisLayanan}`,
             brand: item.description || null,
@@ -2957,44 +3009,52 @@ export default function TransaksiKeuanganForm() {
             throw new Error(`Purchase Transaction: ${purchaseError.message}`);
           }
           console.log("✅ Purchase Transaction saved:", purchaseData_result);
+        }
 
-          // Send Pembelian Jasa to approval_transaksi table
-          if (item.jenisTransaksi === "Pembelian Jasa") {
-            const approvalData = {
-              type: "purchase" as const,
-              source: "Service Purchase",
-              transaction_date: item.tanggal,
-              service_category: item.kategori || null,
-              service_type: item.jenisLayanan || null,
-              item_name: item.itemName || `${item.kategori} - ${item.jenisLayanan}`,
-              supplier_name: item.supplier || "",
-              quantity: quantity,
-              unit_price: unitPrice,
-              subtotal: subtotal,
-              ppn_percentage: ppnPercentage,
-              ppn_amount: ppnAmount,
-              total_amount: totalAmount,
-              payment_method: item.paymentType === "cash" ? "Tunai" : "Hutang",
-              payment_type: item.paymentType === "cash" ? "Tunai" : "Hutang",
-              coa_cash_code: item.paymentType === "cash" && mainCreditLine?.account_code ? mainCreditLine.account_code : null,
-              coa_expense_code: mainDebitLine?.account_code || null,
-              coa_payable_code: item.paymentType !== "cash" ? mainCreditLine?.account_code : null,
-              journal_ref: journalRef,
-              notes: item.description || null,
-              description: item.description || null,
-            };
+        // Send Pembelian Jasa to purchase_transactions table
+        if (item.jenisTransaksi === "Pembelian Jasa") {
+          const unitPrice = Number(item.hargaBeli || item.nominal) || 0;
+          const quantity = Number(item.quantity) || 1;
+          const subtotal = unitPrice * quantity;
+          const ppnPercentage = Number(item.ppnPercentage) || 0;
+          const ppnAmount = Number(item.ppnAmount) || 0;
+          const totalAmount = subtotal + ppnAmount;
 
-            console.log("📋 Sending to Approval Transaksi (Service Purchase):", approvalData);
+          const purchaseData: any = {
+            transaction_date: item.tanggal,
+            transaction_type: "Jasa",
+            item_name: item.itemName || `${item.kategori} - ${item.jenisLayanan}`,
+            brand: item.description || null,
+            supplier_name: item.supplier || "",
+            quantity: quantity,
+            unit_price: unitPrice,
+            subtotal: subtotal,
+            ppn_percentage: ppnPercentage,
+            ppn_amount: ppnAmount,
+            total_amount: totalAmount,
+            payment_method: item.paymentType === "cash" ? "Tunai" : "Hutang",
+            coa_cash_code:
+              item.paymentType === "cash" && mainCreditLine?.account_code
+                ? mainCreditLine.account_code
+                : null,
+            coa_expense_code: mainDebitLine?.account_code || null,
+            coa_inventory_code: item.coaSelected || null,
+            coa_payable_code:
+              item.paymentType !== "cash" ? mainCreditLine?.account_code : null,
+            notes: item.description || null,
+            journal_ref: journalRef,
+            approval_status: needsApproval ? "waiting_approval" : "approved",
+          };
 
-            const { error: approvalError } = await supabase.from("approval_transaksi").insert(approvalData as any);
+          console.log("📦 Purchase Transaction Data (Jasa):", purchaseData);
 
-            if (approvalError) {
-              console.error("❌ Approval Transaksi Error:", approvalError);
-              // Don't throw error, just log it
-            } else {
-              console.log("✅ Sent to Approval Transaksi with source: Service Purchase");
-            }
+          const { data: purchaseData_result, error: purchaseError } = await supabase.from("purchase_transactions").insert(purchaseData);
+
+          if (purchaseError) {
+            console.error("❌ Purchase Transaction Error:", purchaseError);
+            throw new Error(`Purchase Transaction: ${purchaseError.message}`);
           }
+          console.log("✅ Purchase Transaction saved (Jasa):", purchaseData_result);
         }
       }
 
@@ -3484,7 +3544,6 @@ export default function TransaksiKeuanganForm() {
                       </TableHead>
                       <TableHead className="font-semibold">Jenis</TableHead>
                       <TableHead className="font-semibold">Source</TableHead>
-                      <TableHead className="font-semibold">Akun</TableHead>
                       <TableHead className="font-semibold">
                         Keterangan
                       </TableHead>
@@ -3498,7 +3557,7 @@ export default function TransaksiKeuanganForm() {
                     {loadingTransactions ? (
                       <TableRow>
                         <TableCell
-                          colSpan={9}
+                          colSpan={8}
                           className="text-center text-gray-500 py-8"
                         >
                           Memuat data...
@@ -3507,7 +3566,7 @@ export default function TransaksiKeuanganForm() {
                     ) : transactions.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={9}
+                          colSpan={8}
                           className="text-center text-gray-500 py-8"
                         >
                           Belum ada transaksi. Klik "Tambah Transaksi" untuk
@@ -3604,14 +3663,6 @@ export default function TransaksiKeuanganForm() {
                             transaction.journal_ref ||
                             transaction.id?.substring(0, 8) ||
                             "-";
-                          const displayAccount =
-                            transaction.account_name ||
-                            transaction.coa_expense_code ||
-                            transaction.coa_revenue_code ||
-                            transaction.coa_loan_code ||
-                            "-";
-                          const displayAccountNumber =
-                            transaction.account_number || "";
 
                           // Determine if it's income or expense
                           const isIncome =
@@ -3657,16 +3708,6 @@ export default function TransaksiKeuanganForm() {
                                         ?.replace(/_/g, " ")
                                         .toUpperCase() || "KAS"}
                                 </span>
-                              </TableCell>
-                              <TableCell>
-                                <div className="text-sm">
-                                  {displayAccountNumber && (
-                                    <div className="font-mono text-xs text-gray-500">
-                                      {displayAccountNumber}
-                                    </div>
-                                  )}
-                                  <div>{displayAccount}</div>
-                                </div>
                               </TableCell>
                               <TableCell className="max-w-xs truncate">
                                 {displayKeterangan}
@@ -3715,7 +3756,7 @@ export default function TransaksiKeuanganForm() {
                   </TableBody>
                   <tfoot className="bg-slate-100 border-t-2 border-slate-300">
                     <TableRow>
-                      <TableCell colSpan={8} className="text-right font-bold text-lg">
+                      <TableCell colSpan={7} className="text-right font-bold text-lg">
                         Total Nominal:
                       </TableCell>
                       <TableCell className="text-right font-bold text-lg">

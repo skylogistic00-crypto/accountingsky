@@ -96,49 +96,38 @@ export default function ProfitLossReport() {
     setLoading(true);
 
     try {
-      // Fetch data from vw_profit_and_loss view
+      // Fetch data from vw_profit_and_loss view - NO FILTERS
       const { data, error } = await supabase
         .from("vw_profit_and_loss")
-        .select("account_code, account_name, account_type, balance")
-        .gte("entry_date", dateFrom)
-        .lte("entry_date", dateTo)
-        .order("account_code");
+        .select("account_code, account_name, account_type, debit, credit, balance");
 
       if (error) throw error;
 
-      // Group by account_code and sum balance
-      const accountMap = new Map<string, LabaRugiDetail>();
-
-      data?.forEach((row: any) => {
-        const key = row.account_code;
-        const balance = Number(row.balance) || 0;
-
-        if (accountMap.has(key)) {
-          const existing = accountMap.get(key)!;
-          existing.display_amount += balance;
-        } else {
-          accountMap.set(key, {
-            account_code: row.account_code,
-            account_name: row.account_name,
-            account_type: row.account_type,
-            display_amount: balance,
-          });
-        }
-      });
+      console.log("📊 Raw data from vw_profit_and_loss:", data);
 
       // Categorize accounts by account_type
       const revenueAccounts: LabaRugiDetail[] = [];
       const cogsAccounts: LabaRugiDetail[] = [];
       const expenseAccounts: LabaRugiDetail[] = [];
 
-      accountMap.forEach((item) => {
-        if (item.display_amount === 0) return;
+      data?.forEach((row: any) => {
+        const balance = Number(row.balance) || 0;
+        
+        // Skip zero balances
+        if (balance === 0) return;
 
-        if (item.account_type === "Pendapatan") {
+        const item: LabaRugiDetail = {
+          account_code: row.account_code,
+          account_name: row.account_name,
+          account_type: row.account_type,
+          display_amount: Math.abs(balance),
+        };
+
+        if (row.account_type === "Pendapatan") {
           revenueAccounts.push(item);
-        } else if (item.account_type === "Beban Pokok Penjualan") {
+        } else if (row.account_type === "Beban Pokok Penjualan") {
           cogsAccounts.push(item);
-        } else if (item.account_type === "Beban Operasional") {
+        } else if (row.account_type === "Beban Operasional") {
           expenseAccounts.push(item);
         }
       });
@@ -147,9 +136,16 @@ export default function ProfitLossReport() {
       setCogs(cogsAccounts);
       setExpenses(expenseAccounts);
 
+      console.log("📊 Categorized data:", {
+        revenues: revenueAccounts,
+        cogs: cogsAccounts,
+        expenses: expenseAccounts,
+        totalRows: data?.length || 0,
+      });
+
       toast({
         title: "✅ Laporan diperbarui",
-        description: `Data laporan periode ${dateFrom} s/d ${dateTo} berhasil dimuat`,
+        description: `Data laporan berhasil dimuat (${data?.length || 0} baris)`,
       });
     } catch (error: any) {
       toast({
