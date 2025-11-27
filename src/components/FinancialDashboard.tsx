@@ -21,9 +21,6 @@ interface FinancialSummary {
   totalExpense: number;
   netProfit: number;
   totalAssets: number;
-  yearlyRevenue: number;
-  yearlyExpense: number;
-  yearlyProfit: number;
 }
 
 export default function FinancialDashboard() {
@@ -35,9 +32,6 @@ export default function FinancialDashboard() {
     totalExpense: 0,
     netProfit: 0,
     totalAssets: 0,
-    yearlyRevenue: 0,
-    yearlyExpense: 0,
-    yearlyProfit: 0,
   });
 
   // Month and year filters
@@ -53,7 +47,7 @@ export default function FinancialDashboard() {
     setLoading(true);
 
     try {
-      // Fetch monthly data from vw_dashboard_summary view with month and year filters
+      // Fetch data from vw_dashboard_summary view with month and year filters
       const { data, error } = await supabase
         .from("vw_dashboard_summary")
         .select("category, year, month, amount")
@@ -62,24 +56,14 @@ export default function FinancialDashboard() {
 
       if (error) throw error;
 
-      console.log("📊 Data from vw_dashboard_summary (monthly):", data);
-
-      // Fetch yearly data (no month filter)
-      const { data: yearlyData, error: yearlyError } = await supabase
-        .from("vw_dashboard_summary")
-        .select("category, year, amount")
-        .eq("year", selectedYear);
-
-      if (yearlyError) throw yearlyError;
-
-      console.log("📊 Data from vw_dashboard_summary (yearly):", yearlyData);
+      console.log("📊 Data from vw_dashboard_summary:", data);
 
       // Initialize values
       let totalRevenue = 0;
       let totalExpense = 0;
       let totalAssets = 0;
 
-      // Aggregate amounts by category (monthly)
+      // Aggregate amounts by category
       data?.forEach((item) => {
         const amount = Number(item.amount) || 0;
         const category = (item.category || "").trim().toLowerCase();
@@ -95,31 +79,11 @@ export default function FinancialDashboard() {
 
       const netProfit = totalRevenue + totalExpense; // totalBeban sudah negatif dari view
 
-      // Calculate yearly totals
-      let yearlyRevenue = 0;
-      let yearlyExpense = 0;
-
-      yearlyData?.forEach((item) => {
-        const amount = Number(item.amount) || 0;
-        const category = (item.category || "").trim().toLowerCase();
-
-        if (category === "pendapatan") {
-          yearlyRevenue += amount;
-        } else if (category === "beban") {
-          yearlyExpense += amount;
-        }
-      });
-
-      const yearlyProfit = yearlyRevenue + yearlyExpense; // totalBeban sudah negatif dari view
-
       setSummary({
         totalRevenue,
         totalExpense,
         netProfit,
         totalAssets,
-        yearlyRevenue,
-        yearlyExpense,
-        yearlyProfit,
       });
 
       console.log("📊 Calculated summary:", {
@@ -127,9 +91,6 @@ export default function FinancialDashboard() {
         totalExpense,
         netProfit,
         totalAssets,
-        yearlyRevenue,
-        yearlyExpense,
-        yearlyProfit,
       });
     } catch (error: any) {
       toast({
@@ -334,81 +295,6 @@ export default function FinancialDashboard() {
                   </CardContent>
                 </Card>
               </Link>
-            </div>
-
-            {/* Yearly Summary Cards */}
-            <div className="grid md:grid-cols-3 gap-4">
-              {/* Total Revenue Tahun Ini */}
-              <Card className="bg-white shadow-md rounded-2xl border border-gray-200">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">
-                    Total Revenue Tahun Ini
-                  </CardTitle>
-                  <TrendingUp className="h-5 w-5 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-700">
-                    {formatRupiah(summary.yearlyRevenue)}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Total pendapatan {selectedYear}
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Total Expense Tahun Ini */}
-              <Card className="bg-white shadow-md rounded-2xl border border-gray-200">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">
-                    Total Expense Tahun Ini
-                  </CardTitle>
-                  <TrendingDown className="h-5 w-5 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-700">
-                    {formatRupiah(summary.yearlyExpense)}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Total beban {selectedYear}
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Profit Bersih Tahun Ini */}
-              <Card
-                className={`shadow-md rounded-2xl border-2 ${
-                  summary.yearlyProfit >= 0
-                    ? "bg-blue-50 border-blue-500"
-                    : "bg-orange-50 border-orange-500"
-                }`}
-              >
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">
-                    Profit Bersih Tahun Ini
-                  </CardTitle>
-                  <DollarSign
-                    className={`h-5 w-5 ${
-                      summary.yearlyProfit >= 0
-                        ? "text-blue-600"
-                        : "text-orange-600"
-                    }`}
-                  />
-                </CardHeader>
-                <CardContent>
-                  <div
-                    className={`text-2xl font-bold ${
-                      summary.yearlyProfit >= 0
-                        ? "text-blue-700"
-                        : "text-orange-700"
-                    }`}
-                  >
-                    {formatRupiah(Math.abs(summary.yearlyProfit))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {summary.yearlyProfit >= 0 ? "Laba" : "Rugi"} {selectedYear}
-                  </p>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Financial Reports Stats Cards */}

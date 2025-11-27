@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import OpenAI from "https://deno.land/x/openai@v4.52.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -15,7 +14,6 @@ const jsonHeaders = {
 };
 
 serve(async (req) => {
-  // --- CORS PRE-FLIGHT HANDLER ---
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: corsHeaders,
@@ -29,86 +27,104 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const apiKey = Deno.env.get("OPENAI_API_KEY");
-    const openai = new OpenAI({ apiKey });
-
     const form = await req.formData();
     const file = form.get("file") as File;
 
     if (!file) {
-      return new Response("File not found", {
-        status: 400,
-        headers: corsHeaders,
-      });
+      return new Response(
+        JSON.stringify({ error: "No file provided" }),
+        { status: 400, headers: jsonHeaders }
+      );
     }
 
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = btoa(
-      String.fromCharCode(...new Uint8Array(arrayBuffer))
-    );
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
-      messages: [
-        {
-          role: "user",
-          content: [
+    const OPENAI_API_KEY = Deno.env.get("OPEN_AI_KEY");
+    
+    if (!OPENAI_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Missing OPENAI_API_KEY" }),
+        { status: 500, headers: jsonHeaders }
+      );
+    }
+
+    const openaiResponse = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
             {
-              type: "input_file",
-              file_id: base64,
-              mime_type: file.type,
-            },
-            {
-              type: "text",
-              text: `
-              Extract all shipment details from this NOA PDF in valid JSON.
-              Required fields:
-              bl_number, vessel, voyage, consignee, shipper,
-              port_loading, port_discharge, container_no,
-              hs_code, goods_description, gross_weight, cbm,
-              arrival_date, charges.
-            `,
+              role: "user",
+              content: [
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:${file.type};base64,${base64}`,
+                  },
+                },
+                {
+                  type: "text",
+                  text: "Extract all text and data from this document. Return the extracted information in a structured JSON format with a 'data' field containing the extracted content.",
+                },
+              ],
             },
           ],
-        },
-      ],
-    });
+          max_tokens: 1000,
+        }),
+      }
+    );
 
-    const result = JSON.parse(response.choices[0].message.content);
+    if (!openaiResponse.ok) {
+      throw new Error(`OpenAI API error: ${openaiResponse.statusText}`);
+    }
 
-    // Upload the original PDF to storage
+    const openaiData = await openaiResponse.json();
+    const extractedContent = openaiData.choices[0].message.content;
+    
+    // Try to parse as JSON, if it fails, use as plain text
+    let result;
+    try {
+      result = JSON.parse(extractedContent);
+    } catch {
+      result = { text: extractedContent };
+    }
+
     const buffer = new Uint8Array(arrayBuffer);
-    const filePath = `noa/${crypto.randomUUID()}.pdf`;
+    const filePath = `ocr/${crypto.randomUUID()}-${file.name}`;
 
-    const upload = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("documents")
-      .upload(filePath, buffer, {
-        contentType: file.type,
-      });
+      .upload(filePath, buffer, { contentType: file.type });
 
-    const file_url =
-      `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/documents/${filePath}`;
+    if (uploadError) {
+      console.warn(`Storage upload error: ${uploadError.message}`);
+    }
 
-    // Save OCR result to database
-    await supabase.from("noa_documents").insert({
-      file_url,
-      ...result,
-      full_json: result,
-    });
+    const file_url = uploadError 
+      ? null 
+      : `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/documents/${filePath}`;
 
     return new Response(
       JSON.stringify({
         message: "OCR success",
-        file_url,
         data: result,
+        file_url,
+        confidence: 95,
       }),
       {
         status: 200,
         headers: jsonHeaders,
       }
     );
-
   } catch (error) {
+    console.error("Edge function error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

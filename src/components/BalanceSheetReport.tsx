@@ -137,7 +137,8 @@ export default function BalanceSheetReport() {
   );
   const totalEquity = equity.reduce((sum, acc) => sum + acc.balance, 0);
   const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
-  const balanceDifference = totalAssets - totalLiabilitiesAndEquity;
+  // totalKewajibanEkuitas dari view sudah negatif, jadi gunakan absolute value
+  const balanceDifference = totalAssets - Math.abs(totalLiabilitiesAndEquity);
 
   const exportToCSV = () => {
     const csv = [
@@ -368,14 +369,14 @@ export default function BalanceSheetReport() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right font-semibold text-sm">
-                            {formatRupiah(acc.balance)}
+                            {formatRupiah(Math.abs(acc.balance))}
                           </TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="bg-red-50 font-bold">
                         <TableCell>TOTAL</TableCell>
                         <TableCell className="text-right text-red-700">
-                          {formatRupiah(totalLiabilities)}
+                          {formatRupiah(Math.abs(totalLiabilities))}
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -407,14 +408,14 @@ export default function BalanceSheetReport() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right font-semibold text-sm">
-                            {formatRupiah(acc.balance)}
+                            {formatRupiah(Math.abs(acc.balance))}
                           </TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="bg-green-50 font-bold">
                         <TableCell>TOTAL</TableCell>
                         <TableCell className="text-right text-green-700">
-                          {formatRupiah(totalEquity)}
+                          {formatRupiah(Math.abs(totalEquity))}
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -441,7 +442,7 @@ export default function BalanceSheetReport() {
                       Total Kewajiban + Ekuitas
                     </span>
                     <span className="text-xl font-bold text-purple-700">
-                      {formatRupiah(totalLiabilitiesAndEquity)}
+                      {formatRupiah(Math.abs(totalLiabilitiesAndEquity))}
                     </span>
                   </div>
                   <div

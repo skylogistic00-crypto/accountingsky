@@ -5,21 +5,11 @@ export default function EmailConfirm() {
   const [message, setMessage] = useState("Confirming your email...");
 
   useEffect(() => {
-    // Ambil token dari query (?token=xxx)
-    const paramsQuery = new URLSearchParams(window.location.search);
-    let token = paramsQuery.get("token");
-    let type = paramsQuery.get("type");
-    let email = paramsQuery.get("email");
+    const params = new URLSearchParams(window.location.search);
 
-    // Jika token tidak ada di query, cari dari hash (#token=xxx)
-    if (!token) {
-      const hash = window.location.hash.replace("#", "");
-      const paramsHash = new URLSearchParams(hash);
-
-      token = paramsHash.get("token");
-      type = paramsHash.get("type") || "signup";
-      email = paramsHash.get("email");
-    }
+    const token = params.get("token");
+    const type = params.get("type");
+    const email = params.get("email"); // Supabase kadang kirim email
 
     if (!token || !type) {
       setMessage("Invalid or missing confirmation token.");
@@ -32,7 +22,7 @@ export default function EmailConfirm() {
         type,
         email: email ?? undefined,
       })
-      .then(({ error }) => {
+      .then(({ data, error }) => {
         if (error) {
           setMessage("Confirmation failed: " + error.message);
         } else {

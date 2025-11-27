@@ -28,6 +28,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -53,6 +61,8 @@ import {
   Check,
   ChevronsUpDown,
   Trash2,
+  Info,
+  FileText,
 } from "lucide-react";
 import {
   Table,
@@ -920,12 +930,12 @@ export default function TransaksiKeuanganForm() {
       setLoadingTransactions(true);
       console.log("🔄 Loading transactions from all tables...");
 
-      // Load from kas_transaksi (approved and waiting approval)
+      // Load from kas_transaksi (approved, waiting approval, and rejected)
       const { data: kasData, error: kasError } = await supabase
         .from("kas_transaksi")
         .select("*")
         .or(
-          "approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.is.null",
+          "approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected,approval_status.is.null",
         )
         .order("tanggal", { ascending: false });
 
@@ -933,12 +943,12 @@ export default function TransaksiKeuanganForm() {
         console.error("❌ Error loading kas_transaksi:", kasError);
       }
 
-      // Load from cash_disbursement (approved and waiting approval)
+      // Load from cash_disbursement (approved, waiting approval, and rejected)
       const { data: cashDisbursementData, error: cashDisbursementError } =
         await supabase
           .from("cash_disbursement")
           .select("*")
-          .or("approval_status.eq.approved,approval_status.eq.waiting_approval")
+          .or("approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected")
           .order("transaction_date", { ascending: false });
 
       if (cashDisbursementError) {
@@ -948,12 +958,12 @@ export default function TransaksiKeuanganForm() {
         );
       }
 
-      // Load from purchase_transactions (approved and waiting approval)
+      // Load from purchase_transactions (approved, waiting approval, and rejected)
       const { data: purchaseData, error: purchaseError } = await supabase
         .from("purchase_transactions")
         .select("*")
         .or(
-          "approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.is.null",
+          "approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected,approval_status.is.null",
         )
         .order("transaction_date", { ascending: false });
 
@@ -996,11 +1006,11 @@ export default function TransaksiKeuanganForm() {
         );
       }
 
-      // Load from approval_transaksi (Penjualan Jasa, etc)
+      // Load from approval_transaksi (Penjualan Jasa, etc - approved, waiting approval, and rejected)
       const { data: approvalData, error: approvalError } = await supabase
         .from("approval_transaksi")
         .select("*")
-        .or("approval_status.eq.approved,approval_status.eq.waiting_approval")
+        .or("approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected")
         .order("transaction_date", { ascending: false });
 
       if (approvalError) {
@@ -1988,7 +1998,7 @@ export default function TransaksiKeuanganForm() {
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
             const filePath = `bukti-transaksi/${fileName}`;
 
-            const { data: uploadData, error: uploadError } =
+            const { error: uploadError } =
               await supabase.storage
                 .from("documents")
                 .upload(filePath, buktiFile);
@@ -2443,6 +2453,28 @@ export default function TransaksiKeuanganForm() {
     setIsConfirming(true);
     try {
       for (const item of selectedItems) {
+        // Upload bukti file if exists (for all transaction types)
+        let uploadedBuktiUrl = "";
+        if (buktiFile) {
+          const fileExt = buktiFile.name.split(".").pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `bukti-transaksi/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("documents")
+            .upload(filePath, buktiFile);
+
+          if (uploadError) {
+            console.error("❌ Upload error:", uploadError);
+          } else {
+            const { data: urlData } = supabase.storage
+              .from("documents")
+              .getPublicUrl(filePath);
+            uploadedBuktiUrl = urlData.publicUrl;
+            console.log("✅ Bukti file uploaded:", uploadedBuktiUrl);
+          }
+        }
+
         // Check if this transaction needs approval
         const needsApproval =
           item.jenisTransaksi === "Pembelian Barang" ||
@@ -2998,6 +3030,7 @@ export default function TransaksiKeuanganForm() {
             notes: item.description || null,
             journal_ref: journalRef,
             approval_status: needsApproval ? "waiting_approval" : "approved",
+            bukti: uploadedBuktiUrl || null,
           };
 
           console.log("📦 Purchase Transaction Data:", purchaseData);
@@ -3044,6 +3077,7 @@ export default function TransaksiKeuanganForm() {
             notes: item.description || null,
             journal_ref: journalRef,
             approval_status: needsApproval ? "waiting_approval" : "approved",
+            bukti: uploadedBuktiUrl || null,
           };
 
           console.log("📦 Purchase Transaction Data (Jasa):", purchaseData);
@@ -3548,6 +3582,12 @@ export default function TransaksiKeuanganForm() {
                         Keterangan
                       </TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold text-center">
+                        Informasi
+                      </TableHead>
+                      <TableHead className="font-semibold text-center">
+                        Bukti
+                      </TableHead>
                       <TableHead className="font-semibold text-right">
                         Nominal
                       </TableHead>
@@ -3557,7 +3597,7 @@ export default function TransaksiKeuanganForm() {
                     {loadingTransactions ? (
                       <TableRow>
                         <TableCell
-                          colSpan={8}
+                          colSpan={10}
                           className="text-center text-gray-500 py-8"
                         >
                           Memuat data...
@@ -3566,7 +3606,7 @@ export default function TransaksiKeuanganForm() {
                     ) : transactions.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={8}
+                          colSpan={10}
                           className="text-center text-gray-500 py-8"
                         >
                           Belum ada transaksi. Klik "Tambah Transaksi" untuk
@@ -3736,6 +3776,195 @@ export default function TransaksiKeuanganForm() {
                                         : "-"}
                                 </span>
                               </TableCell>
+                              <TableCell className="text-center">
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    >
+                                      <Info className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                    <DialogHeader>
+                                      <DialogTitle>Detail Informasi Transaksi</DialogTitle>
+                                      <DialogDescription>
+                                        Informasi lengkap untuk transaksi {displayDocNumber}
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 mt-4">
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Tanggal</p>
+                                          <p className="text-sm">{new Date(transaction.tanggal).toLocaleDateString("id-ID")}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">No. Dokumen</p>
+                                          <p className="text-sm font-mono">{displayDocNumber}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Jenis Transaksi</p>
+                                          <p className="text-sm">{displayJenis}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Source</p>
+                                          <p className="text-sm">{transaction.source?.replace(/_/g, " ").toUpperCase() || "KAS"}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Status</p>
+                                          <p className="text-sm">
+                                            {transaction.approval_status === "approved"
+                                              ? "✓ Approved"
+                                              : transaction.approval_status === "rejected"
+                                                ? "✗ Rejected"
+                                                : transaction.approval_status === "waiting_approval"
+                                                  ? "⏳ Waiting Approval"
+                                                  : "-"}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Nominal</p>
+                                          <p className={`text-sm font-medium ${isIncome ? "text-green-600" : "text-red-600"}`}>
+                                            {isIncome ? "+" : "-"}Rp {new Intl.NumberFormat("id-ID").format(displayNominal)}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      
+                                      <div>
+                                        <p className="text-sm font-semibold text-gray-600">Keterangan</p>
+                                        <p className="text-sm">{displayKeterangan}</p>
+                                      </div>
+
+                                      {/* Additional details based on transaction type */}
+                                      {transaction.supplier_name && (
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Supplier</p>
+                                          <p className="text-sm">{transaction.supplier_name}</p>
+                                        </div>
+                                      )}
+                                      
+                                      {transaction.customer_name && (
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Customer</p>
+                                          <p className="text-sm">{transaction.customer_name}</p>
+                                        </div>
+                                      )}
+
+                                      {transaction.item_name && (
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Item</p>
+                                          <p className="text-sm">{transaction.item_name}</p>
+                                        </div>
+                                      )}
+
+                                      {transaction.quantity && (
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Quantity</p>
+                                          <p className="text-sm">{transaction.quantity} {transaction.unit || ""}</p>
+                                        </div>
+                                      )}
+
+                                      {transaction.service_category && (
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Service Category</p>
+                                          <p className="text-sm">{transaction.service_category}</p>
+                                        </div>
+                                      )}
+
+                                      {transaction.service_type && (
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Service Type</p>
+                                          <p className="text-sm">{transaction.service_type}</p>
+                                        </div>
+                                      )}
+
+                                      {transaction.account_name && (
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">Account</p>
+                                          <p className="text-sm">{transaction.account_name}</p>
+                                        </div>
+                                      )}
+
+                                      {/* Upload Bukti */}
+                                      {transaction.bukti && (
+                                        <div className="border-t pt-4">
+                                          <p className="text-sm font-semibold text-gray-600 mb-2">Upload Bukti</p>
+                                          <a
+                                            href={transaction.bukti}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                          >
+                                            <Receipt className="h-4 w-4" />
+                                            Lihat Bukti Transaksi
+                                          </a>
+                                        </div>
+                                      )}
+
+                                      {/* Tax information if available */}
+                                      {(transaction.ppn_amount || transaction.pph_amount) && (
+                                        <div className="border-t pt-4">
+                                          <p className="text-sm font-semibold text-gray-600 mb-2">Informasi Pajak</p>
+                                          {transaction.ppn_amount && (
+                                            <div className="flex justify-between text-sm">
+                                              <span>PPN ({transaction.ppn_rate || 11}%)</span>
+                                              <span>Rp {new Intl.NumberFormat("id-ID").format(transaction.ppn_amount)}</span>
+                                            </div>
+                                          )}
+                                          {transaction.pph_amount && (
+                                            <div className="flex justify-between text-sm">
+                                              <span>PPh ({transaction.pph_rate || 2}%)</span>
+                                              <span>Rp {new Intl.NumberFormat("id-ID").format(transaction.pph_amount)}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Loan information if available */}
+                                      {transaction.loan_number && (
+                                        <div className="border-t pt-4">
+                                          <p className="text-sm font-semibold text-gray-600 mb-2">Informasi Pinjaman</p>
+                                          {transaction.lender_name && (
+                                            <div className="flex justify-between text-sm mb-1">
+                                              <span>Pemberi Pinjaman</span>
+                                              <span>{transaction.lender_name}</span>
+                                            </div>
+                                          )}
+                                          {transaction.interest_rate && (
+                                            <div className="flex justify-between text-sm mb-1">
+                                              <span>Bunga</span>
+                                              <span>{transaction.interest_rate}%</span>
+                                            </div>
+                                          )}
+                                          {transaction.installment_count && (
+                                            <div className="flex justify-between text-sm">
+                                              <span>Jumlah Cicilan</span>
+                                              <span>{transaction.installment_count}x</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {transaction.bukti ? (
+                                  <a
+                                    href={transaction.bukti}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                    Lihat Bukti
+                                  </a>
+                                ) : (
+                                  <span className="text-xs text-gray-400">-</span>
+                                )}
+                              </TableCell>
                               <TableCell className="text-right font-medium">
                                 <span
                                   className={
@@ -3756,7 +3985,7 @@ export default function TransaksiKeuanganForm() {
                   </TableBody>
                   <tfoot className="bg-slate-100 border-t-2 border-slate-300">
                     <TableRow>
-                      <TableCell colSpan={7} className="text-right font-bold text-lg">
+                      <TableCell colSpan={9} className="text-right font-bold text-lg">
                         Total Nominal:
                       </TableCell>
                       <TableCell className="text-right font-bold text-lg">
