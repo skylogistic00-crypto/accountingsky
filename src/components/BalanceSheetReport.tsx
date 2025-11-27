@@ -55,93 +55,68 @@ export default function BalanceSheetReport() {
     setLoading(true);
 
     try {
-      // 1️⃣ Ambil data laporan_neraca berdasarkan periode
-      const { data, error } = await supabase
-        .from("laporan_neraca")
-        .select("account_code, account_name, section, balance")
-        .lte("period_start", periodEnd) // periode mulai sebelum akhir range
-        .gte("period_end", periodStart); // periode berakhir setelah awal range
+      // Fetch ASSET accounts
+      const { data: assetData, error: assetError } = await supabase
+        .from("vw_trial_balance_per_account")
+        .select("account_code, account_name, account_type, balance")
+        .eq("account_type", "ASSET")
+        .gte("entry_date", periodStart)
+        .lte("entry_date", periodEnd);
 
-      if (error) throw error;
+      if (assetError) throw assetError;
 
-      // 2️⃣ Group akun dan jumlahkan saldo per kode akun
-      const accountMap = new Map<string, BalanceSheetData>();
+      // Fetch LIABILITY accounts
+      const { data: liabilityData, error: liabilityError } = await supabase
+        .from("vw_trial_balance_per_account")
+        .select("account_code, account_name, account_type, balance")
+        .eq("account_type", "LIABILITY")
+        .gte("entry_date", periodStart)
+        .lte("entry_date", periodEnd);
 
-      data?.forEach((row) => {
-        const key = row.account_code;
+      if (liabilityError) throw liabilityError;
 
-        // Konversi string → number agar bisa dihitung
-        const balance = Number(row.balance) || 0;
+      // Fetch EQUITY accounts
+      const { data: equityData, error: equityError } = await supabase
+        .from("vw_trial_balance_per_account")
+        .select("account_code, account_name, account_type, balance")
+        .eq("account_type", "EQUITY")
+        .gte("entry_date", periodStart)
+        .lte("entry_date", periodEnd);
 
-        // Pastikan section huruf besar (biar 'Ekuitas' dan 'EKUITAS' terbaca sama)
-        const section = (row.section || "").toUpperCase();
+      if (equityError) throw equityError;
 
-        if (accountMap.has(key)) {
-          const existing = accountMap.get(key)!;
-          existing.balance += balance;
-        } else {
-          accountMap.set(key, {
-            account_code: row.account_code,
-            account_name: row.account_name,
-            section,
-            balance,
-          });
-        }
-      });
+      // Group and sum by account_code for each type
+      const groupByAccount = (data: any[]) => {
+        const accountMap = new Map<string, BalanceSheetData>();
+        
+        data?.forEach((row) => {
+          const key = row.account_code;
+          const balance = Number(row.balance) || 0;
 
-      // 3️⃣ Pisahkan berdasarkan kategori section
-      const assetAccounts: BalanceSheetData[] = [];
-      const liabilityAccounts: BalanceSheetData[] = [];
-      const equityAccounts: BalanceSheetData[] = [];
+          if (accountMap.has(key)) {
+            const existing = accountMap.get(key)!;
+            existing.balance += balance;
+          } else {
+            accountMap.set(key, {
+              account_code: row.account_code,
+              account_name: row.account_name,
+              section: row.account_type,
+              balance,
+            });
+          }
+        });
 
-      console.table(
-        data.map((row) => ({
-          account_name: row.account_name,
-          section: row.section,
-          balance: Number(row.balance),
-        })),
-      );
+        return Array.from(accountMap.values()).filter(acc => acc.balance !== 0);
+      };
 
-      accountMap.forEach((acc) => {
-        if (!acc.balance || Number(acc.balance) === 0) return;
+      const assetAccounts = groupByAccount(assetData || []);
+      const liabilityAccounts = groupByAccount(liabilityData || []);
+      const equityAccounts = groupByAccount(equityData || []);
 
-        const section = (acc.section || "").toUpperCase().trim();
-
-        switch (section) {
-          case "ASET":
-          case "ASSET":
-            assetAccounts.push(acc);
-            break;
-
-          case "KEWAJIBAN":
-          case "LIABILITY":
-            liabilityAccounts.push(acc);
-            break;
-
-          case "EKUITAS":
-          case "EQUITY":
-            equityAccounts.push(acc);
-            break;
-
-          default:
-            console.warn("⚠️ Section tidak dikenal:", acc.section);
-            break;
-        }
-      });
-
-      // 4️⃣ Simpan hasil akhir ke state
       setAssets(assetAccounts);
       setLiabilities(liabilityAccounts);
       setEquity(equityAccounts);
 
-      // Debug (opsional)
-      console.table({
-        ASET: assetAccounts.reduce((a, b) => a + b.balance, 0),
-        KEWAJIBAN: liabilityAccounts.reduce((a, b) => a + b.balance, 0),
-        EKUITAS: equityAccounts.reduce((a, b) => a + b.balance, 0),
-      });
-
-      // 5️⃣ Notifikasi sukses
       toast({
         title: "✅ Laporan diperbarui",
         description: `Data neraca periode ${periodStart} - ${periodEnd} berhasil dimuat`,
