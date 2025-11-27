@@ -288,6 +288,9 @@ export default function TransaksiKeuanganForm() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterJenis, setFilterJenis] = useState("");
+  const [filterSource, setFilterSource] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
   const [nominal, setNominal] = useState("");
   const [quantity, setQuantity] = useState("1");
@@ -3360,8 +3363,68 @@ export default function TransaksiKeuanganForm() {
                     />
                   </div>
 
+                  {/* Additional Filters */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="filterJenis" className="text-sm font-medium text-slate-700">
+                        Jenis Transaksi
+                      </Label>
+                      <select
+                        id="filterJenis"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={filterJenis}
+                        onChange={(e) => setFilterJenis(e.target.value)}
+                      >
+                        <option value="">Semua Jenis</option>
+                        <option value="Penerimaan Kas">Penerimaan Kas</option>
+                        <option value="Pengeluaran Kas">Pengeluaran Kas</option>
+                        <option value="Penjualan">Penjualan</option>
+                        <option value="Pembelian">Pembelian</option>
+                        <option value="Pinjaman">Pinjaman</option>
+                        <option value="Pemakaian Internal">Pemakaian Internal</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="filterSource" className="text-sm font-medium text-slate-700">
+                        Source
+                      </Label>
+                      <select
+                        id="filterSource"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={filterSource}
+                        onChange={(e) => setFilterSource(e.target.value)}
+                      >
+                        <option value="">Semua Source</option>
+                        <option value="kas_transaksi">KAS_TRANSAKSI</option>
+                        <option value="cash_disbursement">CASH_DISBURSEMENT</option>
+                        <option value="cash_and_bank_receipts">CASH_AND_BANK_RECEIPTS</option>
+                        <option value="purchase_transactions">PURCHASE_TRANSACTIONS</option>
+                        <option value="sales_transactions">SALES_TRANSACTIONS</option>
+                        <option value="internal_usage">INTERNAL_USAGE</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="filterStatus" className="text-sm font-medium text-slate-700">
+                        Status
+                      </Label>
+                      <select
+                        id="filterStatus"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                      >
+                        <option value="">Semua Status</option>
+                        <option value="approved">Approved</option>
+                        <option value="waiting_approval">Waiting Approval</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
+
                   {/* Clear Filters Button */}
-                  {(filterDateFrom || filterDateTo || searchQuery) && (
+                  {(filterDateFrom || filterDateTo || searchQuery || filterJenis || filterSource || filterStatus) && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -3369,6 +3432,9 @@ export default function TransaksiKeuanganForm() {
                         setFilterDateFrom("");
                         setFilterDateTo("");
                         setSearchQuery("");
+                        setFilterJenis("");
+                        setFilterSource("");
+                        setFilterStatus("");
                       }}
                       className="w-full md:w-auto"
                     >
@@ -3435,6 +3501,22 @@ export default function TransaksiKeuanganForm() {
                               toDate.setHours(23, 59, 59, 999); // Include the entire end date
                               if (transactionDate > toDate) return false;
                             }
+                          }
+
+                          // Jenis filter
+                          if (filterJenis) {
+                            const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
+                            if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
+                          }
+
+                          // Source filter
+                          if (filterSource) {
+                            if (t.source !== filterSource) return false;
+                          }
+
+                          // Status filter
+                          if (filterStatus) {
+                            if (t.approval_status !== filterStatus) return false;
                           }
 
                           // Search query filter
@@ -3603,6 +3685,75 @@ export default function TransaksiKeuanganForm() {
                         })
                     )}
                   </TableBody>
+                  <tfoot className="bg-slate-100 border-t-2 border-slate-300">
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-right font-bold text-lg">
+                        Total Nominal:
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-lg">
+                        <span className="text-indigo-600">
+                          Rp{" "}
+                          {new Intl.NumberFormat("id-ID").format(
+                            transactions
+                              .filter((t) => {
+                                // Apply same filters as table
+                                if (filterDateFrom || filterDateTo) {
+                                  const transactionDate = new Date(t.tanggal);
+                                  if (filterDateFrom) {
+                                    const fromDate = new Date(filterDateFrom);
+                                    if (transactionDate < fromDate) return false;
+                                  }
+                                  if (filterDateTo) {
+                                    const toDate = new Date(filterDateTo);
+                                    toDate.setHours(23, 59, 59, 999);
+                                    if (transactionDate > toDate) return false;
+                                  }
+                                }
+                                if (filterJenis) {
+                                  const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
+                                  if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
+                                }
+                                if (filterSource) {
+                                  if (t.source !== filterSource) return false;
+                                }
+                                if (filterStatus) {
+                                  if (t.approval_status !== filterStatus) return false;
+                                }
+                                if (searchQuery) {
+                                  const query = searchQuery.toLowerCase();
+                                  return (
+                                    t.payment_type?.toLowerCase().includes(query) ||
+                                    t.jenis?.toLowerCase().includes(query) ||
+                                    t.account_name?.toLowerCase().includes(query) ||
+                                    t.keterangan?.toLowerCase().includes(query) ||
+                                    t.description?.toLowerCase().includes(query) ||
+                                    t.notes?.toLowerCase().includes(query) ||
+                                    t.item_name?.toLowerCase().includes(query) ||
+                                    t.supplier_name?.toLowerCase().includes(query) ||
+                                    t.customer_name?.toLowerCase().includes(query) ||
+                                    t.lender_name?.toLowerCase().includes(query) ||
+                                    t.document_number?.toLowerCase().includes(query) ||
+                                    t.loan_number?.toLowerCase().includes(query) ||
+                                    t.source?.toLowerCase().includes(query)
+                                  );
+                                }
+                                return true;
+                              })
+                              .reduce((sum, t) => {
+                                const nominal = parseFloat(
+                                  t.nominal ||
+                                    t.amount ||
+                                    t.total_amount ||
+                                    t.total_value ||
+                                    0
+                                );
+                                return sum + nominal;
+                              }, 0)
+                          )}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  </tfoot>
                 </Table>
               </div>
             </div>
