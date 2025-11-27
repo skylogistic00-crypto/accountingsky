@@ -22,6 +22,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Starting OCR processing via Pica");
+    
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -37,25 +39,53 @@ serve(async (req) => {
       );
     }
 
+    console.log("File received:", file.name, file.type);
+
     const arrayBuffer = await file.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-    const OPENAI_API_KEY = Deno.env.get("OPEN_AI_KEY");
+    const PICA_SECRET_KEY = Deno.env.get("PICA_SECRET_KEY");
+    const PICA_OPENAI_CONNECTION_KEY = Deno.env.get("PICA_OPENAI_CONNECTION_KEY");
     
-    if (!OPENAI_API_KEY) {
+    if (!PICA_SECRET_KEY || !PICA_OPENAI_CONNECTION_KEY) {
+      console.error("Pica credentials are missing");
       return new Response(
-        JSON.stringify({ error: "Missing OPENAI_API_KEY" }),
+        JSON.stringify({ error: "Missing Pica credentials" }),
         { status: 500, headers: jsonHeaders }
       );
     }
 
-    const openaiResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
+    // Upload file to storage first to get public URL
+    const buffer = new Uint8Array(arrayBuffer);
+    const filePath = `ocr/${crypto.randomUUID()}-${file.name}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("documents")
+      .upload(filePath, buffer, { contentType: file.type });
+
+    let imageUrl = "";
+    if (!uploadError) {
+      const { data: urlData } = supabase.storage
+        .from("documents")
+        .getPublicUrl(filePath);
+      imageUrl = urlData.publicUrl;
+    } else {
+      imageUrl = `data:${file.type};base64,${base64}`;
+    }
+
+    console.log("Calling Pica API for OCR...");
+
+    const prompt = "Extract all text and data from this document. Return the extracted information in a structured JSON format with a 'data' field containing the extracted content.";
+
+    const picaResponse = await fetch(
+      "https://api.picaos.com/v1/passthrough/chat/completions",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "x-pica-secret": PICA_SECRET_KEY,
+          "x-pica-connection-key": PICA_OPENAI_CONNECTION_KEY,
+          "x-pica-action-id": "conn_mod_def::GDzgi1QfvM4::4OjsWvZhRxmAVuLAuWgfVA",
         },
         body: JSON.stringify({
           model: "gpt-4o",
@@ -64,47 +94,48 @@ serve(async (req) => {
               role: "user",
               content: [
                 {
-                  type: "image_url",
-                  image_url: {
-                    url: `data:${file.type};base64,${base64}`,
-                  },
+                  type: "text",
+                  text: prompt,
                 },
                 {
-                  type: "text",
-                  text: "Extract all text and data from this document. Return the extracted information in a structured JSON format with a 'data' field containing the extracted content.",
+                  type: "image_url",
+                  image_url: {
+                    url: imageUrl,
+                  },
                 },
               ],
             },
           ],
-          max_tokens: 1000,
+          max_tokens: 2000,
+          temperature: 0,
         }),
       }
     );
 
-    if (!openaiResponse.ok) {
-      throw new Error(`OpenAI API error: ${openaiResponse.statusText}`);
+    if (!picaResponse.ok) {
+      const errorText = await picaResponse.text();
+      throw new Error(`Pica API error: ${picaResponse.statusText} - ${errorText}`);
     }
 
-    const openaiData = await openaiResponse.json();
-    const extractedContent = openaiData.choices[0].message.content;
+    const picaData = await picaResponse.json();
+    console.log("Pica response received:", JSON.stringify(picaData).substring(0, 200));
     
-    // Try to parse as JSON, if it fails, use as plain text
+    let extractedContent = "";
+    if (picaData.choices && picaData.choices.length > 0 && picaData.choices[0].message) {
+      extractedContent = picaData.choices[0].message.content || "";
+    } else {
+      throw new Error("Invalid Pica response structure");
+    }
+    
+    if (!extractedContent) {
+      throw new Error("No content extracted from Pica response");
+    }
+    
     let result;
     try {
       result = JSON.parse(extractedContent);
     } catch {
       result = { text: extractedContent };
-    }
-
-    const buffer = new Uint8Array(arrayBuffer);
-    const filePath = `ocr/${crypto.randomUUID()}-${file.name}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("documents")
-      .upload(filePath, buffer, { contentType: file.type });
-
-    if (uploadError) {
-      console.warn(`Storage upload error: ${uploadError.message}`);
     }
 
     const file_url = uploadError 
@@ -125,8 +156,12 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Edge function error:", error);
+    console.error("Error stack:", error.stack);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack 
+      }),
       {
         status: 500,
         headers: jsonHeaders,
