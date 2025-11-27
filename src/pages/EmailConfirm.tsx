@@ -8,9 +8,8 @@ export default function EmailConfirm() {
     const url = new URL(window.location.href);
     const token_hash = url.searchParams.get("token_hash");
     const type = url.searchParams.get("type") || "signup";
-    const email = url.searchParams.get("email");
 
-    if (!token_hash || !email) {
+    if (!token_hash) {
       setMessage("Invalid or missing confirmation token.");
       return;
     }
@@ -19,7 +18,6 @@ export default function EmailConfirm() {
       .verifyOtp({
         token_hash,
         type,
-        email,
       })
       .then(({ error }) => {
         if (error) {
