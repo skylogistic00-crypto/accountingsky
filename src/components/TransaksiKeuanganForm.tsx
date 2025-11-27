@@ -971,6 +971,17 @@ export default function TransaksiKeuanganForm() {
         );
       }
 
+      // Load from approval_transaksi (Penjualan Jasa, etc)
+      const { data: approvalData, error: approvalError } = await supabase
+        .from("approval_transaksi")
+        .select("*")
+        .or("approval_status.eq.approved,approval_status.eq.waiting_approval")
+        .order("transaction_date", { ascending: false });
+
+      if (approvalError) {
+        console.error("❌ Error loading approval_transaksi:", approvalError);
+      }
+
       // Note: expenses and loans tables are not used in this view
 
       console.log("📊 Query results:", {
@@ -980,6 +991,7 @@ export default function TransaksiKeuanganForm() {
         sales: salesData?.length || 0,
         internal: internalData?.length || 0,
         cashReceipts: cashReceiptsData?.length || 0,
+        approval: approvalData?.length || 0,
       });
 
       // Combine all transactions with source identifier
@@ -1027,6 +1039,16 @@ export default function TransaksiKeuanganForm() {
           tanggal: t.usage_date,
           jenis: "Pemakaian Internal",
           nominal: t.total_value,
+        })),
+        ...(approvalData || []).map((t) => ({
+          ...t,
+          source: "approval_transaksi",
+          tanggal: t.transaction_date,
+          jenis: t.type, // "Penjualan Jasa", "Service Purchase", etc
+          nominal: t.total_amount,
+          keterangan: t.description || t.notes,
+          payment_type: t.type,
+          document_number: t.document_number,
         })),
       ];
 
@@ -3065,6 +3087,9 @@ export default function TransaksiKeuanganForm() {
         if (t.source === "sales_transactions") return true;
         // Income from loans (pinjaman diterima)
         if (t.source === "loans") return true;
+        // Income from Penjualan Jasa (approval_transaksi)
+        if (t.source === "approval_transaksi" && t.type === "Penjualan Jasa")
+          return true;
         return false;
       })
       .reduce((sum, t) => sum + parseFloat(t.nominal || 0), 0),
@@ -3379,7 +3404,9 @@ export default function TransaksiKeuanganForm() {
                         <option value="Penerimaan Kas">Penerimaan Kas</option>
                         <option value="Pengeluaran Kas">Pengeluaran Kas</option>
                         <option value="Penjualan">Penjualan</option>
+                        <option value="Penjualan Jasa">Penjualan Jasa</option>
                         <option value="Pembelian">Pembelian</option>
+                        <option value="Pembelian Jasa">Pembelian Jasa</option>
                         <option value="Pinjaman">Pinjaman</option>
                         <option value="Pemakaian Internal">Pemakaian Internal</option>
                       </select>
@@ -3402,6 +3429,7 @@ export default function TransaksiKeuanganForm() {
                         <option value="purchase_transactions">PURCHASE_TRANSACTIONS</option>
                         <option value="sales_transactions">SALES_TRANSACTIONS</option>
                         <option value="internal_usage">INTERNAL_USAGE</option>
+                        <option value="approval_transaksi">APPROVAL_TRANSAKSI</option>
                       </select>
                     </div>
 

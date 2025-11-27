@@ -511,7 +511,7 @@ export default function ApprovalTransaksi() {
               </CardTitle>
               <p className="text-blue-100 text-sm">
                 Kelola persetujuan untuk Pembelian Barang, Penerimaan Kas,
-                Pengeluaran Kas, dan Cash Disbursement
+                Pengeluaran Kas, Cash Disbursement, Penjualan Jasa, dan Pembelian Jasa
               </p>
             </CardHeader>
             <CardContent className="p-6">
@@ -588,10 +588,16 @@ export default function ApprovalTransaksi() {
                           <TableCell>
                             <Badge variant="outline">
                               {transaction.type === "purchase"
-                                ? "CASH DISBURSEMENT"
+                                ? "PURCHASE_TRANSACTIONS"
                                 : transaction.type === "cash_disbursement"
-                                  ? "CASH DISBURSEMENT"
-                                  : "CASH AND BANK RECEIPTS"}
+                                  ? "CASH_DISBURSEMENT"
+                                  : transaction.type === "income"
+                                    ? "CASH_AND_BANK_RECEIPTS"
+                                    : transaction.type === "Penjualan Barang" ||
+                                      transaction.type === "Penjualan Jasa" ||
+                                      transaction.type === "Pembelian Jasa"
+                                      ? "APPROVAL_TRANSAKSI"
+                                      : "KAS_TRANSAKSI"}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -605,7 +611,11 @@ export default function ApprovalTransaksi() {
                               ? transaction.item_name
                               : transaction.type === "cash_disbursement"
                                 ? transaction.description
-                                : transaction.keterangan}
+                                : transaction.type === "Penjualan Barang" ||
+                                  transaction.type === "Penjualan Jasa" ||
+                                  transaction.type === "Pembelian Jasa"
+                                  ? transaction.item_name || transaction.description
+                                  : transaction.keterangan}
                           </TableCell>
                           <TableCell className="text-right font-semibold">
                             {formatCurrency(
@@ -689,7 +699,15 @@ export default function ApprovalTransaksi() {
                       ? "Pembelian"
                       : selectedTransaction.type === "cash_disbursement"
                         ? "Pengeluaran Kas"
-                        : "Pengeluaran"}
+                        : selectedTransaction.type === "income"
+                          ? "Penerimaan Kas"
+                          : selectedTransaction.type === "Penjualan Barang"
+                            ? "Penjualan Barang"
+                            : selectedTransaction.type === "Penjualan Jasa"
+                              ? "Penjualan Jasa"
+                              : selectedTransaction.type === "Pembelian Jasa"
+                                ? "Pembelian Jasa"
+                                : "Pengeluaran"}
                   </p>
                 </div>
                 <div>
