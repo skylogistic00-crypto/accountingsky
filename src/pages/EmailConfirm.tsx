@@ -5,9 +5,11 @@ export default function EmailConfirm() {
   const [message, setMessage] = useState("Confirming your email...");
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const token_hash = url.searchParams.get("token_hash");
-    const type = "email"; // HARUS email untuk confirm signup
+    const hash = window.location.hash.replace("#", "");
+    const params = new URLSearchParams(hash);
+
+    const token_hash = params.get("token_hash");
+    const type = params.get("type") || "signup";
 
     if (!token_hash) {
       setMessage("Invalid or missing confirmation token.");
@@ -17,12 +19,11 @@ export default function EmailConfirm() {
     supabase.auth
       .verifyOtp({
         token_hash,
-        type: "email",
+        type,
       })
       .then(({ error }) => {
-        if (error) {
-          setMessage("Confirmation failed: " + error.message);
-        } else {
+        if (error) setMessage("Confirmation failed: " + error.message);
+        else {
           setMessage("Email confirmed successfully! Redirecting...");
           setTimeout(() => (window.location.href = "/login"), 2000);
         }
