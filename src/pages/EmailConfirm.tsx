@@ -5,13 +5,11 @@ export default function EmailConfirm() {
   const [message, setMessage] = useState("Confirming your email...");
 
   useEffect(() => {
-    const hash = window.location.hash.replace("#", "");
+    const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash);
 
-    const token = params.get("access_token");
+    const token = params.get("token");
     const type = params.get("type") || "signup";
-
-    // email HARUS diambil dari redirectTo
     const email = params.get("email");
 
     console.log("TOKEN:", token);
