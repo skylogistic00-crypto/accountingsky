@@ -59,7 +59,7 @@ export default function BalanceSheetReport() {
       const { data: assetData, error: assetError } = await supabase
         .from("vw_trial_balance_per_account")
         .select("account_code, account_name, account_type, balance")
-        .eq("account_type", "ASSET")
+        .eq("account_type", "Aset")
         .gte("entry_date", periodStart)
         .lte("entry_date", periodEnd);
 
@@ -69,7 +69,7 @@ export default function BalanceSheetReport() {
       const { data: liabilityData, error: liabilityError } = await supabase
         .from("vw_trial_balance_per_account")
         .select("account_code, account_name, account_type, balance")
-        .eq("account_type", "LIABILITY")
+        .eq("account_type", "Kewajiban")
         .gte("entry_date", periodStart)
         .lte("entry_date", periodEnd);
 
@@ -79,7 +79,7 @@ export default function BalanceSheetReport() {
       const { data: equityData, error: equityError } = await supabase
         .from("vw_trial_balance_per_account")
         .select("account_code, account_name, account_type, balance")
-        .eq("account_type", "EQUITY")
+        .eq("account_type", "Ekuitas")
         .gte("entry_date", periodStart)
         .lte("entry_date", periodEnd);
 
