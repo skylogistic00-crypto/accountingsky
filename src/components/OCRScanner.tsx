@@ -31,8 +31,27 @@ export default function OCRScanner() {
   const { user } = useAuth();
 
   useEffect(() => {
-    loadHistory();
+    initializeOCRTable();
   }, []);
+
+  const initializeOCRTable = async () => {
+    try {
+      // Try to create the table if it doesn't exist
+      const { data, error } = await supabase.functions.invoke('supabase-functions-create-ocr-table', {});
+      
+      if (error) {
+        console.warn('Table initialization warning:', error);
+      } else {
+        console.log('OCR table ready:', data);
+        setTableReady(true);
+      }
+    } catch (error) {
+      console.warn('Could not initialize OCR table:', error);
+    } finally {
+      // Always try to load history regardless of table creation result
+      loadHistory();
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

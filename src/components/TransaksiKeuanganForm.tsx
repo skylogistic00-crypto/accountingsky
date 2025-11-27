@@ -3082,6 +3082,8 @@ export default function TransaksiKeuanganForm() {
         if (t.source === "internal_usage") return true;
         // Expenses from expenses table
         if (t.source === "expenses") return true;
+        // Expenses from cash_disbursement (approved only)
+        if (t.source === "cash_disbursement") return true;
         return false;
       })
       .reduce((sum, t) => sum + parseFloat(t.nominal || 0), 0),

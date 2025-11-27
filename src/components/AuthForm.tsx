@@ -60,11 +60,19 @@ export function AuthFormContent({
     phoneNumber: "",
     licenseNumber: "",
     licenseExpiryDate: "",
+    // Vehicle fields for Driver Mitra
+    vehicleBrand: "",
+    vehicleModel: "",
+    plateNumber: "",
+    vehicleYear: "",
+    vehicleColor: "",
     selfiePhoto: null as File | null,
     familyCard: null as File | null,
     ktpDocument: null as File | null,
     simDocument: null as File | null,
     skckDocument: null as File | null,
+    stnkDocument: null as File | null,
+    vehiclePhoto: null as File | null,
   });
   const [showEntityForm, setShowEntityForm] = useState<
     "supplier" | "consignee" | "shipper" | null
@@ -184,6 +192,17 @@ export function AuthFormContent({
           license_expiry_date: signUpData.licenseExpiryDate,
         });
 
+        // Additional vehicle details for Driver Mitra
+        if (entityType === "driver_mitra") {
+          Object.assign(details, {
+            vehicle_brand: signUpData.vehicleBrand,
+            vehicle_model: signUpData.vehicleModel,
+            plate_number: signUpData.plateNumber,
+            vehicle_year: signUpData.vehicleYear,
+            vehicle_color: signUpData.vehicleColor,
+          });
+        }
+
         // File URLs for karyawan entity - map to correct database columns
         if (signUpData.ktpDocument) {
           fileUrls.upload_ktp_url = `LOCAL:${signUpData.ktpDocument.name}`;
@@ -202,6 +221,16 @@ export function AuthFormContent({
         }
         if (signUpData.skckDocument) {
           fileUrls.upload_skck_url = `LOCAL:${signUpData.skckDocument.name}`;
+        }
+        
+        // Additional file URLs for Driver Mitra
+        if (entityType === "driver_mitra") {
+          if (signUpData.stnkDocument) {
+            fileUrls.upload_stnk_url = `LOCAL:${signUpData.stnkDocument.name}`;
+          }
+          if (signUpData.vehiclePhoto) {
+            fileUrls.upload_vehicle_photo_url = `LOCAL:${signUpData.vehiclePhoto.name}`;
+          }
         }
       }
 
@@ -643,6 +672,107 @@ export function AuthFormContent({
                       className="bg-slate-50"
                     />
                   </div>
+
+                  {/* Vehicle Information - Only for Driver Mitra */}
+                  {signUpData.roleEntity === "driver_mitra" && (
+                    <>
+                      <div className="col-span-2">
+                        <h4 className="text-sm font-semibold text-gray-700 border-b pb-2 mb-4">
+                          Informasi Kendaraan
+                        </h4>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-vehicle-brand" className="text-sm">
+                          Merk Kendaraan *
+                        </Label>
+                        <Input
+                          id="signup-vehicle-brand"
+                          type="text"
+                          placeholder="Misal: Toyota"
+                          value={signUpData.vehicleBrand}
+                          onChange={(e) =>
+                            setSignUpData({
+                              ...signUpData,
+                              vehicleBrand: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-vehicle-model" className="text-sm">
+                          Model Kendaraan *
+                        </Label>
+                        <Input
+                          id="signup-vehicle-model"
+                          type="text"
+                          placeholder="Misal: Avanza"
+                          value={signUpData.vehicleModel}
+                          onChange={(e) =>
+                            setSignUpData({
+                              ...signUpData,
+                              vehicleModel: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-plate-number" className="text-sm">
+                          Plate Number *
+                        </Label>
+                        <Input
+                          id="signup-plate-number"
+                          type="text"
+                          placeholder="B 1234 XYZ"
+                          value={signUpData.plateNumber}
+                          onChange={(e) =>
+                            setSignUpData({
+                              ...signUpData,
+                              plateNumber: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-vehicle-year" className="text-sm">
+                          Tahun Kendaraan *
+                        </Label>
+                        <Input
+                          id="signup-vehicle-year"
+                          type="text"
+                          placeholder="2020"
+                          value={signUpData.vehicleYear}
+                          onChange={(e) =>
+                            setSignUpData({
+                              ...signUpData,
+                              vehicleYear: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-vehicle-color" className="text-sm">
+                          Warna Kendaraan *
+                        </Label>
+                        <Input
+                          id="signup-vehicle-color"
+                          type="text"
+                          placeholder="Hitam"
+                          value={signUpData.vehicleColor}
+                          onChange={(e) =>
+                            setSignUpData({
+                              ...signUpData,
+                              vehicleColor: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Upload Documents - For Karyawan, Driver Perusahaan, Driver Mitra entities */}
@@ -754,6 +884,46 @@ export function AuthFormContent({
                           className="bg-white"
                         />
                       </div>
+
+                      {/* STNK and Vehicle Photo - Only for Driver Mitra */}
+                      {signUpData.roleEntity === "driver_mitra" && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="upload-stnk" className="text-sm">
+                              Foto STNK *
+                            </Label>
+                            <Input
+                              id="upload-stnk"
+                              type="file"
+                              accept="image/*,application/pdf"
+                              onChange={(e) =>
+                                setSignUpData({
+                                  ...signUpData,
+                                  stnkDocument: e.target.files?.[0] || null,
+                                })
+                              }
+                              className="bg-white"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="upload-vehicle-photo" className="text-sm">
+                              Foto Kendaraan *
+                            </Label>
+                            <Input
+                              id="upload-vehicle-photo"
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) =>
+                                setSignUpData({
+                                  ...signUpData,
+                                  vehiclePhoto: e.target.files?.[0] || null,
+                                })
+                              }
+                              className="bg-white"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1005,6 +1175,46 @@ export function AuthFormContent({
                           className="bg-white"
                         />
                       </div>
+
+                      {/* STNK and Vehicle Photo - Only for Driver Mitra */}
+                      {signUpData.roleEntity === "driver_mitra" && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="upload-stnk" className="text-sm">
+                              Foto STNK *
+                            </Label>
+                            <Input
+                              id="upload-stnk"
+                              type="file"
+                              accept="image/*,application/pdf"
+                              onChange={(e) =>
+                                setSignUpData({
+                                  ...signUpData,
+                                  stnkDocument: e.target.files?.[0] || null,
+                                })
+                              }
+                              className="bg-white"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="upload-vehicle-photo" className="text-sm">
+                              Foto Kendaraan *
+                            </Label>
+                            <Input
+                              id="upload-vehicle-photo"
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) =>
+                                setSignUpData({
+                                  ...signUpData,
+                                  vehiclePhoto: e.target.files?.[0] || null,
+                                })
+                              }
+                              className="bg-white"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
