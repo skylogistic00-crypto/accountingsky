@@ -5,27 +5,19 @@ export default function EmailConfirm() {
   const [message, setMessage] = useState("Confirming your email...");
 
   useEffect(() => {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
+    const url = new URL(window.location.href);
+    const token_hash = url.searchParams.get("token_hash");
+    const type = url.searchParams.get("type") || "signup";
 
-    const token = params.get("token");
-    const type = params.get("type") || "signup";
-    const email = params.get("email");
-
-    console.log("TOKEN:", token);
-    console.log("TYPE:", type);
-    console.log("EMAIL:", email);
-
-    if (!token || !email) {
+    if (!token_hash) {
       setMessage("Invalid or missing confirmation token.");
       return;
     }
 
     supabase.auth
       .verifyOtp({
-        token,
+        token_hash,
         type,
-        email,
       })
       .then(({ error }) => {
         if (error) {

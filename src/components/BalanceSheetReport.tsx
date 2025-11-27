@@ -55,63 +55,61 @@ export default function BalanceSheetReport() {
     setLoading(true);
 
     try {
-      // Fetch ASSET accounts
-      const { data: assetData, error: assetError } = await supabase
-        .from("vw_trial_balance_per_account")
-        .select("account_code, account_name, account_type, balance")
-        .eq("account_type", "Aset")
-        .gte("entry_date", periodStart)
-        .lte("entry_date", periodEnd);
+      // Fetch general ledger data with COA join
+      const { data: glData, error: glError } = await supabase
+        .from("general_ledger")
+        .select(`
+          account_code,
+          date,
+          debit,
+          credit,
+          chart_of_accounts!inner(account_name, account_type)
+        `)
+        .gte("date", periodStart)
+        .lte("date", periodEnd);
 
-      if (assetError) throw assetError;
+      if (glError) throw glError;
 
-      // Fetch LIABILITY accounts
-      const { data: liabilityData, error: liabilityError } = await supabase
-        .from("vw_trial_balance_per_account")
-        .select("account_code, account_name, account_type, balance")
-        .eq("account_type", "Kewajiban")
-        .gte("entry_date", periodStart)
-        .lte("entry_date", periodEnd);
+      // Group by account and calculate balance
+      const accountMap = new Map<string, BalanceSheetData>();
 
-      if (liabilityError) throw liabilityError;
+      glData?.forEach((row: any) => {
+        const key = row.account_code;
+        const debit = Number(row.debit) || 0;
+        const credit = Number(row.credit) || 0;
+        const balance = debit - credit;
+        const accountType = row.chart_of_accounts?.account_type;
+        const accountName = row.chart_of_accounts?.account_name;
 
-      // Fetch EQUITY accounts
-      const { data: equityData, error: equityError } = await supabase
-        .from("vw_trial_balance_per_account")
-        .select("account_code, account_name, account_type, balance")
-        .eq("account_type", "Ekuitas")
-        .gte("entry_date", periodStart)
-        .lte("entry_date", periodEnd);
+        if (accountMap.has(key)) {
+          const existing = accountMap.get(key)!;
+          existing.balance += balance;
+        } else {
+          accountMap.set(key, {
+            account_code: row.account_code,
+            account_name: accountName,
+            section: accountType,
+            balance,
+          });
+        }
+      });
 
-      if (equityError) throw equityError;
+      // Filter by account type
+      const assetAccounts: BalanceSheetData[] = [];
+      const liabilityAccounts: BalanceSheetData[] = [];
+      const equityAccounts: BalanceSheetData[] = [];
 
-      // Group and sum by account_code for each type
-      const groupByAccount = (data: any[]) => {
-        const accountMap = new Map<string, BalanceSheetData>();
-        
-        data?.forEach((row) => {
-          const key = row.account_code;
-          const balance = Number(row.balance) || 0;
+      accountMap.forEach((acc) => {
+        if (acc.balance === 0) return;
 
-          if (accountMap.has(key)) {
-            const existing = accountMap.get(key)!;
-            existing.balance += balance;
-          } else {
-            accountMap.set(key, {
-              account_code: row.account_code,
-              account_name: row.account_name,
-              section: row.account_type,
-              balance,
-            });
-          }
-        });
-
-        return Array.from(accountMap.values()).filter(acc => acc.balance !== 0);
-      };
-
-      const assetAccounts = groupByAccount(assetData || []);
-      const liabilityAccounts = groupByAccount(liabilityData || []);
-      const equityAccounts = groupByAccount(equityData || []);
+        if (acc.section === "Aset") {
+          assetAccounts.push(acc);
+        } else if (acc.section === "Kewajiban") {
+          liabilityAccounts.push(acc);
+        } else if (acc.section === "Ekuitas") {
+          equityAccounts.push(acc);
+        }
+      });
 
       setAssets(assetAccounts);
       setLiabilities(liabilityAccounts);
