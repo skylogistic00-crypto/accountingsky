@@ -3047,11 +3047,14 @@ export default function TransaksiKeuanganForm() {
     }
   };
 
-  // Calculate summary data from all transaction sources
+  // Calculate summary data from approved transactions only
   const summaryData = {
     totalTransactions: transactions.length,
     totalPenerimaan: transactions
       .filter((t) => {
+        // Only count approved transactions
+        if (t.approval_status !== "approved") return false;
+        
         // Income from kas_transaksi
         if (t.source === "kas_transaksi" && t.payment_type === "Penerimaan Kas")
           return true;
@@ -3064,6 +3067,9 @@ export default function TransaksiKeuanganForm() {
       .reduce((sum, t) => sum + parseFloat(t.nominal || 0), 0),
     totalPengeluaran: transactions
       .filter((t) => {
+        // Only count approved transactions
+        if (t.approval_status !== "approved") return false;
+        
         // Expenses from kas_transaksi
         if (
           t.source === "kas_transaksi" &&

@@ -96,29 +96,49 @@ export default function ProfitLossReport() {
     setLoading(true);
 
     try {
-      // Fetch data from vw_laba_rugi_detail view
-      const { data: labaRugiData, error: labaRugiError } = await supabase
-        .from("vw_laba_rugi_detail")
-        .select("account_code, account_name, account_type, display_amount")
-        .gte("transaction_date", dateFrom)
-        .lte("transaction_date", dateTo)
+      // Fetch data from vw_profit_and_loss view
+      const { data, error } = await supabase
+        .from("vw_profit_and_loss")
+        .select("account_code, account_name, account_type, balance")
+        .gte("entry_date", dateFrom)
+        .lte("entry_date", dateTo)
         .order("account_code");
 
-      if (labaRugiError) throw labaRugiError;
+      if (error) throw error;
+
+      // Group by account_code and sum balance
+      const accountMap = new Map<string, LabaRugiDetail>();
+
+      data?.forEach((row: any) => {
+        const key = row.account_code;
+        const balance = Number(row.balance) || 0;
+
+        if (accountMap.has(key)) {
+          const existing = accountMap.get(key)!;
+          existing.display_amount += balance;
+        } else {
+          accountMap.set(key, {
+            account_code: row.account_code,
+            account_name: row.account_name,
+            account_type: row.account_type,
+            display_amount: balance,
+          });
+        }
+      });
 
       // Categorize accounts by account_type
       const revenueAccounts: LabaRugiDetail[] = [];
       const cogsAccounts: LabaRugiDetail[] = [];
       const expenseAccounts: LabaRugiDetail[] = [];
 
-      labaRugiData?.forEach((item) => {
-        const normalizedType = (item.account_type || "").trim().toLowerCase();
+      accountMap.forEach((item) => {
+        if (item.display_amount === 0) return;
 
-        if (normalizedType === "pendapatan") {
+        if (item.account_type === "Pendapatan") {
           revenueAccounts.push(item);
-        } else if (normalizedType === "beban pokok penjualan") {
+        } else if (item.account_type === "Beban Pokok Penjualan") {
           cogsAccounts.push(item);
-        } else if (normalizedType === "beban operasional") {
+        } else if (item.account_type === "Beban Operasional") {
           expenseAccounts.push(item);
         }
       });

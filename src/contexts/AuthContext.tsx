@@ -57,34 +57,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from("users")
-        .select(
-          `
-        *,
-        roles:roles!users_role_id_fkey (
-          role_id,
-          role_name,
-          description,
-          permissions
-        )
-      `,
-        )
+        .select("*, roles:role_id(*)")
         .eq("id", userId)
         .single();
 
       if (error) {
-        console.error("Error fetching user profile:", error);
+        console.warn("Profile fetch skipped:", error);
         setLoading(false);
         return;
       }
 
       setUserProfile(data);
-
       const role = data.role_name || data.roles?.role_name || null;
-
       setUserRole((role || "").toLowerCase().trim().replace(/\s+/g, "_"));
+      
       setLoading(false);
     } catch (error: any) {
-      console.error("Error fetching user profile:", error);
+      console.warn("Profile not available:", error);
       setLoading(false);
     }
   };

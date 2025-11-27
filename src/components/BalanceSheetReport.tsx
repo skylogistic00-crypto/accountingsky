@@ -55,31 +55,21 @@ export default function BalanceSheetReport() {
     setLoading(true);
 
     try {
-      // Fetch general ledger data with COA join
-      const { data: glData, error: glError } = await supabase
-        .from("general_ledger")
-        .select(`
-          account_code,
-          date,
-          debit,
-          credit,
-          chart_of_accounts!inner(account_name, account_type)
-        `)
-        .gte("date", periodStart)
-        .lte("date", periodEnd);
+      // Fetch from vw_trial_balance_per_account view
+      const { data, error } = await supabase
+        .from("vw_trial_balance_per_account")
+        .select("account_code, account_name, account_type, balance")
+        .gte("entry_date", periodStart)
+        .lte("entry_date", periodEnd);
 
-      if (glError) throw glError;
+      if (error) throw error;
 
-      // Group by account and calculate balance
+      // Group by account_code and sum balance
       const accountMap = new Map<string, BalanceSheetData>();
 
-      glData?.forEach((row: any) => {
+      data?.forEach((row: any) => {
         const key = row.account_code;
-        const debit = Number(row.debit) || 0;
-        const credit = Number(row.credit) || 0;
-        const balance = debit - credit;
-        const accountType = row.chart_of_accounts?.account_type;
-        const accountName = row.chart_of_accounts?.account_name;
+        const balance = Number(row.balance) || 0;
 
         if (accountMap.has(key)) {
           const existing = accountMap.get(key)!;
@@ -87,8 +77,8 @@ export default function BalanceSheetReport() {
         } else {
           accountMap.set(key, {
             account_code: row.account_code,
-            account_name: accountName,
-            section: accountType,
+            account_name: row.account_name,
+            section: row.account_type,
             balance,
           });
         }

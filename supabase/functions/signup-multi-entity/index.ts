@@ -203,12 +203,16 @@ Deno.serve(async (req) => {
           ...entityData,
         });
         entityError = error;
-      } else if (normalizedEntity === 'driver') {
+      } else if (normalizedEntity === 'driver' || normalizedEntity === 'driver_perusahaan' || normalizedEntity === 'driver_mitra') {
+        // Both driver_perusahaan and driver_mitra go to drivers table with driver_type field
+        const driverType = normalizedEntity === 'driver_perusahaan' ? 'perusahaan' : 
+                          normalizedEntity === 'driver_mitra' ? 'mitra' : 'general';
         const { error } = await supabase.from('drivers').insert({
           user_id: authUser.user.id,
           full_name,
           email,
           phone,
+          driver_type: driverType,
           ...entityData,
         });
         entityError = error;

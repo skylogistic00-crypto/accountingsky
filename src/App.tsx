@@ -48,75 +48,85 @@ interface ProtectedRouteProps {
   allowedRoles?: string[];
 }
 
-function App() {
-  function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-    const { user, userProfile, loading } = useAuth();
+function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+  const { user, userProfile, loading } = useAuth();
 
-    if (loading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center text-gray-600">
-          <div className="text-lg">Loading...</div>
-        </div>
-      );
-    }
-
-    if (!user) {
-      return <Navigate to="/" replace />;
-    }
-
-    if (
-      allowedRoles &&
-      userProfile?.roles?.role_name &&
-      !allowedRoles.includes(userProfile.roles.role_name)
-    ) {
-      return null;
-    }
-
-    return <>{children}</>;
-  }
-
-  function HomePage() {
-    const { user, userProfile, loading } = useAuth();
-
-    if (loading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center text-gray-500">
-          <div className="text-lg">Memuat data pengguna...</div>
-        </div>
-      );
-    }
-
-    if (user && userProfile) {
-      return (
-        <div className="min-h-screen bg-slate-50">
-          <Header />
-          <Navigation />
-          <Home />
-        </div>
-      );
-    }
-
+  if (loading) {
     return (
-      <div className="min-h-screen bg-white">
-        <Header />
-        <HeroSection />
+      <div className="min-h-screen flex items-center justify-center text-gray-600">
+        <div className="text-lg">Loading...</div>
       </div>
     );
   }
 
-  function AppRoutes() {
-    const { loading } = useAuth();
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
 
-    if (loading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center text-gray-600">
-          <div className="text-lg">Loading...</div>
-        </div>
-      );
-    }
+  if (
+    allowedRoles &&
+    userProfile?.roles?.role_name &&
+    !allowedRoles.includes(userProfile.roles.role_name)
+  ) {
+    return null;
+  }
 
+  return <>{children}</>;
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <AppRoutesContent />
+        <Toaster />
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
+function HomePage() {
+  const { user, userProfile, loading } = useAuth();
+
+  if (loading) {
     return (
-      <Routes>
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        <div className="text-lg">Memuat data pengguna...</div>
+      </div>
+    );
+  }
+
+  if (user && userProfile) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Header />
+        <Navigation />
+        <Home />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Header />
+      <HeroSection />
+    </div>
+  );
+}
+
+function AppRoutesContent() {
+  const { loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-600">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/admin-setup" element={<AdminSetup />} />
         <Route
@@ -672,17 +682,5 @@ function App() {
       </Routes>
     );
   }
-
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-        <>
-          <AppRoutes />
-          <Toaster />
-        </>
-      </AuthProvider>
-    </ThemeProvider>
-  );
-}
 
 export default App;
