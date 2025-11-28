@@ -16,10 +16,10 @@ export default function EmailConfirm() {
       window.history.replaceState(null, "", window.location.pathname);
     }
 
-    setMessage("Email berhasil dikonfirmasi. Silakan login kembali.");
+    setMessage("Email berhasil dikonfirmasi. Mengarahkan ke halaman pending...");
 
     const timer = setTimeout(() => {
-      window.location.href = "/login";
+      window.location.href = "/pending-registrasi";
     }, 1500);
 
     return () => clearTimeout(timer);
