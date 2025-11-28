@@ -11,59 +11,48 @@ export default function EmailConfirm() {
     let type: string | null = null;
     let email: string | null = null;
 
-    // 1️⃣ Ambil dari query (?token=)
+    // 1️⃣ Cek query string (?token)
     const qs = new URLSearchParams(window.location.search);
     token = qs.get("token") || qs.get("token_hash");
     type = qs.get("type");
     email = qs.get("email");
 
-    // 2️⃣ Ambil dari hash (#access_token=)
-    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    // 2️⃣ Jika tidak ada, baca dari HASH (#access_token)
+    if (!token) {
+      const hash = window.location.hash.slice(1); // buang '#'
+      const hp = new URLSearchParams(hash);
+
+      token = hp.get("access_token") || hp.get("token") || hp.get("token_hash");
+
+      type = hp.get("type") || hp.get("event") || "signup";
+      email = hp.get("email");
+    }
+
+    console.log("FINAL TOKEN =>", token);
+    console.log("FINAL TYPE  =>", type);
+    console.log("FINAL EMAIL =>", email);
 
     if (!token) {
-      token =
-        hashParams.get("access_token") ||
-        hashParams.get("token") ||
-        hashParams.get("token_hash");
-    }
-
-    if (!type) {
-      type = hashParams.get("type") || hashParams.get("event") || "signup";
-    }
-
-    if (!email) {
-      email = hashParams.get("email") || undefined;
-    }
-
-    console.log("FINAL TOKEN  =>", token);
-    console.log("FINAL TYPE   =>", type);
-    console.log("FINAL EMAIL  =>", email);
-
-    if (!token || !type) {
       setMessage("Invalid or missing confirmation token.");
       return;
     }
 
-    // 3️⃣ VERIFIKASI TOKEN
     supabase.auth
       .verifyOtp({
         token,
-        type,
+        type: type ?? "signup",
         email: email ?? undefined,
       })
       .then(async ({ error }) => {
         if (error) {
-          console.error("VERIFY ERROR:", error);
-          setMessage("Verification failed: " + error.message);
+          console.error(error);
+          setMessage("Confirmation failed: " + error.message);
           return;
         }
 
-        console.log("EMAIL VERIFIED SUCCESS");
-
-        // 4️⃣ Hentikan auto-login Supabase
         await supabase.auth.signOut();
 
-        setMessage("Email berhasil dikonfirmasi! Menunggu persetujuan admin…");
+        setMessage("Email dikonfirmasi! Menunggu persetujuan admin…");
 
         setTimeout(() => {
           window.location.href = "/pending-registrasi";
