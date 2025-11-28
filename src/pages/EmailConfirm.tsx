@@ -7,51 +7,44 @@ export default function EmailConfirm() {
   useEffect(() => {
     console.log("EmailConfirm LOADED");
 
-    let token: string | null = null;
-    let type: string | null = null;
-    let email: string | null = null;
+    let token = null;
+    let type = "signup"; // SUPABASE uses signup for email confirmation
+    let email = null;
 
-    // read from query
+    // Check query parameters
     const qs = new URLSearchParams(window.location.search);
-    token = qs.get("token") || qs.get("token_hash");
-    type = qs.get("type") || "email";
     email = qs.get("email");
 
-    // read from hash fragment
-    if (!token) {
-      const hash = new URLSearchParams(window.location.hash.slice(1));
+    // Check hash fragment (#access_token=xxx)
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    token =
+      hash.get("access_token") || hash.get("token") || hash.get("token_hash");
 
-      token =
-        hash.get("token_hash") || hash.get("access_token") || hash.get("token");
-
-      type = hash.get("type") || "email";
-      email = hash.get("email");
-    }
-
-    console.log("TOKEN =>", token);
-    console.log("TYPE  =>", type);
+    console.log("Extracted TOKEN:", token);
 
     if (!token) {
       setMessage("Invalid or missing confirmation token.");
       return;
     }
 
+    // SUPABASE CONFIRM SIGNUP
     supabase.auth
       .verifyOtp({
         token,
-        type: "email", // 👈 WAJIB: Email verification
+        type: "signup", // IMPORTANT
         email: email ?? undefined,
       })
-      .then(async ({ error }) => {
+      .then(async ({ data, error }) => {
         if (error) {
           console.error(error);
           setMessage("Confirmation failed: " + error.message);
           return;
         }
 
+        // Log user OUT so they cannot login until approved
         await supabase.auth.signOut();
 
-        setMessage("Email dikonfirmasi! Menunggu persetujuan admin…");
+        setMessage("Email berhasil dikonfirmasi! Menunggu persetujuan admin…");
 
         setTimeout(() => {
           window.location.href = "/pending-registrasi";

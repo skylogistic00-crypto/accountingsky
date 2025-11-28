@@ -37,6 +37,7 @@ import CashDisbursementForm from "@/components/CashDisbursementForm";
 import { Toaster } from "@/components/ui/toaster";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import EmailConfirm from "@/pages/EmailConfirm";
+import PendingRegistrasi from "@/pages/PendingRegistrasi";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import StockAdjustmentForm from "@/components/StockAdjustmentForm";
 import StockBarangImport from "@/components/StockBarangImport";
@@ -128,10 +129,6 @@ function AppRoutesContent() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/auth/confirm" element={<EmailConfirm />} />
-      <Route path="/verify" element={<EmailConfirm />} />
-      // <Route path="/confirm" element={<EmailConfirm />} />
-      // <Route path="/confirm/*" element={<EmailConfirm />} />
       <Route path="/admin-setup" element={<AdminSetup />} />
       <Route
         path="/users"
@@ -642,6 +639,11 @@ function AppRoutesContent() {
       />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/auth/confirm" element={<EmailConfirm />} />
+      <Route path="/verify" element={<EmailConfirm />} />
+      <Route path="/confirm" element={<EmailConfirm />} />
+      <Route path="/confirm/*" element={<EmailConfirm />} />
+      <Route path="/pending-registrasi" element={<PendingRegistrasi />} />
       <Route
         path="/hrd-dashboard"
         element={
