@@ -130,8 +130,8 @@ function AppRoutesContent() {
       <Route path="/" element={<HomePage />} />
       <Route path="/auth/confirm" element={<EmailConfirm />} />
       <Route path="/verify" element={<EmailConfirm />} />
-      <Route path="/confirm" element={<EmailConfirm />} />
-      <Route path="/confirm/*" element={<EmailConfirm />} />
+      // <Route path="/confirm" element={<EmailConfirm />} />
+      // <Route path="/confirm/*" element={<EmailConfirm />} />
       <Route path="/admin-setup" element={<AdminSetup />} />
       <Route
         path="/users"
@@ -642,7 +642,6 @@ function AppRoutesContent() {
       />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-
       <Route
         path="/hrd-dashboard"
         element={
