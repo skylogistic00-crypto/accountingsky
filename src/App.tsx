@@ -639,8 +639,8 @@ function AppRoutesContent() {
       />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/auth/confirm" element={<EmailConfirm />} />
-      <Route path="/verify" element={<EmailConfirm />} />
+      <Route path="/auth/confirm/*" element={<EmailConfirm />} />
+      <Route path="/verify/*" element={<EmailConfirm />} />
       <Route path="/pending-registrasi" element={<PendingRegistrasi />} />
       <Route
         path="/hrd-dashboard"
