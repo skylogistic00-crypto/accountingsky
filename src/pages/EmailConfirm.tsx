@@ -2,46 +2,65 @@ import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 
 export default function EmailConfirm() {
-  const [message, setMessage] = useState("Confirming your email...");
+  const [message, setMessage] = useState("Memverifikasi email...");
 
   useEffect(() => {
     console.log("EmailConfirm LOADED");
 
-    let token = null;
-    let type = "signup"; // SUPABASE uses signup for email confirmation
-    let email = null;
+    let token: string | null = null;
+    let type: string | null = null;
+    let email: string | null = null;
 
-    // Check query parameters
+    // 1️⃣ Ambil dari query (?token=)
     const qs = new URLSearchParams(window.location.search);
+    token = qs.get("token") || qs.get("token_hash");
+    type = qs.get("type");
     email = qs.get("email");
 
-    // Check hash fragment (#access_token=xxx)
-    const hash = new URLSearchParams(window.location.hash.slice(1));
-    token =
-      hash.get("access_token") || hash.get("token") || hash.get("token_hash");
-
-    console.log("Extracted TOKEN:", token);
+    // 2️⃣ Ambil dari hash (#access_token=)
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
 
     if (!token) {
+      token =
+        hashParams.get("access_token") ||
+        hashParams.get("token") ||
+        hashParams.get("token_hash");
+    }
+
+    if (!type) {
+      type = hashParams.get("type") || hashParams.get("event") || "signup";
+    }
+
+    if (!email) {
+      email = hashParams.get("email") || undefined;
+    }
+
+    console.log("FINAL TOKEN  =>", token);
+    console.log("FINAL TYPE   =>", type);
+    console.log("FINAL EMAIL  =>", email);
+
+    if (!token || !type) {
       setMessage("Invalid or missing confirmation token.");
       return;
     }
 
-    // SUPABASE CONFIRM SIGNUP
+    // 3️⃣ VERIFIKASI TOKEN
     supabase.auth
       .verifyOtp({
         token,
-        type: "signup", // IMPORTANT
+        type,
         email: email ?? undefined,
       })
-      .then(async ({ data, error }) => {
+      .then(async ({ error }) => {
         if (error) {
-          console.error(error);
-          setMessage("Confirmation failed: " + error.message);
+          console.error("VERIFY ERROR:", error);
+          setMessage("Verification failed: " + error.message);
           return;
         }
 
-        // Log user OUT so they cannot login until approved
+        console.log("EMAIL VERIFIED SUCCESS");
+
+        // 4️⃣ Hentikan auto-login Supabase
         await supabase.auth.signOut();
 
         setMessage("Email berhasil dikonfirmasi! Menunggu persetujuan admin…");
@@ -52,5 +71,5 @@ export default function EmailConfirm() {
       });
   }, []);
 
-  return <div style={{ padding: 20 }}>{message}</div>;
+  return <div style={{ padding: 30 }}>{message}</div>;
 }
