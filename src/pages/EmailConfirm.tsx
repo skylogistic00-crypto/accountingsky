@@ -5,11 +5,30 @@ export default function EmailConfirm() {
   const [message, setMessage] = useState("Confirming your email...");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    console.log("EmailConfirm page LOADED");
 
-    const token = params.get("token");
-    const type = params.get("type");
-    const email = params.get("email");
+    let token = null;
+    let type = null;
+    let email = null;
+
+    // 1️⃣ Cek query
+    const paramsQuery = new URLSearchParams(window.location.search);
+    token = paramsQuery.get("token");
+    type = paramsQuery.get("type");
+    email = paramsQuery.get("email");
+
+    // 2️⃣ Cek hash fragment
+    if (!token) {
+      const hash = window.location.hash.replace("#", "");
+      const paramsHash = new URLSearchParams(hash);
+
+      token = paramsHash.get("token") || paramsHash.get("access_token");
+      type = paramsHash.get("type") || "signup";
+      email = paramsHash.get("email");
+    }
+
+    console.log("TOKEN:", token);
+    console.log("TYPE:", type);
 
     if (!token || !type) {
       setMessage("Invalid or missing confirmation token.");
@@ -17,28 +36,22 @@ export default function EmailConfirm() {
     }
 
     supabase.auth
-      .verifyOtp({
-        token,
-        type,
-        email: email ?? undefined,
-      })
+      .verifyOtp({ token, type, email: email ?? undefined })
       .then(async ({ error }) => {
         if (error) {
           setMessage("Confirmation failed: " + error.message);
-        } else {
-          // 1️⃣ EMAIL VERIFIED TAPI USER BELUM BOLEH LOGIN
-          await supabase.auth.signOut();
-
-          // 2️⃣ TAMPILKAN INFORMASI MENUNGGU ADMIN
-          setMessage(
-            "Email berhasil dikonfirmasi! Akun Anda sedang menunggu persetujuan admin.",
-          );
-
-          // 3️⃣ ARAHKAN KE HALAMAN PENDING APPROVAL
-          setTimeout(() => {
-            window.location.href = "/pending-registrasi";
-          }, 2000);
+          return;
         }
+
+        await supabase.auth.signOut();
+
+        setMessage(
+          "Email berhasil dikonfirmasi! Menunggu persetujuan admin...",
+        );
+
+        setTimeout(() => {
+          window.location.href = "/pending-registrasi";
+        }, 2000);
       });
   }, []);
 
