@@ -37,7 +37,7 @@ import CashDisbursementForm from "@/components/CashDisbursementForm";
 import { Toaster } from "@/components/ui/toaster";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import EmailConfirm from "@/pages/EmailConfirm";
-import PendingRegistrasi from "@/pages/PendingRegistrasi";
+import PendingRegistrasi from "@/pages/pending-registrasi";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import StockAdjustmentForm from "@/components/StockAdjustmentForm";
 import StockBarangImport from "@/components/StockBarangImport";
