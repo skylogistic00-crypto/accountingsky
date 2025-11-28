@@ -1,64 +1,27 @@
-import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 
 export default function EmailConfirm() {
-  const [message, setMessage] = useState("Memverifikasi email...");
+  const [message, setMessage] = useState("Memverifikasi email Anda...");
 
   useEffect(() => {
     console.log("EmailConfirm LOADED");
 
-    let token: string | null = null;
-    let type: string | null = null;
-    let email: string | null = null;
+    // Supabase menambahkan “verified” di URL hash
+    const hash = window.location.hash;
 
-    // 1️⃣ Cek query string (?token)
-    const qs = new URLSearchParams(window.location.search);
-    token = qs.get("token") || qs.get("token_hash");
-    type = qs.get("type");
-    email = qs.get("email");
+    if (hash.includes("type=signup") || hash.includes("verified")) {
+      setMessage("Email berhasil dikonfirmasi! Menunggu persetujuan admin...");
 
-    // 2️⃣ Jika tidak ada, baca dari HASH (#access_token)
-    if (!token) {
-      const hash = window.location.hash.slice(1); // buang '#'
-      const hp = new URLSearchParams(hash);
+      setTimeout(() => {
+        window.location.href = "/pending-registrasi";
+      }, 2000);
 
-      token = hp.get("access_token") || hp.get("token") || hp.get("token_hash");
-
-      type = hp.get("type") || hp.get("event") || "signup";
-      email = hp.get("email");
-    }
-
-    console.log("FINAL TOKEN =>", token);
-    console.log("FINAL TYPE  =>", type);
-    console.log("FINAL EMAIL =>", email);
-
-    if (!token) {
-      setMessage("Invalid or missing confirmation token.");
       return;
     }
 
-    supabase.auth
-      .verifyOtp({
-        token,
-        type: type ?? "signup",
-        email: email ?? undefined,
-      })
-      .then(async ({ error }) => {
-        if (error) {
-          console.error(error);
-          setMessage("Confirmation failed: " + error.message);
-          return;
-        }
-
-        await supabase.auth.signOut();
-
-        setMessage("Email dikonfirmasi! Menunggu persetujuan admin…");
-
-        setTimeout(() => {
-          window.location.href = "/pending-registrasi";
-        }, 2000);
-      });
+    // Jika tidak cocok
+    setMessage("Invalid or missing confirmation token.");
   }, []);
 
-  return <div style={{ padding: 30 }}>{message}</div>;
+  return <div style={{ padding: 20 }}>{message}</div>;
 }
