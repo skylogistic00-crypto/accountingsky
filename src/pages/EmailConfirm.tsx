@@ -9,7 +9,7 @@ export default function EmailConfirm() {
 
     const token = params.get("token");
     const type = params.get("type");
-    const email = params.get("email"); // Supabase kadang kirim email
+    const email = params.get("email");
 
     if (!token || !type) {
       setMessage("Invalid or missing confirmation token.");
@@ -22,12 +22,22 @@ export default function EmailConfirm() {
         type,
         email: email ?? undefined,
       })
-      .then(({ data, error }) => {
+      .then(async ({ error }) => {
         if (error) {
           setMessage("Confirmation failed: " + error.message);
         } else {
-          setMessage("Email confirmed! Redirecting...");
-          setTimeout(() => (window.location.href = "/login"), 2000);
+          // 1️⃣ EMAIL VERIFIED TAPI USER BELUM BOLEH LOGIN
+          await supabase.auth.signOut();
+
+          // 2️⃣ TAMPILKAN INFORMASI MENUNGGU ADMIN
+          setMessage(
+            "Email berhasil dikonfirmasi! Akun Anda sedang menunggu persetujuan admin.",
+          );
+
+          // 3️⃣ ARAHKAN KE HALAMAN PENDING APPROVAL
+          setTimeout(() => {
+            window.location.href = "/pending-registrasi";
+          }, 2000);
         }
       });
   }, []);
