@@ -11,40 +11,35 @@ export default function EmailConfirm() {
     let type: string | null = null;
     let email: string | null = null;
 
-    // 🟦 1️⃣ Cek query string (?token, ?token_hash)
+    // read from query
     const qs = new URLSearchParams(window.location.search);
     token = qs.get("token") || qs.get("token_hash");
-    type = qs.get("type");
+    type = qs.get("type") || "email";
     email = qs.get("email");
 
-    // 🟩 2️⃣ Cek hash fragment (#access_token, #token_hash, #type)
+    // read from hash fragment
     if (!token) {
-      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const hash = new URLSearchParams(window.location.hash.slice(1));
 
       token =
-        hashParams.get("access_token") ||
-        hashParams.get("token") ||
-        hashParams.get("token_hash");
+        hash.get("token_hash") || hash.get("access_token") || hash.get("token");
 
-      type = hashParams.get("type") || hashParams.get("event") || "signup";
-
-      email = hashParams.get("email");
+      type = hash.get("type") || "email";
+      email = hash.get("email");
     }
 
     console.log("TOKEN =>", token);
     console.log("TYPE  =>", type);
-    console.log("EMAIL =>", email);
 
-    if (!token || !type) {
+    if (!token) {
       setMessage("Invalid or missing confirmation token.");
       return;
     }
 
-    // 🟧 3️⃣ VERIFY OTP
     supabase.auth
       .verifyOtp({
         token,
-        type,
+        type: "email", // 👈 WAJIB: Email verification
         email: email ?? undefined,
       })
       .then(async ({ error }) => {
@@ -54,7 +49,6 @@ export default function EmailConfirm() {
           return;
         }
 
-        // 🟥 4️⃣ Hentikan auto-login Supabase
         await supabase.auth.signOut();
 
         setMessage("Email dikonfirmasi! Menunggu persetujuan admin…");
