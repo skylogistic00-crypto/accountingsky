@@ -17,7 +17,11 @@ interface AddBrandModalProps {
   onAdded: () => void;
 }
 
-export default function AddBrandModal({ open, onClose, onAdded }: AddBrandModalProps) {
+export default function AddBrandModal({
+  open,
+  onClose,
+  onAdded,
+}: AddBrandModalProps) {
   const [brandName, setBrandName] = useState("");
   const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,12 +39,12 @@ export default function AddBrandModal({ open, onClose, onAdded }: AddBrandModalP
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("brands")
-        .insert([{ 
+      const { error } = await supabase.from("brands").insert([
+        {
           brand_name: brandName,
-          category: category || "Umum"
-        }]);
+          category: category || "Umum",
+        },
+      ]);
 
       if (error) throw error;
 

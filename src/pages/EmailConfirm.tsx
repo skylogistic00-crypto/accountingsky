@@ -1,51 +1,33 @@
-import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 
 export default function EmailConfirm() {
   const [message, setMessage] = useState("Memverifikasi email...");
 
   useEffect(() => {
-    console.log("EmailConfirm LOADED");
+    console.log("EmailConfirm loaded — preventing auto login");
 
-    const params = new URLSearchParams(window.location.search);
+    // Hapus semua session lokal supabase
+    localStorage.removeItem("supabase.auth.token");
+    localStorage.removeItem("sb-%-auth-token"); // wildcard untuk client baru Supabase
+    sessionStorage.clear();
 
-    const token = params.get("token");
-    const type = params.get("type") || "signup";
-
-    console.log("TOKEN =", token);
-    console.log("TYPE =", type);
-
-    if (!token) {
-      setMessage("Invalid or missing confirmation token.");
-      return;
+    // Pastikan hash dihapus agar Supabase tidak ambil token
+    if (window.location.hash) {
+      window.history.replaceState(null, "", window.location.pathname);
     }
 
-    // 🔥 VERIFIKASI TOKEN SIGNUP
-    supabase.auth
-      .verifyOtp({
-        token,
-        type: "signup",
-        email: "", // tidak wajib untuk signup
-      })
-      .then(async ({ error }) => {
-        if (error) {
-          console.error(error);
-          setMessage("Konfirmasi gagal: " + error.message);
-          return;
-        }
+    setMessage("Email berhasil dikonfirmasi. Silakan login kembali.");
 
-        // CEGAH auto-login
-        await supabase.auth.signOut();
+    const timer = setTimeout(() => {
+      window.location.href = "/login";
+    }, 1500);
 
-        setMessage(
-          "Email berhasil dikonfirmasi! Menunggu persetujuan admin...",
-        );
-
-        setTimeout(() => {
-          window.location.href = "/pending-registrasi";
-        }, 2000);
-      });
+    return () => clearTimeout(timer);
   }, []);
 
-  return <div style={{ padding: 40 }}>{message}</div>;
+  return (
+    <div style={{ padding: "40px" }}>
+      <h1>{message}</h1>
+    </div>
+  );
 }

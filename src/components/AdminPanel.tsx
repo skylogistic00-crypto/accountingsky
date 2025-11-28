@@ -1,17 +1,46 @@
-import { useState, useEffect } from 'react';
-import { Search, Filter, CheckCircle, XCircle, RefreshCw, Eye, Mail, Ban, UserCheck } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
+import { useState, useEffect } from "react";
+import {
+  Search,
+  Filter,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  Eye,
+  Mail,
+  Ban,
+  UserCheck,
+} from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface User {
   id: string;
@@ -38,14 +67,17 @@ export default function AdminPanel() {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showVerifyDialog, setShowVerifyDialog] = useState(false);
-  const [verificationNotes, setVerificationNotes] = useState('');
+  const [verificationNotes, setVerificationNotes] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
-  const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [alert, setAlert] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -59,15 +91,15 @@ export default function AdminPanel() {
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("users")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setUsers(data || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
-      showAlert('error', 'Failed to fetch users');
+      console.error("Error fetching users:", error);
+      showAlert("error", "Failed to fetch users");
     } finally {
       setLoading(false);
     }
@@ -76,15 +108,15 @@ export default function AdminPanel() {
   const fetchAuditLogs = async () => {
     try {
       const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
+        .from("audit_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
         .limit(100);
 
       if (error) throw error;
       setAuditLogs(data || []);
     } catch (error) {
-      console.error('Error fetching audit logs:', error);
+      console.error("Error fetching audit logs:", error);
     }
   };
 
@@ -95,119 +127,139 @@ export default function AdminPanel() {
       filtered = filtered.filter(
         (user) =>
           user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+          user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
-    if (roleFilter !== 'all') {
+    if (roleFilter !== "all") {
       filtered = filtered.filter((user) => user.role === roleFilter);
     }
 
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((user) => 
-        statusFilter === 'active' ? user.is_active : !user.is_active
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((user) =>
+        statusFilter === "active" ? user.is_active : !user.is_active,
       );
     }
 
     setFilteredUsers(filtered);
   };
 
-  const showAlert = (type: 'success' | 'error', message: string) => {
+  const showAlert = (type: "success" | "error", message: string) => {
     setAlert({ type, message });
     setTimeout(() => setAlert(null), 5000);
   };
 
   const handleSuspendUser = async (userId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke('supabase-functions-admin-user-actions', {
-        body: { action: 'suspend', user_id: userId },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-admin-user-actions",
+        {
+          body: { action: "suspend", user_id: userId },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        },
+      );
 
       if (error) throw error;
-      showAlert('success', 'User suspended successfully');
+      showAlert("success", "User suspended successfully");
       fetchUsers();
     } catch (error) {
-      console.error('Error suspending user:', error);
-      showAlert('error', 'Failed to suspend user');
+      console.error("Error suspending user:", error);
+      showAlert("error", "Failed to suspend user");
     }
   };
 
   const handleActivateUser = async (userId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke('supabase-functions-admin-user-actions', {
-        body: { action: 'activate', user_id: userId },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-admin-user-actions",
+        {
+          body: { action: "activate", user_id: userId },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        },
+      );
 
       if (error) throw error;
-      showAlert('success', 'User activated successfully');
+      showAlert("success", "User activated successfully");
       fetchUsers();
     } catch (error) {
-      console.error('Error activating user:', error);
-      showAlert('error', 'Failed to activate user');
+      console.error("Error activating user:", error);
+      showAlert("error", "Failed to activate user");
     }
   };
 
   const handleResendVerification = async (userId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke('supabase-functions-admin-user-actions', {
-        body: { action: 'resend-verification', user_id: userId },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-admin-user-actions",
+        {
+          body: { action: "resend-verification", user_id: userId },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        },
+      );
 
       if (error) throw error;
-      showAlert('success', 'Verification email sent');
+      showAlert("success", "Verification email sent");
     } catch (error) {
-      console.error('Error resending verification:', error);
-      showAlert('error', 'Failed to send verification email');
+      console.error("Error resending verification:", error);
+      showAlert("error", "Failed to send verification email");
     }
   };
 
-  const handleVerifyDocuments = async (status: 'approved' | 'rejected') => {
+  const handleVerifyDocuments = async (status: "approved" | "rejected") => {
     if (!selectedUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke('supabase-functions-admin-user-actions', {
-        body: {
-          action: 'verify-docs',
-          user_id: selectedUser.id,
-          status,
-          notes: verificationNotes,
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-admin-user-actions",
+        {
+          body: {
+            action: "verify-docs",
+            user_id: selectedUser.id,
+            status,
+            notes: verificationNotes,
+          },
+          headers: { Authorization: `Bearer ${session.access_token}` },
         },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      );
 
       if (error) throw error;
-      showAlert('success', `Documents ${status}`);
+      showAlert("success", `Documents ${status}`);
       setShowVerifyDialog(false);
-      setVerificationNotes('');
+      setVerificationNotes("");
       fetchUsers();
     } catch (error) {
-      console.error('Error verifying documents:', error);
-      showAlert('error', 'Failed to verify documents');
+      console.error("Error verifying documents:", error);
+      showAlert("error", "Failed to verify documents");
     }
   };
 
   const handleBulkApprove = async () => {
     const promises = Array.from(selectedUsers).map((userId) =>
-      handleActivateUser(userId)
+      handleActivateUser(userId),
     );
     await Promise.all(promises);
     setSelectedUsers(new Set());
-    showAlert('success', `${selectedUsers.size} users approved`);
+    showAlert("success", `${selectedUsers.size} users approved`);
   };
 
   const toggleUserSelection = (userId: string) => {
@@ -222,14 +274,14 @@ export default function AdminPanel() {
 
   const getRoleBadgeColor = (role: string) => {
     const colors: Record<string, string> = {
-      admin: 'bg-red-100 text-red-800',
-      super_admin: 'bg-purple-100 text-purple-800',
-      driver: 'bg-blue-100 text-blue-800',
-      employee: 'bg-green-100 text-green-800',
-      supplier: 'bg-yellow-100 text-yellow-800',
-      customer: 'bg-gray-100 text-gray-800',
+      admin: "bg-red-100 text-red-800",
+      super_admin: "bg-purple-100 text-purple-800",
+      driver: "bg-blue-100 text-blue-800",
+      employee: "bg-green-100 text-green-800",
+      supplier: "bg-yellow-100 text-yellow-800",
+      customer: "bg-gray-100 text-gray-800",
     };
-    return colors[role] || 'bg-gray-100 text-gray-800';
+    return colors[role] || "bg-gray-100 text-gray-800";
   };
 
   return (
@@ -244,8 +296,18 @@ export default function AdminPanel() {
         </div>
 
         {alert && (
-          <Alert className={alert.type === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}>
-            <AlertDescription className={alert.type === 'success' ? 'text-green-800' : 'text-red-800'}>
+          <Alert
+            className={
+              alert.type === "success"
+                ? "bg-green-50 border-green-200"
+                : "bg-red-50 border-red-200"
+            }
+          >
+            <AlertDescription
+              className={
+                alert.type === "success" ? "text-green-800" : "text-red-800"
+              }
+            >
               {alert.message}
             </AlertDescription>
           </Alert>
@@ -301,7 +363,10 @@ export default function AdminPanel() {
                   </Select>
 
                   {selectedUsers.size > 0 && (
-                    <Button onClick={handleBulkApprove} className="bg-green-600 hover:bg-green-700">
+                    <Button
+                      onClick={handleBulkApprove}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
                       <CheckCircle className="w-4 h-4 mr-2" />
                       Approve {selectedUsers.size} Selected
                     </Button>
@@ -317,10 +382,15 @@ export default function AdminPanel() {
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
-                          checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
+                          checked={
+                            selectedUsers.size === filteredUsers.length &&
+                            filteredUsers.length > 0
+                          }
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setSelectedUsers(new Set(filteredUsers.map((u) => u.id)));
+                              setSelectedUsers(
+                                new Set(filteredUsers.map((u) => u.id)),
+                              );
                             } else {
                               setSelectedUsers(new Set());
                             }
@@ -344,7 +414,10 @@ export default function AdminPanel() {
                       </TableRow>
                     ) : filteredUsers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                        <TableCell
+                          colSpan={7}
+                          className="text-center py-8 text-gray-500"
+                        >
                           No users found
                         </TableCell>
                       </TableRow>
@@ -354,10 +427,14 @@ export default function AdminPanel() {
                           <TableCell>
                             <Checkbox
                               checked={selectedUsers.has(user.id)}
-                              onCheckedChange={() => toggleUserSelection(user.id)}
+                              onCheckedChange={() =>
+                                toggleUserSelection(user.id)
+                              }
                             />
                           </TableCell>
-                          <TableCell className="font-medium">{user.full_name}</TableCell>
+                          <TableCell className="font-medium">
+                            {user.full_name}
+                          </TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
                             <Badge className={getRoleBadgeColor(user.role)}>
@@ -366,9 +443,13 @@ export default function AdminPanel() {
                           </TableCell>
                           <TableCell>
                             {user.is_active ? (
-                              <Badge className="bg-green-100 text-green-800">Active</Badge>
+                              <Badge className="bg-green-100 text-green-800">
+                                Active
+                              </Badge>
                             ) : (
-                              <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
+                              <Badge className="bg-gray-100 text-gray-800">
+                                Inactive
+                              </Badge>
                             )}
                           </TableCell>
                           <TableCell>
@@ -389,7 +470,9 @@ export default function AdminPanel() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleResendVerification(user.id)}
+                                onClick={() =>
+                                  handleResendVerification(user.id)
+                                }
                               >
                                 <Mail className="w-4 h-4" />
                               </Button>
@@ -441,14 +524,19 @@ export default function AdminPanel() {
                   <TableBody>
                     {auditLogs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                        <TableCell
+                          colSpan={4}
+                          className="text-center py-8 text-gray-500"
+                        >
                           No audit logs found
                         </TableCell>
                       </TableRow>
                     ) : (
                       auditLogs.map((log) => (
                         <TableRow key={log.id}>
-                          <TableCell className="font-medium">{log.action}</TableCell>
+                          <TableCell className="font-medium">
+                            {log.action}
+                          </TableCell>
                           <TableCell>{log.entity_type}</TableCell>
                           <TableCell className="max-w-md truncate">
                             {JSON.stringify(log.details)}
@@ -479,7 +567,9 @@ export default function AdminPanel() {
                   <p className="text-sm text-gray-500">{selectedUser.email}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Verification Notes</label>
+                  <label className="text-sm font-medium">
+                    Verification Notes
+                  </label>
                   <Textarea
                     value={verificationNotes}
                     onChange={(e) => setVerificationNotes(e.target.value)}
@@ -490,19 +580,22 @@ export default function AdminPanel() {
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowVerifyDialog(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowVerifyDialog(false)}
+              >
                 Cancel
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => handleVerifyDocuments('rejected')}
+                onClick={() => handleVerifyDocuments("rejected")}
               >
                 <XCircle className="w-4 h-4 mr-2" />
                 Reject
               </Button>
               <Button
                 className="bg-green-600 hover:bg-green-700"
-                onClick={() => handleVerifyDocuments('approved')}
+                onClick={() => handleVerifyDocuments("approved")}
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Approve

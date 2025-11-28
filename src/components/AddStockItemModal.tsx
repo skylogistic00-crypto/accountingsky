@@ -9,7 +9,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -21,20 +27,24 @@ interface AddStockItemModalProps {
   onAdded: () => void;
 }
 
-export default function AddStockItemModal({ open, onClose, onAdded }: AddStockItemModalProps) {
+export default function AddStockItemModal({
+  open,
+  onClose,
+  onAdded,
+}: AddStockItemModalProps) {
   const [itemName, setItemName] = useState("");
   const [jenisBarang, setJenisBarang] = useState("");
   const [brand, setBrand] = useState("");
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState(0);
   const [unit, setUnit] = useState("");
-  
+
   const [jenisBarangList, setJenisBarangList] = useState<string[]>([]);
   const [coaList, setCoaList] = useState<any[]>([]);
   const [selectedCOA, setSelectedCOA] = useState("");
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [selectedWarehouse, setSelectedWarehouse] = useState("");
-  
+
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -48,12 +58,12 @@ export default function AddStockItemModal({ open, onClose, onAdded }: AddStockIt
   }, [open]);
 
   const loadJenisBarang = async () => {
-    const { data } = await supabase
-      .from("item_master")
-      .select("jenis_barang");
+    const { data } = await supabase.from("item_master").select("jenis_barang");
 
     if (data) {
-      const uniqueJenis = Array.from(new Set(data.map(item => item.jenis_barang).filter(Boolean)));
+      const uniqueJenis = Array.from(
+        new Set(data.map((item) => item.jenis_barang).filter(Boolean)),
+      );
       setJenisBarangList(uniqueJenis);
     }
   };
@@ -128,28 +138,28 @@ export default function AddStockItemModal({ open, onClose, onAdded }: AddStockIt
     if (jenisBarang && coaList.length > 0) {
       const coaMapping = generateCOAMapping(jenisBarang);
       console.log("COA Mapping for", jenisBarang, ":", coaMapping);
-      
+
       // Try exact match first
-      let matchingCOA = coaList.find(coa => 
-        coa.account_code === coaMapping.coa_prefix
+      let matchingCOA = coaList.find(
+        (coa) => coa.account_code === coaMapping.coa_prefix,
       );
-      
+
       // If no exact match, try prefix match
       if (!matchingCOA) {
-        matchingCOA = coaList.find(coa => 
-          coa.account_code.startsWith(coaMapping.coa_prefix)
+        matchingCOA = coaList.find((coa) =>
+          coa.account_code.startsWith(coaMapping.coa_prefix),
         );
       }
-      
+
       // If still no match, try by usage_role
       if (!matchingCOA) {
-        matchingCOA = coaList.find(coa => 
-          coa.usage_role === coaMapping.coa_usage_role
+        matchingCOA = coaList.find(
+          (coa) => coa.usage_role === coaMapping.coa_usage_role,
         );
       }
-      
+
       console.log("Matching COA found:", matchingCOA);
-      
+
       if (matchingCOA) {
         setSelectedCOA(matchingCOA.account_code);
         toast({
@@ -202,12 +212,10 @@ export default function AddStockItemModal({ open, onClose, onAdded }: AddStockIt
         .maybeSingle();
 
       if (!existingItem) {
-        const { error: itemError } = await supabase
-          .from("item_master")
-          .insert({
-            item_name: itemName.trim(),
-            jenis_barang: jenisBarang
-          });
+        const { error: itemError } = await supabase.from("item_master").insert({
+          item_name: itemName.trim(),
+          jenis_barang: jenisBarang,
+        });
 
         if (itemError) throw itemError;
       }
@@ -220,29 +228,25 @@ export default function AddStockItemModal({ open, onClose, onAdded }: AddStockIt
         .maybeSingle();
 
       if (!existingBrand) {
-        const { error: brandError } = await supabase
-          .from("brands")
-          .insert({
-            brand_name: brand.trim(),
-            category: jenisBarang
-          });
+        const { error: brandError } = await supabase.from("brands").insert({
+          brand_name: brand.trim(),
+          category: jenisBarang,
+        });
 
         if (brandError) throw brandError;
       }
 
       // Step 3: Insert stock
-      const { error: stockError } = await supabase
-        .from("stock")
-        .insert({
-          item_name: itemName.trim(),
-          brand: brand.trim(),
-          jenis_barang: jenisBarang,
-          description: description.trim(),
-          quantity: quantity,
-          unit: unit,
-          coa_account_code: selectedCOA,
-          warehouse_id: selectedWarehouse || null
-        });
+      const { error: stockError } = await supabase.from("stock").insert({
+        item_name: itemName.trim(),
+        brand: brand.trim(),
+        jenis_barang: jenisBarang,
+        description: description.trim(),
+        quantity: quantity,
+        unit: unit,
+        coa_account_code: selectedCOA,
+        warehouse_id: selectedWarehouse || null,
+      });
 
       if (stockError) throw stockError;
 
@@ -260,7 +264,7 @@ export default function AddStockItemModal({ open, onClose, onAdded }: AddStockIt
       setUnit("");
       setSelectedCOA("");
       setSelectedWarehouse("");
-      
+
       onAdded();
       onClose();
     } catch (error: any) {
@@ -280,11 +284,12 @@ export default function AddStockItemModal({ open, onClose, onAdded }: AddStockIt
         <DialogHeader>
           <DialogTitle>Tambah Item & Stock Baru</DialogTitle>
         </DialogHeader>
-        
+
         <Alert className="bg-blue-50 border-blue-200">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-sm text-blue-900">
-            Form ini akan menambahkan item, brand, dan stock sekaligus dalam satu kali simpan.
+            Form ini akan menambahkan item, brand, dan stock sekaligus dalam
+            satu kali simpan.
           </AlertDescription>
         </Alert>
 
@@ -315,9 +320,13 @@ export default function AddStockItemModal({ open, onClose, onAdded }: AddStockIt
                 ))}
                 <SelectItem value="Minimarket">Minimarket</SelectItem>
                 <SelectItem value="Retail">Retail</SelectItem>
-                <SelectItem value="Warehouse Material">Warehouse Material</SelectItem>
+                <SelectItem value="Warehouse Material">
+                  Warehouse Material
+                </SelectItem>
                 <SelectItem value="ATK">ATK</SelectItem>
-                <SelectItem value="Sparepart Kendaraan">Sparepart Kendaraan</SelectItem>
+                <SelectItem value="Sparepart Kendaraan">
+                  Sparepart Kendaraan
+                </SelectItem>
                 <SelectItem value="Minuman">Minuman</SelectItem>
                 <SelectItem value="Makanan">Makanan</SelectItem>
                 <SelectItem value="Elektronik">Elektronik</SelectItem>
@@ -396,7 +405,10 @@ export default function AddStockItemModal({ open, onClose, onAdded }: AddStockIt
           {/* Warehouse */}
           <div>
             <Label htmlFor="warehouse">Gudang</Label>
-            <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
+            <Select
+              value={selectedWarehouse}
+              onValueChange={setSelectedWarehouse}
+            >
               <SelectTrigger id="warehouse">
                 <SelectValue placeholder="-- Pilih Gudang (opsional) --" />
               </SelectTrigger>

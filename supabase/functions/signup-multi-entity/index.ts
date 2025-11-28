@@ -227,14 +227,31 @@ Deno.serve(async (req) => {
       // Continue without entity record
     }
 
-    // Send verification email
-    const { error: emailError } = await supabase.auth.admin.generateLink({
+    // Send verification email with proper redirect
+    const siteUrl = Deno.env.get('SITE_URL') || 'https://acc.skykargo.co.id';
+    const { data: linkData, error: emailError } = await supabase.auth.admin.generateLink({
       type: 'signup',
       email,
+      options: {
+        redirectTo: `${siteUrl}/auth/confirm`,
+      },
     });
 
     if (emailError) {
       console.error('Email verification error:', emailError);
+    } else if (linkData?.properties?.hashed_token) {
+      // Send email manually using Supabase's built-in email
+      const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+        redirectTo: `${siteUrl}/auth/confirm`,
+        data: {
+          full_name,
+          entity_type: normalizedEntityType,
+        },
+      });
+      
+      if (inviteError && !inviteError.message.includes('already been registered')) {
+        console.error('Invite email error:', inviteError);
+      }
     }
 
     return new Response(

@@ -52,6 +52,7 @@ interface ProtectedRouteProps {
 function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, userProfile, loading } = useAuth();
 
+  // 1. tunggu fetch selesai
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600">
@@ -60,10 +61,17 @@ function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
     );
   }
 
+  // 2. user tidak login → lempar ke halaman login (BUKAN "/")
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
+  // 3. user login tapi status belum approved → ke pending-registrasi
+  if (userProfile?.status === "inactive") {
+    return <Navigate to="/pending-registrasi" replace />;
+  }
+
+  // 4. role tidak termasuk allowedRoles → tahan user
   if (
     allowedRoles &&
     userProfile?.roles?.role_name &&
@@ -72,6 +80,7 @@ function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
     return null;
   }
 
+  // 5. semua aman → tampilkan halaman
   return <>{children}</>;
 }
 
@@ -97,20 +106,27 @@ function HomePage() {
     );
   }
 
-  if (user && userProfile) {
+  // 🟥 USER BELUM LOGIN → tampilkan Header PUBLIC (tanpa useAuth)
+  if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <Header />
-        <Navigation />
-        <Home />
+      <div className="min-h-screen bg-white">
+        <Header publicMode={true} /> {/* Wajib */}
+        <HeroSection />
       </div>
     );
   }
 
+  // 🟨 USER LOGIN tetapi status belum approved
+  if (userProfile?.status === "inactive") {
+    return <Navigate to="/pending-registrasi" replace />;
+  }
+
+  // 🟩 USER LOGIN & APPROVED → tampilkan dashboard normal
   return (
-    <div className="min-h-screen bg-white">
-      <Header />
-      <HeroSection />
+    <div className="min-h-screen bg-slate-50">
+      <Header /> {/* Header normal */}
+      <Navigation />
+      <Home />
     </div>
   );
 }
@@ -128,6 +144,11 @@ function AppRoutesContent() {
 
   return (
     <Routes>
+      <Route path="/auth/confirm" element={<EmailConfirm />} />
+      <Route path="/verify" element={<EmailConfirm />} />
+      <Route path="/confirm" element={<EmailConfirm />} />
+      <Route path="/confirm/*" element={<EmailConfirm />} />
+      <Route path="/pending-registrasi" element={<PendingRegistrasi />} />
       <Route path="/" element={<HomePage />} />
       <Route path="/admin-setup" element={<AdminSetup />} />
       <Route
@@ -639,11 +660,7 @@ function AppRoutesContent() {
       />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/auth/confirm" element={<EmailConfirm />} />
-      <Route path="/verify" element={<EmailConfirm />} />
-      <Route path="/confirm" element={<EmailConfirm />} />
-      <Route path="/confirm/*" element={<EmailConfirm />} />
-      <Route path="/pending-registrasi" element={<PendingRegistrasi />} />
+
       <Route
         path="/hrd-dashboard"
         element={
@@ -672,7 +689,8 @@ function AppRoutesContent() {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

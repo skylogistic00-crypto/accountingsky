@@ -56,11 +56,13 @@ export default function CashFlowReport() {
     total_cash_out: 0,
     net_cash_flow: 0,
   });
-  
+
   // Date filter state
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const [startDate, setStartDate] = useState(firstDayOfMonth.toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(
+    firstDayOfMonth.toISOString().split("T")[0],
+  );
   const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
 
   useEffect(() => {
@@ -74,7 +76,9 @@ export default function CashFlowReport() {
       // Fetch from vw_cash_flow_report view with date filter
       const { data, error } = await supabase
         .from("vw_cash_flow_report")
-        .select("entry_date, description, jenis_transaksi, cash_in, cash_out, cash_movement")
+        .select(
+          "entry_date, description, jenis_transaksi, cash_in, cash_out, cash_movement",
+        )
         .gte("entry_date", startDate)
         .lte("entry_date", endDate)
         .order("entry_date", { ascending: true });
@@ -82,21 +86,29 @@ export default function CashFlowReport() {
       if (error) throw error;
 
       // Map data with generated id for table key
-      const mappedData: CashFlowDetailData[] = (data || []).map((item, index) => ({
-        id: `cf-${index}`,
-        entry_date: item.entry_date,
-        description: item.description || "-",
-        jenis_transaksi: item.jenis_transaksi,
-        cash_in: Number(item.cash_in) || 0,
-        cash_out: Number(item.cash_out) || 0,
-        cash_movement: Number(item.cash_movement) || 0,
-      }));
+      const mappedData: CashFlowDetailData[] = (data || []).map(
+        (item, index) => ({
+          id: `cf-${index}`,
+          entry_date: item.entry_date,
+          description: item.description || "-",
+          jenis_transaksi: item.jenis_transaksi,
+          cash_in: Number(item.cash_in) || 0,
+          cash_out: Number(item.cash_out) || 0,
+          cash_movement: Number(item.cash_movement) || 0,
+        }),
+      );
 
       setCashFlowData(mappedData);
 
       // Calculate summary
-      const totalCashIn = mappedData.reduce((sum, item) => sum + item.cash_in, 0);
-      const totalCashOut = mappedData.reduce((sum, item) => sum + item.cash_out, 0);
+      const totalCashIn = mappedData.reduce(
+        (sum, item) => sum + item.cash_in,
+        0,
+      );
+      const totalCashOut = mappedData.reduce(
+        (sum, item) => sum + item.cash_out,
+        0,
+      );
       setSummary({
         total_cash_in: totalCashIn,
         total_cash_out: totalCashOut,
@@ -200,7 +212,8 @@ export default function CashFlowReport() {
               {/* Summary Cards */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-600 mb-3">
-                  📊 Ringkasan Periode {formatDate(startDate)} - {formatDate(endDate)}
+                  📊 Ringkasan Periode {formatDate(startDate)} -{" "}
+                  {formatDate(endDate)}
                 </h3>
                 <div className="grid md:grid-cols-3 gap-4">
                   <Card className="bg-green-50 border-2 border-green-300 shadow-md">
@@ -283,18 +296,33 @@ export default function CashFlowReport() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gray-100">
-                        <TableHead className="font-semibold">Entry Date</TableHead>
-                        <TableHead className="font-semibold">Description</TableHead>
-                        <TableHead className="font-semibold">Jenis Transaksi</TableHead>
-                        <TableHead className="font-semibold text-right">Cash In</TableHead>
-                        <TableHead className="font-semibold text-right">Cash Out</TableHead>
-                        <TableHead className="font-semibold text-right">Cash Movement</TableHead>
+                        <TableHead className="font-semibold">
+                          Entry Date
+                        </TableHead>
+                        <TableHead className="font-semibold">
+                          Description
+                        </TableHead>
+                        <TableHead className="font-semibold">
+                          Jenis Transaksi
+                        </TableHead>
+                        <TableHead className="font-semibold text-right">
+                          Cash In
+                        </TableHead>
+                        <TableHead className="font-semibold text-right">
+                          Cash Out
+                        </TableHead>
+                        <TableHead className="font-semibold text-right">
+                          Cash Movement
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {cashFlowData.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                          <TableCell
+                            colSpan={6}
+                            className="text-center py-8 text-gray-500"
+                          >
                             Tidak ada data untuk periode yang dipilih
                           </TableCell>
                         </TableRow>
@@ -317,14 +345,20 @@ export default function CashFlowReport() {
                               </span>
                             </TableCell>
                             <TableCell className="text-right text-green-600 font-medium">
-                              {item.cash_in > 0 ? formatRupiah(item.cash_in) : "-"}
+                              {item.cash_in > 0
+                                ? formatRupiah(item.cash_in)
+                                : "-"}
                             </TableCell>
                             <TableCell className="text-right text-red-600 font-medium">
-                              {item.cash_out > 0 ? formatRupiah(item.cash_out) : "-"}
+                              {item.cash_out > 0
+                                ? formatRupiah(item.cash_out)
+                                : "-"}
                             </TableCell>
                             <TableCell
                               className={`text-right font-medium ${
-                                item.cash_movement >= 0 ? "text-green-600" : "text-red-600"
+                                item.cash_movement >= 0
+                                  ? "text-green-600"
+                                  : "text-red-600"
                               }`}
                             >
                               {formatRupiah(item.cash_movement)}

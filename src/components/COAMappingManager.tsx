@@ -53,8 +53,10 @@ interface InventoryItem {
 export default function COAMappingManager() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"service" | "inventory">("service");
-  
+  const [activeTab, setActiveTab] = useState<"service" | "inventory">(
+    "service",
+  );
+
   const [coaAccounts, setCOAAccounts] = useState<COAAccount[]>([]);
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
@@ -65,39 +67,41 @@ export default function COAMappingManager() {
 
   const fetchData = async () => {
     setLoading(true);
-    
+
     // Fetch COA accounts
     const { data: coa } = await supabase
       .from("chart_of_accounts")
       .select("account_code, account_name, account_type")
       .eq("is_active", true)
       .order("account_code");
-    
+
     // Fetch service items
     const { data: services } = await supabase
       .from("service_items")
       .select("id, item_name, price, coa_revenue_code, coa_expense_code")
       .eq("is_active", true)
       .order("item_name");
-    
+
     // Fetch inventory items - use correct field names from database
     const { data: inventory } = await supabase
       .from("inventory_items")
-      .select("id, nama_barang, cost_per_unit, coa_inventory_code, coa_cogs_code")
+      .select(
+        "id, nama_barang, cost_per_unit, coa_inventory_code, coa_cogs_code",
+      )
       .order("nama_barang");
-    
+
     setCOAAccounts(coa || []);
     setServiceItems(services || []);
-    
+
     // Map nama_barang to item_name for consistency
-    const mappedInventory = (inventory || []).map(item => ({
+    const mappedInventory = (inventory || []).map((item) => ({
       id: item.id,
       item_name: item.nama_barang,
       cost_per_unit: item.cost_per_unit,
       coa_inventory_code: item.coa_inventory_code,
       coa_cogs_code: item.coa_cogs_code,
     }));
-    
+
     setInventoryItems(mappedInventory);
     setLoading(false);
   };
@@ -105,7 +109,7 @@ export default function COAMappingManager() {
   const updateServiceCOA = async (
     itemId: string,
     field: "coa_revenue_code" | "coa_expense_code",
-    value: string
+    value: string,
   ) => {
     const { error } = await supabase
       .from("service_items")
@@ -130,7 +134,7 @@ export default function COAMappingManager() {
   const updateInventoryCOA = async (
     itemId: string,
     field: "coa_inventory_code" | "coa_cogs_code",
-    value: string
+    value: string,
   ) => {
     const { error } = await supabase
       .from("inventory_items")
@@ -152,17 +156,17 @@ export default function COAMappingManager() {
     }
   };
 
-  const getRevenueAccounts = () => 
-    coaAccounts.filter(acc => acc.account_type === "Pendapatan");
-  
-  const getExpenseAccounts = () => 
-    coaAccounts.filter(acc => acc.account_type === "Beban Operasional");
-  
-  const getInventoryAccounts = () => 
-    coaAccounts.filter(acc => acc.account_code.startsWith("1-14"));
-  
-  const getCOGSAccounts = () => 
-    coaAccounts.filter(acc => acc.account_type === "Beban Pokok Penjualan");
+  const getRevenueAccounts = () =>
+    coaAccounts.filter((acc) => acc.account_type === "Pendapatan");
+
+  const getExpenseAccounts = () =>
+    coaAccounts.filter((acc) => acc.account_type === "Beban Operasional");
+
+  const getInventoryAccounts = () =>
+    coaAccounts.filter((acc) => acc.account_code.startsWith("1-14"));
+
+  const getCOGSAccounts = () =>
+    coaAccounts.filter((acc) => acc.account_type === "Beban Pokok Penjualan");
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -202,7 +206,9 @@ export default function COAMappingManager() {
               {activeTab === "service" && (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Service Items - COA Mapping</h3>
+                    <h3 className="text-lg font-semibold">
+                      Service Items - COA Mapping
+                    </h3>
                     <Button
                       variant="outline"
                       size="sm"
@@ -213,7 +219,7 @@ export default function COAMappingManager() {
                       Refresh
                     </Button>
                   </div>
-                  
+
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -226,7 +232,9 @@ export default function COAMappingManager() {
                     <TableBody>
                       {serviceItems.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.item_name}</TableCell>
+                          <TableCell className="font-medium">
+                            {item.item_name}
+                          </TableCell>
                           <TableCell>
                             Rp {item.price.toLocaleString("id-ID")}
                           </TableCell>
@@ -234,7 +242,11 @@ export default function COAMappingManager() {
                             <Select
                               value={item.coa_revenue_code || ""}
                               onValueChange={(value) =>
-                                updateServiceCOA(item.id, "coa_revenue_code", value)
+                                updateServiceCOA(
+                                  item.id,
+                                  "coa_revenue_code",
+                                  value,
+                                )
                               }
                             >
                               <SelectTrigger className="w-full">
@@ -242,7 +254,10 @@ export default function COAMappingManager() {
                               </SelectTrigger>
                               <SelectContent>
                                 {getRevenueAccounts().map((acc) => (
-                                  <SelectItem key={acc.account_code} value={acc.account_code}>
+                                  <SelectItem
+                                    key={acc.account_code}
+                                    value={acc.account_code}
+                                  >
                                     {acc.account_code} - {acc.account_name}
                                   </SelectItem>
                                 ))}
@@ -253,7 +268,11 @@ export default function COAMappingManager() {
                             <Select
                               value={item.coa_expense_code || ""}
                               onValueChange={(value) =>
-                                updateServiceCOA(item.id, "coa_expense_code", value)
+                                updateServiceCOA(
+                                  item.id,
+                                  "coa_expense_code",
+                                  value,
+                                )
                               }
                             >
                               <SelectTrigger className="w-full">
@@ -261,7 +280,10 @@ export default function COAMappingManager() {
                               </SelectTrigger>
                               <SelectContent>
                                 {getExpenseAccounts().map((acc) => (
-                                  <SelectItem key={acc.account_code} value={acc.account_code}>
+                                  <SelectItem
+                                    key={acc.account_code}
+                                    value={acc.account_code}
+                                  >
                                     {acc.account_code} - {acc.account_name}
                                   </SelectItem>
                                 ))}
@@ -279,7 +301,9 @@ export default function COAMappingManager() {
               {activeTab === "inventory" && (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Inventory Items - COA Mapping</h3>
+                    <h3 className="text-lg font-semibold">
+                      Inventory Items - COA Mapping
+                    </h3>
                     <Button
                       variant="outline"
                       size="sm"
@@ -290,7 +314,7 @@ export default function COAMappingManager() {
                       Refresh
                     </Button>
                   </div>
-                  
+
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -303,15 +327,22 @@ export default function COAMappingManager() {
                     <TableBody>
                       {inventoryItems.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.item_name}</TableCell>
+                          <TableCell className="font-medium">
+                            {item.item_name}
+                          </TableCell>
                           <TableCell>
-                            Rp {(item.cost_per_unit || 0).toLocaleString("id-ID")}
+                            Rp{" "}
+                            {(item.cost_per_unit || 0).toLocaleString("id-ID")}
                           </TableCell>
                           <TableCell>
                             <Select
                               value={item.coa_inventory_code || ""}
                               onValueChange={(value) =>
-                                updateInventoryCOA(item.id, "coa_inventory_code", value)
+                                updateInventoryCOA(
+                                  item.id,
+                                  "coa_inventory_code",
+                                  value,
+                                )
                               }
                             >
                               <SelectTrigger className="w-full">
@@ -319,7 +350,10 @@ export default function COAMappingManager() {
                               </SelectTrigger>
                               <SelectContent>
                                 {getInventoryAccounts().map((acc) => (
-                                  <SelectItem key={acc.account_code} value={acc.account_code}>
+                                  <SelectItem
+                                    key={acc.account_code}
+                                    value={acc.account_code}
+                                  >
                                     {acc.account_code} - {acc.account_name}
                                   </SelectItem>
                                 ))}
@@ -330,7 +364,11 @@ export default function COAMappingManager() {
                             <Select
                               value={item.coa_cogs_code || ""}
                               onValueChange={(value) =>
-                                updateInventoryCOA(item.id, "coa_cogs_code", value)
+                                updateInventoryCOA(
+                                  item.id,
+                                  "coa_cogs_code",
+                                  value,
+                                )
                               }
                             >
                               <SelectTrigger className="w-full">
@@ -338,7 +376,10 @@ export default function COAMappingManager() {
                               </SelectTrigger>
                               <SelectContent>
                                 {getCOGSAccounts().map((acc) => (
-                                  <SelectItem key={acc.account_code} value={acc.account_code}>
+                                  <SelectItem
+                                    key={acc.account_code}
+                                    value={acc.account_code}
+                                  >
                                     {acc.account_code} - {acc.account_name}
                                   </SelectItem>
                                 ))}

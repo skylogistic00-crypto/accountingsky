@@ -67,7 +67,9 @@ export default function TambahBarangLini1() {
     try {
       const { data, error } = await supabase
         .from("stock")
-        .select("id, item_name, barcode, tanggal_masuk_barang, ceisa_document_number, batas_waktu_pengambilan, berat, volume")
+        .select(
+          "id, item_name, barcode, tanggal_masuk_barang, ceisa_document_number, batas_waktu_pengambilan, berat, volume",
+        )
         .not("tanggal_masuk_barang", "is", null)
         .order("tanggal_masuk_barang", { ascending: false });
 
@@ -91,13 +93,15 @@ export default function TambahBarangLini1() {
 
     // Filter stock items by selected date
     const filtered = stockItems.filter(
-      (item) => item.tanggal_masuk_barang === tanggal
+      (item) => item.tanggal_masuk_barang === tanggal,
     );
     setFilteredStockItems(filtered);
   };
 
   const handleBarcodeSelect = (barcode: string) => {
-    const selectedItem = filteredStockItems.find((item) => item.barcode === barcode);
+    const selectedItem = filteredStockItems.find(
+      (item) => item.barcode === barcode,
+    );
     if (selectedItem) {
       setFormData({
         ...formData,
@@ -121,7 +125,8 @@ export default function TambahBarangLini1() {
     ) {
       toast({
         title: "Validasi Gagal",
-        description: "Barcode, Tanggal Barang Masuk, dan Nama Barang wajib diisi",
+        description:
+          "Barcode, Tanggal Barang Masuk, dan Nama Barang wajib diisi",
         variant: "destructive",
       });
       return;
@@ -177,7 +182,7 @@ export default function TambahBarangLini1() {
 
   // Get unique dates from stock items
   const uniqueDates = Array.from(
-    new Set(stockItems.map((item) => item.tanggal_masuk_barang))
+    new Set(stockItems.map((item) => item.tanggal_masuk_barang)),
   ).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
   return (

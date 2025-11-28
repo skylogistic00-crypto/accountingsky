@@ -203,7 +203,7 @@ export default function CashBook() {
           (cat) =>
             cat.toLowerCase().includes("pendapatan") ||
             cat.toLowerCase().includes("penerimaan") ||
-            cat.toLowerCase().includes("pinjaman")
+            cat.toLowerCase().includes("pinjaman"),
         );
       } else if (paymentType === "Pengeluaran Kas") {
         // Show categories for expenses: Pengeluaran, Beban, Pinjaman (for repayment)
@@ -211,7 +211,7 @@ export default function CashBook() {
           (cat) =>
             cat.toLowerCase().includes("pengeluaran") ||
             cat.toLowerCase().includes("beban") ||
-            cat.toLowerCase().includes("pinjaman")
+            cat.toLowerCase().includes("pinjaman"),
         );
       }
 
@@ -656,7 +656,8 @@ export default function CashBook() {
                             ))
                           ) : (
                             <div className="p-4 text-sm text-gray-500 text-center">
-                              {formData.service_category && formData.service_type
+                              {formData.service_category &&
+                              formData.service_type
                                 ? "Tidak ada COA yang sesuai"
                                 : "Pilih kategori dan jenis layanan terlebih dahulu"}
                             </div>
@@ -665,7 +666,8 @@ export default function CashBook() {
                       </Select>
                       {formData.service_category && formData.service_type && (
                         <p className="text-xs text-gray-500">
-                          {filteredCoaAccounts.length} akun COA tersedia untuk kategori ini
+                          {filteredCoaAccounts.length} akun COA tersedia untuk
+                          kategori ini
                         </p>
                       )}
                     </div>

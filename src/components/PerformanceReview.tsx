@@ -3,9 +3,28 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,10 +90,12 @@ export default function PerformanceReview() {
   const loadReviews = async () => {
     const { data } = await supabase
       .from("performance_reviews")
-      .select(`
+      .select(
+        `
         *,
         employees(full_name, employee_number)
-      `)
+      `,
+      )
       .order("review_date", { ascending: false });
     setReviews(data || []);
   };
@@ -106,12 +127,19 @@ export default function PerformanceReview() {
       });
 
       if (error) throw error;
-      toast({ title: "Berhasil", description: "Penilaian kinerja berhasil disimpan" });
+      toast({
+        title: "Berhasil",
+        description: "Penilaian kinerja berhasil disimpan",
+      });
       loadReviews();
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -158,10 +186,13 @@ export default function PerformanceReview() {
           <h2 className="text-2xl font-bold">Penilaian Kinerja</h2>
           <p className="text-gray-600">Kelola penilaian kinerja karyawan</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) resetForm();
-        }}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="bg-indigo-600 hover:bg-indigo-700">
               <Plus className="h-4 w-4 mr-2" />
@@ -179,7 +210,13 @@ export default function PerformanceReview() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Karyawan *</Label>
-                    <Select required value={formData.employee_id} onValueChange={(value) => setFormData({ ...formData, employee_id: value })}>
+                    <Select
+                      required
+                      value={formData.employee_id}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, employee_id: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih karyawan" />
                       </SelectTrigger>
@@ -199,7 +236,12 @@ export default function PerformanceReview() {
                       type="date"
                       required
                       value={formData.review_date}
-                      onChange={(e) => setFormData({ ...formData, review_date: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          review_date: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -209,7 +251,12 @@ export default function PerformanceReview() {
                       type="date"
                       required
                       value={formData.review_period_start}
-                      onChange={(e) => setFormData({ ...formData, review_period_start: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          review_period_start: e.target.value,
+                        })
+                      }
                     />
                   </div>
 
@@ -219,7 +266,12 @@ export default function PerformanceReview() {
                       type="date"
                       required
                       value={formData.review_period_end}
-                      onChange={(e) => setFormData({ ...formData, review_period_end: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          review_period_end: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -227,18 +279,34 @@ export default function PerformanceReview() {
 
               {/* Rating Criteria */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Kriteria Penilaian (1-5)</h3>
+                <h3 className="font-semibold text-lg">
+                  Kriteria Penilaian (1-5)
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Kualitas Kerja</Label>
-                    <Select value={formData.quality_of_work} onValueChange={(value) => setFormData({ ...formData, quality_of_work: value })}>
+                    <Select
+                      value={formData.quality_of_work}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, quality_of_work: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {[1, 2, 3, 4, 5].map((val) => (
                           <SelectItem key={val} value={val.toString()}>
-                            {val} - {val === 5 ? "Excellent" : val === 4 ? "Good" : val === 3 ? "Average" : val === 2 ? "Below Average" : "Poor"}
+                            {val} -{" "}
+                            {val === 5
+                              ? "Excellent"
+                              : val === 4
+                                ? "Good"
+                                : val === 3
+                                  ? "Average"
+                                  : val === 2
+                                    ? "Below Average"
+                                    : "Poor"}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -247,14 +315,28 @@ export default function PerformanceReview() {
 
                   <div className="space-y-2">
                     <Label>Produktivitas</Label>
-                    <Select value={formData.productivity} onValueChange={(value) => setFormData({ ...formData, productivity: value })}>
+                    <Select
+                      value={formData.productivity}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, productivity: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {[1, 2, 3, 4, 5].map((val) => (
                           <SelectItem key={val} value={val.toString()}>
-                            {val} - {val === 5 ? "Excellent" : val === 4 ? "Good" : val === 3 ? "Average" : val === 2 ? "Below Average" : "Poor"}
+                            {val} -{" "}
+                            {val === 5
+                              ? "Excellent"
+                              : val === 4
+                                ? "Good"
+                                : val === 3
+                                  ? "Average"
+                                  : val === 2
+                                    ? "Below Average"
+                                    : "Poor"}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -263,14 +345,28 @@ export default function PerformanceReview() {
 
                   <div className="space-y-2">
                     <Label>Komunikasi</Label>
-                    <Select value={formData.communication} onValueChange={(value) => setFormData({ ...formData, communication: value })}>
+                    <Select
+                      value={formData.communication}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, communication: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {[1, 2, 3, 4, 5].map((val) => (
                           <SelectItem key={val} value={val.toString()}>
-                            {val} - {val === 5 ? "Excellent" : val === 4 ? "Good" : val === 3 ? "Average" : val === 2 ? "Below Average" : "Poor"}
+                            {val} -{" "}
+                            {val === 5
+                              ? "Excellent"
+                              : val === 4
+                                ? "Good"
+                                : val === 3
+                                  ? "Average"
+                                  : val === 2
+                                    ? "Below Average"
+                                    : "Poor"}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -279,14 +375,28 @@ export default function PerformanceReview() {
 
                   <div className="space-y-2">
                     <Label>Kerja Tim</Label>
-                    <Select value={formData.teamwork} onValueChange={(value) => setFormData({ ...formData, teamwork: value })}>
+                    <Select
+                      value={formData.teamwork}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, teamwork: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {[1, 2, 3, 4, 5].map((val) => (
                           <SelectItem key={val} value={val.toString()}>
-                            {val} - {val === 5 ? "Excellent" : val === 4 ? "Good" : val === 3 ? "Average" : val === 2 ? "Below Average" : "Poor"}
+                            {val} -{" "}
+                            {val === 5
+                              ? "Excellent"
+                              : val === 4
+                                ? "Good"
+                                : val === 3
+                                  ? "Average"
+                                  : val === 2
+                                    ? "Below Average"
+                                    : "Poor"}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -295,14 +405,28 @@ export default function PerformanceReview() {
 
                   <div className="space-y-2">
                     <Label>Inisiatif</Label>
-                    <Select value={formData.initiative} onValueChange={(value) => setFormData({ ...formData, initiative: value })}>
+                    <Select
+                      value={formData.initiative}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, initiative: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {[1, 2, 3, 4, 5].map((val) => (
                           <SelectItem key={val} value={val.toString()}>
-                            {val} - {val === 5 ? "Excellent" : val === 4 ? "Good" : val === 3 ? "Average" : val === 2 ? "Below Average" : "Poor"}
+                            {val} -{" "}
+                            {val === 5
+                              ? "Excellent"
+                              : val === 4
+                                ? "Good"
+                                : val === 3
+                                  ? "Average"
+                                  : val === 2
+                                    ? "Below Average"
+                                    : "Poor"}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -311,14 +435,28 @@ export default function PerformanceReview() {
 
                   <div className="space-y-2">
                     <Label>Rating Keseluruhan *</Label>
-                    <Select value={formData.overall_rating} onValueChange={(value) => setFormData({ ...formData, overall_rating: value })}>
+                    <Select
+                      value={formData.overall_rating}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, overall_rating: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {[1, 2, 3, 4, 5].map((val) => (
                           <SelectItem key={val} value={val.toString()}>
-                            {val} - {val === 5 ? "Excellent" : val === 4 ? "Good" : val === 3 ? "Average" : val === 2 ? "Below Average" : "Poor"}
+                            {val} -{" "}
+                            {val === 5
+                              ? "Excellent"
+                              : val === 4
+                                ? "Good"
+                                : val === 3
+                                  ? "Average"
+                                  : val === 2
+                                    ? "Below Average"
+                                    : "Poor"}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -335,7 +473,9 @@ export default function PerformanceReview() {
                     <Label>Kekuatan</Label>
                     <Textarea
                       value={formData.strengths}
-                      onChange={(e) => setFormData({ ...formData, strengths: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, strengths: e.target.value })
+                      }
                       placeholder="Jelaskan kekuatan karyawan..."
                       rows={3}
                     />
@@ -345,7 +485,12 @@ export default function PerformanceReview() {
                     <Label>Area yang Perlu Ditingkatkan</Label>
                     <Textarea
                       value={formData.areas_for_improvement}
-                      onChange={(e) => setFormData({ ...formData, areas_for_improvement: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          areas_for_improvement: e.target.value,
+                        })
+                      }
                       placeholder="Jelaskan area yang perlu ditingkatkan..."
                       rows={3}
                     />
@@ -355,7 +500,9 @@ export default function PerformanceReview() {
                     <Label>Target/Goals</Label>
                     <Textarea
                       value={formData.goals}
-                      onChange={(e) => setFormData({ ...formData, goals: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, goals: e.target.value })
+                      }
                       placeholder="Tetapkan target untuk periode berikutnya..."
                       rows={3}
                     />
@@ -365,7 +512,9 @@ export default function PerformanceReview() {
                     <Label>Komentar Tambahan</Label>
                     <Textarea
                       value={formData.comments}
-                      onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, comments: e.target.value })
+                      }
                       placeholder="Komentar tambahan..."
                       rows={2}
                     />
@@ -374,10 +523,17 @@ export default function PerformanceReview() {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
                   Batal
                 </Button>
-                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+                <Button
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
                   Simpan
                 </Button>
               </div>
@@ -409,18 +565,35 @@ export default function PerformanceReview() {
                 <TableRow key={review.id}>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{review.employees?.full_name}</div>
-                      <div className="text-sm text-gray-500">{review.employees?.employee_number}</div>
+                      <div className="font-medium">
+                        {review.employees?.full_name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {review.employees?.employee_number}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    {new Date(review.review_period_start).toLocaleDateString("id-ID")} - {new Date(review.review_period_end).toLocaleDateString("id-ID")}
+                    {new Date(review.review_period_start).toLocaleDateString(
+                      "id-ID",
+                    )}{" "}
+                    -{" "}
+                    {new Date(review.review_period_end).toLocaleDateString(
+                      "id-ID",
+                    )}
                   </TableCell>
-                  <TableCell>{new Date(review.review_date).toLocaleDateString("id-ID")}</TableCell>
+                  <TableCell>
+                    {new Date(review.review_date).toLocaleDateString("id-ID")}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Star className={`h-4 w-4 ${getRatingColor(review.overall_rating)}`} fill="currentColor" />
-                      <span className={`font-bold ${getRatingColor(review.overall_rating)}`}>
+                      <Star
+                        className={`h-4 w-4 ${getRatingColor(review.overall_rating)}`}
+                        fill="currentColor"
+                      />
+                      <span
+                        className={`font-bold ${getRatingColor(review.overall_rating)}`}
+                      >
                         {review.overall_rating.toFixed(1)}
                       </span>
                     </div>

@@ -99,7 +99,7 @@ export default function CustomerForm() {
   const [pkpFilter, setPkpFilter] = useState("ALL");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [paymentTerms, setPaymentTerms] = useState<any[]>([]);
-  
+
   // Indonesian Banks List
   const indonesianBanks = [
     "Bank Mandiri",
@@ -128,7 +128,7 @@ export default function CustomerForm() {
     "Bank Neo Commerce",
     "Bank Seabank Indonesia",
   ];
-  
+
   const [formData, setFormData] = useState<CustomerFormData>({
     customer_code: "",
     customer_name: "",
@@ -382,8 +382,6 @@ export default function CustomerForm() {
     inactive: customers.filter((c) => c.status === "INACTIVE").length,
     pkp: customers.filter((c) => c.is_pkp === "YES").length,
   };
-
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -681,7 +679,9 @@ export default function CustomerForm() {
                           <SelectItem value="IDR">IDR - Rupiah</SelectItem>
                           <SelectItem value="USD">USD - US Dollar</SelectItem>
                           <SelectItem value="EUR">EUR - Euro</SelectItem>
-                          <SelectItem value="SGD">SGD - Singapore Dollar</SelectItem>
+                          <SelectItem value="SGD">
+                            SGD - Singapore Dollar
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

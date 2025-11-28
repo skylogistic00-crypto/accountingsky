@@ -3,9 +3,28 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Plus, FileText } from "lucide-react";
@@ -68,10 +87,12 @@ export default function PayrollManagement() {
   const loadPayrolls = async () => {
     const { data } = await supabase
       .from("payroll")
-      .select(`
+      .select(
+        `
         *,
         employees(full_name, employee_number)
-      `)
+      `,
+      )
       .order("period_year", { ascending: false })
       .order("period_month", { ascending: false });
     setPayrolls(data || []);
@@ -101,8 +122,12 @@ export default function PayrollManagement() {
         period_month: parseInt(formData.period_month),
         period_year: parseInt(formData.period_year),
         basic_salary: parseFloat(formData.basic_salary),
-        allowances: formData.allowances ? JSON.parse(formData.allowances) : null,
-        deductions: formData.deductions ? JSON.parse(formData.deductions) : null,
+        allowances: formData.allowances
+          ? JSON.parse(formData.allowances)
+          : null,
+        deductions: formData.deductions
+          ? JSON.parse(formData.deductions)
+          : null,
         overtime_hours: parseFloat(formData.overtime_hours),
         overtime_pay: parseFloat(formData.overtime_pay),
         gross_salary: gross,
@@ -117,23 +142,35 @@ export default function PayrollManagement() {
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
   const handlePaymentStatus = async (id: string, status: string) => {
     const { error } = await supabase
       .from("payroll")
-      .update({ 
+      .update({
         payment_status: status,
-        payment_date: status === "paid" ? new Date().toISOString().split("T")[0] : null
+        payment_date:
+          status === "paid" ? new Date().toISOString().split("T")[0] : null,
       })
       .eq("id", id);
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
-      toast({ title: "Berhasil", description: `Status pembayaran diupdate menjadi ${status}` });
+      toast({
+        title: "Berhasil",
+        description: `Status pembayaran diupdate menjadi ${status}`,
+      });
       loadPayrolls();
     }
   };
@@ -163,8 +200,18 @@ export default function PayrollManagement() {
   };
 
   const monthNames = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
   ];
 
   return (
@@ -174,10 +221,13 @@ export default function PayrollManagement() {
           <h2 className="text-2xl font-bold">Manajemen Payroll</h2>
           <p className="text-gray-600">Kelola penggajian karyawan</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) resetForm();
-        }}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="bg-green-600 hover:bg-green-700">
               <Plus className="h-4 w-4 mr-2" />
@@ -192,15 +242,15 @@ export default function PayrollManagement() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Karyawan *</Label>
-                  <Select 
+                  <Select
                     required
-                    value={formData.employee_id} 
+                    value={formData.employee_id}
                     onValueChange={(value) => {
-                      const emp = employees.find(e => e.id === value);
-                      setFormData({ 
-                        ...formData, 
+                      const emp = employees.find((e) => e.id === value);
+                      setFormData({
+                        ...formData,
                         employee_id: value,
-                        basic_salary: emp?.salary?.toString() || ""
+                        basic_salary: emp?.salary?.toString() || "",
                       });
                     }}
                   >
@@ -219,7 +269,12 @@ export default function PayrollManagement() {
 
                 <div className="space-y-2">
                   <Label>Periode Bulan *</Label>
-                  <Select value={formData.period_month} onValueChange={(value) => setFormData({ ...formData, period_month: value })}>
+                  <Select
+                    value={formData.period_month}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, period_month: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -239,7 +294,9 @@ export default function PayrollManagement() {
                     type="number"
                     required
                     value={formData.period_year}
-                    onChange={(e) => setFormData({ ...formData, period_year: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, period_year: e.target.value })
+                    }
                   />
                 </div>
 
@@ -249,7 +306,9 @@ export default function PayrollManagement() {
                     type="number"
                     required
                     value={formData.basic_salary}
-                    onChange={(e) => setFormData({ ...formData, basic_salary: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, basic_salary: e.target.value })
+                    }
                   />
                 </div>
 
@@ -258,7 +317,9 @@ export default function PayrollManagement() {
                   <Input
                     type="number"
                     value={formData.allowances}
-                    onChange={(e) => setFormData({ ...formData, allowances: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, allowances: e.target.value })
+                    }
                     placeholder="0"
                   />
                 </div>
@@ -268,7 +329,9 @@ export default function PayrollManagement() {
                   <Input
                     type="number"
                     value={formData.deductions}
-                    onChange={(e) => setFormData({ ...formData, deductions: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, deductions: e.target.value })
+                    }
                     placeholder="0"
                   />
                 </div>
@@ -278,7 +341,12 @@ export default function PayrollManagement() {
                   <Input
                     type="number"
                     value={formData.overtime_hours}
-                    onChange={(e) => setFormData({ ...formData, overtime_hours: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        overtime_hours: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
@@ -287,7 +355,9 @@ export default function PayrollManagement() {
                   <Input
                     type="number"
                     value={formData.overtime_pay}
-                    onChange={(e) => setFormData({ ...formData, overtime_pay: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, overtime_pay: e.target.value })
+                    }
                   />
                 </div>
 
@@ -296,7 +366,9 @@ export default function PayrollManagement() {
                   <Input
                     type="number"
                     value={formData.tax}
-                    onChange={(e) => setFormData({ ...formData, tax: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, tax: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -319,10 +391,17 @@ export default function PayrollManagement() {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
                   Batal
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button
+                  type="submit"
+                  className="bg-green-600 hover:bg-green-700"
+                >
                   Simpan
                 </Button>
               </div>
@@ -354,16 +433,22 @@ export default function PayrollManagement() {
             <TableBody>
               {payrolls.map((payroll) => (
                 <TableRow key={payroll.id}>
-                  <TableCell className="font-medium">{payroll.employees?.employee_number}</TableCell>
+                  <TableCell className="font-medium">
+                    {payroll.employees?.employee_number}
+                  </TableCell>
                   <TableCell>{payroll.employees?.full_name}</TableCell>
                   <TableCell>
                     {monthNames[payroll.period_month - 1]} {payroll.period_year}
                   </TableCell>
-                  <TableCell>Rp {payroll.basic_salary.toLocaleString("id-ID")}</TableCell>
+                  <TableCell>
+                    Rp {payroll.basic_salary.toLocaleString("id-ID")}
+                  </TableCell>
                   <TableCell className="font-bold text-green-600">
                     Rp {payroll.net_salary.toLocaleString("id-ID")}
                   </TableCell>
-                  <TableCell>{getStatusBadge(payroll.payment_status)}</TableCell>
+                  <TableCell>
+                    {getStatusBadge(payroll.payment_status)}
+                  </TableCell>
                   <TableCell className="text-right">
                     {payroll.payment_status === "pending" && (
                       <Button

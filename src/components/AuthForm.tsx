@@ -222,7 +222,7 @@ export function AuthFormContent({
         if (signUpData.skckDocument) {
           fileUrls.upload_skck_url = `LOCAL:${signUpData.skckDocument.name}`;
         }
-        
+
         // Additional file URLs for Driver Mitra
         if (entityType === "driver_mitra") {
           if (signUpData.stnkDocument) {
@@ -682,7 +682,10 @@ export function AuthFormContent({
                         </h4>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="signup-vehicle-brand" className="text-sm">
+                        <Label
+                          htmlFor="signup-vehicle-brand"
+                          className="text-sm"
+                        >
                           Merk Kendaraan *
                         </Label>
                         <Input
@@ -700,7 +703,10 @@ export function AuthFormContent({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="signup-vehicle-model" className="text-sm">
+                        <Label
+                          htmlFor="signup-vehicle-model"
+                          className="text-sm"
+                        >
                           Model Kendaraan *
                         </Label>
                         <Input
@@ -718,7 +724,10 @@ export function AuthFormContent({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="signup-plate-number" className="text-sm">
+                        <Label
+                          htmlFor="signup-plate-number"
+                          className="text-sm"
+                        >
                           Plate Number *
                         </Label>
                         <Input
@@ -736,7 +745,10 @@ export function AuthFormContent({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="signup-vehicle-year" className="text-sm">
+                        <Label
+                          htmlFor="signup-vehicle-year"
+                          className="text-sm"
+                        >
                           Tahun Kendaraan *
                         </Label>
                         <Input
@@ -754,7 +766,10 @@ export function AuthFormContent({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="signup-vehicle-color" className="text-sm">
+                        <Label
+                          htmlFor="signup-vehicle-color"
+                          className="text-sm"
+                        >
                           Warna Kendaraan *
                         </Label>
                         <Input
@@ -776,7 +791,9 @@ export function AuthFormContent({
                 </div>
 
                 {/* Upload Documents - For Karyawan, Driver Perusahaan, Driver Mitra entities */}
-                {(signUpData.roleEntity === "karyawan" || signUpData.roleEntity === "driver_perusahaan" || signUpData.roleEntity === "driver_mitra") && (
+                {(signUpData.roleEntity === "karyawan" ||
+                  signUpData.roleEntity === "driver_perusahaan" ||
+                  signUpData.roleEntity === "driver_mitra") && (
                   <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <h3 className="text-sm font-semibold text-blue-900 border-b border-blue-200 pb-2">
                       Upload Dokumen Karyawan
@@ -906,7 +923,10 @@ export function AuthFormContent({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="upload-vehicle-photo" className="text-sm">
+                            <Label
+                              htmlFor="upload-vehicle-photo"
+                              className="text-sm"
+                            >
                               Foto Kendaraan *
                             </Label>
                             <Input
@@ -1061,7 +1081,9 @@ export function AuthFormContent({
                 )}
 
                 {/* Upload Documents - For Karyawan, Driver Perusahaan, Driver Mitra entities */}
-                {(signUpData.roleEntity === "karyawan" || signUpData.roleEntity === "driver_perusahaan" || signUpData.roleEntity === "driver_mitra") && (
+                {(signUpData.roleEntity === "karyawan" ||
+                  signUpData.roleEntity === "driver_perusahaan" ||
+                  signUpData.roleEntity === "driver_mitra") && (
                   <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <h3 className="text-sm font-semibold text-blue-900 border-b border-blue-200 pb-2">
                       Upload Dokumen Karyawan
@@ -1197,7 +1219,10 @@ export function AuthFormContent({
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="upload-vehicle-photo" className="text-sm">
+                            <Label
+                              htmlFor="upload-vehicle-photo"
+                              className="text-sm"
+                            >
                               Foto Kendaraan *
                             </Label>
                             <Input

@@ -12,14 +12,21 @@ import { useToast } from "./ui/use-toast";
 import HRDNotifications from "@/components/HRDNotifications";
 import { AuthFormContent } from "@/components/AuthForm";
 
-export default function Header() {
-  const { user, signOut, userProfile } = useAuth();
+export default function Header({ publicMode = false }) {
   const { toast } = useToast();
+
+  // 🛑 publicMode → JANGAN akses useAuth
+  const { user, signOut, userProfile } = publicMode
+    ? { user: null, signOut: null, userProfile: null }
+    : useAuth();
+
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [suspendedModal, setSuspendedModal] = useState(false);
   const [inactiveModal, setInactiveModal] = useState(false);
 
   const handleSignOut = async () => {
+    if (!signOut) return; // safety if public mode
+
     try {
       await signOut();
       toast({ title: "Success", description: "Signed out successfully" });
@@ -56,7 +63,7 @@ export default function Header() {
             {user ? (
               <>
                 <HRDNotifications />
-                
+
                 <div className="hidden sm:flex flex-col items-end text-right leading-tight">
                   <span
                     className="text-base font-bold text-slate-900 tracking-wide
@@ -105,9 +112,9 @@ export default function Header() {
             </DialogDescription>
           </DialogHeader>
 
-          <AuthFormContent 
-            isDialog={true} 
-            onSuccess={() => setShowAuthDialog(false)} 
+          <AuthFormContent
+            isDialog={true}
+            onSuccess={() => setShowAuthDialog(false)}
           />
         </DialogContent>
       </Dialog>

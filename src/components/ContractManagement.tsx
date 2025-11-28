@@ -3,9 +3,28 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +51,11 @@ interface Contract {
   employees?: { full_name: string; employee_number: string };
 }
 
-export default function ContractManagement({ onUpdate }: { onUpdate?: () => void }) {
+export default function ContractManagement({
+  onUpdate,
+}: {
+  onUpdate?: () => void;
+}) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -65,10 +88,12 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
   const loadContracts = async () => {
     const { data } = await supabase
       .from("employment_contracts")
-      .select(`
+      .select(
+        `
         *,
         employees(full_name, employee_number)
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
     setContracts(data || []);
   };
@@ -80,10 +105,12 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
 
     const { data } = await supabase
       .from("employment_contracts")
-      .select(`
+      .select(
+        `
         *,
         employees(full_name, user_id)
-      `)
+      `,
+      )
       .eq("status", "active")
       .lte("end_date", thirtyDaysLater.toISOString().split("T")[0])
       .gte("end_date", today.toISOString().split("T")[0]);
@@ -125,7 +152,7 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
               status: "active",
             },
           },
-        }
+        },
       );
 
       if (error) throw error;
@@ -135,7 +162,11 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -150,15 +181,22 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
             data: { status },
             id,
           },
-        }
+        },
       );
 
       if (error) throw error;
-      toast({ title: "Berhasil", description: `Status kontrak diupdate menjadi ${status}` });
+      toast({
+        title: "Berhasil",
+        description: `Status kontrak diupdate menjadi ${status}`,
+      });
       loadContracts();
       onUpdate?.();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -187,7 +225,8 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
     if (!endDate) return null;
     const days = differenceInDays(new Date(endDate), new Date());
     if (days < 0) return <span className="text-red-600">Sudah berakhir</span>;
-    if (days <= 30) return <span className="text-orange-600">{days} hari lagi</span>;
+    if (days <= 30)
+      return <span className="text-orange-600">{days} hari lagi</span>;
     return <span className="text-gray-600">{days} hari lagi</span>;
   };
 
@@ -198,10 +237,13 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
           <h2 className="text-2xl font-bold">Manajemen Kontrak Kerja</h2>
           <p className="text-gray-600">Kelola kontrak kerja karyawan</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) resetForm();
-        }}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="bg-purple-600 hover:bg-purple-700">
               <Plus className="h-4 w-4 mr-2" />
@@ -216,15 +258,15 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Karyawan *</Label>
-                  <Select 
+                  <Select
                     required
-                    value={formData.employee_id} 
+                    value={formData.employee_id}
                     onValueChange={(value) => {
-                      const emp = employees.find(e => e.id === value);
-                      setFormData({ 
-                        ...formData, 
+                      const emp = employees.find((e) => e.id === value);
+                      setFormData({
+                        ...formData,
                         employee_id: value,
-                        salary: emp?.salary?.toString() || ""
+                        salary: emp?.salary?.toString() || "",
                       });
                     }}
                   >
@@ -243,7 +285,12 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
 
                 <div className="space-y-2">
                   <Label>Jenis Kontrak *</Label>
-                  <Select value={formData.contract_type} onValueChange={(value) => setFormData({ ...formData, contract_type: value })}>
+                  <Select
+                    value={formData.contract_type}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, contract_type: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -262,21 +309,29 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
                     type="date"
                     required
                     value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, start_date: e.target.value })
+                    }
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tanggal Berakhir {formData.contract_type !== "PKWTT" && "*"}</Label>
+                  <Label>
+                    Tanggal Berakhir {formData.contract_type !== "PKWTT" && "*"}
+                  </Label>
                   <Input
                     type="date"
                     required={formData.contract_type !== "PKWTT"}
                     value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, end_date: e.target.value })
+                    }
                     disabled={formData.contract_type === "PKWTT"}
                   />
                   {formData.contract_type === "PKWTT" && (
-                    <p className="text-xs text-gray-500">PKWTT tidak memiliki tanggal berakhir</p>
+                    <p className="text-xs text-gray-500">
+                      PKWTT tidak memiliki tanggal berakhir
+                    </p>
                   )}
                 </div>
 
@@ -286,7 +341,9 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
                     type="number"
                     required
                     value={formData.salary}
-                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, salary: e.target.value })
+                    }
                   />
                 </div>
 
@@ -294,7 +351,9 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
                   <Label>Ketentuan Kontrak</Label>
                   <Textarea
                     value={formData.terms}
-                    onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, terms: e.target.value })
+                    }
                     placeholder="Masukkan ketentuan dan syarat kontrak..."
                     rows={4}
                   />
@@ -302,10 +361,17 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
                   Batal
                 </Button>
-                <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+                <Button
+                  type="submit"
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
                   Simpan
                 </Button>
               </div>
@@ -337,20 +403,29 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
             <TableBody>
               {contracts.map((contract) => (
                 <TableRow key={contract.id}>
-                  <TableCell className="font-medium">{contract.contract_number}</TableCell>
+                  <TableCell className="font-medium">
+                    {contract.contract_number}
+                  </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{contract.employees?.full_name}</div>
-                      <div className="text-sm text-gray-500">{contract.employees?.employee_number}</div>
+                      <div className="font-medium">
+                        {contract.employees?.full_name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {contract.employees?.employee_number}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{contract.contract_type}</TableCell>
                   <TableCell>
                     {new Date(contract.start_date).toLocaleDateString("id-ID")}
-                    {contract.end_date && ` - ${new Date(contract.end_date).toLocaleDateString("id-ID")}`}
+                    {contract.end_date &&
+                      ` - ${new Date(contract.end_date).toLocaleDateString("id-ID")}`}
                   </TableCell>
                   <TableCell>
-                    {contract.end_date ? getDaysRemaining(contract.end_date) : "Tidak terbatas"}
+                    {contract.end_date
+                      ? getDaysRemaining(contract.end_date)
+                      : "Tidak terbatas"}
                   </TableCell>
                   <TableCell>{getStatusBadge(contract.status)}</TableCell>
                   <TableCell className="text-right">
@@ -358,7 +433,9 @@ export default function ContractManagement({ onUpdate }: { onUpdate?: () => void
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleStatusChange(contract.id, "terminated")}
+                        onClick={() =>
+                          handleStatusChange(contract.id, "terminated")
+                        }
                       >
                         Akhiri
                       </Button>

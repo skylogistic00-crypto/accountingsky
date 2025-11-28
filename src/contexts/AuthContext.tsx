@@ -1,7 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { supabase, UserProfile } from "../lib/supabase";
-import { createClient } from "@supabase/supabase-js";
+
+// WAJIB: pakai client utama
+import { supabase } from "../lib/supabase";
+
+// WAJIB: tipe import
+import type { UserProfile } from "../lib/supabase";
 
 interface AuthContextType {
   user: User | null;
@@ -29,8 +33,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
+    const isEmailConfirmRoute =
+      window.location.pathname.startsWith("/auth/confirm");
+
+    if (isEmailConfirmRoute) {
+      console.log("⛔ Skipping session checks on /auth/confirm route");
+
+      setUser(null);
+      setUserProfile(null);
+      setUserRole(null);
+      setLoading(false);
+
+      return; // ⛔ WAJIB SUPAYA getSession TIDAK DIJALANKAN
+    }
+
+    // NORMAL SESSION HANDLING
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+
       if (session?.user) {
         fetchUserProfile(session.user.id);
       } else {
@@ -42,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+
       if (session?.user) {
         fetchUserProfile(session.user.id);
       } else {
@@ -55,6 +76,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      // Get current session to have email available
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       const { data, error } = await supabase
         .from("users")
         .select("*, roles:role_id(*)")
@@ -62,7 +88,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
-        console.warn("Profile fetch skipped:", error);
+        console.warn("Profile fetch error:", error);
+        // Jangan clear user session saat fetch profile gagal
+        // Biarkan user tetap login dengan data minimal
+        setUserProfile({
+          id: userId,
+          email: session?.user?.email || "",
+          role_name: "user",
+          status: "active",
+        } as any);
+        setUserRole("user");
         setLoading(false);
         return;
       }
@@ -70,10 +105,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserProfile(data);
       const role = data.role_name || data.roles?.role_name || null;
       setUserRole((role || "").toLowerCase().trim().replace(/\s+/g, "_"));
-      
+
       setLoading(false);
     } catch (error: any) {
-      console.warn("Profile not available:", error);
+      console.warn("Profile fetch exception:", error);
+      // Get session for fallback email
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      // Jangan clear user session saat fetch profile gagal
+      setUserProfile({
+        id: userId,
+        email: session?.user?.email || "",
+        role_name: "user",
+        status: "active",
+      } as any);
+      setUserRole("user");
       setLoading(false);
     }
   };

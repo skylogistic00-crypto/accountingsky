@@ -3,9 +3,22 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Clock, LogIn, LogOut, Calendar } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -31,7 +44,9 @@ interface Attendance {
 export default function AttendanceManagement() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [attendances, setAttendances] = useState<Attendance[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const { toast } = useToast();
 
@@ -52,10 +67,12 @@ export default function AttendanceManagement() {
   const loadAttendances = async () => {
     const { data } = await supabase
       .from("attendance")
-      .select(`
+      .select(
+        `
         *,
         employees(full_name, employee_number)
-      `)
+      `,
+      )
       .eq("attendance_date", selectedDate)
       .order("clock_in", { ascending: false });
     setAttendances(data || []);
@@ -63,7 +80,11 @@ export default function AttendanceManagement() {
 
   const handleClockIn = async () => {
     if (!selectedEmployee) {
-      toast({ title: "Error", description: "Pilih karyawan terlebih dahulu", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Pilih karyawan terlebih dahulu",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -81,7 +102,11 @@ export default function AttendanceManagement() {
       loadAttendances();
       setSelectedEmployee("");
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -97,7 +122,11 @@ export default function AttendanceManagement() {
       toast({ title: "Berhasil", description: "Clock out berhasil dicatat" });
       loadAttendances();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -136,7 +165,10 @@ export default function AttendanceManagement() {
             </div>
             <div className="space-y-2">
               <Label>Pilih Karyawan</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+              <Select
+                value={selectedEmployee}
+                onValueChange={setSelectedEmployee}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih karyawan" />
                 </SelectTrigger>
@@ -151,7 +183,10 @@ export default function AttendanceManagement() {
             </div>
             <div className="space-y-2">
               <Label>&nbsp;</Label>
-              <Button onClick={handleClockIn} className="w-full bg-green-600 hover:bg-green-700">
+              <Button
+                onClick={handleClockIn}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
                 <LogIn className="h-4 w-4 mr-2" />
                 Clock In
               </Button>
@@ -184,13 +219,19 @@ export default function AttendanceManagement() {
             <TableBody>
               {attendances.map((att) => (
                 <TableRow key={att.id}>
-                  <TableCell className="font-medium">{att.employees?.employee_number}</TableCell>
+                  <TableCell className="font-medium">
+                    {att.employees?.employee_number}
+                  </TableCell>
                   <TableCell>{att.employees?.full_name}</TableCell>
                   <TableCell>
-                    {att.clock_in ? format(new Date(att.clock_in), "HH:mm:ss") : "-"}
+                    {att.clock_in
+                      ? format(new Date(att.clock_in), "HH:mm:ss")
+                      : "-"}
                   </TableCell>
                   <TableCell>
-                    {att.clock_out ? format(new Date(att.clock_out), "HH:mm:ss") : "-"}
+                    {att.clock_out
+                      ? format(new Date(att.clock_out), "HH:mm:ss")
+                      : "-"}
                   </TableCell>
                   <TableCell>
                     {att.work_hours ? `${att.work_hours.toFixed(2)} jam` : "-"}

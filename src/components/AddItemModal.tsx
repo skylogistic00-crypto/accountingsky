@@ -9,7 +9,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 
 interface AddItemModalProps {
@@ -18,7 +24,11 @@ interface AddItemModalProps {
   onAdded: () => void;
 }
 
-export default function AddItemModal({ open, onClose, onAdded }: AddItemModalProps) {
+export default function AddItemModal({
+  open,
+  onClose,
+  onAdded,
+}: AddItemModalProps) {
   const [itemName, setItemName] = useState("");
   const [jenisBarang, setJenisBarang] = useState("");
   const [jenisBarangList, setJenisBarangList] = useState<string[]>([]);
@@ -33,7 +43,9 @@ export default function AddItemModal({ open, onClose, onAdded }: AddItemModalPro
         .select("jenis_barang");
 
       if (!error && data) {
-        const uniqueJenis = Array.from(new Set(data.map(item => item.jenis_barang).filter(Boolean)));
+        const uniqueJenis = Array.from(
+          new Set(data.map((item) => item.jenis_barang).filter(Boolean)),
+        );
         setJenisBarangList(uniqueJenis);
       }
     };
@@ -64,12 +76,12 @@ export default function AddItemModal({ open, onClose, onAdded }: AddItemModalPro
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("item_master")
-        .insert([{ 
+      const { error } = await supabase.from("item_master").insert([
+        {
           item_name: itemName.trim(),
-          jenis_barang: jenisBarang 
-        }]);
+          jenis_barang: jenisBarang,
+        },
+      ]);
 
       if (error) throw error;
 
@@ -123,9 +135,13 @@ export default function AddItemModal({ open, onClose, onAdded }: AddItemModalPro
                 ))}
                 <SelectItem value="Minimarket">Minimarket</SelectItem>
                 <SelectItem value="Retail">Retail</SelectItem>
-                <SelectItem value="Warehouse Material">Warehouse Material</SelectItem>
+                <SelectItem value="Warehouse Material">
+                  Warehouse Material
+                </SelectItem>
                 <SelectItem value="ATK">ATK</SelectItem>
-                <SelectItem value="Sparepart Kendaraan">Sparepart Kendaraan</SelectItem>
+                <SelectItem value="Sparepart Kendaraan">
+                  Sparepart Kendaraan
+                </SelectItem>
                 <SelectItem value="Minuman">Minuman</SelectItem>
                 <SelectItem value="Makanan">Makanan</SelectItem>
                 <SelectItem value="Elektronik">Elektronik</SelectItem>

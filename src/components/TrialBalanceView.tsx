@@ -49,7 +49,6 @@ export default function TrialBalanceView() {
 
     const { data, error } = await query;
 
-
     if (error) {
       toast({
         title: "Error",
@@ -76,7 +75,7 @@ export default function TrialBalanceView() {
       }, {});
 
       const trialBalanceData = Object.values(grouped).sort((a: any, b: any) =>
-        a.account_code.localeCompare(b.account_code)
+        a.account_code.localeCompare(b.account_code),
       );
 
       setEntries(trialBalanceData as TrialBalanceEntry[]);
@@ -99,7 +98,7 @@ export default function TrialBalanceView() {
 
   const exportToCSV = () => {
     const headers = ["Kode Akun", "Nama Akun", "Debit", "Kredit", "Saldo"];
-    const rows = entries.map(e => [
+    const rows = entries.map((e) => [
       e.account_code,
       e.account_name,
       e.debit_total,
@@ -107,7 +106,7 @@ export default function TrialBalanceView() {
       e.balance,
     ]);
 
-    const csv = [headers, ...rows].map(row => row.join(",")).join("\n");
+    const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -152,12 +151,20 @@ export default function TrialBalanceView() {
 
       {/* Balance Status */}
       {!loading && entries.length > 0 && (
-        <div className={`p-4 rounded-lg ${isBalanced ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+        <div
+          className={`p-4 rounded-lg ${isBalanced ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}
+        >
           <div className="flex items-center justify-between">
-            <span className={`font-semibold ${isBalanced ? "text-green-700" : "text-red-700"}`}>
-              {isBalanced ? "✓ Trial Balance Seimbang" : "⚠ Trial Balance Tidak Seimbang"}
+            <span
+              className={`font-semibold ${isBalanced ? "text-green-700" : "text-red-700"}`}
+            >
+              {isBalanced
+                ? "✓ Trial Balance Seimbang"
+                : "⚠ Trial Balance Tidak Seimbang"}
             </span>
-            <span className={`text-sm ${isBalanced ? "text-green-600" : "text-red-600"}`}>
+            <span
+              className={`text-sm ${isBalanced ? "text-green-600" : "text-red-600"}`}
+            >
               Selisih: {formatRupiah(Math.abs(totalDebit - totalCredit))}
             </span>
           </div>
@@ -184,7 +191,10 @@ export default function TrialBalanceView() {
             <TableBody>
               {entries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center py-8 text-slate-500"
+                  >
                     Tidak ada data
                   </TableCell>
                 </TableRow>
@@ -192,13 +202,19 @@ export default function TrialBalanceView() {
                 <>
                   {entries.map((entry, idx) => (
                     <TableRow key={idx}>
-                      <TableCell className="font-mono">{entry.account_code}</TableCell>
+                      <TableCell className="font-mono">
+                        {entry.account_code}
+                      </TableCell>
                       <TableCell>{entry.account_name}</TableCell>
                       <TableCell className="text-right font-mono">
-                        {entry.debit_total > 0 ? formatRupiah(entry.debit_total) : "-"}
+                        {entry.debit_total > 0
+                          ? formatRupiah(entry.debit_total)
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {entry.credit_total > 0 ? formatRupiah(entry.credit_total) : "-"}
+                        {entry.credit_total > 0
+                          ? formatRupiah(entry.credit_total)
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
                         {formatRupiah(entry.balance)}

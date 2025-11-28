@@ -3,12 +3,40 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, LogIn, LogOut, Calendar, MapPin, Smartphone, Edit2, CheckCircle } from "lucide-react";
+import {
+  Clock,
+  LogIn,
+  LogOut,
+  Calendar,
+  MapPin,
+  Smartphone,
+  Edit2,
+  CheckCircle,
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -37,12 +65,18 @@ interface Attendance {
 export default function AttendanceSystem() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [attendances, setAttendances] = useState<Attendance[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
   const [selectedEmployee, setSelectedEmployee] = useState("");
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
   const [deviceInfo, setDeviceInfo] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
+  const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(
+    null,
+  );
   const { toast } = useToast();
 
   const [editForm, setEditForm] = useState({
@@ -70,12 +104,13 @@ export default function AttendanceSystem() {
         },
         (error) => {
           console.error("Error getting location:", error);
-          toast({ 
-            title: "Peringatan", 
-            description: "Tidak dapat mengakses lokasi. Pastikan izin lokasi diaktifkan.", 
-            variant: "destructive" 
+          toast({
+            title: "Peringatan",
+            description:
+              "Tidak dapat mengakses lokasi. Pastikan izin lokasi diaktifkan.",
+            variant: "destructive",
           });
-        }
+        },
       );
     }
   };
@@ -85,7 +120,7 @@ export default function AttendanceSystem() {
     const platform = navigator.platform;
     const language = navigator.language;
     const screenResolution = `${window.screen.width}x${window.screen.height}`;
-    
+
     const fingerprint = `${userAgent}|${platform}|${language}|${screenResolution}`;
     setDeviceInfo(fingerprint);
   };
@@ -102,10 +137,12 @@ export default function AttendanceSystem() {
   const loadAttendances = async () => {
     const { data } = await supabase
       .from("attendance")
-      .select(`
+      .select(
+        `
         *,
         employees(full_name, employee_number)
-      `)
+      `,
+      )
       .eq("attendance_date", selectedDate)
       .order("clock_in", { ascending: false });
     setAttendances(data || []);
@@ -113,19 +150,27 @@ export default function AttendanceSystem() {
 
   const handleClockIn = async () => {
     if (!selectedEmployee) {
-      toast({ title: "Error", description: "Pilih karyawan terlebih dahulu", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Pilih karyawan terlebih dahulu",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!location) {
-      toast({ title: "Error", description: "Lokasi belum terdeteksi", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Lokasi belum terdeteksi",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
       const now = new Date().toISOString();
       const locationString = `${location.lat},${location.lng}`;
-      
+
       // Check if already clocked in today
       const { data: existing } = await supabase
         .from("attendance")
@@ -135,7 +180,11 @@ export default function AttendanceSystem() {
         .single();
 
       if (existing) {
-        toast({ title: "Error", description: "Karyawan sudah melakukan clock in hari ini", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Karyawan sudah melakukan clock in hari ini",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -151,7 +200,7 @@ export default function AttendanceSystem() {
               notes: `Device: ${deviceInfo}, Location: ${locationString}`,
             },
           },
-        }
+        },
       );
 
       if (error) throw error;
@@ -159,13 +208,21 @@ export default function AttendanceSystem() {
       loadAttendances();
       setSelectedEmployee("");
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
   const handleClockOut = async (attendanceId: string) => {
     if (!location) {
-      toast({ title: "Error", description: "Lokasi belum terdeteksi", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Lokasi belum terdeteksi",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -179,22 +236,30 @@ export default function AttendanceSystem() {
             data: {},
             id: attendanceId,
           },
-        }
+        },
       );
 
       if (error) throw error;
       toast({ title: "Berhasil", description: "Clock out berhasil dicatat" });
       loadAttendances();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
   const handleEditAttendance = (attendance: Attendance) => {
     setEditingAttendance(attendance);
     setEditForm({
-      clock_in: attendance.clock_in ? format(new Date(attendance.clock_in), "yyyy-MM-dd'T'HH:mm") : "",
-      clock_out: attendance.clock_out ? format(new Date(attendance.clock_out), "yyyy-MM-dd'T'HH:mm") : "",
+      clock_in: attendance.clock_in
+        ? format(new Date(attendance.clock_in), "yyyy-MM-dd'T'HH:mm")
+        : "",
+      clock_out: attendance.clock_out
+        ? format(new Date(attendance.clock_out), "yyyy-MM-dd'T'HH:mm")
+        : "",
       status: attendance.status,
       notes: attendance.notes || "",
     });
@@ -209,8 +274,12 @@ export default function AttendanceSystem() {
       const { error } = await supabase
         .from("attendance")
         .update({
-          clock_in: editForm.clock_in ? new Date(editForm.clock_in).toISOString() : null,
-          clock_out: editForm.clock_out ? new Date(editForm.clock_out).toISOString() : null,
+          clock_in: editForm.clock_in
+            ? new Date(editForm.clock_in).toISOString()
+            : null,
+          clock_out: editForm.clock_out
+            ? new Date(editForm.clock_out).toISOString()
+            : null,
           status: editForm.status,
           notes: editForm.notes,
         })
@@ -221,15 +290,27 @@ export default function AttendanceSystem() {
       loadAttendances();
       setIsEditDialogOpen(false);
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
       present: { variant: "default", label: "Hadir", color: "bg-green-500" },
-      late: { variant: "secondary", label: "Terlambat", color: "bg-yellow-500" },
-      absent: { variant: "destructive", label: "Tidak Hadir", color: "bg-red-500" },
+      late: {
+        variant: "secondary",
+        label: "Terlambat",
+        color: "bg-yellow-500",
+      },
+      absent: {
+        variant: "destructive",
+        label: "Tidak Hadir",
+        color: "bg-red-500",
+      },
       leave: { variant: "outline", label: "Cuti", color: "bg-blue-500" },
       sick: { variant: "outline", label: "Sakit", color: "bg-purple-500" },
       permission: { variant: "outline", label: "Izin", color: "bg-orange-500" },
@@ -244,9 +325,9 @@ export default function AttendanceSystem() {
     if (!locationString) return "-";
     const [lat, lng] = locationString.split(",");
     return (
-      <a 
-        href={`https://www.google.com/maps?q=${lat},${lng}`} 
-        target="_blank" 
+      <a
+        href={`https://www.google.com/maps?q=${lat},${lng}`}
+        target="_blank"
         rel="noopener noreferrer"
         className="text-blue-600 hover:underline flex items-center gap-1"
       >
@@ -278,7 +359,10 @@ export default function AttendanceSystem() {
             </div>
             <div className="space-y-2">
               <Label>Pilih Karyawan</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+              <Select
+                value={selectedEmployee}
+                onValueChange={setSelectedEmployee}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih karyawan" />
                 </SelectTrigger>
@@ -294,24 +378,34 @@ export default function AttendanceSystem() {
             <div className="space-y-2">
               <Label>Status Lokasi</Label>
               <div className="flex items-center gap-2 p-2 border rounded-md bg-white">
-                <MapPin className={`h-4 w-4 ${location ? "text-green-500" : "text-red-500"}`} />
-                <span className="text-sm">{location ? "Terdeteksi" : "Tidak Terdeteksi"}</span>
+                <MapPin
+                  className={`h-4 w-4 ${location ? "text-green-500" : "text-red-500"}`}
+                />
+                <span className="text-sm">
+                  {location ? "Terdeteksi" : "Tidak Terdeteksi"}
+                </span>
               </div>
             </div>
             <div className="space-y-2">
               <Label>&nbsp;</Label>
-              <Button onClick={handleClockIn} className="w-full bg-green-600 hover:bg-green-700">
+              <Button
+                onClick={handleClockIn}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
                 <LogIn className="h-4 w-4 mr-2" />
                 Clock In
               </Button>
             </div>
           </div>
-          
+
           {location && (
             <div className="mt-4 p-3 bg-white rounded-lg border">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Smartphone className="h-4 w-4" />
-                <span>Device: {navigator.platform} | {navigator.userAgent.split(" ")[0]}</span>
+                <span>
+                  Device: {navigator.platform} |{" "}
+                  {navigator.userAgent.split(" ")[0]}
+                </span>
               </div>
             </div>
           )}
@@ -323,7 +417,10 @@ export default function AttendanceSystem() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Daftar Absensi - {format(new Date(selectedDate), "dd MMMM yyyy", { locale: localeId })}
+            Daftar Absensi -{" "}
+            {format(new Date(selectedDate), "dd MMMM yyyy", {
+              locale: localeId,
+            })}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -346,23 +443,39 @@ export default function AttendanceSystem() {
               <TableBody>
                 {attendances.map((att) => (
                   <TableRow key={att.id}>
-                    <TableCell className="font-medium">{att.employees?.employee_number}</TableCell>
+                    <TableCell className="font-medium">
+                      {att.employees?.employee_number}
+                    </TableCell>
                     <TableCell>{att.employees?.full_name}</TableCell>
                     <TableCell>
-                      {att.clock_in ? format(new Date(att.clock_in), "HH:mm:ss") : "-"}
+                      {att.clock_in
+                        ? format(new Date(att.clock_in), "HH:mm:ss")
+                        : "-"}
                     </TableCell>
                     <TableCell>
-                      {att.clock_out ? format(new Date(att.clock_out), "HH:mm:ss") : "-"}
+                      {att.clock_out
+                        ? format(new Date(att.clock_out), "HH:mm:ss")
+                        : "-"}
                     </TableCell>
-                    <TableCell>{formatLocation(att.clock_in_location)}</TableCell>
-                    <TableCell>{formatLocation(att.clock_out_location)}</TableCell>
                     <TableCell>
-                      {att.work_hours ? `${att.work_hours.toFixed(2)} jam` : "-"}
+                      {formatLocation(att.clock_in_location)}
+                    </TableCell>
+                    <TableCell>
+                      {formatLocation(att.clock_out_location)}
+                    </TableCell>
+                    <TableCell>
+                      {att.work_hours
+                        ? `${att.work_hours.toFixed(2)} jam`
+                        : "-"}
                     </TableCell>
                     <TableCell>
                       {att.overtime_hours > 0 ? (
-                        <Badge variant="secondary">{att.overtime_hours.toFixed(2)} jam</Badge>
-                      ) : "-"}
+                        <Badge variant="secondary">
+                          {att.overtime_hours.toFixed(2)} jam
+                        </Badge>
+                      ) : (
+                        "-"
+                      )}
                     </TableCell>
                     <TableCell>{getStatusBadge(att.status)}</TableCell>
                     <TableCell className="text-right">
@@ -406,7 +519,9 @@ export default function AttendanceSystem() {
               <Input
                 type="datetime-local"
                 value={editForm.clock_in}
-                onChange={(e) => setEditForm({ ...editForm, clock_in: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, clock_in: e.target.value })
+                }
               />
             </div>
 
@@ -415,13 +530,20 @@ export default function AttendanceSystem() {
               <Input
                 type="datetime-local"
                 value={editForm.clock_out}
-                onChange={(e) => setEditForm({ ...editForm, clock_out: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, clock_out: e.target.value })
+                }
               />
             </div>
 
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={editForm.status} onValueChange={(value) => setEditForm({ ...editForm, status: value })}>
+              <Select
+                value={editForm.status}
+                onValueChange={(value) =>
+                  setEditForm({ ...editForm, status: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -442,13 +564,19 @@ export default function AttendanceSystem() {
               <Label>Catatan</Label>
               <Input
                 value={editForm.notes}
-                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, notes: e.target.value })
+                }
                 placeholder="Catatan koreksi..."
               />
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+              >
                 Batal
               </Button>
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700">

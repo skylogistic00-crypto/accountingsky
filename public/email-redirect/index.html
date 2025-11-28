@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redirecting...</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding-top: 80px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Redirecting...</h2>
+
+    <script>
+      console.log("Email redirect loaded");
+
+      // Hapus kemungkinan session sebelum masuk ke React
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+
+      const search = window.location.search || "";
+      const hash = window.location.hash || "";
+
+      // Redirect ke halaman React yang aman
+      const finalUrl = "/auth/confirm" + search + hash;
+
+      console.log("Final redirect:", finalUrl);
+
+      window.location.replace(finalUrl);
+    </script>
+  </body>
+</html>

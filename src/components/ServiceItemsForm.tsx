@@ -268,7 +268,7 @@ export default function ServiceItemsForm() {
   });
 
   const categories = Array.from(
-    new Set(serviceItems.map((item) => item.category).filter(Boolean))
+    new Set(serviceItems.map((item) => item.category).filter(Boolean)),
   );
 
   const formatCurrency = (amount: number) => {
@@ -305,7 +305,8 @@ export default function ServiceItemsForm() {
                   {editingItem ? "Edit Service Item" : "Tambah Service Item"}
                 </DialogTitle>
                 <DialogDescription>
-                  Isi form di bawah untuk {editingItem ? "mengupdate" : "menambahkan"} service item
+                  Isi form di bawah untuk{" "}
+                  {editingItem ? "mengupdate" : "menambahkan"} service item
                 </DialogDescription>
               </DialogHeader>
 
@@ -329,7 +330,10 @@ export default function ServiceItemsForm() {
                       id="description"
                       value={formData.description}
                       onChange={(e) =>
-                        setFormData({ ...formData, description: e.target.value })
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
                       }
                       rows={3}
                     />
@@ -399,7 +403,10 @@ export default function ServiceItemsForm() {
                         {coaAccounts
                           .filter((acc) => acc.account_code.startsWith("4"))
                           .map((acc) => (
-                            <SelectItem key={acc.account_code} value={acc.account_code}>
+                            <SelectItem
+                              key={acc.account_code}
+                              value={acc.account_code}
+                            >
                               {acc.account_code} - {acc.account_name}
                             </SelectItem>
                           ))}
@@ -422,7 +429,10 @@ export default function ServiceItemsForm() {
                         {coaAccounts
                           .filter((acc) => acc.account_code.startsWith("6"))
                           .map((acc) => (
-                            <SelectItem key={acc.account_code} value={acc.account_code}>
+                            <SelectItem
+                              key={acc.account_code}
+                              value={acc.account_code}
+                            >
                               {acc.account_code} - {acc.account_name}
                             </SelectItem>
                           ))}
@@ -436,7 +446,10 @@ export default function ServiceItemsForm() {
                       id="is_active"
                       checked={formData.is_active}
                       onChange={(e) =>
-                        setFormData({ ...formData, is_active: e.target.checked })
+                        setFormData({
+                          ...formData,
+                          is_active: e.target.checked,
+                        })
                       }
                       className="h-4 w-4"
                     />
@@ -456,7 +469,11 @@ export default function ServiceItemsForm() {
                     Batal
                   </Button>
                   <Button type="submit" disabled={loading}>
-                    {loading ? "Menyimpan..." : editingItem ? "Update" : "Simpan"}
+                    {loading
+                      ? "Menyimpan..."
+                      : editingItem
+                        ? "Update"
+                        : "Simpan"}
                   </Button>
                 </div>
               </form>
@@ -523,14 +540,19 @@ export default function ServiceItemsForm() {
               <TableBody>
                 {filteredItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    <TableCell
+                      colSpan={8}
+                      className="text-center py-8 text-gray-500"
+                    >
                       Tidak ada service items
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredItems.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.item_name}</TableCell>
+                      <TableCell className="font-medium">
+                        {item.item_name}
+                      </TableCell>
                       <TableCell className="max-w-xs truncate">
                         {item.description || "-"}
                       </TableCell>

@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +49,7 @@ export default function PengeluaranKasTable() {
         { event: "*", schema: "public", table: "kas_transaksi" },
         () => {
           fetchPengeluaran();
-        }
+        },
       )
       .subscribe();
 
@@ -103,11 +110,19 @@ export default function PengeluaranKasTable() {
 
   const totalPengeluaran = filteredPengeluaran.reduce(
     (sum, item) => sum + (item.nominal || 0),
-    0
+    0,
   );
 
   const exportToCSV = () => {
-    const headers = ["Tanggal", "No. Dokumen", "Kategori", "Jenis Layanan", "Akun", "Keterangan", "Nominal"];
+    const headers = [
+      "Tanggal",
+      "No. Dokumen",
+      "Kategori",
+      "Jenis Layanan",
+      "Akun",
+      "Keterangan",
+      "Nominal",
+    ];
     const rows = filteredPengeluaran.map((item) => [
       new Date(item.tanggal).toLocaleDateString("id-ID"),
       item.document_number,
@@ -189,7 +204,9 @@ export default function PengeluaranKasTable() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-red-50 border-red-200">
               <CardContent className="pt-6">
-                <div className="text-sm text-red-600 font-medium">Total Pengeluaran</div>
+                <div className="text-sm text-red-600 font-medium">
+                  Total Pengeluaran
+                </div>
                 <div className="text-2xl font-bold text-red-700 mt-1">
                   Rp {new Intl.NumberFormat("id-ID").format(totalPengeluaran)}
                 </div>
@@ -197,7 +214,9 @@ export default function PengeluaranKasTable() {
             </Card>
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="pt-6">
-                <div className="text-sm text-blue-600 font-medium">Jumlah Transaksi</div>
+                <div className="text-sm text-blue-600 font-medium">
+                  Jumlah Transaksi
+                </div>
                 <div className="text-2xl font-bold text-blue-700 mt-1">
                   {filteredPengeluaran.length}
                 </div>
@@ -205,10 +224,15 @@ export default function PengeluaranKasTable() {
             </Card>
             <Card className="bg-purple-50 border-purple-200">
               <CardContent className="pt-6">
-                <div className="text-sm text-purple-600 font-medium">Rata-rata per Transaksi</div>
+                <div className="text-sm text-purple-600 font-medium">
+                  Rata-rata per Transaksi
+                </div>
                 <div className="text-2xl font-bold text-purple-700 mt-1">
-                  Rp {new Intl.NumberFormat("id-ID").format(
-                    filteredPengeluaran.length > 0 ? totalPengeluaran / filteredPengeluaran.length : 0
+                  Rp{" "}
+                  {new Intl.NumberFormat("id-ID").format(
+                    filteredPengeluaran.length > 0
+                      ? totalPengeluaran / filteredPengeluaran.length
+                      : 0,
                   )}
                 </div>
               </CardContent>
@@ -226,20 +250,30 @@ export default function PengeluaranKasTable() {
                   <TableHead className="font-semibold">Jenis Layanan</TableHead>
                   <TableHead className="font-semibold">Akun</TableHead>
                   <TableHead className="font-semibold">Keterangan</TableHead>
-                  <TableHead className="font-semibold text-right">Nominal</TableHead>
-                  <TableHead className="font-semibold text-center">Bukti</TableHead>
+                  <TableHead className="font-semibold text-right">
+                    Nominal
+                  </TableHead>
+                  <TableHead className="font-semibold text-center">
+                    Bukti
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                    <TableCell
+                      colSpan={8}
+                      className="text-center text-gray-500 py-8"
+                    >
                       Memuat data...
                     </TableCell>
                   </TableRow>
                 ) : filteredPengeluaran.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                    <TableCell
+                      colSpan={8}
+                      className="text-center text-gray-500 py-8"
+                    >
                       Tidak ada data pengeluaran kas
                     </TableCell>
                   </TableRow>
@@ -254,7 +288,10 @@ export default function PengeluaranKasTable() {
                       </TableCell>
                       <TableCell>
                         {item.service_category ? (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-50 text-blue-700 border-blue-200"
+                          >
                             {item.service_category}
                           </Badge>
                         ) : (
@@ -262,7 +299,9 @@ export default function PengeluaranKasTable() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {item.service_type || <span className="text-gray-400">-</span>}
+                        {item.service_type || (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
@@ -273,7 +312,9 @@ export default function PengeluaranKasTable() {
                         </div>
                       </TableCell>
                       <TableCell className="max-w-xs truncate">
-                        {item.keterangan || <span className="text-gray-400">-</span>}
+                        {item.keterangan || (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-semibold text-red-600">
                         Rp {new Intl.NumberFormat("id-ID").format(item.nominal)}

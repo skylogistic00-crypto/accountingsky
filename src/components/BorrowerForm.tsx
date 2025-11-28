@@ -26,7 +26,11 @@ interface BorrowerFormProps {
   onAdded: () => void;
 }
 
-export default function BorrowerForm({ open, onClose, onAdded }: BorrowerFormProps) {
+export default function BorrowerForm({
+  open,
+  onClose,
+  onAdded,
+}: BorrowerFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -94,7 +98,9 @@ export default function BorrowerForm({ open, onClose, onAdded }: BorrowerFormPro
         bank_account_number: bankAccountNumber || null,
         bank_account_name: bankAccountName || null,
         credit_limit: creditLimit ? Number(creditLimit) : null,
-        default_late_fee_percentage: lateFeePercentage ? Number(lateFeePercentage) : 0.1,
+        default_late_fee_percentage: lateFeePercentage
+          ? Number(lateFeePercentage)
+          : 0.1,
         default_tax_type: taxType || null,
         default_tax_percentage: taxPercentage ? Number(taxPercentage) : 0,
         loan_calculation_method: loanCalculationMethod,
@@ -137,8 +143,10 @@ export default function BorrowerForm({ open, onClose, onAdded }: BorrowerFormPro
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm text-gray-700">Informasi Dasar</h3>
-            
+            <h3 className="font-semibold text-sm text-gray-700">
+              Informasi Dasar
+            </h3>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="borrower_name">Nama Peminjam *</Label>
@@ -197,8 +205,10 @@ export default function BorrowerForm({ open, onClose, onAdded }: BorrowerFormPro
 
           {/* Contact Information */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm text-gray-700">Informasi Kontak</h3>
-            
+            <h3 className="font-semibold text-sm text-gray-700">
+              Informasi Kontak
+            </h3>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Telepon</Label>
@@ -236,8 +246,10 @@ export default function BorrowerForm({ open, onClose, onAdded }: BorrowerFormPro
 
           {/* Bank Information */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm text-gray-700">Informasi Bank</h3>
-            
+            <h3 className="font-semibold text-sm text-gray-700">
+              Informasi Bank
+            </h3>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="bank_name">Nama Bank</Label>
@@ -273,8 +285,10 @@ export default function BorrowerForm({ open, onClose, onAdded }: BorrowerFormPro
 
           {/* Additional Information */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm text-gray-700">Informasi Tambahan</h3>
-            
+            <h3 className="font-semibold text-sm text-gray-700">
+              Informasi Tambahan
+            </h3>
+
             <div className="space-y-2">
               <Label htmlFor="credit_limit">Limit Kredit (Rp)</Label>
               <Input
@@ -300,25 +314,38 @@ export default function BorrowerForm({ open, onClose, onAdded }: BorrowerFormPro
 
           {/* Late Fee & Tax Settings */}
           <div className="space-y-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <h3 className="font-semibold text-sm text-orange-900">⚙️ Pengaturan Default Denda & Pajak</h3>
-            
+            <h3 className="font-semibold text-sm text-orange-900">
+              ⚙️ Pengaturan Default Denda & Pajak
+            </h3>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="loan_calculation_method">Metode Perhitungan Pinjaman</Label>
-                <Select value={loanCalculationMethod} onValueChange={setLoanCalculationMethod}>
+                <Label htmlFor="loan_calculation_method">
+                  Metode Perhitungan Pinjaman
+                </Label>
+                <Select
+                  value={loanCalculationMethod}
+                  onValueChange={setLoanCalculationMethod}
+                >
                   <SelectTrigger id="loan_calculation_method">
                     <SelectValue placeholder="-- pilih --" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Anuitas">Anuitas (Total Cicilan Tetap)</SelectItem>
-                    <SelectItem value="Flat Rate">Flat Rate (Pokok Tetap)</SelectItem>
+                    <SelectItem value="Anuitas">
+                      Anuitas (Total Cicilan Tetap)
+                    </SelectItem>
+                    <SelectItem value="Flat Rate">
+                      Flat Rate (Pokok Tetap)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-600">Default: Anuitas</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="late_fee_percentage">Denda Keterlambatan per Hari (%)</Label>
+                <Label htmlFor="late_fee_percentage">
+                  Denda Keterlambatan per Hari (%)
+                </Label>
                 <Input
                   id="late_fee_percentage"
                   type="number"
@@ -348,7 +375,9 @@ export default function BorrowerForm({ open, onClose, onAdded }: BorrowerFormPro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="tax_percentage">Persentase Pajak Default (%)</Label>
+                <Label htmlFor="tax_percentage">
+                  Persentase Pajak Default (%)
+                </Label>
                 <Input
                   id="tax_percentage"
                   type="number"
@@ -362,7 +391,8 @@ export default function BorrowerForm({ open, onClose, onAdded }: BorrowerFormPro
 
             <div className="bg-orange-100 p-3 rounded">
               <p className="text-xs text-orange-800">
-                💡 Pengaturan ini akan digunakan sebagai default saat membuat pinjaman untuk peminjam ini
+                💡 Pengaturan ini akan digunakan sebagai default saat membuat
+                pinjaman untuk peminjam ini
               </p>
             </div>
           </div>

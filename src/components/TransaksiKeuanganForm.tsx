@@ -355,24 +355,33 @@ export default function TransaksiKeuanganForm() {
     return savedCart ? JSON.parse(savedCart) : [];
   });
   const [showCart, setShowCart] = useState(false);
-  
+
   // Toggle checkbox for cart item
   const toggleCartItemSelection = (itemId: string) => {
     setCart((prevCart) => {
       const updatedCart = prevCart.map((item) =>
-        item.id === itemId ? { ...item, selected: !item.selected } : item
+        item.id === itemId ? { ...item, selected: !item.selected } : item,
       );
-      localStorage.setItem("transaksi_keuangan_cart", JSON.stringify(updatedCart));
+      localStorage.setItem(
+        "transaksi_keuangan_cart",
+        JSON.stringify(updatedCart),
+      );
       return updatedCart;
     });
   };
-  
+
   // Select/Deselect all items
   const toggleSelectAll = () => {
     const allSelected = cart.every((item) => item.selected);
     setCart((prevCart) => {
-      const updatedCart = prevCart.map((item) => ({ ...item, selected: !allSelected }));
-      localStorage.setItem("transaksi_keuangan_cart", JSON.stringify(updatedCart));
+      const updatedCart = prevCart.map((item) => ({
+        ...item,
+        selected: !allSelected,
+      }));
+      localStorage.setItem(
+        "transaksi_keuangan_cart",
+        JSON.stringify(updatedCart),
+      );
       return updatedCart;
     });
   };
@@ -384,9 +393,10 @@ export default function TransaksiKeuanganForm() {
   const [kategoriPengeluaran, setKategoriPengeluaran] = useState("");
   const [selectedAccountType, setSelectedAccountType] = useState("");
   const [selectedAccountName, setSelectedAccountName] = useState("");
-  
+
   // Pengeluaran Kas specific fields
-  const [jenisPembayaranPengeluaran, setJenisPembayaranPengeluaran] = useState("Cash");
+  const [jenisPembayaranPengeluaran, setJenisPembayaranPengeluaran] =
+    useState("Cash");
   const [namaKaryawanPengeluaran, setNamaKaryawanPengeluaran] = useState("");
 
   // COA accounts for kategori pengeluaran
@@ -414,17 +424,17 @@ export default function TransaksiKeuanganForm() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "approval_transaksi" },
-        () => loadTransactions()
+        () => loadTransactions(),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "kas_transaksi" },
-        () => loadTransactions()
+        () => loadTransactions(),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sales_transactions" },
-        () => loadTransactions()
+        () => loadTransactions(),
       )
       .subscribe();
 
@@ -948,7 +958,9 @@ export default function TransaksiKeuanganForm() {
         await supabase
           .from("cash_disbursement")
           .select("*")
-          .or("approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected")
+          .or(
+            "approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected",
+          )
           .order("transaction_date", { ascending: false });
 
       if (cashDisbursementError) {
@@ -1004,13 +1016,21 @@ export default function TransaksiKeuanganForm() {
           "❌ Error loading cash_and_bank_receipts:",
           cashReceiptsError,
         );
+      } else {
+        console.log("✅ Cash receipts data loaded:", cashReceiptsData);
+        console.log(
+          "✅ First cash receipt bukti:",
+          cashReceiptsData?.[0]?.bukti,
+        );
       }
 
       // Load from approval_transaksi (Penjualan Jasa, etc - approved, waiting approval, and rejected)
       const { data: approvalData, error: approvalError } = await supabase
         .from("approval_transaksi")
         .select("*")
-        .or("approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected")
+        .or(
+          "approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected",
+        )
         .order("transaction_date", { ascending: false });
 
       if (approvalError) {
@@ -1045,15 +1065,25 @@ export default function TransaksiKeuanganForm() {
           payment_type: "Pengeluaran Kas",
           document_number: t.document_number,
         })),
-        ...(cashReceiptsData || []).map((t) => ({
-          ...t,
-          source: "cash_and_bank_receipts",
-          tanggal: t.transaction_date,
-          nominal: t.amount,
-          keterangan: t.description,
-          payment_type: "Penerimaan Kas",
-          document_number: t.reference_number,
-        })),
+        ...(cashReceiptsData || []).map((t) => {
+          const mapped = {
+            ...t,
+            source: "cash_receipts",
+            tanggal: t.transaction_date,
+            nominal: t.amount,
+            keterangan: t.description,
+            payment_type: "Penerimaan Kas",
+            document_number: t.reference_number,
+            approval_status: "approved", // Penerimaan Kas langsung Approved tanpa perlu approval
+            bukti: t.bukti, // Explicitly include bukti field
+          };
+          console.log("🔍 Mapped cash receipt:", {
+            id: t.id,
+            bukti: t.bukti,
+            mapped_bukti: mapped.bukti,
+          });
+          return mapped;
+        }),
         ...(purchaseData || []).map((t) => ({
           ...t,
           source: "PURCHASE TRANSACTIONS",
@@ -1075,16 +1105,23 @@ export default function TransaksiKeuanganForm() {
           jenis: "Pemakaian Internal",
           nominal: t.total_value,
         })),
-        ...(approvalData || []).map((t) => ({
-          ...t,
-          source: t.type === "Pembelian Jasa" ? "PURCHASE TRANSACTIONS" : "approval_transaksi",
-          tanggal: t.transaction_date,
-          jenis: t.type === "Pembelian Jasa" ? "Pembelian" : t.type,
-          nominal: t.total_amount,
-          keterangan: t.description || t.notes,
-          payment_type: t.type,
-          document_number: t.document_number,
-        })),
+        ...(approvalData || [])
+          .filter(
+            (t) => t.type !== "Penjualan Barang" && t.type !== "Penjualan Jasa",
+          ) // Exclude sales transactions (already in sales_transactions table)
+          .map((t) => ({
+            ...t,
+            source:
+              t.type === "Pembelian Jasa"
+                ? "PURCHASE TRANSACTIONS"
+                : "approval_transaksi",
+            tanggal: t.transaction_date,
+            jenis: t.type === "Pembelian Jasa" ? "Pembelian" : t.type,
+            nominal: t.total_amount,
+            keterangan: t.description || t.notes,
+            payment_type: t.type,
+            document_number: t.document_number,
+          })),
       ];
 
       // Sort by date descending
@@ -1981,7 +2018,41 @@ export default function TransaksiKeuanganForm() {
         console.log("✅ HPP Entry saved:", data);
       }
 
-      // Step 8: Create Cash Book if needed (Penerimaan/Pengeluaran Kas)
+      // Step 8: Upload bukti file ONCE if exists (reuse for both kas_transaksi and cash_and_bank_receipts)
+      let uploadedBuktiUrl = "";
+      console.log("🔍 DEBUG - buktiFile state:", buktiFile);
+
+      if (buktiFile) {
+        console.log("🔍 DEBUG - Starting file upload...", {
+          name: buktiFile.name,
+          size: buktiFile.size,
+        });
+
+        const fileExt = buktiFile.name.split(".").pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `bukti-transaksi/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("documents")
+          .upload(filePath, buktiFile);
+
+        if (uploadError) {
+          console.error("❌ File Upload Error:", uploadError);
+          throw new Error(`File Upload: ${uploadError.message}`);
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from("documents")
+          .getPublicUrl(filePath);
+
+        uploadedBuktiUrl = urlData.publicUrl;
+        console.log("✅ File uploaded successfully:", uploadedBuktiUrl);
+      } else {
+        console.log("⚠️ No buktiFile found - skipping upload");
+      }
+
+      // Step 8a: Create Cash Book if needed (Penerimaan/Pengeluaran Kas)
       if (
         jenisTransaksi === "Penerimaan Kas" ||
         jenisTransaksi === "Pengeluaran Kas"
@@ -1991,32 +2062,6 @@ export default function TransaksiKeuanganForm() {
         );
 
         if (cashLine) {
-          // Upload bukti file if exists
-          let uploadedBuktiUrl = "";
-          if (buktiFile) {
-            const fileExt = buktiFile.name.split(".").pop();
-            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-            const filePath = `bukti-transaksi/${fileName}`;
-
-            const { error: uploadError } =
-              await supabase.storage
-                .from("documents")
-                .upload(filePath, buktiFile);
-
-            if (uploadError) {
-              console.error("❌ File Upload Error:", uploadError);
-              throw new Error(`File Upload: ${uploadError.message}`);
-            }
-
-            // Get public URL
-            const { data: urlData } = supabase.storage
-              .from("documents")
-              .getPublicUrl(filePath);
-
-            uploadedBuktiUrl = urlData.publicUrl;
-            console.log("✅ File uploaded:", uploadedBuktiUrl);
-          }
-
           // Generate document number
           const docNumber = `${jenisTransaksi === "Penerimaan Kas" ? "PKM" : "PKK"}-${Date.now()}`;
 
@@ -2044,6 +2089,11 @@ export default function TransaksiKeuanganForm() {
         const debitLine = previewLines.find((l) => l.dc === "D");
         const creditLine = previewLines.find((l) => l.dc === "C");
 
+        console.log(
+          "🔍 DEBUG - uploadedBuktiUrl before insert:",
+          uploadedBuktiUrl,
+        );
+
         const { error: cashReceiptError } = await supabase
           .from("cash_and_bank_receipts")
           .insert({
@@ -2059,7 +2109,14 @@ export default function TransaksiKeuanganForm() {
             description: previewMemo,
             reference_number: `PKM-${Date.now()}`,
             journal_ref: journalRef,
+            approval_status: "approved", // Penerimaan Kas langsung Approved tanpa perlu approval
+            bukti: uploadedBuktiUrl || null, // URL bukti file
           });
+
+        console.log(
+          "🔍 DEBUG - Data inserted with bukti:",
+          uploadedBuktiUrl || null,
+        );
 
         if (cashReceiptError) {
           console.error(
@@ -2085,16 +2142,22 @@ export default function TransaksiKeuanganForm() {
           .from("cash_disbursement")
           .insert({
             transaction_date: previewTanggal,
-            payee_name: namaKaryawanPengeluaran || supplier || customer || "Pengeluaran Kas",
+            payee_name:
+              namaKaryawanPengeluaran ||
+              supplier ||
+              customer ||
+              "Pengeluaran Kas",
             description: previewMemo,
             category: kategori,
             amount: nominal,
-            payment_method: jenisPembayaranPengeluaran === "Cash" ? "Tunai" : "Transfer Bank",
+            payment_method:
+              jenisPembayaranPengeluaran === "Cash" ? "Tunai" : "Transfer Bank",
             coa_expense_code: expenseLine?.account_code || "6-1100",
             coa_cash_code: cashLine?.account_code || "1-1100",
             notes: description,
             created_by: user?.id,
             approval_status: "waiting_approval",
+            bukti: uploadedBuktiUrl || null, // Add bukti URL
           });
 
         if (cashDisbursementError) {
@@ -2102,63 +2165,18 @@ export default function TransaksiKeuanganForm() {
             "❌ Error saving to cash_disbursement:",
             cashDisbursementError,
           );
-          throw new Error(`Cash Disbursement: ${cashDisbursementError.message}`);
+          throw new Error(
+            `Cash Disbursement: ${cashDisbursementError.message}`,
+          );
         } else {
-          console.log("✅ Cash disbursement saved successfully - waiting for approval");
+          console.log(
+            "✅ Cash disbursement saved successfully - waiting for approval",
+          );
         }
       }
 
-      // Step 9: Route to Approval for Penjualan Barang, Penjualan Jasa only
-      // Pembelian Jasa will be handled in batch processing to avoid duplication
-      if (
-        jenisTransaksi === "Penjualan Barang" ||
-        jenisTransaksi === "Penjualan Jasa"
-      ) {
-        const mainDebitLine = previewLines.find((l) => l.dc === "D");
-        const mainCreditLine = previewLines.find((l) => l.dc === "C");
-
-        const unitPrice = Number(nominal) || 0;
-        const quantity = 1; // Default quantity, can be made dynamic
-        const subtotal = unitPrice * quantity;
-        const taxPercentage = 11;
-        const taxAmount = subtotal * (taxPercentage / 100);
-        const totalAmount = subtotal + taxAmount;
-
-        // Insert into approval_transaksi table
-        const { error: approvalError } = await supabase
-          .from("approval_transaksi")
-          .insert({
-            type: jenisTransaksi,
-            source: "Transaksi Keuangan",
-            transaction_date: previewTanggal,
-            service_category: kategori || null,
-            service_type: jenisLayanan || null,
-            item_name: jenisTransaksi === "Penjualan Barang" ? itemName : `${kategori} - ${jenisLayanan}`,
-            supplier_name: supplier || null,
-            quantity: quantity,
-            unit_price: unitPrice,
-            subtotal: subtotal,
-            ppn_percentage: taxPercentage,
-            ppn_amount: taxAmount,
-            total_amount: totalAmount,
-            payment_method: paymentType === "cash" ? "Tunai" : "Piutang",
-            payment_type: paymentType,
-            coa_cash_code: mainDebitLine?.account_code || null,
-            coa_expense_code: null,
-            coa_payable_code: paymentType !== "cash" ? mainCreditLine?.account_code : null,
-            journal_ref: journalRef,
-            notes: description,
-            description: previewMemo,
-            approval_status: "waiting_approval",
-          });
-
-        if (approvalError) {
-          console.error("❌ Approval Insert Error:", approvalError);
-          throw new Error(`Approval Insert: ${approvalError.message}`);
-        }
-
-        console.log("✅ Transaction sent to approval");
-      }
+      // Step 9: Removed - Penjualan Barang/Jasa now only saved to sales_transactions with approval_status field
+      // No need to duplicate in approval_transaksi table
 
       // Step 10: Create Sales Transaction if Penjualan Barang or Penjualan Jasa (kept for backward compatibility)
       if (
@@ -2208,6 +2226,8 @@ export default function TransaksiKeuanganForm() {
               coa_tax_code: taxAmount > 0 ? "2-1250" : null,
               notes: description,
               journal_ref: journalRef,
+              approval_status: "approved", // Set approval status to approved
+              bukti: uploadedBuktiUrl || null, // Add bukti URL
             });
 
           if (salesError) {
@@ -2241,6 +2261,8 @@ export default function TransaksiKeuanganForm() {
               coa_tax_code: taxAmount > 0 ? "2-1250" : null,
               notes: description,
               journal_ref: journalRef,
+              approval_status: "approved", // Set approval status to approved
+              bukti: uploadedBuktiUrl || null, // Add bukti URL
             });
 
           if (salesError) {
@@ -2301,6 +2323,7 @@ export default function TransaksiKeuanganForm() {
     setStockInfo(null);
     setJenisPembayaranPengeluaran("Cash");
     setNamaKaryawanPengeluaran("");
+    setBuktiFile(null); // Reset bukti file
   };
 
   // Add to cart function
@@ -2411,6 +2434,8 @@ export default function TransaksiKeuanganForm() {
       taxAmount,
       taxPercentage,
       taxType,
+      // Bukti file
+      buktiFile: buktiFile, // Store the file object in cart
       // Checkbox selection
       selected: true,
     };
@@ -2440,7 +2465,7 @@ export default function TransaksiKeuanganForm() {
   // Checkout all items in cart
   const handleCheckoutCart = async () => {
     const selectedItems = cart.filter((item) => item.selected);
-    
+
     if (selectedItems.length === 0) {
       toast({
         title: "⚠️ Peringatan",
@@ -2455,14 +2480,21 @@ export default function TransaksiKeuanganForm() {
       for (const item of selectedItems) {
         // Upload bukti file if exists (for all transaction types)
         let uploadedBuktiUrl = "";
-        if (buktiFile) {
-          const fileExt = buktiFile.name.split(".").pop();
+        console.log("🔍 DEBUG Checkout - item.buktiFile:", item.buktiFile);
+
+        if (item.buktiFile) {
+          console.log("🔍 DEBUG Checkout - Starting file upload...", {
+            name: item.buktiFile.name,
+            size: item.buktiFile.size,
+          });
+
+          const fileExt = item.buktiFile.name.split(".").pop();
           const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
           const filePath = `bukti-transaksi/${fileName}`;
 
           const { error: uploadError } = await supabase.storage
             .from("documents")
-            .upload(filePath, buktiFile);
+            .upload(filePath, item.buktiFile);
 
           if (uploadError) {
             console.error("❌ Upload error:", uploadError);
@@ -2473,6 +2505,8 @@ export default function TransaksiKeuanganForm() {
             uploadedBuktiUrl = urlData.publicUrl;
             console.log("✅ Bukti file uploaded:", uploadedBuktiUrl);
           }
+        } else {
+          console.log("⚠️ No buktiFile found in cart item - skipping upload");
         }
 
         // Check if this transaction needs approval
@@ -2565,7 +2599,11 @@ export default function TransaksiKeuanganForm() {
               nominal: parseFloat(String(cashLine.amount)),
               tanggal: journalData.tanggal,
               keterangan: journalData.memo,
-              source: item.jenisTransaksi === "Pembelian Jasa" ? "Service Purchase" : null,
+              source:
+                item.jenisTransaksi === "Pembelian Jasa"
+                  ? "Service Purchase"
+                  : null,
+              bukti: uploadedBuktiUrl || null, // Add bukti URL
             } as any);
           }
         }
@@ -2583,16 +2621,26 @@ export default function TransaksiKeuanganForm() {
             .from("cash_disbursement")
             .insert({
               transaction_date: journalData.tanggal,
-              payee_name: item.namaKaryawanPengeluaran || item.supplier || item.customer || "Pengeluaran Kas",
+              payee_name:
+                item.namaKaryawanPengeluaran ||
+                item.supplier ||
+                item.customer ||
+                "Pengeluaran Kas",
               description: journalData.memo,
               category: item.kategori,
               amount: normalizedInput.nominal,
-              payment_method: item.jenisPembayaranPengeluaran === "Cash" ? "Tunai" : (item.paymentType === "cash" ? "Tunai" : "Transfer Bank"),
+              payment_method:
+                item.jenisPembayaranPengeluaran === "Cash"
+                  ? "Tunai"
+                  : item.paymentType === "cash"
+                    ? "Tunai"
+                    : "Transfer Bank",
               coa_expense_code: expenseLine?.account_code || "6-1100",
               coa_cash_code: cashLine?.account_code || "1-1100",
               notes: item.description,
               created_by: user?.id,
               approval_status: "waiting_approval",
+              bukti: uploadedBuktiUrl || null, // Add bukti URL
             });
 
           if (cashDisbursementError) {
@@ -2615,6 +2663,11 @@ export default function TransaksiKeuanganForm() {
           const debitLine = journalData.lines.find((l) => l.dc === "D");
           const creditLine = journalData.lines.find((l) => l.dc === "C");
 
+          console.log(
+            "🔍 DEBUG Checkout - uploadedBuktiUrl before insert:",
+            uploadedBuktiUrl,
+          );
+
           const { error: cashReceiptError } = await supabase
             .from("cash_and_bank_receipts")
             .insert({
@@ -2633,6 +2686,8 @@ export default function TransaksiKeuanganForm() {
               description: journalData.memo,
               reference_number: `PKM-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
               journal_ref: journalRef,
+              approval_status: "approved", // Penerimaan Kas langsung Approved tanpa perlu approval
+              bukti: uploadedBuktiUrl || null, // URL bukti file from earlier upload
             });
 
           if (cashReceiptError) {
@@ -2688,6 +2743,8 @@ export default function TransaksiKeuanganForm() {
               coa_tax_code: taxAmount > 0 ? "2-1250" : null,
               notes: item.description,
               journal_ref: journalRef,
+              approval_status: "approved", // Set approval status to approved
+              bukti: uploadedBuktiUrl || null, // Add bukti URL
             });
 
             // Stock quantity is automatically updated by database trigger
@@ -2714,6 +2771,8 @@ export default function TransaksiKeuanganForm() {
               coa_tax_code: taxAmount > 0 ? "2-1250" : null,
               notes: item.description,
               journal_ref: journalRef,
+              approval_status: "approved", // Set approval status to approved
+              bukti: uploadedBuktiUrl || null, // Add bukti URL
             });
           }
         }
@@ -3035,7 +3094,8 @@ export default function TransaksiKeuanganForm() {
 
           console.log("📦 Purchase Transaction Data:", purchaseData);
 
-          const { data: purchaseData_result, error: purchaseError } = await supabase.from("purchase_transactions").insert(purchaseData);
+          const { data: purchaseData_result, error: purchaseError } =
+            await supabase.from("purchase_transactions").insert(purchaseData);
 
           if (purchaseError) {
             console.error("❌ Purchase Transaction Error:", purchaseError);
@@ -3056,7 +3116,8 @@ export default function TransaksiKeuanganForm() {
           const purchaseData: any = {
             transaction_date: item.tanggal,
             transaction_type: "Jasa",
-            item_name: item.itemName || `${item.kategori} - ${item.jenisLayanan}`,
+            item_name:
+              item.itemName || `${item.kategori} - ${item.jenisLayanan}`,
             brand: item.description || null,
             supplier_name: item.supplier || "",
             quantity: quantity,
@@ -3082,13 +3143,17 @@ export default function TransaksiKeuanganForm() {
 
           console.log("📦 Purchase Transaction Data (Jasa):", purchaseData);
 
-          const { data: purchaseData_result, error: purchaseError } = await supabase.from("purchase_transactions").insert(purchaseData);
+          const { data: purchaseData_result, error: purchaseError } =
+            await supabase.from("purchase_transactions").insert(purchaseData);
 
           if (purchaseError) {
             console.error("❌ Purchase Transaction Error:", purchaseError);
             throw new Error(`Purchase Transaction: ${purchaseError.message}`);
           }
-          console.log("✅ Purchase Transaction saved (Jasa):", purchaseData_result);
+          console.log(
+            "✅ Purchase Transaction saved (Jasa):",
+            purchaseData_result,
+          );
         }
       }
 
@@ -3140,8 +3205,11 @@ export default function TransaksiKeuanganForm() {
       // Remove only checked items from cart
       const remainingItems = cart.filter((item) => !item.selected);
       setCart(remainingItems);
-      localStorage.setItem("transaksi_keuangan_cart", JSON.stringify(remainingItems));
-      
+      localStorage.setItem(
+        "transaksi_keuangan_cart",
+        JSON.stringify(remainingItems),
+      );
+
       if (remainingItems.length === 0) {
         setShowCart(false);
       }
@@ -3173,17 +3241,19 @@ export default function TransaksiKeuanganForm() {
       .filter((t) => {
         // Only count approved transactions
         if (t.approval_status !== "approved") return false;
-        
-        // Income from kas_transaksi
-        if (t.source === "kas_transaksi" && t.payment_type === "Penerimaan Kas")
+
+        // Income from Penjualan Jasa
+        if (t.source === "sales_transactions" && t.transaction_type === "Jasa")
           return true;
-        // Income from sales
-        if (t.source === "sales_transactions") return true;
-        // Income from loans (pinjaman diterima)
-        if (t.source === "loans") return true;
-        // Income from Penjualan Jasa (approval_transaksi)
-        if (t.source === "approval_transaksi" && t.type === "Penjualan Jasa")
+        // Income from Penjualan Barang
+        if (
+          t.source === "sales_transactions" &&
+          t.transaction_type === "Barang"
+        )
           return true;
+        // Income from Penerimaan Cash & Bank
+        if (t.source === "cash_receipts") return true;
+
         return false;
       })
       .reduce((sum, t) => sum + parseFloat(t.nominal || 0), 0),
@@ -3191,7 +3261,7 @@ export default function TransaksiKeuanganForm() {
       .filter((t) => {
         // Only count approved transactions
         if (t.approval_status !== "approved") return false;
-        
+
         // Expenses from kas_transaksi
         if (
           t.source === "kas_transaksi" &&
@@ -3300,7 +3370,17 @@ export default function TransaksiKeuanganForm() {
           <div className="space-y-6">
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <Card className="border-none shadow-lg bg-blue-400/90 text-white hover:shadow-xl transition-shadow">
+              <Card
+                className="border-none shadow-lg bg-blue-400/90 text-white hover:shadow-xl transition-shadow cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => {
+                  setFilterJenis("");
+                  setFilterStatus("");
+                  setFilterSource("");
+                  setSearchQuery("");
+                  setFilterDateFrom("");
+                  setFilterDateTo("");
+                }}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardDescription className="text-white/90">
@@ -3320,7 +3400,13 @@ export default function TransaksiKeuanganForm() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-lg bg-emerald-400/90 text-white hover:shadow-xl transition-shadow">
+              <Card
+                className="border-none shadow-lg bg-emerald-400/90 text-white hover:shadow-xl transition-shadow cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => {
+                  setFilterJenis("Penerimaan Kas");
+                  setFilterStatus("");
+                }}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardDescription className="text-white/90">
@@ -3345,7 +3431,13 @@ export default function TransaksiKeuanganForm() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-lg bg-pink-400/90 text-white hover:shadow-xl transition-shadow">
+              <Card
+                className="border-none shadow-lg bg-pink-400/90 text-white hover:shadow-xl transition-shadow cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => {
+                  setFilterJenis("Pengeluaran Kas");
+                  setFilterStatus("");
+                }}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardDescription className="text-white/90">
@@ -3371,9 +3463,17 @@ export default function TransaksiKeuanganForm() {
               </Card>
 
               <Card
-                className={`border-none shadow-lg text-white hover:shadow-xl transition-shadow ${
+                className={`border-none shadow-lg text-white hover:shadow-xl transition-shadow cursor-pointer hover:scale-105 transition-transform ${
                   netAmount >= 0 ? "bg-purple-400/90" : "bg-red-400/90"
                 }`}
+                onClick={() => {
+                  setFilterJenis("");
+                  setFilterStatus("");
+                  setFilterSource("");
+                  setSearchQuery("");
+                  setFilterDateFrom("");
+                  setFilterDateTo("");
+                }}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -3399,7 +3499,13 @@ export default function TransaksiKeuanganForm() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-lg bg-amber-400/90 text-white hover:shadow-xl transition-shadow">
+              <Card
+                className="border-none shadow-lg bg-amber-400/90 text-white hover:shadow-xl transition-shadow cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => {
+                  setFilterStatus("waiting_approval");
+                  setFilterJenis("");
+                }}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardDescription className="text-white/90">
@@ -3485,7 +3591,10 @@ export default function TransaksiKeuanganForm() {
                   {/* Additional Filters */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="filterJenis" className="text-sm font-medium text-slate-700">
+                      <Label
+                        htmlFor="filterJenis"
+                        className="text-sm font-medium text-slate-700"
+                      >
                         Jenis Transaksi
                       </Label>
                       <select
@@ -3502,12 +3611,17 @@ export default function TransaksiKeuanganForm() {
                         <option value="Pembelian">Pembelian</option>
                         <option value="Pembelian Jasa">Pembelian Jasa</option>
                         <option value="Pinjaman">Pinjaman</option>
-                        <option value="Pemakaian Internal">Pemakaian Internal</option>
+                        <option value="Pemakaian Internal">
+                          Pemakaian Internal
+                        </option>
                       </select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="filterSource" className="text-sm font-medium text-slate-700">
+                      <Label
+                        htmlFor="filterSource"
+                        className="text-sm font-medium text-slate-700"
+                      >
                         Source
                       </Label>
                       <select
@@ -3518,17 +3632,30 @@ export default function TransaksiKeuanganForm() {
                       >
                         <option value="">Semua Source</option>
                         <option value="kas_transaksi">KAS_TRANSAKSI</option>
-                        <option value="cash_disbursement">CASH_DISBURSEMENT</option>
-                        <option value="cash_and_bank_receipts">CASH_AND_BANK_RECEIPTS</option>
-                        <option value="purchase_transactions">PURCHASE_TRANSACTIONS</option>
-                        <option value="sales_transactions">SALES_TRANSACTIONS</option>
+                        <option value="cash_disbursement">
+                          CASH_DISBURSEMENT
+                        </option>
+                        <option value="cash_and_bank_receipts">
+                          CASH_AND_BANK_RECEIPTS
+                        </option>
+                        <option value="purchase_transactions">
+                          PURCHASE_TRANSACTIONS
+                        </option>
+                        <option value="sales_transactions">
+                          SALES_TRANSACTIONS
+                        </option>
                         <option value="internal_usage">INTERNAL_USAGE</option>
-                        <option value="approval_transaksi">APPROVAL_TRANSAKSI</option>
+                        <option value="approval_transaksi">
+                          APPROVAL_TRANSAKSI
+                        </option>
                       </select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="filterStatus" className="text-sm font-medium text-slate-700">
+                      <Label
+                        htmlFor="filterStatus"
+                        className="text-sm font-medium text-slate-700"
+                      >
                         Status
                       </Label>
                       <select
@@ -3539,14 +3666,21 @@ export default function TransaksiKeuanganForm() {
                       >
                         <option value="">Semua Status</option>
                         <option value="approved">Approved</option>
-                        <option value="waiting_approval">Waiting Approval</option>
+                        <option value="waiting_approval">
+                          Waiting Approval
+                        </option>
                         <option value="rejected">Rejected</option>
                       </select>
                     </div>
                   </div>
 
                   {/* Clear Filters Button */}
-                  {(filterDateFrom || filterDateTo || searchQuery || filterJenis || filterSource || filterStatus) && (
+                  {(filterDateFrom ||
+                    filterDateTo ||
+                    searchQuery ||
+                    filterJenis ||
+                    filterSource ||
+                    filterStatus) && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -3632,8 +3766,18 @@ export default function TransaksiKeuanganForm() {
 
                           // Jenis filter
                           if (filterJenis) {
-                            const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
-                            if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
+                            const jenis =
+                              t.payment_type ||
+                              t.jenis ||
+                              t.transaction_type ||
+                              t.expense_type ||
+                              "";
+                            if (
+                              !jenis
+                                .toLowerCase()
+                                .includes(filterJenis.toLowerCase())
+                            )
+                              return false;
                           }
 
                           // Source filter
@@ -3643,7 +3787,8 @@ export default function TransaksiKeuanganForm() {
 
                           // Status filter
                           if (filterStatus) {
-                            if (t.approval_status !== filterStatus) return false;
+                            if (t.approval_status !== filterStatus)
+                              return false;
                           }
 
                           // Search query filter
@@ -3789,108 +3934,178 @@ export default function TransaksiKeuanganForm() {
                                   </DialogTrigger>
                                   <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                                     <DialogHeader>
-                                      <DialogTitle>Detail Informasi Transaksi</DialogTitle>
+                                      <DialogTitle>
+                                        Detail Informasi Transaksi
+                                      </DialogTitle>
                                       <DialogDescription>
-                                        Informasi lengkap untuk transaksi {displayDocNumber}
+                                        Informasi lengkap untuk transaksi{" "}
+                                        {displayDocNumber}
                                       </DialogDescription>
                                     </DialogHeader>
                                     <div className="space-y-4 mt-4">
                                       <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                          <p className="text-sm font-semibold text-gray-600">Tanggal</p>
-                                          <p className="text-sm">{new Date(transaction.tanggal).toLocaleDateString("id-ID")}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm font-semibold text-gray-600">No. Dokumen</p>
-                                          <p className="text-sm font-mono">{displayDocNumber}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm font-semibold text-gray-600">Jenis Transaksi</p>
-                                          <p className="text-sm">{displayJenis}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm font-semibold text-gray-600">Source</p>
-                                          <p className="text-sm">{transaction.source?.replace(/_/g, " ").toUpperCase() || "KAS"}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm font-semibold text-gray-600">Status</p>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Tanggal
+                                          </p>
                                           <p className="text-sm">
-                                            {transaction.approval_status === "approved"
+                                            {new Date(
+                                              transaction.tanggal,
+                                            ).toLocaleDateString("id-ID")}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            No. Dokumen
+                                          </p>
+                                          <p className="text-sm font-mono">
+                                            {displayDocNumber}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Jenis Transaksi
+                                          </p>
+                                          <p className="text-sm">
+                                            {displayJenis}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Source
+                                          </p>
+                                          <p className="text-sm">
+                                            {transaction.source
+                                              ?.replace(/_/g, " ")
+                                              .toUpperCase() || "KAS"}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Status
+                                          </p>
+                                          <p className="text-sm">
+                                            {transaction.approval_status ===
+                                            "approved"
                                               ? "✓ Approved"
-                                              : transaction.approval_status === "rejected"
+                                              : transaction.approval_status ===
+                                                  "rejected"
                                                 ? "✗ Rejected"
-                                                : transaction.approval_status === "waiting_approval"
+                                                : transaction.approval_status ===
+                                                    "waiting_approval"
                                                   ? "⏳ Waiting Approval"
                                                   : "-"}
                                           </p>
                                         </div>
                                         <div>
-                                          <p className="text-sm font-semibold text-gray-600">Nominal</p>
-                                          <p className={`text-sm font-medium ${isIncome ? "text-green-600" : "text-red-600"}`}>
-                                            {isIncome ? "+" : "-"}Rp {new Intl.NumberFormat("id-ID").format(displayNominal)}
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Nominal
+                                          </p>
+                                          <p
+                                            className={`text-sm font-medium ${isIncome ? "text-green-600" : "text-red-600"}`}
+                                          >
+                                            {isIncome ? "+" : "-"}Rp{" "}
+                                            {new Intl.NumberFormat(
+                                              "id-ID",
+                                            ).format(displayNominal)}
                                           </p>
                                         </div>
                                       </div>
-                                      
+
                                       <div>
-                                        <p className="text-sm font-semibold text-gray-600">Keterangan</p>
-                                        <p className="text-sm">{displayKeterangan}</p>
+                                        <p className="text-sm font-semibold text-gray-600">
+                                          Keterangan
+                                        </p>
+                                        <p className="text-sm">
+                                          {displayKeterangan}
+                                        </p>
                                       </div>
 
                                       {/* Additional details based on transaction type */}
                                       {transaction.supplier_name && (
                                         <div>
-                                          <p className="text-sm font-semibold text-gray-600">Supplier</p>
-                                          <p className="text-sm">{transaction.supplier_name}</p>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Supplier
+                                          </p>
+                                          <p className="text-sm">
+                                            {transaction.supplier_name}
+                                          </p>
                                         </div>
                                       )}
-                                      
+
                                       {transaction.customer_name && (
                                         <div>
-                                          <p className="text-sm font-semibold text-gray-600">Customer</p>
-                                          <p className="text-sm">{transaction.customer_name}</p>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Customer
+                                          </p>
+                                          <p className="text-sm">
+                                            {transaction.customer_name}
+                                          </p>
                                         </div>
                                       )}
 
                                       {transaction.item_name && (
                                         <div>
-                                          <p className="text-sm font-semibold text-gray-600">Item</p>
-                                          <p className="text-sm">{transaction.item_name}</p>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Item
+                                          </p>
+                                          <p className="text-sm">
+                                            {transaction.item_name}
+                                          </p>
                                         </div>
                                       )}
 
                                       {transaction.quantity && (
                                         <div>
-                                          <p className="text-sm font-semibold text-gray-600">Quantity</p>
-                                          <p className="text-sm">{transaction.quantity} {transaction.unit || ""}</p>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Quantity
+                                          </p>
+                                          <p className="text-sm">
+                                            {transaction.quantity}{" "}
+                                            {transaction.unit || ""}
+                                          </p>
                                         </div>
                                       )}
 
                                       {transaction.service_category && (
                                         <div>
-                                          <p className="text-sm font-semibold text-gray-600">Service Category</p>
-                                          <p className="text-sm">{transaction.service_category}</p>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Service Category
+                                          </p>
+                                          <p className="text-sm">
+                                            {transaction.service_category}
+                                          </p>
                                         </div>
                                       )}
 
                                       {transaction.service_type && (
                                         <div>
-                                          <p className="text-sm font-semibold text-gray-600">Service Type</p>
-                                          <p className="text-sm">{transaction.service_type}</p>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Service Type
+                                          </p>
+                                          <p className="text-sm">
+                                            {transaction.service_type}
+                                          </p>
                                         </div>
                                       )}
 
                                       {transaction.account_name && (
                                         <div>
-                                          <p className="text-sm font-semibold text-gray-600">Account</p>
-                                          <p className="text-sm">{transaction.account_name}</p>
+                                          <p className="text-sm font-semibold text-gray-600">
+                                            Account
+                                          </p>
+                                          <p className="text-sm">
+                                            {transaction.account_name}
+                                          </p>
                                         </div>
                                       )}
 
                                       {/* Upload Bukti */}
                                       {transaction.bukti && (
                                         <div className="border-t pt-4">
-                                          <p className="text-sm font-semibold text-gray-600 mb-2">Upload Bukti</p>
+                                          <p className="text-sm font-semibold text-gray-600 mb-2">
+                                            Upload Bukti
+                                          </p>
                                           <a
                                             href={transaction.bukti}
                                             target="_blank"
@@ -3904,19 +4119,42 @@ export default function TransaksiKeuanganForm() {
                                       )}
 
                                       {/* Tax information if available */}
-                                      {(transaction.ppn_amount || transaction.pph_amount) && (
+                                      {(transaction.ppn_amount ||
+                                        transaction.pph_amount) && (
                                         <div className="border-t pt-4">
-                                          <p className="text-sm font-semibold text-gray-600 mb-2">Informasi Pajak</p>
+                                          <p className="text-sm font-semibold text-gray-600 mb-2">
+                                            Informasi Pajak
+                                          </p>
                                           {transaction.ppn_amount && (
                                             <div className="flex justify-between text-sm">
-                                              <span>PPN ({transaction.ppn_rate || 11}%)</span>
-                                              <span>Rp {new Intl.NumberFormat("id-ID").format(transaction.ppn_amount)}</span>
+                                              <span>
+                                                PPN (
+                                                {transaction.ppn_rate || 11}%)
+                                              </span>
+                                              <span>
+                                                Rp{" "}
+                                                {new Intl.NumberFormat(
+                                                  "id-ID",
+                                                ).format(
+                                                  transaction.ppn_amount,
+                                                )}
+                                              </span>
                                             </div>
                                           )}
                                           {transaction.pph_amount && (
                                             <div className="flex justify-between text-sm">
-                                              <span>PPh ({transaction.pph_rate || 2}%)</span>
-                                              <span>Rp {new Intl.NumberFormat("id-ID").format(transaction.pph_amount)}</span>
+                                              <span>
+                                                PPh ({transaction.pph_rate || 2}
+                                                %)
+                                              </span>
+                                              <span>
+                                                Rp{" "}
+                                                {new Intl.NumberFormat(
+                                                  "id-ID",
+                                                ).format(
+                                                  transaction.pph_amount,
+                                                )}
+                                              </span>
                                             </div>
                                           )}
                                         </div>
@@ -3925,23 +4163,31 @@ export default function TransaksiKeuanganForm() {
                                       {/* Loan information if available */}
                                       {transaction.loan_number && (
                                         <div className="border-t pt-4">
-                                          <p className="text-sm font-semibold text-gray-600 mb-2">Informasi Pinjaman</p>
+                                          <p className="text-sm font-semibold text-gray-600 mb-2">
+                                            Informasi Pinjaman
+                                          </p>
                                           {transaction.lender_name && (
                                             <div className="flex justify-between text-sm mb-1">
                                               <span>Pemberi Pinjaman</span>
-                                              <span>{transaction.lender_name}</span>
+                                              <span>
+                                                {transaction.lender_name}
+                                              </span>
                                             </div>
                                           )}
                                           {transaction.interest_rate && (
                                             <div className="flex justify-between text-sm mb-1">
                                               <span>Bunga</span>
-                                              <span>{transaction.interest_rate}%</span>
+                                              <span>
+                                                {transaction.interest_rate}%
+                                              </span>
                                             </div>
                                           )}
                                           {transaction.installment_count && (
                                             <div className="flex justify-between text-sm">
                                               <span>Jumlah Cicilan</span>
-                                              <span>{transaction.installment_count}x</span>
+                                              <span>
+                                                {transaction.installment_count}x
+                                              </span>
                                             </div>
                                           )}
                                         </div>
@@ -3962,7 +4208,9 @@ export default function TransaksiKeuanganForm() {
                                     Lihat Bukti
                                   </a>
                                 ) : (
-                                  <span className="text-xs text-gray-400">-</span>
+                                  <span className="text-xs text-gray-400">
+                                    -
+                                  </span>
                                 )}
                               </TableCell>
                               <TableCell className="text-right font-medium">
@@ -3984,12 +4232,16 @@ export default function TransaksiKeuanganForm() {
                     )}
                   </TableBody>
                   <tfoot className="bg-slate-100 border-t-2 border-slate-300">
+                    {/* Total Penerimaan Kas */}
                     <TableRow>
-                      <TableCell colSpan={9} className="text-right font-bold text-lg">
-                        Total Nominal:
+                      <TableCell
+                        colSpan={9}
+                        className="text-right font-bold text-lg"
+                      >
+                        Total Penerimaan Kas:
                       </TableCell>
                       <TableCell className="text-right font-bold text-lg">
-                        <span className="text-indigo-600">
+                        <span className="text-green-600">
                           Rp{" "}
                           {new Intl.NumberFormat("id-ID").format(
                             transactions
@@ -3999,7 +4251,8 @@ export default function TransaksiKeuanganForm() {
                                   const transactionDate = new Date(t.tanggal);
                                   if (filterDateFrom) {
                                     const fromDate = new Date(filterDateFrom);
-                                    if (transactionDate < fromDate) return false;
+                                    if (transactionDate < fromDate)
+                                      return false;
                                   }
                                   if (filterDateTo) {
                                     const toDate = new Date(filterDateTo);
@@ -4008,34 +4261,85 @@ export default function TransaksiKeuanganForm() {
                                   }
                                 }
                                 if (filterJenis) {
-                                  const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
-                                  if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
+                                  const jenis =
+                                    t.payment_type ||
+                                    t.jenis ||
+                                    t.transaction_type ||
+                                    t.expense_type ||
+                                    "";
+                                  if (
+                                    !jenis
+                                      .toLowerCase()
+                                      .includes(filterJenis.toLowerCase())
+                                  )
+                                    return false;
                                 }
                                 if (filterSource) {
                                   if (t.source !== filterSource) return false;
                                 }
                                 if (filterStatus) {
-                                  if (t.approval_status !== filterStatus) return false;
+                                  if (t.approval_status !== filterStatus)
+                                    return false;
                                 }
                                 if (searchQuery) {
                                   const query = searchQuery.toLowerCase();
-                                  return (
-                                    t.payment_type?.toLowerCase().includes(query) ||
+                                  const matchesSearch =
+                                    t.payment_type
+                                      ?.toLowerCase()
+                                      .includes(query) ||
                                     t.jenis?.toLowerCase().includes(query) ||
-                                    t.account_name?.toLowerCase().includes(query) ||
-                                    t.keterangan?.toLowerCase().includes(query) ||
-                                    t.description?.toLowerCase().includes(query) ||
+                                    t.account_name
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.keterangan
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.description
+                                      ?.toLowerCase()
+                                      .includes(query) ||
                                     t.notes?.toLowerCase().includes(query) ||
-                                    t.item_name?.toLowerCase().includes(query) ||
-                                    t.supplier_name?.toLowerCase().includes(query) ||
-                                    t.customer_name?.toLowerCase().includes(query) ||
-                                    t.lender_name?.toLowerCase().includes(query) ||
-                                    t.document_number?.toLowerCase().includes(query) ||
-                                    t.loan_number?.toLowerCase().includes(query) ||
-                                    t.source?.toLowerCase().includes(query)
-                                  );
+                                    t.item_name
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.supplier_name
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.customer_name
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.lender_name
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.document_number
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.loan_number
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.source?.toLowerCase().includes(query);
+                                  if (!matchesSearch) return false;
                                 }
-                                return true;
+
+                                // Only count Penerimaan (approved)
+                                if (t.approval_status !== "approved")
+                                  return false;
+
+                                // Income from Penjualan Jasa
+                                if (
+                                  t.source === "sales_transactions" &&
+                                  t.transaction_type === "Jasa"
+                                )
+                                  return true;
+                                // Income from Penjualan Barang
+                                if (
+                                  t.source === "sales_transactions" &&
+                                  t.transaction_type === "Barang"
+                                )
+                                  return true;
+                                // Income from Penerimaan Cash & Bank
+                                if (t.source === "cash_receipts") return true;
+
+                                return false;
                               })
                               .reduce((sum, t) => {
                                 const nominal = parseFloat(
@@ -4043,10 +4347,293 @@ export default function TransaksiKeuanganForm() {
                                     t.amount ||
                                     t.total_amount ||
                                     t.total_value ||
-                                    0
+                                    0,
                                 );
                                 return sum + nominal;
-                              }, 0)
+                              }, 0),
+                          )}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Total Pengeluaran Kas */}
+                    <TableRow>
+                      <TableCell
+                        colSpan={9}
+                        className="text-right font-bold text-lg"
+                      >
+                        Total Pengeluaran Kas:
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-lg">
+                        <span className="text-red-600">
+                          Rp{" "}
+                          {new Intl.NumberFormat("id-ID").format(
+                            transactions
+                              .filter((t) => {
+                                // Apply same filters as table
+                                if (filterDateFrom || filterDateTo) {
+                                  const transactionDate = new Date(t.tanggal);
+                                  if (filterDateFrom) {
+                                    const fromDate = new Date(filterDateFrom);
+                                    if (transactionDate < fromDate)
+                                      return false;
+                                  }
+                                  if (filterDateTo) {
+                                    const toDate = new Date(filterDateTo);
+                                    toDate.setHours(23, 59, 59, 999);
+                                    if (transactionDate > toDate) return false;
+                                  }
+                                }
+                                if (filterJenis) {
+                                  const jenis =
+                                    t.payment_type ||
+                                    t.jenis ||
+                                    t.transaction_type ||
+                                    t.expense_type ||
+                                    "";
+                                  if (
+                                    !jenis
+                                      .toLowerCase()
+                                      .includes(filterJenis.toLowerCase())
+                                  )
+                                    return false;
+                                }
+                                if (filterSource) {
+                                  if (t.source !== filterSource) return false;
+                                }
+                                if (filterStatus) {
+                                  if (t.approval_status !== filterStatus)
+                                    return false;
+                                }
+                                if (searchQuery) {
+                                  const query = searchQuery.toLowerCase();
+                                  const matchesSearch =
+                                    t.payment_type
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.jenis?.toLowerCase().includes(query) ||
+                                    t.account_name
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.keterangan
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.description
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.notes?.toLowerCase().includes(query) ||
+                                    t.item_name
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.supplier_name
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.customer_name
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.lender_name
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.document_number
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.loan_number
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.source?.toLowerCase().includes(query);
+                                  if (!matchesSearch) return false;
+                                }
+
+                                // Only count Pengeluaran (approved)
+                                if (t.approval_status !== "approved")
+                                  return false;
+
+                                // Expenses from kas_transaksi
+                                if (
+                                  t.source === "kas_transaksi" &&
+                                  t.payment_type === "Pengeluaran Kas"
+                                )
+                                  return true;
+                                // Expenses from purchase_transactions
+                                if (t.source === "purchase_transactions")
+                                  return true;
+                                // Expenses from internal_usage
+                                if (t.source === "internal_usage") return true;
+                                // Expenses from expenses table
+                                if (t.source === "expenses") return true;
+                                // Expenses from cash_disbursement
+                                if (t.source === "cash_disbursement")
+                                  return true;
+
+                                return false;
+                              })
+                              .reduce((sum, t) => {
+                                const nominal = parseFloat(
+                                  t.nominal ||
+                                    t.amount ||
+                                    t.total_amount ||
+                                    t.total_value ||
+                                    0,
+                                );
+                                return sum + nominal;
+                              }, 0),
+                          )}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Total Net */}
+                    <TableRow className="bg-slate-200">
+                      <TableCell
+                        colSpan={9}
+                        className="text-right font-bold text-xl"
+                      >
+                        Total Net:
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-xl">
+                        <span className="text-indigo-700">
+                          Rp{" "}
+                          {new Intl.NumberFormat("id-ID").format(
+                            (() => {
+                              const filteredTransactions = transactions.filter(
+                                (t) => {
+                                  // Apply same filters as table
+                                  if (filterDateFrom || filterDateTo) {
+                                    const transactionDate = new Date(t.tanggal);
+                                    if (filterDateFrom) {
+                                      const fromDate = new Date(filterDateFrom);
+                                      if (transactionDate < fromDate)
+                                        return false;
+                                    }
+                                    if (filterDateTo) {
+                                      const toDate = new Date(filterDateTo);
+                                      toDate.setHours(23, 59, 59, 999);
+                                      if (transactionDate > toDate)
+                                        return false;
+                                    }
+                                  }
+                                  if (filterJenis) {
+                                    const jenis =
+                                      t.payment_type ||
+                                      t.jenis ||
+                                      t.transaction_type ||
+                                      t.expense_type ||
+                                      "";
+                                    if (
+                                      !jenis
+                                        .toLowerCase()
+                                        .includes(filterJenis.toLowerCase())
+                                    )
+                                      return false;
+                                  }
+                                  if (filterSource) {
+                                    if (t.source !== filterSource) return false;
+                                  }
+                                  if (filterStatus) {
+                                    if (t.approval_status !== filterStatus)
+                                      return false;
+                                  }
+                                  if (searchQuery) {
+                                    const query = searchQuery.toLowerCase();
+                                    return (
+                                      t.payment_type
+                                        ?.toLowerCase()
+                                        .includes(query) ||
+                                      t.jenis?.toLowerCase().includes(query) ||
+                                      t.account_name
+                                        ?.toLowerCase()
+                                        .includes(query) ||
+                                      t.keterangan
+                                        ?.toLowerCase()
+                                        .includes(query) ||
+                                      t.description
+                                        ?.toLowerCase()
+                                        .includes(query) ||
+                                      t.notes?.toLowerCase().includes(query) ||
+                                      t.item_name
+                                        ?.toLowerCase()
+                                        .includes(query) ||
+                                      t.supplier_name
+                                        ?.toLowerCase()
+                                        .includes(query) ||
+                                      t.customer_name
+                                        ?.toLowerCase()
+                                        .includes(query) ||
+                                      t.lender_name
+                                        ?.toLowerCase()
+                                        .includes(query) ||
+                                      t.document_number
+                                        ?.toLowerCase()
+                                        .includes(query) ||
+                                      t.loan_number
+                                        ?.toLowerCase()
+                                        .includes(query) ||
+                                      t.source?.toLowerCase().includes(query)
+                                    );
+                                  }
+                                  return true;
+                                },
+                              );
+
+                              const totalPenerimaan = filteredTransactions
+                                .filter((t) => {
+                                  if (t.approval_status !== "approved")
+                                    return false;
+                                  if (
+                                    t.source === "sales_transactions" &&
+                                    t.transaction_type === "Jasa"
+                                  )
+                                    return true;
+                                  if (
+                                    t.source === "sales_transactions" &&
+                                    t.transaction_type === "Barang"
+                                  )
+                                    return true;
+                                  if (t.source === "cash_receipts") return true;
+                                  return false;
+                                })
+                                .reduce((sum, t) => {
+                                  const nominal = parseFloat(
+                                    t.nominal ||
+                                      t.amount ||
+                                      t.total_amount ||
+                                      t.total_value ||
+                                      0,
+                                  );
+                                  return sum + nominal;
+                                }, 0);
+
+                              const totalPengeluaran = filteredTransactions
+                                .filter((t) => {
+                                  if (t.approval_status !== "approved")
+                                    return false;
+                                  if (
+                                    t.source === "kas_transaksi" &&
+                                    t.payment_type === "Pengeluaran Kas"
+                                  )
+                                    return true;
+                                  if (t.source === "purchase_transactions")
+                                    return true;
+                                  if (t.source === "internal_usage")
+                                    return true;
+                                  if (t.source === "expenses") return true;
+                                  if (t.source === "cash_disbursement")
+                                    return true;
+                                  return false;
+                                })
+                                .reduce((sum, t) => {
+                                  const nominal = parseFloat(
+                                    t.nominal ||
+                                      t.amount ||
+                                      t.total_amount ||
+                                      t.total_value ||
+                                      0,
+                                  );
+                                  return sum + nominal;
+                                }, 0);
+
+                              return totalPenerimaan - totalPengeluaran;
+                            })(),
                           )}
                         </span>
                       </TableCell>
@@ -4355,7 +4942,9 @@ export default function TransaksiKeuanganForm() {
                                 .filter((d) =>
                                   (d.description || "")
                                     .toLowerCase()
-                                    .includes(descriptionSearchKeyword.toLowerCase()),
+                                    .includes(
+                                      descriptionSearchKeyword.toLowerCase(),
+                                    ),
                                 )
                                 .map((d, index) => (
                                   <div
@@ -4381,7 +4970,9 @@ export default function TransaksiKeuanganForm() {
                               {safeFilteredDescriptions.filter((d) =>
                                 (d.description || "")
                                   .toLowerCase()
-                                  .includes(descriptionSearchKeyword.toLowerCase()),
+                                  .includes(
+                                    descriptionSearchKeyword.toLowerCase(),
+                                  ),
                               ).length === 0 && (
                                 <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                                   Tidak ada deskripsi ditemukan.
@@ -4460,76 +5051,24 @@ export default function TransaksiKeuanganForm() {
               )}
 
               {/* QUANTITY & HARGA JUAL - Only for Penjualan Barang */}
-              {jenisTransaksi === "Penjualan Barang" && itemName && description && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity *</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      value={quantity}
-                      onChange={(e) => {
-                        setQuantity(e.target.value);
-                        // Auto-calculate nominal
-                        if (hargaJual) {
-                          const total =
-                            Number(e.target.value) * Number(hargaJual);
-                          setNominal(total.toString());
-                        }
-                      }}
-                      placeholder="1"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="harga_jual">Harga Jual per Unit *</Label>
-                    <Input
-                      id="harga_jual"
-                      type="number"
-                      value={hargaJual}
-                      onChange={(e) => {
-                        setHargaJual(e.target.value);
-                        // Auto-calculate nominal
-                        if (quantity) {
-                          const total =
-                            Number(quantity) * Number(e.target.value);
-                          setNominal(total.toString());
-                        }
-                      }}
-                      placeholder="0"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Total: Rp{" "}
-                      {new Intl.NumberFormat("id-ID").format(
-                        Number(quantity || 0) * Number(hargaJual || 0),
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* QUANTITY, HARGA BELI & PPN - Only for Pembelian Barang */}
-              {jenisTransaksi === "Pembelian Barang" && itemName && description && (
-                <div className="space-y-4">
+              {jenisTransaksi === "Penjualan Barang" &&
+                itemName &&
+                description && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="quantity_beli">Quantity *</Label>
+                      <Label htmlFor="quantity">Quantity *</Label>
                       <Input
-                        id="quantity_beli"
+                        id="quantity"
                         type="number"
                         min="1"
                         value={quantity}
                         onChange={(e) => {
                           setQuantity(e.target.value);
-                          // Auto-calculate nominal with PPN
-                          if (hargaBeli) {
-                            const subtotal =
-                              Number(e.target.value) * Number(hargaBeli);
-                            const ppn =
-                              subtotal * (Number(ppnPercentage) / 100);
-                            setPpnAmount(ppn.toString());
-                            setNominal((subtotal + ppn).toString());
+                          // Auto-calculate nominal
+                          if (hargaJual) {
+                            const total =
+                              Number(e.target.value) * Number(hargaJual);
+                            setNominal(total.toString());
                           }
                         }}
                         placeholder="1"
@@ -4537,106 +5076,164 @@ export default function TransaksiKeuanganForm() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="harga_beli">Harga Beli per Unit *</Label>
+                      <Label htmlFor="harga_jual">Harga Jual per Unit *</Label>
                       <Input
-                        id="harga_beli"
+                        id="harga_jual"
                         type="number"
-                        value={hargaBeli}
+                        value={hargaJual}
                         onChange={(e) => {
-                          setHargaBeli(e.target.value);
-                          // Auto-calculate nominal with PPN
+                          setHargaJual(e.target.value);
+                          // Auto-calculate nominal
                           if (quantity) {
-                            const subtotal =
+                            const total =
                               Number(quantity) * Number(e.target.value);
-                            const ppn =
-                              subtotal * (Number(ppnPercentage) / 100);
-                            setPpnAmount(ppn.toString());
-                            setNominal((subtotal + ppn).toString());
+                            setNominal(total.toString());
                           }
                         }}
                         placeholder="0"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Total: Rp{" "}
+                        {new Intl.NumberFormat("id-ID").format(
+                          Number(quantity || 0) * Number(hargaJual || 0),
+                        )}
+                      </p>
                     </div>
                   </div>
+                )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="ppn_percentage">PPN (%) *</Label>
-                      <Input
-                        id="ppn_percentage"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={ppnPercentage}
-                        onChange={(e) => {
-                          setPpnPercentage(e.target.value);
-                          // Recalculate PPN and total
-                          if (quantity && hargaBeli) {
-                            const subtotal =
-                              Number(quantity) * Number(hargaBeli);
-                            const ppn =
-                              subtotal * (Number(e.target.value) / 100);
-                            setPpnAmount(ppn.toString());
-                            setNominal((subtotal + ppn).toString());
-                          }
-                        }}
-                        placeholder="11"
-                      />
+              {/* QUANTITY, HARGA BELI & PPN - Only for Pembelian Barang */}
+              {jenisTransaksi === "Pembelian Barang" &&
+                itemName &&
+                description && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="quantity_beli">Quantity *</Label>
+                        <Input
+                          id="quantity_beli"
+                          type="number"
+                          min="1"
+                          value={quantity}
+                          onChange={(e) => {
+                            setQuantity(e.target.value);
+                            // Auto-calculate nominal with PPN
+                            if (hargaBeli) {
+                              const subtotal =
+                                Number(e.target.value) * Number(hargaBeli);
+                              const ppn =
+                                subtotal * (Number(ppnPercentage) / 100);
+                              setPpnAmount(ppn.toString());
+                              setNominal((subtotal + ppn).toString());
+                            }
+                          }}
+                          placeholder="1"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="harga_beli">
+                          Harga Beli per Unit *
+                        </Label>
+                        <Input
+                          id="harga_beli"
+                          type="number"
+                          value={hargaBeli}
+                          onChange={(e) => {
+                            setHargaBeli(e.target.value);
+                            // Auto-calculate nominal with PPN
+                            if (quantity) {
+                              const subtotal =
+                                Number(quantity) * Number(e.target.value);
+                              const ppn =
+                                subtotal * (Number(ppnPercentage) / 100);
+                              setPpnAmount(ppn.toString());
+                              setNominal((subtotal + ppn).toString());
+                            }
+                          }}
+                          placeholder="0"
+                        />
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ppn_amount">Jumlah PPN</Label>
-                      <Input
-                        id="ppn_amount"
-                        type="number"
-                        value={ppnAmount}
-                        readOnly
-                        className="bg-gray-100"
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="ppn_percentage">PPN (%) *</Label>
+                        <Input
+                          id="ppn_percentage"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={ppnPercentage}
+                          onChange={(e) => {
+                            setPpnPercentage(e.target.value);
+                            // Recalculate PPN and total
+                            if (quantity && hargaBeli) {
+                              const subtotal =
+                                Number(quantity) * Number(hargaBeli);
+                              const ppn =
+                                subtotal * (Number(e.target.value) / 100);
+                              setPpnAmount(ppn.toString());
+                              setNominal((subtotal + ppn).toString());
+                            }
+                          }}
+                          placeholder="11"
+                        />
+                      </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Subtotal:
-                        </span>
-                        <span className="ml-2 text-gray-900">
-                          Rp{" "}
-                          {new Intl.NumberFormat("id-ID").format(
-                            Number(quantity || 0) * Number(hargaBeli || 0),
-                          )}
-                        </span>
+                      <div className="space-y-2">
+                        <Label htmlFor="ppn_amount">Jumlah PPN</Label>
+                        <Input
+                          id="ppn_amount"
+                          type="number"
+                          value={ppnAmount}
+                          readOnly
+                          className="bg-gray-100"
+                          placeholder="0"
+                        />
                       </div>
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          PPN ({ppnPercentage}%):
-                        </span>
-                        <span className="ml-2 text-gray-900">
-                          Rp{" "}
-                          {new Intl.NumberFormat("id-ID").format(
-                            Number(ppnAmount || 0),
-                          )}
-                        </span>
-                      </div>
-                      <div className="col-span-2 pt-2 border-t border-blue-300">
-                        <span className="font-bold text-gray-900 text-lg">
-                          Total:
-                        </span>
-                        <span className="ml-2 text-blue-700 font-bold text-lg">
-                          Rp{" "}
-                          {new Intl.NumberFormat("id-ID").format(
-                            Number(quantity || 0) * Number(hargaBeli || 0) +
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="font-medium text-gray-700">
+                            Subtotal:
+                          </span>
+                          <span className="ml-2 text-gray-900">
+                            Rp{" "}
+                            {new Intl.NumberFormat("id-ID").format(
+                              Number(quantity || 0) * Number(hargaBeli || 0),
+                            )}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">
+                            PPN ({ppnPercentage}%):
+                          </span>
+                          <span className="ml-2 text-gray-900">
+                            Rp{" "}
+                            {new Intl.NumberFormat("id-ID").format(
                               Number(ppnAmount || 0),
-                          )}
-                        </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="col-span-2 pt-2 border-t border-blue-300">
+                          <span className="font-bold text-gray-900 text-lg">
+                            Total:
+                          </span>
+                          <span className="ml-2 text-blue-700 font-bold text-lg">
+                            Rp{" "}
+                            {new Intl.NumberFormat("id-ID").format(
+                              Number(quantity || 0) * Number(hargaBeli || 0) +
+                                Number(ppnAmount || 0),
+                            )}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* CUSTOMER / SUPPLIER */}
               {(jenisTransaksi === "Penjualan Barang" ||
@@ -6096,7 +6693,9 @@ export default function TransaksiKeuanganForm() {
                     <Input
                       id="nama_karyawan_pengeluaran"
                       value={namaKaryawanPengeluaran}
-                      onChange={(e) => setNamaKaryawanPengeluaran(e.target.value)}
+                      onChange={(e) =>
+                        setNamaKaryawanPengeluaran(e.target.value)
+                      }
                       placeholder="Masukkan nama karyawan"
                     />
                   </div>
@@ -6305,7 +6904,8 @@ export default function TransaksiKeuanganForm() {
                     htmlFor="select-all"
                     className="text-sm font-medium cursor-pointer"
                   >
-                    Pilih Semua ({cart.filter((item) => item.selected).length} dipilih)
+                    Pilih Semua ({cart.filter((item) => item.selected).length}{" "}
+                    dipilih)
                   </label>
                 </div>
 
@@ -6322,10 +6922,12 @@ export default function TransaksiKeuanganForm() {
                             <Checkbox
                               id={`item-${item.id}`}
                               checked={item.selected || false}
-                              onCheckedChange={() => toggleCartItemSelection(item.id)}
+                              onCheckedChange={() =>
+                                toggleCartItemSelection(item.id)
+                              }
                             />
                           </div>
-                          
+
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <span className="font-bold text-lg">
@@ -6340,131 +6942,135 @@ export default function TransaksiKeuanganForm() {
                                     ? "Tunai"
                                     : "Kredit"}
                                 </span>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                            {item.itemName && (
-                              <div>
-                                <span className="font-medium text-gray-600">
-                                  Item:
-                                </span>
-                                <span className="ml-2">{item.itemName}</span>
-                              </div>
-                            )}
-                            {item.description && (
-                              <div>
-                                <span className="font-medium text-gray-600">
-                                  Deskripsi:
-                                </span>
-                                <span className="ml-2">{item.description}</span>
-                              </div>
-                            )}
-                            {item.kategori && (
-                              <div>
-                                <span className="font-medium text-gray-600">
-                                  Kategori:
-                                </span>
-                                <span className="ml-2">{item.kategori}</span>
-                              </div>
-                            )}
-                            {item.jenisLayanan && (
-                              <div>
-                                <span className="font-medium text-gray-600">
-                                  Layanan:
-                                </span>
-                                <span className="ml-2">
-                                  {item.jenisLayanan}
-                                </span>
-                              </div>
-                            )}
-                            {item.customer && (
-                              <div>
-                                <span className="font-medium text-gray-600">
-                                  Customer:
-                                </span>
-                                <span className="ml-2">{item.customer}</span>
-                              </div>
-                            )}
-                            {item.supplier && (
-                              <div>
-                                <span className="font-medium text-gray-600">
-                                  Supplier:
-                                </span>
-                                <span className="ml-2">{item.supplier}</span>
-                              </div>
-                            )}
-                            {item.quantity && item.quantity !== "1" && (
-                              <div>
-                                <span className="font-medium text-gray-600">
-                                  Qty:
-                                </span>
-                                <span className="ml-2">{item.quantity}</span>
-                              </div>
-                            )}
-                            {item.hargaJual && (
-                              <div>
-                                <span className="font-medium text-gray-600">
-                                  Harga Jual/Unit:
-                                </span>
-                                <span className="ml-2">
-                                  Rp{" "}
-                                  {new Intl.NumberFormat("id-ID").format(
-                                    Number(item.hargaJual),
-                                  )}
-                                </span>
-                              </div>
-                            )}
-                            {item.hargaBeli && (
-                              <div>
-                                <span className="font-medium text-gray-600">
-                                  Harga Beli/Unit:
-                                </span>
-                                <span className="ml-2">
-                                  Rp{" "}
-                                  {new Intl.NumberFormat("id-ID").format(
-                                    Number(item.hargaBeli),
-                                  )}
-                                </span>
-                              </div>
-                            )}
-                            {item.ppnAmount && Number(item.ppnAmount) > 0 && (
-                              <div>
-                                <span className="font-medium text-gray-600">
-                                  PPN ({item.ppnPercentage}%):
-                                </span>
-                                <span className="ml-2">
-                                  Rp{" "}
-                                  {new Intl.NumberFormat("id-ID").format(
-                                    Number(item.ppnAmount),
-                                  )}
-                                </span>
-                              </div>
-                            )}
-                            <div>
-                              <span className="font-medium text-gray-600">
-                                Tanggal:
-                              </span>
-                              <span className="ml-2">{item.tanggal}</span>
+                              )}
                             </div>
-                          </div>
 
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <div className="flex justify-between items-center">
-                              <span className="font-bold text-lg text-gray-900">
-                                Total: Rp{" "}
-                                {new Intl.NumberFormat("id-ID").format(
-                                  Number(item.nominal),
-                                )}
-                              </span>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                              {item.itemName && (
+                                <div>
+                                  <span className="font-medium text-gray-600">
+                                    Item:
+                                  </span>
+                                  <span className="ml-2">{item.itemName}</span>
+                                </div>
+                              )}
+                              {item.description && (
+                                <div>
+                                  <span className="font-medium text-gray-600">
+                                    Deskripsi:
+                                  </span>
+                                  <span className="ml-2">
+                                    {item.description}
+                                  </span>
+                                </div>
+                              )}
+                              {item.kategori && (
+                                <div>
+                                  <span className="font-medium text-gray-600">
+                                    Kategori:
+                                  </span>
+                                  <span className="ml-2">{item.kategori}</span>
+                                </div>
+                              )}
+                              {item.jenisLayanan && (
+                                <div>
+                                  <span className="font-medium text-gray-600">
+                                    Layanan:
+                                  </span>
+                                  <span className="ml-2">
+                                    {item.jenisLayanan}
+                                  </span>
+                                </div>
+                              )}
+                              {item.customer && (
+                                <div>
+                                  <span className="font-medium text-gray-600">
+                                    Customer:
+                                  </span>
+                                  <span className="ml-2">{item.customer}</span>
+                                </div>
+                              )}
+                              {item.supplier && (
+                                <div>
+                                  <span className="font-medium text-gray-600">
+                                    Supplier:
+                                  </span>
+                                  <span className="ml-2">{item.supplier}</span>
+                                </div>
+                              )}
+                              {item.quantity && item.quantity !== "1" && (
+                                <div>
+                                  <span className="font-medium text-gray-600">
+                                    Qty:
+                                  </span>
+                                  <span className="ml-2">{item.quantity}</span>
+                                </div>
+                              )}
+                              {item.hargaJual && (
+                                <div>
+                                  <span className="font-medium text-gray-600">
+                                    Harga Jual/Unit:
+                                  </span>
+                                  <span className="ml-2">
+                                    Rp{" "}
+                                    {new Intl.NumberFormat("id-ID").format(
+                                      Number(item.hargaJual),
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                              {item.hargaBeli && (
+                                <div>
+                                  <span className="font-medium text-gray-600">
+                                    Harga Beli/Unit:
+                                  </span>
+                                  <span className="ml-2">
+                                    Rp{" "}
+                                    {new Intl.NumberFormat("id-ID").format(
+                                      Number(item.hargaBeli),
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                              {item.ppnAmount && Number(item.ppnAmount) > 0 && (
+                                <div>
+                                  <span className="font-medium text-gray-600">
+                                    PPN ({item.ppnPercentage}%):
+                                  </span>
+                                  <span className="ml-2">
+                                    Rp{" "}
+                                    {new Intl.NumberFormat("id-ID").format(
+                                      Number(item.ppnAmount),
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="font-medium text-gray-600">
+                                  Tanggal:
+                                </span>
+                                <span className="ml-2">{item.tanggal}</span>
+                              </div>
                             </div>
-                            {item.description && (
-                              <p className="text-sm text-gray-600 mt-2">
-                                <span className="font-medium">Keterangan:</span>{" "}
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
+
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <div className="flex justify-between items-center">
+                                <span className="font-bold text-lg text-gray-900">
+                                  Total: Rp{" "}
+                                  {new Intl.NumberFormat("id-ID").format(
+                                    Number(item.nominal),
+                                  )}
+                                </span>
+                              </div>
+                              {item.description && (
+                                <p className="text-sm text-gray-600 mt-2">
+                                  <span className="font-medium">
+                                    Keterangan:
+                                  </span>{" "}
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -6485,7 +7091,8 @@ export default function TransaksiKeuanganForm() {
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-sm text-gray-600">
-                        Total Transaksi: {cart.length} item ({cart.filter((item) => item.selected).length} dipilih)
+                        Total Transaksi: {cart.length} item (
+                        {cart.filter((item) => item.selected).length} dipilih)
                       </p>
                       <p className="text-2xl font-bold text-gray-900">
                         Total Nominal: Rp{" "}
@@ -6508,10 +7115,15 @@ export default function TransaksiKeuanganForm() {
                       </Button>
                       <Button
                         onClick={handleCheckoutCart}
-                        disabled={isConfirming || cart.filter((item) => item.selected).length === 0}
+                        disabled={
+                          isConfirming ||
+                          cart.filter((item) => item.selected).length === 0
+                        }
                         className="bg-green-600 hover:bg-green-700"
                       >
-                        {isConfirming ? "Memproses..." : `✅ Checkout Semua (${cart.filter((item) => item.selected).length})`}
+                        {isConfirming
+                          ? "Memproses..."
+                          : `✅ Checkout Semua (${cart.filter((item) => item.selected).length})`}
                       </Button>
                     </div>
                   </div>

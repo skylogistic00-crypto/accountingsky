@@ -99,7 +99,9 @@ export default function ProfitLossReport() {
       // Fetch data from vw_profit_and_loss view - NO FILTERS
       const { data, error } = await supabase
         .from("vw_profit_and_loss")
-        .select("account_code, account_name, account_type, debit, credit, balance");
+        .select(
+          "account_code, account_name, account_type, debit, credit, balance",
+        );
 
       if (error) throw error;
 
@@ -112,7 +114,7 @@ export default function ProfitLossReport() {
 
       data?.forEach((row: any) => {
         const balance = Number(row.balance) || 0;
-        
+
         // Skip zero balances
         if (balance === 0) return;
 
@@ -238,8 +240,8 @@ export default function ProfitLossReport() {
             <div>
               <CardTitle className="text-2xl">Laporan Laba Rugi</CardTitle>
               <CardDescription>
-                Laporan keuangan yang menunjukkan pendapatan, beban, dan laba/rugi
-                perusahaan
+                Laporan keuangan yang menunjukkan pendapatan, beban, dan
+                laba/rugi perusahaan
               </CardDescription>
             </div>
             <Button

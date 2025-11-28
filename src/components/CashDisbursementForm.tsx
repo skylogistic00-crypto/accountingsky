@@ -7,8 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CalendarIcon, Upload, Save, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -17,7 +27,9 @@ interface CashDisbursementFormProps {
   onSuccess?: () => void;
 }
 
-export default function CashDisbursementForm({ onSuccess }: CashDisbursementFormProps = {}) {
+export default function CashDisbursementForm({
+  onSuccess,
+}: CashDisbursementFormProps = {}) {
   const [transactionDate, setTransactionDate] = useState<Date>(new Date());
   const [payeeName, setPayeeName] = useState("");
   const [description, setDescription] = useState("");
@@ -31,11 +43,11 @@ export default function CashDisbursementForm({ onSuccess }: CashDisbursementForm
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   const [coaAccounts, setCoaAccounts] = useState<any[]>([]);
   const [expenseAccounts, setExpenseAccounts] = useState<any[]>([]);
   const [cashAccounts, setCashAccounts] = useState<any[]>([]);
-  
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -52,23 +64,22 @@ export default function CashDisbursementForm({ onSuccess }: CashDisbursementForm
       if (error) throw error;
 
       setCoaAccounts(data || []);
-      
+
       // Filter expense accounts (6-xxxx)
-      const expenses = (data || []).filter((acc: any) => 
-        acc.account_code.startsWith("6-")
+      const expenses = (data || []).filter((acc: any) =>
+        acc.account_code.startsWith("6-"),
       );
       setExpenseAccounts(expenses);
-      
+
       // Filter cash accounts (1-11xx)
-      const cash = (data || []).filter((acc: any) => 
-        acc.account_code.startsWith("1-11")
+      const cash = (data || []).filter((acc: any) =>
+        acc.account_code.startsWith("1-11"),
       );
       setCashAccounts(cash);
-      
+
       // Set default accounts
       if (expenses.length > 0) setCoaExpenseCode(expenses[0].account_code);
       if (cash.length > 0) setCoaCashCode(cash[0].account_code);
-      
     } catch (error: any) {
       console.error("Error fetching COA:", error);
       toast({
@@ -101,9 +112,9 @@ export default function CashDisbursementForm({ onSuccess }: CashDisbursementForm
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("documents")
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("documents").getPublicUrl(filePath);
 
       return publicUrl;
     } catch (error: any) {
@@ -140,7 +151,9 @@ export default function CashDisbursementForm({ onSuccess }: CashDisbursementForm
         attachmentUrl = await uploadAttachment();
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       const disbursementData = {
         transaction_date: format(transactionDate, "yyyy-MM-dd"),
@@ -181,7 +194,6 @@ export default function CashDisbursementForm({ onSuccess }: CashDisbursementForm
       setTransactionDate(new Date());
 
       if (onSuccess) onSuccess();
-
     } catch (error: any) {
       console.error("Error saving cash disbursement:", error);
       toast({
@@ -197,7 +209,9 @@ export default function CashDisbursementForm({ onSuccess }: CashDisbursementForm
   return (
     <Card className="w-full bg-white">
       <CardHeader className="bg-gradient-to-r from-red-500 to-red-600">
-        <CardTitle className="text-white text-2xl">Form Pengeluaran Kas</CardTitle>
+        <CardTitle className="text-white text-2xl">
+          Form Pengeluaran Kas
+        </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -211,11 +225,15 @@ export default function CashDisbursementForm({ onSuccess }: CashDisbursementForm
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !transactionDate && "text-muted-foreground"
+                      !transactionDate && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {transactionDate ? format(transactionDate, "PPP") : <span>Pilih tanggal</span>}
+                    {transactionDate ? (
+                      format(transactionDate, "PPP")
+                    ) : (
+                      <span>Pilih tanggal</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -381,7 +399,8 @@ export default function CashDisbursementForm({ onSuccess }: CashDisbursementForm
             </div>
             {attachmentFile && (
               <p className="text-sm text-gray-600">
-                File: {attachmentFile.name} ({(attachmentFile.size / 1024).toFixed(2)} KB)
+                File: {attachmentFile.name} (
+                {(attachmentFile.size / 1024).toFixed(2)} KB)
               </p>
             )}
           </div>
@@ -409,8 +428,9 @@ export default function CashDisbursementForm({ onSuccess }: CashDisbursementForm
 
           <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800">
-              <strong>ℹ️ Informasi:</strong> Pengeluaran kas akan disimpan dengan status "Menunggu Approval" 
-              dan tidak akan mempengaruhi jurnal atau kas sampai disetujui oleh admin/manager.
+              <strong>ℹ️ Informasi:</strong> Pengeluaran kas akan disimpan
+              dengan status "Menunggu Approval" dan tidak akan mempengaruhi
+              jurnal atau kas sampai disetujui oleh admin/manager.
             </p>
           </div>
         </form>

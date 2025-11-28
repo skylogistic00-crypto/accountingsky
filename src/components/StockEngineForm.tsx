@@ -3,8 +3,20 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,22 +37,22 @@ interface COAAccount {
 
 export default function StockEngineForm() {
   const { toast } = useToast();
-  
+
   // State for dropdowns
   const [itemNameList, setItemNameList] = useState<ItemMaster[]>([]);
   const [brandList, setBrandList] = useState<string[]>([]);
   const [coaList, setCoaList] = useState<COAAccount[]>([]);
-  
+
   // Form state
   const [itemName, setItemName] = useState("");
   const [isManualItem, setIsManualItem] = useState(false);
   const [manualItemName, setManualItemName] = useState("");
   const [jenisBarang, setJenisBarang] = useState("");
-  
+
   const [brand, setBrand] = useState("");
   const [isManualBrand, setIsManualBrand] = useState(false);
   const [manualBrand, setManualBrand] = useState("");
-  
+
   const [selectedCOA, setSelectedCOA] = useState("");
   const [description, setDescription] = useState("");
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
@@ -58,12 +70,16 @@ export default function StockEngineForm() {
       .from("item_master")
       .select("*")
       .order("item_name");
-    
+
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
       return;
     }
-    
+
     setItemNameList(data || []);
   };
 
@@ -72,13 +88,17 @@ export default function StockEngineForm() {
       .from("brands")
       .select("brand_name")
       .order("brand_name");
-    
+
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
       return;
     }
-    
-    const uniqueBrands = [...new Set(data?.map(b => b.brand_name) || [])];
+
+    const uniqueBrands = [...new Set(data?.map((b) => b.brand_name) || [])];
     setBrandList(uniqueBrands);
   };
 
@@ -90,18 +110,24 @@ export default function StockEngineForm() {
       .eq("item_name", itemName)
       .eq("is_active", true)
       .order("brand_name");
-    
+
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
       setBrandList([]);
       return;
     }
-    
-    const uniqueBrands = [...new Set(data?.map(b => b.brand_name).filter(Boolean) || [])];
-    
+
+    const uniqueBrands = [
+      ...new Set(data?.map((b) => b.brand_name).filter(Boolean) || []),
+    ];
+
     // Always set the filtered brands, even if empty
     setBrandList(uniqueBrands);
-    
+
     if (uniqueBrands.length > 0) {
       toast({
         title: "Brand Filter Applied",
@@ -122,12 +148,16 @@ export default function StockEngineForm() {
       .select("account_code, account_name, account_type")
       .eq("is_active", true)
       .order("account_code");
-    
+
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
       return;
     }
-    
+
     setCoaList(data || []);
   };
 
@@ -140,13 +170,13 @@ export default function StockEngineForm() {
       setIsManualItem(false);
       setItemName(value);
       setManualItemName("");
-      
+
       // Get jenis_barang from selected item
-      const selectedItem = itemNameList.find(i => i.item_name === value);
+      const selectedItem = itemNameList.find((i) => i.item_name === value);
       if (selectedItem) {
         setJenisBarang(selectedItem.jenis_barang);
       }
-      
+
       // Load brands filtered by this item name
       loadBrandsByItemName(value);
     }
@@ -160,7 +190,7 @@ export default function StockEngineForm() {
       setIsManualBrand(false);
       setBrand(value);
       setManualBrand("");
-      
+
       // Auto-populate fields when both item name and brand are selected
       const finalItemName = isManualItem ? manualItemName : itemName;
       if (finalItemName) {
@@ -183,14 +213,14 @@ export default function StockEngineForm() {
       if (productRef) {
         // Use product_reference data
         setDescription(productRef.description || `${itemName} - ${brand}`);
-        
+
         if (productRef.coa_account_code) {
           setSelectedCOA(productRef.coa_account_code);
         }
 
         toast({
           title: "✨ Auto-populated from Product Reference",
-          description: `${productRef.kategori_layanan || '-'} - ${productRef.jenis_layanan || '-'} | COA: ${productRef.coa_account_code || '-'}`,
+          description: `${productRef.kategori_layanan || "-"} - ${productRef.jenis_layanan || "-"} | COA: ${productRef.coa_account_code || "-"}`,
         });
         return;
       }
@@ -198,7 +228,9 @@ export default function StockEngineForm() {
       // Fallback to brands table if not found in product_reference
       const { data: brandData, error } = await supabase
         .from("brands")
-        .select("brand_name, satuan, berat, volume, kategori_layanan, jenis_layanan, coa_account_code, coa_account_name")
+        .select(
+          "brand_name, satuan, berat, volume, kategori_layanan, jenis_layanan, coa_account_code, coa_account_name",
+        )
         .eq("brand_name", brand)
         .limit(1)
         .maybeSingle();
@@ -206,8 +238,10 @@ export default function StockEngineForm() {
       if (error) throw error;
 
       if (brandData) {
-        setDescription(`${itemName} - ${brand} (${brandData.kategori_layanan || '-'}, ${brandData.satuan || '-'}, ${brandData.berat || '-'} kg)`);
-        
+        setDescription(
+          `${itemName} - ${brand} (${brandData.kategori_layanan || "-"}, ${brandData.satuan || "-"}, ${brandData.berat || "-"} kg)`,
+        );
+
         // Set COA if available
         if (brandData.coa_account_code) {
           setSelectedCOA(brandData.coa_account_code);
@@ -215,7 +249,7 @@ export default function StockEngineForm() {
 
         toast({
           title: "Auto-populated from Brand",
-          description: `${brandData.kategori_layanan || '-'} - ${brandData.jenis_layanan || '-'} | COA: ${brandData.coa_account_code || '-'}`,
+          description: `${brandData.kategori_layanan || "-"} - ${brandData.jenis_layanan || "-"} | COA: ${brandData.coa_account_code || "-"}`,
         });
       }
     } catch (error: any) {
@@ -244,7 +278,7 @@ export default function StockEngineForm() {
       item_name: form.item_name.trim(),
       jenis_barang: form.jenis_barang?.trim() || "",
       brand: form.brand.trim(),
-      description: form.description ?? ""
+      description: form.description ?? "",
     };
   };
 
@@ -283,7 +317,7 @@ export default function StockEngineForm() {
 
     return {
       coa_usage_role,
-      coa_prefix
+      coa_prefix,
     };
   };
 
@@ -295,7 +329,9 @@ export default function StockEngineForm() {
       // Get jenis_barang from item_master
       let jenisBarang = "";
       if (!isManualItem) {
-        const selectedItem = itemNameList.find(i => i.item_name === finalItemName);
+        const selectedItem = itemNameList.find(
+          (i) => i.item_name === finalItemName,
+        );
         jenisBarang = selectedItem?.jenis_barang || "";
       }
 
@@ -304,7 +340,7 @@ export default function StockEngineForm() {
         item_name: finalItemName,
         jenis_barang: jenisBarang,
         brand: finalBrand,
-        description: description
+        description: description,
       };
 
       // Step 1: Validate Input
@@ -315,7 +351,7 @@ export default function StockEngineForm() {
 
       // Step 3: Generate COA Mapping
       const coaMapping = generateCOAMapping(normalized.jenis_barang);
-      
+
       // Step 4: Search for existing COA with usage_role
       const { data: existingCOA, error: coaSearchError } = await supabase
         .from("chart_of_accounts")
@@ -324,7 +360,7 @@ export default function StockEngineForm() {
         .limit(1)
         .maybeSingle();
 
-      if (coaSearchError && coaSearchError.code !== 'PGRST116') {
+      if (coaSearchError && coaSearchError.code !== "PGRST116") {
         throw coaSearchError;
       }
 
@@ -333,19 +369,20 @@ export default function StockEngineForm() {
       // Step 5: Insert COA if it doesn't exist
       if (!existingCOA) {
         const accountTypeMap: Record<string, string> = {
-          "pendapatan_barang": "Pendapatan",
-          "beban_operasional": "Beban",
-          "beban_administrasi": "Beban",
-          "beban_kendaraan": "Beban",
-          "pendapatan_lain": "Pendapatan"
+          pendapatan_barang: "Pendapatan",
+          beban_operasional: "Beban",
+          beban_administrasi: "Beban",
+          beban_kendaraan: "Beban",
+          pendapatan_lain: "Pendapatan",
         };
 
         const normalBalanceMap: Record<string, string> = {
-          "Pendapatan": "Kredit",
-          "Beban": "Debit"
+          Pendapatan: "Kredit",
+          Beban: "Debit",
         };
 
-        const accountType = accountTypeMap[coaMapping.coa_usage_role] || "Pendapatan";
+        const accountType =
+          accountTypeMap[coaMapping.coa_usage_role] || "Pendapatan";
         const normalBalance = normalBalanceMap[accountType];
 
         const { data: newCOA, error: insertCOAError } = await supabase
@@ -357,7 +394,7 @@ export default function StockEngineForm() {
             normal_balance: normalBalance,
             is_active: true,
             usage_role: coaMapping.coa_usage_role,
-            kategori_layanan: normalized.jenis_barang
+            kategori_layanan: normalized.jenis_barang,
           })
           .select()
           .single();
@@ -386,10 +423,11 @@ export default function StockEngineForm() {
       }
 
       if (!finalCOA) {
-        toast({ 
-          title: "Error", 
-          description: "COA account wajib dipilih atau tidak ditemukan untuk jenis barang ini", 
-          variant: "destructive" 
+        toast({
+          title: "Error",
+          description:
+            "COA account wajib dipilih atau tidak ditemukan untuk jenis barang ini",
+          variant: "destructive",
         });
         return;
       }
@@ -410,13 +448,11 @@ export default function StockEngineForm() {
         .maybeSingle();
 
       if (!existingItem) {
-        const { error: itemError } = await supabase
-          .from("item_master")
-          .insert({
-            item_name: normalized.item_name,
-            jenis_barang: normalized.jenis_barang,
-            coa_account_code: finalCOA
-          });
+        const { error: itemError } = await supabase.from("item_master").insert({
+          item_name: normalized.item_name,
+          jenis_barang: normalized.jenis_barang,
+          coa_account_code: finalCOA,
+        });
 
         if (itemError) {
           console.error("Error inserting item_master:", itemError);
@@ -424,27 +460,29 @@ export default function StockEngineForm() {
       }
 
       // Insert stock with normalized data
-      const { error: stockError } = await supabase
-        .from("stock")
-        .insert({
-          item_name: normalized.item_name,
-          brand: normalized.brand,
-          description: normalized.description,
-          coa_account_code: finalCOA,
-          jenis_barang: normalized.jenis_barang
-        });
-      
+      const { error: stockError } = await supabase.from("stock").insert({
+        item_name: normalized.item_name,
+        brand: normalized.brand,
+        description: normalized.description,
+        coa_account_code: finalCOA,
+        jenis_barang: normalized.jenis_barang,
+      });
+
       if (stockError) {
-        toast({ title: "Error", description: stockError.message, variant: "destructive" });
+        toast({
+          title: "Error",
+          description: stockError.message,
+          variant: "destructive",
+        });
         return;
       }
-      
+
       // Step 7: Return success result
-      toast({ 
-        title: "✅ Item berhasil dibuat", 
-        description: `Stock berhasil disimpan! ${productRef ? '(Data dari product reference)' : ''} | COA: ${finalCOA}` 
+      toast({
+        title: "✅ Item berhasil dibuat",
+        description: `Stock berhasil disimpan! ${productRef ? "(Data dari product reference)" : ""} | COA: ${finalCOA}`,
       });
-      
+
       // Clear form
       setItemName("");
       setBrand("");
@@ -455,7 +493,7 @@ export default function StockEngineForm() {
       setIsManualBrand(false);
       setManualItemName("");
       setManualBrand("");
-      
+
       // Reload data
       loadItemNames();
       loadBrands();
@@ -463,16 +501,16 @@ export default function StockEngineForm() {
     } catch (error: any) {
       // Step 8: Error Handler
       if (error.detail && Array.isArray(error.detail)) {
-        toast({ 
-          title: error.message || "Validasi gagal", 
-          description: error.detail.join(", "), 
-          variant: "destructive" 
+        toast({
+          title: error.message || "Validasi gagal",
+          description: error.detail.join(", "),
+          variant: "destructive",
         });
       } else {
-        toast({ 
-          title: "Error", 
-          description: error.message || "Terjadi kesalahan", 
-          variant: "destructive" 
+        toast({
+          title: "Error",
+          description: error.message || "Terjadi kesalahan",
+          variant: "destructive",
         });
       }
     }
@@ -523,8 +561,8 @@ export default function StockEngineForm() {
                     placeholder="Masukkan nama item"
                     className="flex-1"
                   />
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => {
                       setIsManualItem(false);
@@ -562,8 +600,8 @@ export default function StockEngineForm() {
                     placeholder="Masukkan nama brand"
                     className="flex-1"
                   />
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => {
                       setIsManualBrand(false);
@@ -621,7 +659,8 @@ export default function StockEngineForm() {
             </Select>
             {jenisBarang && (
               <p className="text-xs text-blue-600 mt-1">
-                💡 COA akan otomatis dipilih berdasarkan jenis barang: {jenisBarang}
+                💡 COA akan otomatis dipilih berdasarkan jenis barang:{" "}
+                {jenisBarang}
               </p>
             )}
           </div>
@@ -639,10 +678,7 @@ export default function StockEngineForm() {
           </div>
 
           {/* Save Button */}
-          <Button 
-            onClick={saveStock} 
-            className="w-full"
-          >
+          <Button onClick={saveStock} className="w-full">
             Simpan Stock
           </Button>
         </CardContent>

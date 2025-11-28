@@ -28,7 +28,15 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { FileText, Download, Calendar, AlertCircle, RefreshCw, CheckCircle, Send } from "lucide-react";
+import {
+  FileText,
+  Download,
+  Calendar,
+  AlertCircle,
+  RefreshCw,
+  CheckCircle,
+  Send,
+} from "lucide-react";
 
 interface TaxReport {
   id: string;
@@ -156,11 +164,20 @@ export default function TaxReportManagement() {
         const { data: purchases } = await supabase
           .from("purchase_requests")
           .select("total_amount, ppn_amount, pph_amount")
-          .gte("created_at", `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`)
-          .lt("created_at", `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`);
+          .gte(
+            "created_at",
+            `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`,
+          )
+          .lt(
+            "created_at",
+            `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`,
+          );
 
         purchases?.forEach((p) => {
-          const dpp = Number(p.total_amount || 0) - Number(p.ppn_amount || 0) - Number(p.pph_amount || 0);
+          const dpp =
+            Number(p.total_amount || 0) -
+            Number(p.ppn_amount || 0) -
+            Number(p.pph_amount || 0);
           totalDPP += dpp;
           totalPPN += Number(p.ppn_amount || 0);
           totalPPH += Number(p.pph_amount || 0);
@@ -169,8 +186,14 @@ export default function TaxReportManagement() {
         const { data: sales } = await supabase
           .from("sales_transactions")
           .select("subtotal, ppn_amount, pph_amount")
-          .gte("transaction_date", `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`)
-          .lt("transaction_date", `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`);
+          .gte(
+            "transaction_date",
+            `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`,
+          )
+          .lt(
+            "transaction_date",
+            `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`,
+          );
 
         sales?.forEach((s) => {
           totalDPP += Number(s.subtotal || 0);
@@ -248,8 +271,18 @@ export default function TaxReportManagement() {
   };
 
   const monthNames = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
   ];
 
   const formatCurrency = (amount: number) => {
@@ -264,7 +297,9 @@ export default function TaxReportManagement() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Manajemen Perpajakan</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Manajemen Perpajakan
+          </h1>
           <p className="text-gray-600 mt-2">
             Kelola laporan pajak masukan, keluaran, SPT, dan upload coretax
           </p>
@@ -282,14 +317,19 @@ export default function TaxReportManagement() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {taxSettings.map((setting) => (
                 <div key={setting.id} className="bg-white p-3 rounded-lg">
-                  <p className="text-sm font-medium text-gray-700">{setting.tax_type}</p>
-                  <p className="text-2xl font-bold text-blue-600">{setting.rate}%</p>
+                  <p className="text-sm font-medium text-gray-700">
+                    {setting.tax_type}
+                  </p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {setting.rate}%
+                  </p>
                   <p className="text-xs text-gray-500">{setting.description}</p>
                 </div>
               ))}
             </div>
             <p className="text-xs text-gray-600 mt-3">
-              ℹ️ Tarif pajak akan otomatis diupdate sesuai peraturan terbaru dari database
+              ℹ️ Tarif pajak akan otomatis diupdate sesuai peraturan terbaru
+              dari database
             </p>
           </CardContent>
         </Card>
@@ -317,12 +357,14 @@ export default function TaxReportManagement() {
                           {reminder.reminder_type}
                         </p>
                         <p className="text-sm text-gray-600">
-                          Periode: {monthNames[reminder.period_month - 1]} {reminder.period_year}
+                          Periode: {monthNames[reminder.period_month - 1]}{" "}
+                          {reminder.period_year}
                         </p>
                       </div>
                     </div>
                     <Badge variant="destructive">
-                      Jatuh Tempo: {new Date(reminder.due_date).toLocaleDateString("id-ID")}
+                      Jatuh Tempo:{" "}
+                      {new Date(reminder.due_date).toLocaleDateString("id-ID")}
                     </Badge>
                   </div>
                 ))}
@@ -349,7 +391,9 @@ export default function TaxReportManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Pajak Masukan">Pajak Masukan</SelectItem>
-                    <SelectItem value="Pajak Keluaran">Pajak Keluaran</SelectItem>
+                    <SelectItem value="Pajak Keluaran">
+                      Pajak Keluaran
+                    </SelectItem>
                     <SelectItem value="SPT Masa PPN">SPT Masa PPN</SelectItem>
                     <SelectItem value="SPT Tahunan">SPT Tahunan</SelectItem>
                   </SelectContent>
@@ -385,7 +429,11 @@ export default function TaxReportManagement() {
               </div>
 
               <div className="flex items-end">
-                <Button onClick={generateReport} disabled={loading} className="w-full">
+                <Button
+                  onClick={generateReport}
+                  disabled={loading}
+                  className="w-full"
+                >
                   {loading ? "Generating..." : "Generate Laporan"}
                 </Button>
               </div>
@@ -420,7 +468,9 @@ export default function TaxReportManagement() {
               <TableBody>
                 {taxReports.map((report) => (
                   <TableRow key={report.id}>
-                    <TableCell className="font-medium">{report.report_type}</TableCell>
+                    <TableCell className="font-medium">
+                      {report.report_type}
+                    </TableCell>
                     <TableCell>
                       {monthNames[report.period_month - 1]} {report.period_year}
                     </TableCell>
@@ -439,8 +489,8 @@ export default function TaxReportManagement() {
                           report.status === "Approved"
                             ? "default"
                             : report.status === "Submitted"
-                            ? "secondary"
-                            : "outline"
+                              ? "secondary"
+                              : "outline"
                         }
                       >
                         {report.status}
@@ -452,7 +502,9 @@ export default function TaxReportManagement() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => updateReportStatus(report.id, "Submitted")}
+                            onClick={() =>
+                              updateReportStatus(report.id, "Submitted")
+                            }
                             className="text-blue-600 hover:text-blue-700"
                           >
                             <Send className="h-4 w-4 mr-1" />
@@ -463,14 +515,16 @@ export default function TaxReportManagement() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => updateReportStatus(report.id, "Approved")}
+                            onClick={() =>
+                              updateReportStatus(report.id, "Approved")
+                            }
                             className="text-green-600 hover:text-green-700"
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
                             Approve
                           </Button>
                         )}
-                        
+
                         <Button
                           size="sm"
                           variant="ghost"

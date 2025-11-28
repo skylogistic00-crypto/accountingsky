@@ -712,10 +712,12 @@ export default function StockForm() {
 
       if (error) throw error;
 
-      const uniqueCategories = [...new Set(data?.map(b => b.jenis_barang).filter(Boolean) || [])];
-      
+      const uniqueCategories = [
+        ...new Set(data?.map((b) => b.jenis_barang).filter(Boolean) || []),
+      ];
+
       setCategories(uniqueCategories);
-      
+
       if (uniqueCategories.length > 0) {
         toast({
           title: "Jenis Barang Loaded",
@@ -739,7 +741,10 @@ export default function StockForm() {
   };
 
   // Fetch brands filtered by item name and jenis_barang from stock table
-  const fetchBrandsByItemAndCategory = async (itemName: string, category: string) => {
+  const fetchBrandsByItemAndCategory = async (
+    itemName: string,
+    category: string,
+  ) => {
     try {
       const { data, error } = await supabase
         .from("stock")
@@ -751,10 +756,12 @@ export default function StockForm() {
 
       if (error) throw error;
 
-      const uniqueBrands = [...new Set(data?.map(b => b.brand).filter(Boolean) || [])];
-      
+      const uniqueBrands = [
+        ...new Set(data?.map((b) => b.brand).filter(Boolean) || []),
+      ];
+
       setBrandList(uniqueBrands);
-      
+
       if (uniqueBrands.length > 0) {
         toast({
           title: "Brand Filter Applied",
@@ -915,15 +922,15 @@ export default function StockForm() {
         .order("item_name");
 
       if (error) throw error;
-      
+
       // Create unique list of item names
       const uniqueItems = Array.from(
-        new Set(data?.map((item) => item.item_name) || [])
+        new Set(data?.map((item) => item.item_name) || []),
       ).map((name, index) => ({
         id: index.toString(),
         item_name: name,
       }));
-      
+
       setItemNameList(uniqueItems);
     } catch (error: any) {
       toast({
@@ -945,7 +952,7 @@ export default function StockForm() {
 
       if (error) throw error;
 
-      const uniqueBrands = [...new Set(data?.map(b => b.brand) || [])];
+      const uniqueBrands = [...new Set(data?.map((b) => b.brand) || [])];
       setBrandList(uniqueBrands);
     } catch (error: any) {
       toast({
@@ -968,11 +975,13 @@ export default function StockForm() {
 
       if (error) throw error;
 
-      const uniqueBrands = [...new Set(data?.map(b => b.brand).filter(Boolean) || [])];
-      
+      const uniqueBrands = [
+        ...new Set(data?.map((b) => b.brand).filter(Boolean) || []),
+      ];
+
       // Always set the filtered brands, even if empty
       setBrandList(uniqueBrands);
-      
+
       if (uniqueBrands.length > 0) {
         toast({
           title: "Brand Filter Applied",
@@ -999,7 +1008,7 @@ export default function StockForm() {
   const autoPopulateFields = async (itemName: string, brand: string) => {
     try {
       console.log("🔍 Auto-populate called with:", { itemName, brand });
-      
+
       // Fetch stock data with matching item_name and brand
       const { data, error } = await supabase
         .from("stock")
@@ -1027,7 +1036,7 @@ export default function StockForm() {
           coa_account_code: data.coa_account_code,
           coa_account_name: data.coa_account_name,
         });
-        
+
         // Force update with explicit values from stock
         const newFormData = {
           ...formData,
@@ -1041,7 +1050,7 @@ export default function StockForm() {
           description: data.description || "",
           sku: data.sku || "",
         };
-        
+
         console.log("🔄 Setting new form data:", newFormData);
         setFormData(newFormData);
 
@@ -1053,7 +1062,7 @@ export default function StockForm() {
 
         toast({
           title: "✅ Auto-populated",
-          description: `${data.service_category || '-'} - ${data.service_type || '-'} | Satuan: ${data.unit || '-'}`,
+          description: `${data.service_category || "-"} - ${data.service_type || "-"} | Satuan: ${data.unit || "-"}`,
         });
       } else {
         console.warn("⚠️ No data returned from query");
@@ -1208,8 +1217,7 @@ export default function StockForm() {
           if (!dataToSubmit.coa_account_name) {
             toast({
               title: "⚠️ Nama Akun COA Kosong",
-              description:
-                "Silakan isi Nama Akun COA untuk kode akun baru ini",
+              description: "Silakan isi Nama Akun COA untuk kode akun baru ini",
               variant: "destructive",
             });
             setLoading(false);
@@ -1264,7 +1272,9 @@ export default function StockForm() {
           description: `Data ${itemType === "jasa" ? "jasa" : "stock"} berhasil diupdate`,
         });
       } else {
-        const { error } = await supabase.from(targetTable).insert([dataToSubmit]);
+        const { error } = await supabase
+          .from(targetTable)
+          .insert([dataToSubmit]);
 
         if (error) throw error;
 
@@ -1711,7 +1721,9 @@ export default function StockForm() {
                   </h3>
                   {/* Row 1: Item Name */}
                   <div>
-                    <Label>Nama {itemType === "barang" ? "Barang" : "Jasa"} *</Label>
+                    <Label>
+                      Nama {itemType === "barang" ? "Barang" : "Jasa"} *
+                    </Label>
                     {formData.isManualItem ? (
                       <div className="flex gap-2">
                         <Input
@@ -1788,7 +1800,10 @@ export default function StockForm() {
                           });
                           // Fetch brands specific to this item and category
                           if (formData.item_name) {
-                            fetchBrandsByItemAndCategory(formData.item_name, value);
+                            fetchBrandsByItemAndCategory(
+                              formData.item_name,
+                              value,
+                            );
                           }
                         }}
                       >
@@ -1839,7 +1854,12 @@ export default function StockForm() {
                         <Select
                           value={formData.brand}
                           onValueChange={(value) => {
-                            console.log("🎯 Brand selected:", value, "Item name:", formData.item_name);
+                            console.log(
+                              "🎯 Brand selected:",
+                              value,
+                              "Item name:",
+                              formData.item_name,
+                            );
                             if (value === "manual") {
                               setFormData({
                                 ...formData,
@@ -1852,11 +1872,16 @@ export default function StockForm() {
                                 brand: value,
                               });
                               // Auto-populate fields when item name, category and brand are selected
-                              if (formData.item_name && formData.service_category) {
+                              if (
+                                formData.item_name &&
+                                formData.service_category
+                              ) {
                                 console.log("🚀 Calling autoPopulateFields...");
                                 autoPopulateFields(formData.item_name, value);
                               } else {
-                                console.warn("⚠️ Item name or category not selected yet");
+                                console.warn(
+                                  "⚠️ Item name or category not selected yet",
+                                );
                               }
                             }
                           }}
@@ -1865,7 +1890,9 @@ export default function StockForm() {
                             <SelectValue placeholder="Pilih brand" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="manual">+ Input Manual</SelectItem>
+                            <SelectItem value="manual">
+                              + Input Manual
+                            </SelectItem>
                             {brandList.map((brandName) => (
                               <SelectItem key={brandName} value={brandName}>
                                 {brandName}
@@ -2073,7 +2100,9 @@ export default function StockForm() {
                                 className="bg-slate-50"
                               />
                               <p className="text-xs text-slate-500 mt-1">
-                                {formatRupiah(formData.purchase_price_after_ppn)}
+                                {formatRupiah(
+                                  formData.purchase_price_after_ppn,
+                                )}
                               </p>
                             </div>
 
@@ -2637,94 +2666,112 @@ export default function StockForm() {
                   </TableRow>
                 ) : (
                   filteredItems
-                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .slice(
+                      (currentPage - 1) * itemsPerPage,
+                      currentPage * itemsPerPage,
+                    )
                     .map((item, index) => (
-                    <TableRow
-                      key={item.id}
-                      className={`${
-                        index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
-                      } hover:bg-indigo-50 transition-colors border-b border-slate-100`}
-                    >
-                      <TableCell className="font-medium text-slate-900">
-                        {item.item_name}
-                      </TableCell>
-                      <TableCell className="font-mono text-indigo-600">
-                        {item.sku}
-                      </TableCell>
-                      <TableCell className="text-slate-700">
-                        {item.item_arrival_date
-                          ? new Date(item.item_arrival_date).toLocaleDateString(
-                              "id-ID",
-                            )
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-slate-700">
-                        {item.warehouses || "-"}
-                      </TableCell>
-                      <TableCell className="text-slate-700">
-                        {item.racks || "-"}
-                      </TableCell>
-                      <TableCell className="text-slate-700">
-                        {item.lots || "-"}
-                      </TableCell>
-                      <TableCell className="text-slate-700">
-                        {item.item_quantity}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-center gap-2">
-                          <DetailDialog item={item} />
-                          {canView(userRole) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(item.id)}
-                            >
-                              <Pencil className="w-4 h-4 text-blue-600" />
-                            </Button>
-                          )}
-                          {canDelete(userRole) && (
-                            <>
+                      <TableRow
+                        key={item.id}
+                        className={`${
+                          index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                        } hover:bg-indigo-50 transition-colors border-b border-slate-100`}
+                      >
+                        <TableCell className="font-medium text-slate-900">
+                          {item.item_name}
+                        </TableCell>
+                        <TableCell className="font-mono text-indigo-600">
+                          {item.sku}
+                        </TableCell>
+                        <TableCell className="text-slate-700">
+                          {item.item_arrival_date
+                            ? new Date(
+                                item.item_arrival_date,
+                              ).toLocaleDateString("id-ID")
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="text-slate-700">
+                          {item.warehouses || "-"}
+                        </TableCell>
+                        <TableCell className="text-slate-700">
+                          {item.racks || "-"}
+                        </TableCell>
+                        <TableCell className="text-slate-700">
+                          {item.lots || "-"}
+                        </TableCell>
+                        <TableCell className="text-slate-700">
+                          {item.item_quantity}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center gap-2">
+                            <DetailDialog item={item} />
+                            {canView(userRole) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDelete(item.id)}
+                                onClick={() => handleEdit(item.id)}
                               >
-                                <Trash2 className="w-4 h-4 text-red-600" />
+                                <Pencil className="w-4 h-4 text-blue-600" />
                               </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            )}
+                            {canDelete(userRole) && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete(item.id)}
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
                 )}
               </TableBody>
             </Table>
           </div>
-          
+
           {/* Pagination Controls */}
           {filteredItems.length > 0 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200">
               <div className="text-sm text-slate-600">
-                Menampilkan {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredItems.length)} dari {filteredItems.length} item
+                Menampilkan {(currentPage - 1) * itemsPerPage + 1} -{" "}
+                {Math.min(currentPage * itemsPerPage, filteredItems.length)}{" "}
+                dari {filteredItems.length} item
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
                   disabled={currentPage === 1}
                 >
                   Previous
                 </Button>
                 <div className="text-sm text-slate-600">
-                  Halaman {currentPage} dari {Math.ceil(filteredItems.length / itemsPerPage)}
+                  Halaman {currentPage} dari{" "}
+                  {Math.ceil(filteredItems.length / itemsPerPage)}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredItems.length / itemsPerPage), prev + 1))}
-                  disabled={currentPage >= Math.ceil(filteredItems.length / itemsPerPage)}
+                  onClick={() =>
+                    setCurrentPage((prev) =>
+                      Math.min(
+                        Math.ceil(filteredItems.length / itemsPerPage),
+                        prev + 1,
+                      ),
+                    )
+                  }
+                  disabled={
+                    currentPage >=
+                    Math.ceil(filteredItems.length / itemsPerPage)
+                  }
                 >
                   Next
                 </Button>

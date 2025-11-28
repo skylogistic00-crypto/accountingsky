@@ -62,7 +62,13 @@ import PurchaseRequestForm from "./PurchaseRequestForm";
 import Header from "./Header";
 import Navigation from "./Navigation";
 import { useNavigate } from "react-router-dom";
-import { canClick, canDelete, canEdit, canApprovePR, canCompletePR } from "@/utils/roleAccess";
+import {
+  canClick,
+  canDelete,
+  canEdit,
+  canApprovePR,
+  canCompletePR,
+} from "@/utils/roleAccess";
 
 interface PurchaseRequest {
   request_date: string;
@@ -93,7 +99,9 @@ export default function PurchaseRequestList() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [showWarehouseDialog, setShowWarehouseDialog] = useState(false);
-  const [selectedRequestCode, setSelectedRequestCode] = useState<string | null>(null);
+  const [selectedRequestCode, setSelectedRequestCode] = useState<string | null>(
+    null,
+  );
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
   const [warehouses, setWarehouses] = useState<any[]>([]);
 
@@ -226,7 +234,8 @@ export default function PurchaseRequestList() {
     if (!canApprovePR(userRole)) {
       toast({
         title: "Akses Ditolak",
-        description: "Anda tidak memiliki akses untuk approve/reject purchase request",
+        description:
+          "Anda tidak memiliki akses untuk approve/reject purchase request",
         variant: "destructive",
       });
       return;
@@ -263,7 +272,8 @@ export default function PurchaseRequestList() {
     if (!canCompletePR(userRole)) {
       toast({
         title: "Akses Ditolak",
-        description: "Anda tidak memiliki akses untuk complete purchase request",
+        description:
+          "Anda tidak memiliki akses untuk complete purchase request",
         variant: "destructive",
       });
       return;
@@ -300,7 +310,8 @@ export default function PurchaseRequestList() {
 
       toast({
         title: "Success",
-        description: "Request completed dan barang akan masuk ke gudang yang dipilih",
+        description:
+          "Request completed dan barang akan masuk ke gudang yang dipilih",
       });
 
       await fetchRequests();
@@ -344,7 +355,8 @@ export default function PurchaseRequestList() {
       return;
     }
 
-    if (!confirm("Apakah Anda yakin ingin menghapus purchase request ini?")) return;
+    if (!confirm("Apakah Anda yakin ingin menghapus purchase request ini?"))
+      return;
 
     try {
       const { error } = await supabase
@@ -775,7 +787,7 @@ export default function PurchaseRequestList() {
                           >
                             <Pencil className="w-4 h-4 text-orange-600" />
                           </Button>
-                          
+
                           <Button
                             variant="ghost"
                             size="sm"
@@ -816,11 +828,15 @@ export default function PurchaseRequestList() {
           <DialogHeader>
             <DialogTitle>Pilih Gudang Tujuan</DialogTitle>
             <DialogDescription>
-              Pilih gudang dimana barang akan disimpan setelah purchase request completed
+              Pilih gudang dimana barang akan disimpan setelah purchase request
+              completed
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+            <Select
+              value={selectedWarehouseId}
+              onValueChange={setSelectedWarehouseId}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Pilih gudang..." />
               </SelectTrigger>

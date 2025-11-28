@@ -81,7 +81,7 @@ export default function BarangLini2() {
         { event: "*", schema: "public", table: "barang_lini_2" },
         () => {
           fetchItems();
-        }
+        },
       )
       .subscribe();
 
@@ -115,17 +115,29 @@ export default function BarangLini2() {
         awb: formData.awb || null,
         item_arrival_date: formData.item_arrival_date || null,
         item_arrival_date_lini_2: formData.item_arrival_date_lini_2 || null,
-        storage_duration_lini_2: formData.storage_duration_lini_2 ? parseInt(formData.storage_duration_lini_2) : null,
-        total_price: formData.total_price ? parseFloat(formData.total_price) : null,
-        total_price_lini_2: formData.total_price_lini_2 ? parseFloat(formData.total_price_lini_2) : null,
-        final_price: formData.final_price ? parseFloat(formData.final_price) : null,
-        item_quantity: formData.item_quantity ? parseFloat(formData.item_quantity) : null,
+        storage_duration_lini_2: formData.storage_duration_lini_2
+          ? parseInt(formData.storage_duration_lini_2)
+          : null,
+        total_price: formData.total_price
+          ? parseFloat(formData.total_price)
+          : null,
+        total_price_lini_2: formData.total_price_lini_2
+          ? parseFloat(formData.total_price_lini_2)
+          : null,
+        final_price: formData.final_price
+          ? parseFloat(formData.final_price)
+          : null,
+        item_quantity: formData.item_quantity
+          ? parseFloat(formData.item_quantity)
+          : null,
         unit: formData.unit || null,
         warehouses: formData.warehouses || null,
         zones: formData.zones || null,
         racks: formData.racks || null,
         lots: formData.lots || null,
-        tgl_masuk: formData.item_arrival_date_lini_2 || new Date().toISOString().split("T")[0],
+        tgl_masuk:
+          formData.item_arrival_date_lini_2 ||
+          new Date().toISOString().split("T")[0],
       } as any;
 
       const { error } = await supabase.from("barang_lini_2").insert(itemData);
@@ -181,7 +193,9 @@ export default function BarangLini2() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Barang Lini 2</h1>
-              <p className="text-sm text-blue-100">Kelola data barang di Lini 2</p>
+              <p className="text-sm text-blue-100">
+                Kelola data barang di Lini 2
+              </p>
             </div>
           </div>
         </div>
@@ -193,12 +207,19 @@ export default function BarangLini2() {
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Daftar Barang Lini 2</h2>
-                <p className="text-sm text-slate-500 mt-1">Informasi barang yang ada di Lini 2</p>
+                <h2 className="text-xl font-bold text-slate-800">
+                  Daftar Barang Lini 2
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Informasi barang yang ada di Lini 2
+                </p>
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={resetForm} className="bg-blue-600 hover:bg-blue-700">
+                  <Button
+                    onClick={resetForm}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Tambah Barang Lini 2
                   </Button>
@@ -227,7 +248,10 @@ export default function BarangLini2() {
                           id="item_name"
                           value={formData.item_name}
                           onChange={(e) =>
-                            setFormData({ ...formData, item_name: e.target.value })
+                            setFormData({
+                              ...formData,
+                              item_name: e.target.value,
+                            })
                           }
                           required
                         />
@@ -265,62 +289,87 @@ export default function BarangLini2() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="item_arrival_date">Tanggal Masuk (Lini 1)</Label>
+                        <Label htmlFor="item_arrival_date">
+                          Tanggal Masuk (Lini 1)
+                        </Label>
                         <Input
                           id="item_arrival_date"
                           type="date"
                           value={formData.item_arrival_date}
                           onChange={(e) =>
-                            setFormData({ ...formData, item_arrival_date: e.target.value })
+                            setFormData({
+                              ...formData,
+                              item_arrival_date: e.target.value,
+                            })
                           }
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="item_arrival_date_lini_2">Tanggal Masuk Lini 2 *</Label>
+                        <Label htmlFor="item_arrival_date_lini_2">
+                          Tanggal Masuk Lini 2 *
+                        </Label>
                         <Input
                           id="item_arrival_date_lini_2"
                           type="date"
                           value={formData.item_arrival_date_lini_2}
                           onChange={(e) =>
-                            setFormData({ ...formData, item_arrival_date_lini_2: e.target.value })
+                            setFormData({
+                              ...formData,
+                              item_arrival_date_lini_2: e.target.value,
+                            })
                           }
                           required
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="storage_duration_lini_2">Lama Simpan Lini 2 (hari)</Label>
+                        <Label htmlFor="storage_duration_lini_2">
+                          Lama Simpan Lini 2 (hari)
+                        </Label>
                         <Input
                           id="storage_duration_lini_2"
                           type="number"
                           value={formData.storage_duration_lini_2}
                           onChange={(e) =>
-                            setFormData({ ...formData, storage_duration_lini_2: e.target.value })
+                            setFormData({
+                              ...formData,
+                              storage_duration_lini_2: e.target.value,
+                            })
                           }
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="total_price">Harga Total (Lini 1)</Label>
+                        <Label htmlFor="total_price">
+                          Harga Total (Lini 1)
+                        </Label>
                         <Input
                           id="total_price"
                           type="number"
                           value={formData.total_price}
                           onChange={(e) =>
-                            setFormData({ ...formData, total_price: e.target.value })
+                            setFormData({
+                              ...formData,
+                              total_price: e.target.value,
+                            })
                           }
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="total_price_lini_2">Harga Total Lini 2</Label>
+                        <Label htmlFor="total_price_lini_2">
+                          Harga Total Lini 2
+                        </Label>
                         <Input
                           id="total_price_lini_2"
                           type="number"
                           value={formData.total_price_lini_2}
                           onChange={(e) =>
-                            setFormData({ ...formData, total_price_lini_2: e.target.value })
+                            setFormData({
+                              ...formData,
+                              total_price_lini_2: e.target.value,
+                            })
                           }
                         />
                       </div>
@@ -332,7 +381,10 @@ export default function BarangLini2() {
                           type="number"
                           value={formData.final_price}
                           onChange={(e) =>
-                            setFormData({ ...formData, final_price: e.target.value })
+                            setFormData({
+                              ...formData,
+                              final_price: e.target.value,
+                            })
                           }
                         />
                       </div>
@@ -344,7 +396,10 @@ export default function BarangLini2() {
                           type="number"
                           value={formData.item_quantity}
                           onChange={(e) =>
-                            setFormData({ ...formData, item_quantity: e.target.value })
+                            setFormData({
+                              ...formData,
+                              item_quantity: e.target.value,
+                            })
                           }
                         />
                       </div>
@@ -366,7 +421,10 @@ export default function BarangLini2() {
                           id="warehouses"
                           value={formData.warehouses}
                           onChange={(e) =>
-                            setFormData({ ...formData, warehouses: e.target.value })
+                            setFormData({
+                              ...formData,
+                              warehouses: e.target.value,
+                            })
                           }
                         />
                       </div>
@@ -416,7 +474,10 @@ export default function BarangLini2() {
                       >
                         Batal
                       </Button>
-                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                      <Button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
                         Simpan
                       </Button>
                     </div>
@@ -429,71 +490,136 @@ export default function BarangLini2() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-100 to-blue-100 hover:from-slate-100 hover:to-blue-100">
-                    <TableHead className="font-semibold text-slate-700">SKU</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Status</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Nama Barang</TableHead>
-                    <TableHead className="font-semibold text-slate-700">AWB</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Tgl Masuk (L1)</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Tgl Masuk L2</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Lama Simpan L2</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Harga Total (L1)</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Harga Total L2</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Harga Final</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Jumlah</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Satuan</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Gudang</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Zona</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Rak</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Lot</TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      SKU
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Status
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Nama Barang
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      AWB
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Tgl Masuk (L1)
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Tgl Masuk L2
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Lama Simpan L2
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Harga Total (L1)
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Harga Total L2
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Harga Final
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Jumlah
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Satuan
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Gudang
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Zona
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Rak
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Lot
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={16} className="text-center text-slate-500 py-12">
+                      <TableCell
+                        colSpan={16}
+                        className="text-center text-slate-500 py-12"
+                      >
                         <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
                           <Package className="h-12 w-12 text-slate-300" />
                         </div>
-                        <p className="font-medium text-lg">Belum ada data barang Lini 2</p>
-                        <p className="text-sm text-slate-400 mt-1">Klik tombol "Tambah Barang Lini 2" untuk menambahkan data</p>
+                        <p className="font-medium text-lg">
+                          Belum ada data barang Lini 2
+                        </p>
+                        <p className="text-sm text-slate-400 mt-1">
+                          Klik tombol "Tambah Barang Lini 2" untuk menambahkan
+                          data
+                        </p>
                       </TableCell>
                     </TableRow>
                   ) : (
                     items.map((item) => (
-                      <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
-                        <TableCell className="font-mono text-indigo-600">{item.sku}</TableCell>
+                      <TableRow
+                        key={item.id}
+                        className="hover:bg-blue-50 transition-colors"
+                      >
+                        <TableCell className="font-mono text-indigo-600">
+                          {item.sku}
+                        </TableCell>
                         <TableCell>
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${
                               item.status === "Aktif"
                                 ? "bg-green-100 text-green-800"
                                 : item.status === "Proses"
-                                ? "bg-blue-100 text-blue-800"
-                                : item.status === "Selesai"
-                                ? "bg-gray-100 text-gray-800"
-                                : "bg-purple-100 text-purple-800"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : item.status === "Selesai"
+                                    ? "bg-gray-100 text-gray-800"
+                                    : "bg-purple-100 text-purple-800"
                             }`}
                           >
                             {item.status}
                           </span>
                         </TableCell>
-                        <TableCell className="font-medium">{item.item_name || item.nama_barang}</TableCell>
+                        <TableCell className="font-medium">
+                          {item.item_name || item.nama_barang}
+                        </TableCell>
                         <TableCell>{item.awb || "-"}</TableCell>
                         <TableCell>
-                          {item.item_arrival_date 
-                            ? new Date(item.item_arrival_date).toLocaleDateString("id-ID")
+                          {item.item_arrival_date
+                            ? new Date(
+                                item.item_arrival_date,
+                              ).toLocaleDateString("id-ID")
                             : "-"}
                         </TableCell>
                         <TableCell>
-                          {item.item_arrival_date_lini_2 
-                            ? new Date(item.item_arrival_date_lini_2).toLocaleDateString("id-ID")
+                          {item.item_arrival_date_lini_2
+                            ? new Date(
+                                item.item_arrival_date_lini_2,
+                              ).toLocaleDateString("id-ID")
                             : "-"}
                         </TableCell>
-                        <TableCell>{item.storage_duration_lini_2 ? `${item.storage_duration_lini_2} hari` : "-"}</TableCell>
-                        <TableCell>{item.total_price ? `Rp ${item.total_price.toLocaleString("id-ID")}` : "-"}</TableCell>
-                        <TableCell>{item.total_price_lini_2 ? `Rp ${item.total_price_lini_2.toLocaleString("id-ID")}` : "-"}</TableCell>
+                        <TableCell>
+                          {item.storage_duration_lini_2
+                            ? `${item.storage_duration_lini_2} hari`
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {item.total_price
+                            ? `Rp ${item.total_price.toLocaleString("id-ID")}`
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {item.total_price_lini_2
+                            ? `Rp ${item.total_price_lini_2.toLocaleString("id-ID")}`
+                            : "-"}
+                        </TableCell>
                         <TableCell className="font-semibold text-green-600">
-                          {item.final_price ? `Rp ${item.final_price.toLocaleString("id-ID")}` : "-"}
+                          {item.final_price
+                            ? `Rp ${item.final_price.toLocaleString("id-ID")}`
+                            : "-"}
                         </TableCell>
                         <TableCell>{item.item_quantity || "-"}</TableCell>
                         <TableCell>{item.unit || "-"}</TableCell>

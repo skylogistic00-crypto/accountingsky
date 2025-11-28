@@ -92,12 +92,18 @@ export default function COAManagement() {
   });
 
   const [engineForm, setEngineForm] = useState({
-    type: "VEHICLE" as "VEHICLE" | "SPKLU" | "WAREHOUSE" | "DRIVER" | "BARANG" | "JASA",
+    type: "VEHICLE" as
+      | "VEHICLE"
+      | "SPKLU"
+      | "WAREHOUSE"
+      | "DRIVER"
+      | "BARANG"
+      | "JASA",
     identifier: "",
     meta: "",
     autoGenerateItem: false,
     itemName: "",
-    itemCode: ""
+    itemCode: "",
   });
   const [isEngineLoading, setIsEngineLoading] = useState(false);
 
@@ -325,7 +331,11 @@ export default function COAManagement() {
 
     try {
       // Generate item COA if checkbox is checked
-      if (engineForm.autoGenerateItem && engineForm.itemName && engineForm.itemCode) {
+      if (
+        engineForm.autoGenerateItem &&
+        engineForm.itemName &&
+        engineForm.itemCode
+      ) {
         await generateCOAForItem(engineForm.itemName, engineForm.itemCode);
         toast({
           title: "Berhasil",
@@ -337,10 +347,10 @@ export default function COAManagement() {
       const result = await COA_ENGINE(
         engineForm.type,
         engineForm.identifier,
-        engineForm.meta || undefined
+        engineForm.meta || undefined,
       );
 
-      if (result && 'message' in result && result.message) {
+      if (result && "message" in result && result.message) {
         toast({
           title: "Info",
           description: result.message,
@@ -350,13 +360,13 @@ export default function COAManagement() {
           title: "Berhasil",
           description: `COA untuk ${engineForm.type} berhasil dibuat`,
         });
-        setEngineForm({ 
-          type: "VEHICLE", 
-          identifier: "", 
+        setEngineForm({
+          type: "VEHICLE",
+          identifier: "",
           meta: "",
           autoGenerateItem: false,
           itemName: "",
-          itemCode: ""
+          itemCode: "",
         });
         fetchCoaAccounts();
       }
@@ -1051,7 +1061,8 @@ export default function COAManagement() {
                     COA Auto-Generator
                   </h2>
                   <p className="text-slate-600 text-sm">
-                    Buat COA otomatis untuk Kendaraan, SPKLU, Warehouse, atau Driver
+                    Buat COA otomatis untuk Kendaraan, SPKLU, Warehouse, atau
+                    Driver
                   </p>
                 </div>
 
@@ -1093,20 +1104,23 @@ export default function COAManagement() {
                         id="engine-identifier"
                         value={engineForm.identifier}
                         onChange={(e) =>
-                          setEngineForm({ ...engineForm, identifier: e.target.value })
+                          setEngineForm({
+                            ...engineForm,
+                            identifier: e.target.value,
+                          })
                         }
                         placeholder={
                           engineForm.type === "VEHICLE"
                             ? "B 1234 XYZ"
                             : engineForm.type === "SPKLU"
-                            ? "Jakarta Selatan"
-                            : engineForm.type === "WAREHOUSE"
-                            ? "RAK-A1"
-                            : engineForm.type === "DRIVER"
-                            ? "DRV001"
-                            : engineForm.type === "BARANG"
-                            ? "Laptop Dell XPS"
-                            : "Jasa Konsultasi"
+                              ? "Jakarta Selatan"
+                              : engineForm.type === "WAREHOUSE"
+                                ? "RAK-A1"
+                                : engineForm.type === "DRIVER"
+                                  ? "DRV001"
+                                  : engineForm.type === "BARANG"
+                                    ? "Laptop Dell XPS"
+                                    : "Jasa Konsultasi"
                         }
                         required
                       />
@@ -1114,12 +1128,17 @@ export default function COAManagement() {
 
                     {engineForm.type === "VEHICLE" && (
                       <div className="space-y-2">
-                        <Label htmlFor="engine-meta">Jenis Kendaraan (Opsional)</Label>
+                        <Label htmlFor="engine-meta">
+                          Jenis Kendaraan (Opsional)
+                        </Label>
                         <Input
                           id="engine-meta"
                           value={engineForm.meta}
                           onChange={(e) =>
-                            setEngineForm({ ...engineForm, meta: e.target.value })
+                            setEngineForm({
+                              ...engineForm,
+                              meta: e.target.value,
+                            })
                           }
                           placeholder="Truk, Mobil Box, dll"
                         />
@@ -1133,7 +1152,10 @@ export default function COAManagement() {
                           id="engine-meta"
                           value={engineForm.meta}
                           onChange={(e) =>
-                            setEngineForm({ ...engineForm, meta: e.target.value })
+                            setEngineForm({
+                              ...engineForm,
+                              meta: e.target.value,
+                            })
                           }
                           placeholder="Nama lengkap driver"
                           required
@@ -1141,18 +1163,26 @@ export default function COAManagement() {
                       </div>
                     )}
 
-                    {(engineForm.type === "BARANG" || engineForm.type === "JASA") && (
+                    {(engineForm.type === "BARANG" ||
+                      engineForm.type === "JASA") && (
                       <div className="space-y-2">
                         <Label htmlFor="engine-meta">
-                          {engineForm.type === "BARANG" ? "Kode Barang" : "Kode Jasa"}
+                          {engineForm.type === "BARANG"
+                            ? "Kode Barang"
+                            : "Kode Jasa"}
                         </Label>
                         <Input
                           id="engine-meta"
                           value={engineForm.meta}
                           onChange={(e) =>
-                            setEngineForm({ ...engineForm, meta: e.target.value })
+                            setEngineForm({
+                              ...engineForm,
+                              meta: e.target.value,
+                            })
                           }
-                          placeholder={engineForm.type === "BARANG" ? "BRG001" : "JSA001"}
+                          placeholder={
+                            engineForm.type === "BARANG" ? "BRG001" : "JSA001"
+                          }
                           required
                         />
                       </div>
@@ -1166,10 +1196,16 @@ export default function COAManagement() {
                         id="auto-generate-item"
                         checked={engineForm.autoGenerateItem}
                         onCheckedChange={(checked) =>
-                          setEngineForm({ ...engineForm, autoGenerateItem: checked as boolean })
+                          setEngineForm({
+                            ...engineForm,
+                            autoGenerateItem: checked as boolean,
+                          })
                         }
                       />
-                      <Label htmlFor="auto-generate-item" className="font-semibold">
+                      <Label
+                        htmlFor="auto-generate-item"
+                        className="font-semibold"
+                      >
                         Buat COA untuk Item/Barang secara otomatis
                       </Label>
                     </div>
@@ -1182,7 +1218,10 @@ export default function COAManagement() {
                             id="item-name"
                             value={engineForm.itemName}
                             onChange={(e) =>
-                              setEngineForm({ ...engineForm, itemName: e.target.value })
+                              setEngineForm({
+                                ...engineForm,
+                                itemName: e.target.value,
+                              })
                             }
                             placeholder="Contoh: Laptop Dell XPS"
                             required={engineForm.autoGenerateItem}
@@ -1195,7 +1234,10 @@ export default function COAManagement() {
                             id="item-code"
                             value={engineForm.itemCode}
                             onChange={(e) =>
-                              setEngineForm({ ...engineForm, itemCode: e.target.value })
+                              setEngineForm({
+                                ...engineForm,
+                                itemCode: e.target.value,
+                              })
                             }
                             placeholder="Contoh: LPT001"
                             required={engineForm.autoGenerateItem}
@@ -1207,10 +1249,17 @@ export default function COAManagement() {
                             COA Item yang akan dibuat:
                           </p>
                           <ul className="text-xs text-green-700 space-y-1">
-                            <li>• Pendapatan {engineForm.itemName || "Item"}</li>
+                            <li>
+                              • Pendapatan {engineForm.itemName || "Item"}
+                            </li>
                             <li>• HPP {engineForm.itemName || "Item"}</li>
-                            <li>• Beban Komisi {engineForm.itemName || "Item"}</li>
-                            <li>• Beban Operasional {engineForm.itemName || "Item"}</li>
+                            <li>
+                              • Beban Komisi {engineForm.itemName || "Item"}
+                            </li>
+                            <li>
+                              • Beban Operasional{" "}
+                              {engineForm.itemName || "Item"}
+                            </li>
                           </ul>
                         </div>
                       </div>

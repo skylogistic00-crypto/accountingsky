@@ -93,7 +93,9 @@ export default function SalesForm() {
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [coaAccounts, setCOAAccounts] = useState<COAAccount[]>([]);
-  const [salesTransactions, setSalesTransactions] = useState<SalesTransaction[]>([]);
+  const [salesTransactions, setSalesTransactions] = useState<
+    SalesTransaction[]
+  >([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false);
@@ -304,14 +306,14 @@ export default function SalesForm() {
     if (data) {
       // Get COA account name if only code is available
       let coaAccountName = data.coa_account_name || "";
-      
+
       if (data.coa_account_code && !coaAccountName) {
         const { data: coaData } = await supabase
           .from("chart_of_accounts")
           .select("account_name")
           .eq("account_code", data.coa_account_code)
           .single();
-        
+
         coaAccountName = coaData?.account_name || "";
       }
 
@@ -833,8 +835,8 @@ export default function SalesForm() {
                   Form Penjualan Barang & Jasa
                 </CardTitle>
                 <CardDescription>
-                  Catat transaksi penjualan barang atau jasa dengan otomatis update
-                  stok dan jurnal
+                  Catat transaksi penjualan barang atau jasa dengan otomatis
+                  update stok dan jurnal
                 </CardDescription>
               </div>
               <Button
@@ -846,345 +848,346 @@ export default function SalesForm() {
               </Button>
             </div>
           </CardHeader>
-        <CardContent className="p-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Grid 2 Columns with gap-3 */}
-            <div className="grid md:grid-cols-2 gap-3">
-              {/* Tanggal Transaksi */}
-              <div className="space-y-2">
-                <Label htmlFor="transaction_date">Tanggal Transaksi *</Label>
-                <Input
-                  id="transaction_date"
-                  type="date"
-                  value={formData.transaction_date}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      transaction_date: e.target.value,
-                    })
-                  }
-                  required
-                  className="border"
-                />
-              </div>
-
-              {/* Jenis Penjualan */}
-              <div className="space-y-2">
-                <Label htmlFor="transaction_type">Jenis Penjualan *</Label>
-                <Select
-                  value={formData.transaction_type}
-                  onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      transaction_type: value,
-                      item_id: "",
-                      item_name: "",
-                      stock_current: 0,
-                      quantity: 0,
-                      unit_price: 0,
-                    })
-                  }
-                >
-                  <SelectTrigger id="transaction_type" className="border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Barang">Barang</SelectItem>
-                    <SelectItem value="Jasa">Jasa</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Nama Barang/Jasa */}
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="item_id">
-                  Nama{" "}
-                  {formData.transaction_type === "Barang" ? "Barang" : "Jasa"} *
-                </Label>
-                {formData.transaction_type === "Barang" ? (
-                  <Select
-                    value={formData.item_id}
-                    onValueChange={handleItemChange}
-                  >
-                    <SelectTrigger id="item_id" className="border">
-                      <SelectValue placeholder="Pilih barang..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {items.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.item_name} (Stok: {item.quantity})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Select
-                    value={formData.item_id}
-                    onValueChange={handleServiceChange}
-                  >
-                    <SelectTrigger id="item_id" className="border">
-                      <SelectValue placeholder="Pilih jasa..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {serviceItems.map((service) => (
-                        <SelectItem key={service.id} value={service.id}>
-                          {service.item_name} - {formatRupiah(service.price)}/
-                          {service.unit}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-
-              {/* Stok Saat Ini (only for Barang) */}
-              {formData.transaction_type === "Barang" && (
+          <CardContent className="p-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Grid 2 Columns with gap-3 */}
+              <div className="grid md:grid-cols-2 gap-3">
+                {/* Tanggal Transaksi */}
                 <div className="space-y-2">
-                  <Label htmlFor="stock_current">Stok Saat Ini</Label>
+                  <Label htmlFor="transaction_date">Tanggal Transaksi *</Label>
                   <Input
-                    id="stock_current"
-                    type="number"
-                    value={formData.stock_current}
-                    readOnly
-                    className="bg-gray-100 border"
+                    id="transaction_date"
+                    type="date"
+                    value={formData.transaction_date}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        transaction_date: e.target.value,
+                      })
+                    }
+                    required
+                    className="border"
                   />
                 </div>
-              )}
 
-              {/* Quantity */}
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity *</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="1"
-                  value={formData.quantity || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      quantity: Number(e.target.value) || 0,
-                    })
-                  }
-                  required
-                  className="border"
-                />
-              </div>
-
-              {/* Stok Akhir (only for Barang) */}
-              {formData.transaction_type === "Barang" && (
+                {/* Jenis Penjualan */}
                 <div className="space-y-2">
-                  <Label htmlFor="stock_after">Stok Akhir</Label>
-                  <div className="relative">
-                    <Input
-                      id="stock_after"
-                      type="number"
-                      value={formData.stock_after}
-                      readOnly
-                      className={`bg-gray-100 border ${
-                        formData.stock_after < 0
-                          ? "border-red-500 text-red-600"
-                          : ""
-                      }`}
-                    />
-                    {formData.stock_after < 0 && (
-                      <AlertCircle className="absolute right-3 top-2.5 h-5 w-5 text-red-500" />
-                    )}
-                  </div>
-                  {stockWarning && (
-                    <div className="bg-red-100 text-red-600 px-3 py-2 rounded-md text-sm font-medium border border-red-300">
-                      {stockWarning}
-                    </div>
+                  <Label htmlFor="transaction_type">Jenis Penjualan *</Label>
+                  <Select
+                    value={formData.transaction_type}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        transaction_type: value,
+                        item_id: "",
+                        item_name: "",
+                        stock_current: 0,
+                        quantity: 0,
+                        unit_price: 0,
+                      })
+                    }
+                  >
+                    <SelectTrigger id="transaction_type" className="border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Barang">Barang</SelectItem>
+                      <SelectItem value="Jasa">Jasa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Nama Barang/Jasa */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="item_id">
+                    Nama{" "}
+                    {formData.transaction_type === "Barang" ? "Barang" : "Jasa"}{" "}
+                    *
+                  </Label>
+                  {formData.transaction_type === "Barang" ? (
+                    <Select
+                      value={formData.item_id}
+                      onValueChange={handleItemChange}
+                    >
+                      <SelectTrigger id="item_id" className="border">
+                        <SelectValue placeholder="Pilih barang..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {items.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.item_name} (Stok: {item.quantity})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Select
+                      value={formData.item_id}
+                      onValueChange={handleServiceChange}
+                    >
+                      <SelectTrigger id="item_id" className="border">
+                        <SelectValue placeholder="Pilih jasa..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {serviceItems.map((service) => (
+                          <SelectItem key={service.id} value={service.id}>
+                            {service.item_name} - {formatRupiah(service.price)}/
+                            {service.unit}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
                 </div>
-              )}
 
-              {/* Harga per Unit */}
-              <div className="space-y-2">
-                <Label htmlFor="unit_price">Harga per Unit *</Label>
-                <Input
-                  id="unit_price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.unit_price || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      unit_price: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  required
-                  className={`border ${formData.transaction_type === "Jasa" ? "bg-gray-100" : ""}`}
-                  readOnly={formData.transaction_type === "Jasa"}
-                />
-              </div>
-
-              {/* Total Harga */}
-              <div className="space-y-2">
-                <Label htmlFor="subtotal">Total Harga</Label>
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md shadow-sm">
-                  <p className="text-lg font-semibold text-blue-700">
-                    {formatRupiah(formData.subtotal)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Pajak */}
-              <div className="space-y-2">
-                <Label htmlFor="tax_percentage">Pajak (%)</Label>
-                <Input
-                  id="tax_percentage"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  value={formData.tax_percentage}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      tax_percentage: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  className="border"
-                />
-              </div>
-
-              {/* Total Akhir */}
-              <div className="space-y-2">
-                <Label htmlFor="total_amount">Total Akhir</Label>
-                <div className="p-3 bg-green-50 border border-green-200 rounded-md shadow-sm">
-                  <p className="text-lg font-semibold text-green-700">
-                    {formatRupiah(formData.total_amount)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Customer */}
-              <div className="space-y-2">
-                <Label htmlFor="customer_id">Customer *</Label>
-                <Select
-                  value={formData.customer_id}
-                  onValueChange={handleCustomerChange}
-                >
-                  <SelectTrigger id="customer_id" className="border">
-                    <SelectValue placeholder="Pilih customer..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                    <SelectItem
-                      value="add_new"
-                      className="text-blue-600 font-semibold"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        Tambah customer baru
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Metode Pembayaran */}
-              <div className="space-y-2">
-                <Label htmlFor="payment_method">Metode Pembayaran *</Label>
-                <Select
-                  value={formData.payment_method}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, payment_method: value })
-                  }
-                >
-                  <SelectTrigger id="payment_method" className="border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Tunai">Tunai</SelectItem>
-                    <SelectItem value="Transfer">Transfer</SelectItem>
-                    <SelectItem value="Kartu Kredit">Kartu Kredit</SelectItem>
-                    <SelectItem value="Piutang">Piutang</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Kode Akun COA */}
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="coa_account_code">
-                  Kode Akun COA (Revenue) *
-                </Label>
-                <Select
-                  value={formData.coa_account_code}
-                  onValueChange={handleCOAChange}
-                >
-                  <SelectTrigger id="coa_account_code" className="border">
-                    <SelectValue placeholder="Pilih akun COA...">
-                      {formData.coa_account_code && formData.coa_account_name
-                        ? `${formData.coa_account_code} - ${formData.coa_account_name}`
-                        : "Pilih akun COA..."}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {coaAccounts.map((account) => (
-                      <SelectItem
-                        key={account.account_code}
-                        value={account.account_code}
-                      >
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Catatan */}
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="notes">Catatan</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                  placeholder="Tambahkan catatan transaksi..."
-                  rows={3}
-                  className="border"
-                />
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => window.location.reload()}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 border"
-              >
-                Batal
-              </Button>
-              <Button
-                type="submit"
-                disabled={!isFormValid || loading}
-                className="min-w-[120px] bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Simpan
-                  </>
+                {/* Stok Saat Ini (only for Barang) */}
+                {formData.transaction_type === "Barang" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="stock_current">Stok Saat Ini</Label>
+                    <Input
+                      id="stock_current"
+                      type="number"
+                      value={formData.stock_current}
+                      readOnly
+                      className="bg-gray-100 border"
+                    />
+                  </div>
                 )}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+
+                {/* Quantity */}
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantity *</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={formData.quantity || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        quantity: Number(e.target.value) || 0,
+                      })
+                    }
+                    required
+                    className="border"
+                  />
+                </div>
+
+                {/* Stok Akhir (only for Barang) */}
+                {formData.transaction_type === "Barang" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="stock_after">Stok Akhir</Label>
+                    <div className="relative">
+                      <Input
+                        id="stock_after"
+                        type="number"
+                        value={formData.stock_after}
+                        readOnly
+                        className={`bg-gray-100 border ${
+                          formData.stock_after < 0
+                            ? "border-red-500 text-red-600"
+                            : ""
+                        }`}
+                      />
+                      {formData.stock_after < 0 && (
+                        <AlertCircle className="absolute right-3 top-2.5 h-5 w-5 text-red-500" />
+                      )}
+                    </div>
+                    {stockWarning && (
+                      <div className="bg-red-100 text-red-600 px-3 py-2 rounded-md text-sm font-medium border border-red-300">
+                        {stockWarning}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Harga per Unit */}
+                <div className="space-y-2">
+                  <Label htmlFor="unit_price">Harga per Unit *</Label>
+                  <Input
+                    id="unit_price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.unit_price || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        unit_price: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    required
+                    className={`border ${formData.transaction_type === "Jasa" ? "bg-gray-100" : ""}`}
+                    readOnly={formData.transaction_type === "Jasa"}
+                  />
+                </div>
+
+                {/* Total Harga */}
+                <div className="space-y-2">
+                  <Label htmlFor="subtotal">Total Harga</Label>
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-md shadow-sm">
+                    <p className="text-lg font-semibold text-blue-700">
+                      {formatRupiah(formData.subtotal)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Pajak */}
+                <div className="space-y-2">
+                  <Label htmlFor="tax_percentage">Pajak (%)</Label>
+                  <Input
+                    id="tax_percentage"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={formData.tax_percentage}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tax_percentage: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="border"
+                  />
+                </div>
+
+                {/* Total Akhir */}
+                <div className="space-y-2">
+                  <Label htmlFor="total_amount">Total Akhir</Label>
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-md shadow-sm">
+                    <p className="text-lg font-semibold text-green-700">
+                      {formatRupiah(formData.total_amount)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Customer */}
+                <div className="space-y-2">
+                  <Label htmlFor="customer_id">Customer *</Label>
+                  <Select
+                    value={formData.customer_id}
+                    onValueChange={handleCustomerChange}
+                  >
+                    <SelectTrigger id="customer_id" className="border">
+                      <SelectValue placeholder="Pilih customer..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem
+                        value="add_new"
+                        className="text-blue-600 font-semibold"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          Tambah customer baru
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Metode Pembayaran */}
+                <div className="space-y-2">
+                  <Label htmlFor="payment_method">Metode Pembayaran *</Label>
+                  <Select
+                    value={formData.payment_method}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, payment_method: value })
+                    }
+                  >
+                    <SelectTrigger id="payment_method" className="border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Tunai">Tunai</SelectItem>
+                      <SelectItem value="Transfer">Transfer</SelectItem>
+                      <SelectItem value="Kartu Kredit">Kartu Kredit</SelectItem>
+                      <SelectItem value="Piutang">Piutang</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Kode Akun COA */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="coa_account_code">
+                    Kode Akun COA (Revenue) *
+                  </Label>
+                  <Select
+                    value={formData.coa_account_code}
+                    onValueChange={handleCOAChange}
+                  >
+                    <SelectTrigger id="coa_account_code" className="border">
+                      <SelectValue placeholder="Pilih akun COA...">
+                        {formData.coa_account_code && formData.coa_account_name
+                          ? `${formData.coa_account_code} - ${formData.coa_account_name}`
+                          : "Pilih akun COA..."}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {coaAccounts.map((account) => (
+                        <SelectItem
+                          key={account.account_code}
+                          value={account.account_code}
+                        >
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Catatan */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="notes">Catatan</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
+                    placeholder="Tambahkan catatan transaksi..."
+                    rows={3}
+                    className="border"
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => window.location.reload()}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 border"
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!isFormValid || loading}
+                  className="min-w-[120px] bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Simpan
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {/* Add Customer Dialog */}
@@ -1552,13 +1555,25 @@ export default function SalesForm() {
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Tanggal</TableHead>
                   <TableHead className="font-semibold">Tipe</TableHead>
-                  <TableHead className="font-semibold">Nama Barang/Jasa</TableHead>
+                  <TableHead className="font-semibold">
+                    Nama Barang/Jasa
+                  </TableHead>
                   <TableHead className="font-semibold">Customer</TableHead>
-                  <TableHead className="font-semibold text-right">Qty</TableHead>
-                  <TableHead className="font-semibold text-right">Harga</TableHead>
-                  <TableHead className="font-semibold text-right">Subtotal</TableHead>
-                  <TableHead className="font-semibold text-right">Pajak</TableHead>
-                  <TableHead className="font-semibold text-right">Total</TableHead>
+                  <TableHead className="font-semibold text-right">
+                    Qty
+                  </TableHead>
+                  <TableHead className="font-semibold text-right">
+                    Harga
+                  </TableHead>
+                  <TableHead className="font-semibold text-right">
+                    Subtotal
+                  </TableHead>
+                  <TableHead className="font-semibold text-right">
+                    Pajak
+                  </TableHead>
+                  <TableHead className="font-semibold text-right">
+                    Total
+                  </TableHead>
                   <TableHead className="font-semibold">Pembayaran</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1571,14 +1586,14 @@ export default function SalesForm() {
                         .includes(searchTerm.toLowerCase()) ||
                       transaction.customer_name
                         .toLowerCase()
-                        .includes(searchTerm.toLowerCase())
+                        .includes(searchTerm.toLowerCase()),
                   )
                   .map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell>
-                        {new Date(transaction.transaction_date).toLocaleDateString(
-                          "id-ID"
-                        )}
+                        {new Date(
+                          transaction.transaction_date,
+                        ).toLocaleDateString("id-ID")}
                       </TableCell>
                       <TableCell>
                         <span
@@ -1630,7 +1645,7 @@ export default function SalesForm() {
                       .includes(searchTerm.toLowerCase()) ||
                     transaction.customer_name
                       .toLowerCase()
-                      .includes(searchTerm.toLowerCase())
+                      .includes(searchTerm.toLowerCase()),
                 ).length === 0 && (
                   <TableRow>
                     <TableCell

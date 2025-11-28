@@ -47,7 +47,9 @@ export default function StockBarangImport() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<StockBarangImport | null>(null);
+  const [editingItem, setEditingItem] = useState<StockBarangImport | null>(
+    null,
+  );
   const [formData, setFormData] = useState<Partial<StockBarangImport>>({});
   const itemsPerPage = 10;
   const { toast } = useToast();
@@ -96,7 +98,7 @@ export default function StockBarangImport() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       if (editingItem) {
         const { error } = await supabase
@@ -162,7 +164,7 @@ export default function StockBarangImport() {
 
   const paginatedItems = items.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const totalPages = Math.ceil(items.length / itemsPerPage);
@@ -173,9 +175,7 @@ export default function StockBarangImport() {
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-6">
-            <h1 className="text-3xl font-bold text-white">
-              Barang Import
-            </h1>
+            <h1 className="text-3xl font-bold text-white">Barang Import</h1>
             <p className="text-violet-100 mt-2">
               Kelola data stok barang import
             </p>
@@ -196,19 +196,26 @@ export default function StockBarangImport() {
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>
-                    {editingItem ? "Edit Barang Import" : "Tambah Barang Import"}
+                    {editingItem
+                      ? "Edit Barang Import"
+                      : "Tambah Barang Import"}
                   </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="tanggal_barang_masuk">Tanggal Barang Masuk</Label>
+                      <Label htmlFor="tanggal_barang_masuk">
+                        Tanggal Barang Masuk
+                      </Label>
                       <Input
                         id="tanggal_barang_masuk"
                         type="date"
                         value={formData.tanggal_barang_masuk || ""}
                         onChange={(e) =>
-                          setFormData({ ...formData, tanggal_barang_masuk: e.target.value })
+                          setFormData({
+                            ...formData,
+                            tanggal_barang_masuk: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -252,7 +259,10 @@ export default function StockBarangImport() {
                         id="consignee"
                         value={formData.consignee || ""}
                         onChange={(e) =>
-                          setFormData({ ...formData, consignee: e.target.value })
+                          setFormData({
+                            ...formData,
+                            consignee: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -263,7 +273,10 @@ export default function StockBarangImport() {
                         id="jenis_barang"
                         value={formData.jenis_barang || ""}
                         onChange={(e) =>
-                          setFormData({ ...formData, jenis_barang: e.target.value })
+                          setFormData({
+                            ...formData,
+                            jenis_barang: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -274,7 +287,10 @@ export default function StockBarangImport() {
                         id="deskripsi_barang"
                         value={formData.deskripsi_barang || ""}
                         onChange={(e) =>
-                          setFormData({ ...formData, deskripsi_barang: e.target.value })
+                          setFormData({
+                            ...formData,
+                            deskripsi_barang: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -297,7 +313,10 @@ export default function StockBarangImport() {
                         type="number"
                         value={formData.jumlah || ""}
                         onChange={(e) =>
-                          setFormData({ ...formData, jumlah: parseFloat(e.target.value) })
+                          setFormData({
+                            ...formData,
+                            jumlah: parseFloat(e.target.value),
+                          })
                         }
                       />
                     </div>
@@ -321,7 +340,10 @@ export default function StockBarangImport() {
                         step="0.01"
                         value={formData.berat || ""}
                         onChange={(e) =>
-                          setFormData({ ...formData, berat: parseFloat(e.target.value) })
+                          setFormData({
+                            ...formData,
+                            berat: parseFloat(e.target.value),
+                          })
                         }
                       />
                     </div>
@@ -334,7 +356,10 @@ export default function StockBarangImport() {
                         step="0.01"
                         value={formData.volume || ""}
                         onChange={(e) =>
-                          setFormData({ ...formData, volume: parseFloat(e.target.value) })
+                          setFormData({
+                            ...formData,
+                            volume: parseFloat(e.target.value),
+                          })
                         }
                       />
                     </div>
@@ -345,7 +370,10 @@ export default function StockBarangImport() {
                         id="warehouses"
                         value={formData.warehouses || ""}
                         onChange={(e) =>
-                          setFormData({ ...formData, warehouses: e.target.value })
+                          setFormData({
+                            ...formData,
+                            warehouses: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -392,7 +420,10 @@ export default function StockBarangImport() {
                     >
                       Batal
                     </Button>
-                    <Button type="submit" className="bg-violet-600 hover:bg-violet-700">
+                    <Button
+                      type="submit"
+                      className="bg-violet-600 hover:bg-violet-700"
+                    >
                       {editingItem ? "Update" : "Simpan"}
                     </Button>
                   </div>
@@ -448,7 +479,9 @@ export default function StockBarangImport() {
                       </TableCell>
                       <TableCell>
                         {item.tanggal_barang_masuk
-                          ? new Date(item.tanggal_barang_masuk).toLocaleDateString("id-ID")
+                          ? new Date(
+                              item.tanggal_barang_masuk,
+                            ).toLocaleDateString("id-ID")
                           : "-"}
                       </TableCell>
                       <TableCell>{item.mawb || "-"}</TableCell>
@@ -502,7 +535,9 @@ export default function StockBarangImport() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
                   disabled={currentPage === 1}
                 >
                   Previous

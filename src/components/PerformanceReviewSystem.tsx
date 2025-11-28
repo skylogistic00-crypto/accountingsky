@@ -3,9 +3,28 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,8 +66,8 @@ interface PerformanceReview {
   comments: string;
   status: string;
   employee_comments: string;
-  employees?: { 
-    full_name: string; 
+  employees?: {
+    full_name: string;
     employee_number: string;
     departments?: { department_name: string };
     positions?: { position_name: string };
@@ -59,7 +78,9 @@ export default function PerformanceReviewSystem() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [reviews, setReviews] = useState<PerformanceReview[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [viewingReview, setViewingReview] = useState<PerformanceReview | null>(null);
+  const [viewingReview, setViewingReview] = useState<PerformanceReview | null>(
+    null,
+  );
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -92,13 +113,15 @@ export default function PerformanceReviewSystem() {
   const loadEmployees = async () => {
     const { data } = await supabase
       .from("employees")
-      .select(`
+      .select(
+        `
         id, 
         employee_number, 
         full_name,
         departments(department_name),
         positions(position_name)
-      `)
+      `,
+      )
       .eq("status", "active")
       .order("full_name");
     setEmployees(data || []);
@@ -107,7 +130,8 @@ export default function PerformanceReviewSystem() {
   const loadReviews = async () => {
     const { data } = await supabase
       .from("performance_reviews")
-      .select(`
+      .select(
+        `
         *,
         employees(
           full_name, 
@@ -115,7 +139,8 @@ export default function PerformanceReviewSystem() {
           departments(department_name),
           positions(position_name)
         )
-      `)
+      `,
+      )
       .order("review_date", { ascending: false });
     setReviews(data || []);
   };
@@ -141,7 +166,9 @@ export default function PerformanceReviewSystem() {
     try {
       const overallRating = parseFloat(calculateOverallRating());
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       const { error } = await supabase.from("performance_reviews").insert({
         employee_id: formData.employee_id,
@@ -168,12 +195,19 @@ export default function PerformanceReviewSystem() {
       });
 
       if (error) throw error;
-      toast({ title: "Berhasil", description: "Penilaian kinerja berhasil dibuat" });
+      toast({
+        title: "Berhasil",
+        description: "Penilaian kinerja berhasil dibuat",
+      });
       loadReviews();
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -218,7 +252,15 @@ export default function PerformanceReviewSystem() {
     return <Badge className="bg-red-600">Needs Improvement</Badge>;
   };
 
-  const RatingInput = ({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) => (
+  const RatingInput = ({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+  }) => (
     <div className="space-y-2">
       <Label>{label}</Label>
       <div className="flex items-center gap-2">
@@ -253,10 +295,13 @@ export default function PerformanceReviewSystem() {
           <h2 className="text-2xl font-bold">Penilaian Kinerja Karyawan</h2>
           <p className="text-gray-600">Kelola performance review karyawan</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) resetForm();
-        }}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="bg-indigo-600 hover:bg-indigo-700">
               <Plus className="h-4 w-4 mr-2" />
@@ -279,7 +324,13 @@ export default function PerformanceReviewSystem() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Karyawan *</Label>
-                      <Select required value={formData.employee_id} onValueChange={(value) => setFormData({ ...formData, employee_id: value })}>
+                      <Select
+                        required
+                        value={formData.employee_id}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, employee_id: value })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih karyawan" />
                         </SelectTrigger>
@@ -299,7 +350,12 @@ export default function PerformanceReviewSystem() {
                         type="date"
                         required
                         value={formData.review_date}
-                        onChange={(e) => setFormData({ ...formData, review_date: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            review_date: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -309,7 +365,12 @@ export default function PerformanceReviewSystem() {
                         type="date"
                         required
                         value={formData.review_period_start}
-                        onChange={(e) => setFormData({ ...formData, review_period_start: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            review_period_start: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -319,7 +380,12 @@ export default function PerformanceReviewSystem() {
                         type="date"
                         required
                         value={formData.review_period_end}
-                        onChange={(e) => setFormData({ ...formData, review_period_end: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            review_period_end: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -330,50 +396,73 @@ export default function PerformanceReviewSystem() {
                     <RatingInput
                       label="Quality of Work"
                       value={formData.quality_of_work}
-                      onChange={(value) => setFormData({ ...formData, quality_of_work: value })}
+                      onChange={(value) =>
+                        setFormData({ ...formData, quality_of_work: value })
+                      }
                     />
                     <RatingInput
                       label="Productivity"
                       value={formData.productivity}
-                      onChange={(value) => setFormData({ ...formData, productivity: value })}
+                      onChange={(value) =>
+                        setFormData({ ...formData, productivity: value })
+                      }
                     />
                     <RatingInput
                       label="Communication"
                       value={formData.communication}
-                      onChange={(value) => setFormData({ ...formData, communication: value })}
+                      onChange={(value) =>
+                        setFormData({ ...formData, communication: value })
+                      }
                     />
                     <RatingInput
                       label="Teamwork"
                       value={formData.teamwork}
-                      onChange={(value) => setFormData({ ...formData, teamwork: value })}
+                      onChange={(value) =>
+                        setFormData({ ...formData, teamwork: value })
+                      }
                     />
                     <RatingInput
                       label="Initiative"
                       value={formData.initiative}
-                      onChange={(value) => setFormData({ ...formData, initiative: value })}
+                      onChange={(value) =>
+                        setFormData({ ...formData, initiative: value })
+                      }
                     />
                     <RatingInput
                       label="Leadership"
                       value={formData.leadership}
-                      onChange={(value) => setFormData({ ...formData, leadership: value })}
+                      onChange={(value) =>
+                        setFormData({ ...formData, leadership: value })
+                      }
                     />
                     <RatingInput
                       label="Problem Solving"
                       value={formData.problem_solving}
-                      onChange={(value) => setFormData({ ...formData, problem_solving: value })}
+                      onChange={(value) =>
+                        setFormData({ ...formData, problem_solving: value })
+                      }
                     />
                     <RatingInput
                       label="Attendance & Punctuality"
                       value={formData.attendance_punctuality}
-                      onChange={(value) => setFormData({ ...formData, attendance_punctuality: value })}
+                      onChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          attendance_punctuality: value,
+                        })
+                      }
                     />
                   </div>
 
                   <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-lg border-2 border-indigo-200">
                     <div className="text-center">
-                      <p className="text-sm text-gray-600 mb-2">Overall Rating</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Overall Rating
+                      </p>
                       <div className="flex items-center justify-center gap-2">
-                        <p className="text-4xl font-bold text-indigo-600">{calculateOverallRating()}</p>
+                        <p className="text-4xl font-bold text-indigo-600">
+                          {calculateOverallRating()}
+                        </p>
                         <div className="flex gap-1">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
@@ -393,17 +482,26 @@ export default function PerformanceReviewSystem() {
                     <Label>Strengths (Kekuatan)</Label>
                     <Textarea
                       value={formData.strengths}
-                      onChange={(e) => setFormData({ ...formData, strengths: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, strengths: e.target.value })
+                      }
                       placeholder="Apa kekuatan karyawan ini?"
                       rows={3}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Areas for Improvement (Area yang Perlu Ditingkatkan)</Label>
+                    <Label>
+                      Areas for Improvement (Area yang Perlu Ditingkatkan)
+                    </Label>
                     <Textarea
                       value={formData.areas_for_improvement}
-                      onChange={(e) => setFormData({ ...formData, areas_for_improvement: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          areas_for_improvement: e.target.value,
+                        })
+                      }
                       placeholder="Apa yang perlu ditingkatkan?"
                       rows={3}
                     />
@@ -413,7 +511,12 @@ export default function PerformanceReviewSystem() {
                     <Label>Achievements (Pencapaian)</Label>
                     <Textarea
                       value={formData.achievements}
-                      onChange={(e) => setFormData({ ...formData, achievements: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          achievements: e.target.value,
+                        })
+                      }
                       placeholder="Pencapaian selama periode review..."
                       rows={3}
                     />
@@ -423,7 +526,9 @@ export default function PerformanceReviewSystem() {
                     <Label>Goals (Target ke Depan)</Label>
                     <Textarea
                       value={formData.goals}
-                      onChange={(e) => setFormData({ ...formData, goals: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, goals: e.target.value })
+                      }
                       placeholder="Target untuk periode berikutnya..."
                       rows={3}
                     />
@@ -433,7 +538,12 @@ export default function PerformanceReviewSystem() {
                     <Label>Training Needs (Kebutuhan Pelatihan)</Label>
                     <Textarea
                       value={formData.training_needs}
-                      onChange={(e) => setFormData({ ...formData, training_needs: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          training_needs: e.target.value,
+                        })
+                      }
                       placeholder="Pelatihan yang dibutuhkan..."
                       rows={2}
                     />
@@ -443,7 +553,9 @@ export default function PerformanceReviewSystem() {
                     <Label>Comments (Komentar Tambahan)</Label>
                     <Textarea
                       value={formData.comments}
-                      onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, comments: e.target.value })
+                      }
                       placeholder="Komentar tambahan..."
                       rows={3}
                     />
@@ -452,10 +564,17 @@ export default function PerformanceReviewSystem() {
               </Tabs>
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
                   Batal
                 </Button>
-                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+                <Button
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
                   Simpan
                 </Button>
               </div>
@@ -491,21 +610,41 @@ export default function PerformanceReviewSystem() {
                   <TableRow key={review.id}>
                     <TableCell>
                       <div>
-                        <p className="font-semibold">{review.employees?.full_name}</p>
-                        <p className="text-xs text-gray-500">{review.employees?.employee_number}</p>
+                        <p className="font-semibold">
+                          {review.employees?.full_name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {review.employees?.employee_number}
+                        </p>
                       </div>
                     </TableCell>
-                    <TableCell>{review.employees?.departments?.department_name}</TableCell>
-                    <TableCell>{review.employees?.positions?.position_name}</TableCell>
                     <TableCell>
-                      {format(new Date(review.review_period_start), "dd MMM", { locale: localeId })} - {format(new Date(review.review_period_end), "dd MMM yyyy", { locale: localeId })}
+                      {review.employees?.departments?.department_name}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(review.review_date), "dd MMM yyyy", { locale: localeId })}
+                      {review.employees?.positions?.position_name}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(review.review_period_start), "dd MMM", {
+                        locale: localeId,
+                      })}{" "}
+                      -{" "}
+                      {format(
+                        new Date(review.review_period_end),
+                        "dd MMM yyyy",
+                        { locale: localeId },
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(review.review_date), "dd MMM yyyy", {
+                        locale: localeId,
+                      })}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-indigo-600">{review.overall_rating.toFixed(2)}</span>
+                        <span className="text-lg font-bold text-indigo-600">
+                          {review.overall_rating.toFixed(2)}
+                        </span>
                         {getRatingBadge(review.overall_rating)}
                       </div>
                     </TableCell>
@@ -542,12 +681,24 @@ export default function PerformanceReviewSystem() {
               <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <p className="text-sm text-gray-600">Karyawan</p>
-                  <p className="font-semibold">{viewingReview.employees?.full_name}</p>
+                  <p className="font-semibold">
+                    {viewingReview.employees?.full_name}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Periode Review</p>
                   <p className="font-semibold">
-                    {format(new Date(viewingReview.review_period_start), "dd MMM", { locale: localeId })} - {format(new Date(viewingReview.review_period_end), "dd MMM yyyy", { locale: localeId })}
+                    {format(
+                      new Date(viewingReview.review_period_start),
+                      "dd MMM",
+                      { locale: localeId },
+                    )}{" "}
+                    -{" "}
+                    {format(
+                      new Date(viewingReview.review_period_end),
+                      "dd MMM yyyy",
+                      { locale: localeId },
+                    )}
                   </p>
                 </div>
               </div>
@@ -555,7 +706,9 @@ export default function PerformanceReviewSystem() {
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-lg text-center">
                 <p className="text-sm text-gray-600 mb-2">Overall Rating</p>
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <p className="text-5xl font-bold text-indigo-600">{viewingReview.overall_rating.toFixed(2)}</p>
+                  <p className="text-5xl font-bold text-indigo-600">
+                    {viewingReview.overall_rating.toFixed(2)}
+                  </p>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
@@ -570,19 +723,33 @@ export default function PerformanceReviewSystem() {
 
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: "Quality of Work", value: viewingReview.quality_of_work },
+                  {
+                    label: "Quality of Work",
+                    value: viewingReview.quality_of_work,
+                  },
                   { label: "Productivity", value: viewingReview.productivity },
-                  { label: "Communication", value: viewingReview.communication },
+                  {
+                    label: "Communication",
+                    value: viewingReview.communication,
+                  },
                   { label: "Teamwork", value: viewingReview.teamwork },
                   { label: "Initiative", value: viewingReview.initiative },
                   { label: "Leadership", value: viewingReview.leadership },
-                  { label: "Problem Solving", value: viewingReview.problem_solving },
-                  { label: "Attendance", value: viewingReview.attendance_punctuality },
+                  {
+                    label: "Problem Solving",
+                    value: viewingReview.problem_solving,
+                  },
+                  {
+                    label: "Attendance",
+                    value: viewingReview.attendance_punctuality,
+                  },
                 ].map((item) => (
                   <div key={item.label} className="p-3 border rounded-lg">
                     <p className="text-sm text-gray-600">{item.label}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xl font-bold text-indigo-600">{item.value.toFixed(1)}</span>
+                      <span className="text-xl font-bold text-indigo-600">
+                        {item.value.toFixed(1)}
+                      </span>
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
@@ -600,37 +767,51 @@ export default function PerformanceReviewSystem() {
                 {viewingReview.strengths && (
                   <div>
                     <Label className="text-green-700">Strengths</Label>
-                    <p className="mt-1 p-3 bg-green-50 rounded-lg">{viewingReview.strengths}</p>
+                    <p className="mt-1 p-3 bg-green-50 rounded-lg">
+                      {viewingReview.strengths}
+                    </p>
                   </div>
                 )}
                 {viewingReview.areas_for_improvement && (
                   <div>
-                    <Label className="text-orange-700">Areas for Improvement</Label>
-                    <p className="mt-1 p-3 bg-orange-50 rounded-lg">{viewingReview.areas_for_improvement}</p>
+                    <Label className="text-orange-700">
+                      Areas for Improvement
+                    </Label>
+                    <p className="mt-1 p-3 bg-orange-50 rounded-lg">
+                      {viewingReview.areas_for_improvement}
+                    </p>
                   </div>
                 )}
                 {viewingReview.achievements && (
                   <div>
                     <Label className="text-blue-700">Achievements</Label>
-                    <p className="mt-1 p-3 bg-blue-50 rounded-lg">{viewingReview.achievements}</p>
+                    <p className="mt-1 p-3 bg-blue-50 rounded-lg">
+                      {viewingReview.achievements}
+                    </p>
                   </div>
                 )}
                 {viewingReview.goals && (
                   <div>
                     <Label className="text-purple-700">Goals</Label>
-                    <p className="mt-1 p-3 bg-purple-50 rounded-lg">{viewingReview.goals}</p>
+                    <p className="mt-1 p-3 bg-purple-50 rounded-lg">
+                      {viewingReview.goals}
+                    </p>
                   </div>
                 )}
                 {viewingReview.training_needs && (
                   <div>
                     <Label className="text-indigo-700">Training Needs</Label>
-                    <p className="mt-1 p-3 bg-indigo-50 rounded-lg">{viewingReview.training_needs}</p>
+                    <p className="mt-1 p-3 bg-indigo-50 rounded-lg">
+                      {viewingReview.training_needs}
+                    </p>
                   </div>
                 )}
                 {viewingReview.comments && (
                   <div>
                     <Label>Comments</Label>
-                    <p className="mt-1 p-3 bg-gray-50 rounded-lg">{viewingReview.comments}</p>
+                    <p className="mt-1 p-3 bg-gray-50 rounded-lg">
+                      {viewingReview.comments}
+                    </p>
                   </div>
                 )}
               </div>

@@ -288,10 +288,12 @@ export default function PurchaseRequestForm({
     try {
       const { data, error } = await supabase
         .from("stock")
-        .select(`
+        .select(
+          `
           *,
           warehouses!warehouse_id(name, code, address)
-        `)
+        `,
+        )
         .eq("item_name", itemName)
         .eq("brand", brand)
         .maybeSingle();
@@ -324,8 +326,10 @@ export default function PurchaseRequestForm({
         if (error) throw error;
 
         if (data && data.length > 0) {
-          const brandNames = data.map(item => item.brand).filter(Boolean);
-          const filtered = brands.filter(b => brandNames.includes(b.brand_name));
+          const brandNames = data.map((item) => item.brand).filter(Boolean);
+          const filtered = brands.filter((b) =>
+            brandNames.includes(b.brand_name),
+          );
           setFilteredBrands(filtered);
         } else {
           setFilteredBrands(brands);
@@ -942,13 +946,21 @@ export default function PurchaseRequestForm({
               {/* Brand Field */}
               <div className="space-y-2">
                 <Label htmlFor="brand">Brand</Label>
-                <Select 
-                  value={currentItem.brand} 
-                  onValueChange={(value) => setCurrentItem({ ...currentItem, brand: value })}
+                <Select
+                  value={currentItem.brand}
+                  onValueChange={(value) =>
+                    setCurrentItem({ ...currentItem, brand: value })
+                  }
                   disabled={!currentItem.item_name}
                 >
                   <SelectTrigger id="brand">
-                    <SelectValue placeholder={currentItem.item_name ? "-- pilih brand --" : "Pilih item terlebih dahulu"} />
+                    <SelectValue
+                      placeholder={
+                        currentItem.item_name
+                          ? "-- pilih brand --"
+                          : "Pilih item terlebih dahulu"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {filteredBrands.map((b) => (
@@ -967,28 +979,45 @@ export default function PurchaseRequestForm({
                     📦 Informasi Stock Saat Ini
                   </h4>
                   {loadingStock ? (
-                    <p className="text-sm text-gray-600">Memuat data stock...</p>
+                    <p className="text-sm text-gray-600">
+                      Memuat data stock...
+                    </p>
                   ) : stockInfo ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                       <div>
-                        <span className="font-medium text-gray-700">Sisa Stock:</span>
-                        <span className="ml-2 text-gray-900 font-bold">{stockInfo.quantity || 0} {stockInfo.unit || 'pcs'}</span>
+                        <span className="font-medium text-gray-700">
+                          Sisa Stock:
+                        </span>
+                        <span className="ml-2 text-gray-900 font-bold">
+                          {stockInfo.quantity || 0} {stockInfo.unit || "pcs"}
+                        </span>
                       </div>
                       {stockInfo.warehouses && (
                         <div>
-                          <span className="font-medium text-gray-700">Gudang:</span>
-                          <span className="ml-2 text-gray-900">{stockInfo.warehouses.name} ({stockInfo.warehouses.code})</span>
+                          <span className="font-medium text-gray-700">
+                            Gudang:
+                          </span>
+                          <span className="ml-2 text-gray-900">
+                            {stockInfo.warehouses.name} (
+                            {stockInfo.warehouses.code})
+                          </span>
                         </div>
                       )}
                       {stockInfo.location && (
                         <div>
-                          <span className="font-medium text-gray-700">Lokasi:</span>
-                          <span className="ml-2 text-gray-900">{stockInfo.location}</span>
+                          <span className="font-medium text-gray-700">
+                            Lokasi:
+                          </span>
+                          <span className="ml-2 text-gray-900">
+                            {stockInfo.location}
+                          </span>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm text-amber-600">⚠️ Stock tidak ditemukan untuk item dan brand ini</p>
+                    <p className="text-sm text-amber-600">
+                      ⚠️ Stock tidak ditemukan untuk item dan brand ini
+                    </p>
                   )}
                 </div>
               )}
@@ -996,8 +1025,8 @@ export default function PurchaseRequestForm({
               {/* Warehouse Selection for New Stock */}
               <div className="space-y-2">
                 <Label htmlFor="warehouse">Gudang Tujuan *</Label>
-                <Select 
-                  value={selectedWarehouse} 
+                <Select
+                  value={selectedWarehouse}
                   onValueChange={setSelectedWarehouse}
                 >
                   <SelectTrigger id="warehouse">

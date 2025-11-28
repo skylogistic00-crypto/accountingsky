@@ -105,8 +105,16 @@ interface Supplier {
 }
 
 const TRANSACTION_TYPES = [
-  { value: "stock_in", label: "Barang Masuk (Non-Pembelian)", icon: TrendingUp },
-  { value: "stock_out", label: "Barang Keluar (Non-Penjualan)", icon: TrendingDown },
+  {
+    value: "stock_in",
+    label: "Barang Masuk (Non-Pembelian)",
+    icon: TrendingUp,
+  },
+  {
+    value: "stock_out",
+    label: "Barang Keluar (Non-Penjualan)",
+    icon: TrendingDown,
+  },
   { value: "adjustment", label: "Koreksi Stok", icon: RefreshCw },
   { value: "opname", label: "Stock Opname", icon: ClipboardList },
 ];
@@ -127,12 +135,7 @@ const REASONS = {
     "Sample/Demo",
     "Lainnya",
   ],
-  adjustment: [
-    "Kesalahan Input",
-    "Selisih Fisik",
-    "Koreksi Sistem",
-    "Lainnya",
-  ],
+  adjustment: ["Kesalahan Input", "Selisih Fisik", "Koreksi Sistem", "Lainnya"],
   opname: [
     "Stock Opname Rutin",
     "Stock Opname Tahunan",
@@ -202,13 +205,15 @@ export default function StockAdjustmentForm() {
       adjustment: "ADJ",
       opname: "OP",
     }[formData.transaction_type];
-    
+
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
-    
-    setFormData(prev => ({
+    const random = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, "0");
+
+    setFormData((prev) => ({
       ...prev,
       reference_number: `${prefix}-${year}${month}-${random}`,
     }));
@@ -224,12 +229,15 @@ export default function StockAdjustmentForm() {
     } else if (formData.transaction_type === "stock_out") {
       afterQty = formData.before_quantity - formData.quantity;
       adjValue = -formData.quantity;
-    } else if (formData.transaction_type === "adjustment" || formData.transaction_type === "opname") {
+    } else if (
+      formData.transaction_type === "adjustment" ||
+      formData.transaction_type === "opname"
+    ) {
       adjValue = formData.quantity - formData.before_quantity;
       afterQty = formData.quantity;
     }
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       after_quantity: afterQty,
       adjustment_value: adjValue,
@@ -254,10 +262,12 @@ export default function StockAdjustmentForm() {
       if (suppError) throw suppError;
 
       // Manually join the data
-      const adjustmentsWithSuppliers = adjustmentsData?.map(adj => ({
-        ...adj,
-        suppliers: suppliersData?.find(s => s.id === adj.supplier_id) || null
-      })) || [];
+      const adjustmentsWithSuppliers =
+        adjustmentsData?.map((adj) => ({
+          ...adj,
+          suppliers:
+            suppliersData?.find((s) => s.id === adj.supplier_id) || null,
+        })) || [];
 
       setAdjustments(adjustmentsWithSuppliers);
     } catch (error: any) {
@@ -291,7 +301,8 @@ export default function StockAdjustmentForm() {
     try {
       const { data, error } = await supabase
         .from("stock")
-        .select(`
+        .select(
+          `
           id, 
           item_name, 
           sku, 
@@ -303,7 +314,8 @@ export default function StockAdjustmentForm() {
           supplier_id,
           warehouse_id,
           warehouses:warehouse_id(id, name, code)
-        `)
+        `,
+        )
         .order("item_name");
 
       if (error) throw error;
@@ -318,18 +330,18 @@ export default function StockAdjustmentForm() {
   };
 
   const handleStockSelect = (sku: string) => {
-    const stock = stockItems.find(item => item.sku === sku);
+    const stock = stockItems.find((item) => item.sku === sku);
     if (stock) {
-      console.log('Selected stock:', stock);
-      console.log('Supplier ID from stock:', stock.supplier_id);
-      console.log('Warehouse from stock:', stock.warehouses);
-      
+      console.log("Selected stock:", stock);
+      console.log("Supplier ID from stock:", stock.supplier_id);
+      console.log("Warehouse from stock:", stock.warehouses);
+
       setSelectedStock(stock);
-      
+
       // Get warehouse name from the joined data
       const warehouseName = stock.warehouses?.name || stock.warehouses || "";
-      
-      setFormData(prev => ({
+
+      setFormData((prev) => ({
         ...prev,
         item_name: stock.item_name,
         sku: stock.sku,
@@ -342,12 +354,12 @@ export default function StockAdjustmentForm() {
         supplier_id: stock.supplier_id || "",
         stock_id: stock.id,
       }));
-      
+
       // Show success toast
-      const supplierName = stock.supplier_id 
-        ? suppliers.find(s => s.id === stock.supplier_id)?.supplier_name 
+      const supplierName = stock.supplier_id
+        ? suppliers.find((s) => s.id === stock.supplier_id)?.supplier_name
         : "Tidak ada";
-      
+
       toast({
         title: "✅ Data Auto-Filled",
         description: `Supplier: ${supplierName || "Tidak ada"}\nGudang: ${warehouseName || "-"}\nZone: ${stock.zones || "-"}\nRak: ${stock.racks || "-"}\nLot: ${stock.lots || "-"}`,
@@ -419,24 +431,27 @@ export default function StockAdjustmentForm() {
       // Post to journal if status is approved
       if (formData.status === "approved" && insertedId) {
         try {
-          const { data: journalData, error: journalError } = await supabase.functions.invoke(
-            'supabase-functions-auto-post-journal',
-            {
-              body: {
-                type: 'stock_adjustment',
-                record: {
-                  id: insertedId,
-                  ...submitData,
+          const { data: journalData, error: journalError } =
+            await supabase.functions.invoke(
+              "supabase-functions-auto-post-journal",
+              {
+                body: {
+                  type: "stock_adjustment",
+                  record: {
+                    id: insertedId,
+                    ...submitData,
+                  },
                 },
               },
-            }
-          );
+            );
 
           if (journalError) {
-            console.error('Journal posting error:', journalError);
+            console.error("Journal posting error:", journalError);
             toast({
               title: "⚠️ Peringatan",
-              description: "Data tersimpan tapi gagal posting ke jurnal: " + journalError.message,
+              description:
+                "Data tersimpan tapi gagal posting ke jurnal: " +
+                journalError.message,
               variant: "destructive",
             });
           } else {
@@ -446,7 +461,7 @@ export default function StockAdjustmentForm() {
             });
           }
         } catch (journalError: any) {
-          console.error('Journal posting error:', journalError);
+          console.error("Journal posting error:", journalError);
           toast({
             title: "⚠️ Peringatan",
             description: "Data tersimpan tapi gagal posting ke jurnal",
@@ -459,7 +474,7 @@ export default function StockAdjustmentForm() {
       fetchAdjustments();
       setShowForm(false);
     } catch (error: any) {
-      console.error('Submit error:', error);
+      console.error("Submit error:", error);
       toast({
         title: "Error",
         description: error.message || "Terjadi kesalahan saat menyimpan data",
@@ -555,11 +570,11 @@ export default function StockAdjustmentForm() {
     (adj) =>
       adj.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       adj.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      adj.reference_number.toLowerCase().includes(searchTerm.toLowerCase())
+      adj.reference_number.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const getTransactionTypeLabel = (type: string) => {
-    return TRANSACTION_TYPES.find(t => t.value === type)?.label || type;
+    return TRANSACTION_TYPES.find((t) => t.value === type)?.label || type;
   };
 
   const getStatusBadge = (status: string) => {
@@ -604,7 +619,8 @@ export default function StockAdjustmentForm() {
                   Stock In/Out & Adjustment
                 </h1>
                 <p className="text-sm text-purple-100">
-                  Kelola opname, koreksi stok, dan transaksi non-pembelian/penjualan
+                  Kelola opname, koreksi stok, dan transaksi
+                  non-pembelian/penjualan
                 </p>
               </div>
             </div>
@@ -683,7 +699,10 @@ export default function StockAdjustmentForm() {
                           key={type.value}
                           type="button"
                           onClick={() =>
-                            setFormData({ ...formData, transaction_type: type.value })
+                            setFormData({
+                              ...formData,
+                              transaction_type: type.value,
+                            })
                           }
                           className={`p-4 rounded-lg border-2 transition-all ${
                             formData.transaction_type === type.value
@@ -786,7 +805,8 @@ export default function StockAdjustmentForm() {
                         <SelectContent>
                           {stockItems.map((item) => (
                             <SelectItem key={item.id} value={item.sku}>
-                              {item.sku} - {item.item_name} (Qty: {item.item_quantity})
+                              {item.sku} - {item.item_name} (Qty:{" "}
+                              {item.item_quantity})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -798,8 +818,8 @@ export default function StockAdjustmentForm() {
                       {selectedStock && formData.supplier_id ? (
                         <Input
                           value={
-                            suppliers.find(s => s.id === formData.supplier_id)
-                              ? `${suppliers.find(s => s.id === formData.supplier_id)?.supplier_code} - ${suppliers.find(s => s.id === formData.supplier_id)?.supplier_name}`
+                            suppliers.find((s) => s.id === formData.supplier_id)
+                              ? `${suppliers.find((s) => s.id === formData.supplier_id)?.supplier_code} - ${suppliers.find((s) => s.id === formData.supplier_id)?.supplier_name}`
                               : "Supplier tidak ditemukan"
                           }
                           readOnly
@@ -818,7 +838,8 @@ export default function StockAdjustmentForm() {
                           <SelectContent>
                             {suppliers.map((supplier) => (
                               <SelectItem key={supplier.id} value={supplier.id}>
-                                {supplier.supplier_code} - {supplier.supplier_name}
+                                {supplier.supplier_code} -{" "}
+                                {supplier.supplier_name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -831,7 +852,10 @@ export default function StockAdjustmentForm() {
                       <Input
                         value={formData.item_name}
                         onChange={(e) =>
-                          setFormData({ ...formData, item_name: e.target.value })
+                          setFormData({
+                            ...formData,
+                            item_name: e.target.value,
+                          })
                         }
                         required
                         readOnly={!!selectedStock}
@@ -885,7 +909,8 @@ export default function StockAdjustmentForm() {
 
                     <div>
                       <Label>
-                        {formData.transaction_type === "adjustment" || formData.transaction_type === "opname"
+                        {formData.transaction_type === "adjustment" ||
+                        formData.transaction_type === "opname"
                           ? "Stok Aktual *"
                           : "Jumlah *"}
                       </Label>
@@ -922,8 +947,8 @@ export default function StockAdjustmentForm() {
                           formData.adjustment_value > 0
                             ? "text-green-600 font-semibold"
                             : formData.adjustment_value < 0
-                            ? "text-red-600 font-semibold"
-                            : ""
+                              ? "text-red-600 font-semibold"
+                              : ""
                         }`}
                       />
                     </div>
@@ -941,7 +966,10 @@ export default function StockAdjustmentForm() {
                       <Input
                         value={formData.warehouse}
                         onChange={(e) =>
-                          setFormData({ ...formData, warehouse: e.target.value })
+                          setFormData({
+                            ...formData,
+                            warehouse: e.target.value,
+                          })
                         }
                         readOnly={!!selectedStock}
                         className={selectedStock ? "bg-slate-50" : ""}
@@ -1004,13 +1032,13 @@ export default function StockAdjustmentForm() {
                           <SelectValue placeholder="Pilih alasan..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {REASONS[formData.transaction_type as keyof typeof REASONS]?.map(
-                            (reason) => (
-                              <SelectItem key={reason} value={reason}>
-                                {reason}
-                              </SelectItem>
-                            )
-                          )}
+                          {REASONS[
+                            formData.transaction_type as keyof typeof REASONS
+                          ]?.map((reason) => (
+                            <SelectItem key={reason} value={reason}>
+                              {reason}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1183,7 +1211,9 @@ export default function StockAdjustmentForm() {
                         {adj.reference_number}
                       </TableCell>
                       <TableCell className="text-slate-700">
-                        {new Date(adj.transaction_date).toLocaleDateString("id-ID")}
+                        {new Date(adj.transaction_date).toLocaleDateString(
+                          "id-ID",
+                        )}
                       </TableCell>
                       <TableCell>
                         <span
@@ -1209,8 +1239,8 @@ export default function StockAdjustmentForm() {
                           adj.adjustment_value > 0
                             ? "text-green-600"
                             : adj.adjustment_value < 0
-                            ? "text-red-600"
-                            : "text-slate-600"
+                              ? "text-red-600"
+                              : "text-slate-600"
                         }`}
                       >
                         {adj.adjustment_value > 0 ? "+" : ""}

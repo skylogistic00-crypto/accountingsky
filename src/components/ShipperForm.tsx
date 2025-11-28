@@ -277,7 +277,7 @@ export default function ShipperForm() {
       "Sea Freight": "bg-blue-100 text-blue-700 border-blue-300",
       "Land Transport": "bg-green-100 text-green-700 border-green-300",
       "Express Courier": "bg-orange-100 text-orange-700 border-orange-300",
-      "Logistics": "bg-purple-100 text-purple-700 border-purple-300",
+      Logistics: "bg-purple-100 text-purple-700 border-purple-300",
     };
 
     const colorClass =
@@ -793,7 +793,9 @@ export default function ShipperForm() {
                 <TableHeader>
                   <TableRow className="bg-slate-50">
                     <TableHead className="font-semibold">Kode</TableHead>
-                    <TableHead className="font-semibold">Nama Shipper</TableHead>
+                    <TableHead className="font-semibold">
+                      Nama Shipper
+                    </TableHead>
                     <TableHead className="font-semibold">
                       Contact Person
                     </TableHead>
@@ -809,9 +811,7 @@ export default function ShipperForm() {
                       <TableCell colSpan={7} className="text-center py-8">
                         <div className="flex items-center justify-center gap-2">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-                          <span className="text-slate-500">
-                            Memuat data...
-                          </span>
+                          <span className="text-slate-500">Memuat data...</span>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -858,7 +858,9 @@ export default function ShipperForm() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{getCategoryBadge(shipper.category)}</TableCell>
+                        <TableCell>
+                          {getCategoryBadge(shipper.category)}
+                        </TableCell>
                         <TableCell>{getPkpBadge(shipper.is_pkp)}</TableCell>
                         <TableCell>{getStatusBadge(shipper.status)}</TableCell>
                       </TableRow>

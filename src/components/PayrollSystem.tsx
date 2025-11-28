@@ -3,13 +3,39 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Plus, FileText, Download, Eye, CheckCircle } from "lucide-react";
+import {
+  DollarSign,
+  Plus,
+  FileText,
+  Download,
+  Eye,
+  CheckCircle,
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -47,8 +73,8 @@ interface Payroll {
   net_salary: number;
   payment_status: string;
   payment_date: string;
-  employees?: { 
-    full_name: string; 
+  employees?: {
+    full_name: string;
     employee_number: string;
     bank_name: string;
     bank_account_number: string;
@@ -93,7 +119,8 @@ export default function PayrollSystem() {
   const loadEmployees = async () => {
     const { data } = await supabase
       .from("employees")
-      .select(`
+      .select(
+        `
         id, 
         employee_number, 
         full_name, 
@@ -102,7 +129,8 @@ export default function PayrollSystem() {
         bank_account_number,
         departments(department_name),
         positions(position_name)
-      `)
+      `,
+      )
       .eq("status", "active")
       .order("full_name");
     setEmployees(data || []);
@@ -111,7 +139,8 @@ export default function PayrollSystem() {
   const loadPayrolls = async () => {
     const { data } = await supabase
       .from("payroll")
-      .select(`
+      .select(
+        `
         *,
         employees(
           full_name, 
@@ -121,7 +150,8 @@ export default function PayrollSystem() {
           departments(department_name),
           positions(position_name)
         )
-      `)
+      `,
+      )
       .order("period_year", { ascending: false })
       .order("period_month", { ascending: false });
     setPayrolls(data || []);
@@ -138,11 +168,18 @@ export default function PayrollSystem() {
     const absenceDeduction = parseFloat(formData.absence_deduction) || 0;
     const loanDeduction = parseFloat(formData.loan_deduction) || 0;
     const bpjsKesehatan = parseFloat(formData.bpjs_kesehatan_deduction) || 0;
-    const bpjsKetenagakerjaan = parseFloat(formData.bpjs_ketenagakerjaan_deduction) || 0;
+    const bpjsKetenagakerjaan =
+      parseFloat(formData.bpjs_ketenagakerjaan_deduction) || 0;
     const tax = parseFloat(formData.tax_pph21) || 0;
 
     const gross = basic + transport + meal + position + overtimePay;
-    const totalDeductions = lateDeduction + absenceDeduction + loanDeduction + bpjsKesehatan + bpjsKetenagakerjaan + tax;
+    const totalDeductions =
+      lateDeduction +
+      absenceDeduction +
+      loanDeduction +
+      bpjsKesehatan +
+      bpjsKetenagakerjaan +
+      tax;
     const net = gross - totalDeductions;
 
     return { gross, totalDeductions, net };
@@ -165,17 +202,25 @@ export default function PayrollSystem() {
               period_month: parseInt(formData.period_month),
               period_year: parseInt(formData.period_year),
               basic_salary: parseFloat(formData.basic_salary),
-              allowances: parseFloat(formData.transport_allowance) + parseFloat(formData.meal_allowance) + parseFloat(formData.position_allowance),
+              allowances:
+                parseFloat(formData.transport_allowance) +
+                parseFloat(formData.meal_allowance) +
+                parseFloat(formData.position_allowance),
               overtime_pay: parseFloat(formData.overtime_pay),
-              deductions: parseFloat(formData.late_deduction) + parseFloat(formData.absence_deduction) + parseFloat(formData.loan_deduction),
+              deductions:
+                parseFloat(formData.late_deduction) +
+                parseFloat(formData.absence_deduction) +
+                parseFloat(formData.loan_deduction),
               tax: parseFloat(formData.tax_pph21),
               bpjs_kesehatan: parseFloat(formData.bpjs_kesehatan_deduction),
-              bpjs_ketenagakerjaan: parseFloat(formData.bpjs_ketenagakerjaan_deduction),
+              bpjs_ketenagakerjaan: parseFloat(
+                formData.bpjs_ketenagakerjaan_deduction,
+              ),
               net_salary: net,
               status: "pending",
             },
           },
-        }
+        },
       );
 
       if (error) throw error;
@@ -184,7 +229,11 @@ export default function PayrollSystem() {
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -199,102 +248,157 @@ export default function PayrollSystem() {
             data: {},
             id,
           },
-        }
+        },
       );
 
       if (error) throw error;
-      toast({ title: "Berhasil", description: `Status pembayaran diupdate menjadi ${status}` });
+      toast({
+        title: "Berhasil",
+        description: `Status pembayaran diupdate menjadi ${status}`,
+      });
       loadPayrolls();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
   const generatePayslipPDF = (payroll: Payroll) => {
     const doc = new jsPDF();
-    
+
     // Header
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
     doc.text("SLIP GAJI KARYAWAN", 105, 20, { align: "center" });
-    
+
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text("PT. Your Company Name", 105, 28, { align: "center" });
-    doc.text("Jl. Alamat Perusahaan No. 123, Jakarta", 105, 33, { align: "center" });
-    
+    doc.text("Jl. Alamat Perusahaan No. 123, Jakarta", 105, 33, {
+      align: "center",
+    });
+
     // Line separator
     doc.setLineWidth(0.5);
     doc.line(20, 38, 190, 38);
-    
+
     // Employee Info
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text("INFORMASI KARYAWAN", 20, 48);
-    
+
     doc.setFont("helvetica", "normal");
-    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-    
+    const monthNames = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+
     const employeeInfo = [
       ["No. Karyawan", payroll.employees?.employee_number || "-"],
       ["Nama", payroll.employees?.full_name || "-"],
       ["Departemen", payroll.employees?.departments?.department_name || "-"],
       ["Jabatan", payroll.employees?.positions?.position_name || "-"],
-      ["Periode", `${monthNames[payroll.period_month - 1]} ${payroll.period_year}`],
+      [
+        "Periode",
+        `${monthNames[payroll.period_month - 1]} ${payroll.period_year}`,
+      ],
       ["Bank", payroll.employees?.bank_name || "-"],
       ["No. Rekening", payroll.employees?.bank_account_number || "-"],
     ];
-    
+
     let yPos = 55;
     employeeInfo.forEach(([label, value]) => {
       doc.text(`${label}:`, 20, yPos);
       doc.text(value, 70, yPos);
       yPos += 6;
     });
-    
+
     // Earnings Table
     yPos += 5;
     doc.setFont("helvetica", "bold");
     doc.text("PENDAPATAN", 20, yPos);
-    
+
     autoTable(doc, {
       startY: yPos + 3,
       head: [["Keterangan", "Jumlah (Rp)"]],
       body: [
         ["Gaji Pokok", payroll.basic_salary.toLocaleString("id-ID")],
-        ["Tunjangan Transport", payroll.transport_allowance.toLocaleString("id-ID")],
+        [
+          "Tunjangan Transport",
+          payroll.transport_allowance.toLocaleString("id-ID"),
+        ],
         ["Tunjangan Makan", payroll.meal_allowance.toLocaleString("id-ID")],
-        ["Tunjangan Jabatan", payroll.position_allowance.toLocaleString("id-ID")],
-        ["Lembur (" + payroll.overtime_hours + " jam)", payroll.overtime_pay.toLocaleString("id-ID")],
+        [
+          "Tunjangan Jabatan",
+          payroll.position_allowance.toLocaleString("id-ID"),
+        ],
+        [
+          "Lembur (" + payroll.overtime_hours + " jam)",
+          payroll.overtime_pay.toLocaleString("id-ID"),
+        ],
       ],
-      foot: [["TOTAL PENDAPATAN", payroll.gross_salary.toLocaleString("id-ID")]],
+      foot: [
+        ["TOTAL PENDAPATAN", payroll.gross_salary.toLocaleString("id-ID")],
+      ],
       theme: "grid",
       headStyles: { fillColor: [59, 130, 246] },
-      footStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold" },
+      footStyles: {
+        fillColor: [229, 231, 235],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+      },
     });
-    
+
     // Deductions Table
     yPos = (doc as any).lastAutoTable.finalY + 10;
     doc.setFont("helvetica", "bold");
     doc.text("POTONGAN", 20, yPos);
-    
+
     autoTable(doc, {
       startY: yPos + 3,
       head: [["Keterangan", "Jumlah (Rp)"]],
       body: [
-        ["Potongan Keterlambatan", payroll.late_deduction.toLocaleString("id-ID")],
+        [
+          "Potongan Keterlambatan",
+          payroll.late_deduction.toLocaleString("id-ID"),
+        ],
         ["Potongan Absen", payroll.absence_deduction.toLocaleString("id-ID")],
         ["Potongan Pinjaman", payroll.loan_deduction.toLocaleString("id-ID")],
-        ["BPJS Kesehatan", payroll.bpjs_kesehatan_deduction.toLocaleString("id-ID")],
-        ["BPJS Ketenagakerjaan", payroll.bpjs_ketenagakerjaan_deduction.toLocaleString("id-ID")],
+        [
+          "BPJS Kesehatan",
+          payroll.bpjs_kesehatan_deduction.toLocaleString("id-ID"),
+        ],
+        [
+          "BPJS Ketenagakerjaan",
+          payroll.bpjs_ketenagakerjaan_deduction.toLocaleString("id-ID"),
+        ],
         ["Pajak PPh 21", payroll.tax_pph21.toLocaleString("id-ID")],
       ],
-      foot: [["TOTAL POTONGAN", payroll.total_deductions.toLocaleString("id-ID")]],
+      foot: [
+        ["TOTAL POTONGAN", payroll.total_deductions.toLocaleString("id-ID")],
+      ],
       theme: "grid",
       headStyles: { fillColor: [239, 68, 68] },
-      footStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold" },
+      footStyles: {
+        fillColor: [229, 231, 235],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+      },
     });
-    
+
     // Net Salary
     yPos = (doc as any).lastAutoTable.finalY + 10;
     doc.setFillColor(34, 197, 94);
@@ -303,18 +407,35 @@ export default function PayrollSystem() {
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.text("GAJI BERSIH (TAKE HOME PAY)", 25, yPos + 8);
-    doc.text(`Rp ${payroll.net_salary.toLocaleString("id-ID")}`, 185, yPos + 8, { align: "right" });
-    
+    doc.text(
+      `Rp ${payroll.net_salary.toLocaleString("id-ID")}`,
+      185,
+      yPos + 8,
+      { align: "right" },
+    );
+
     // Footer
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(9);
     doc.setFont("helvetica", "italic");
     yPos += 20;
-    doc.text("Slip gaji ini dicetak secara otomatis dan tidak memerlukan tanda tangan.", 105, yPos, { align: "center" });
-    doc.text(`Dicetak pada: ${new Date().toLocaleDateString("id-ID")}`, 105, yPos + 5, { align: "center" });
-    
+    doc.text(
+      "Slip gaji ini dicetak secara otomatis dan tidak memerlukan tanda tangan.",
+      105,
+      yPos,
+      { align: "center" },
+    );
+    doc.text(
+      `Dicetak pada: ${new Date().toLocaleDateString("id-ID")}`,
+      105,
+      yPos + 5,
+      { align: "center" },
+    );
+
     // Save PDF
-    doc.save(`Slip_Gaji_${payroll.employees?.employee_number}_${monthNames[payroll.period_month - 1]}_${payroll.period_year}.pdf`);
+    doc.save(
+      `Slip_Gaji_${payroll.employees?.employee_number}_${monthNames[payroll.period_month - 1]}_${payroll.period_year}.pdf`,
+    );
   };
 
   const resetForm = () => {
@@ -339,17 +460,35 @@ export default function PayrollSystem() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
-      pending: { variant: "secondary", label: "Pending", color: "bg-yellow-500" },
+      pending: {
+        variant: "secondary",
+        label: "Pending",
+        color: "bg-yellow-500",
+      },
       paid: { variant: "default", label: "Dibayar", color: "bg-green-500" },
-      cancelled: { variant: "destructive", label: "Dibatalkan", color: "bg-red-500" },
+      cancelled: {
+        variant: "destructive",
+        label: "Dibatalkan",
+        color: "bg-red-500",
+      },
     };
     const config = variants[status] || { variant: "default", label: status };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const monthNames = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
   ];
 
   return (
@@ -359,10 +498,13 @@ export default function PayrollSystem() {
           <h2 className="text-2xl font-bold">Manajemen Payroll</h2>
           <p className="text-gray-600">Kelola penggajian karyawan</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) resetForm();
-        }}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="bg-green-600 hover:bg-green-700">
               <Plus className="h-4 w-4 mr-2" />
@@ -385,15 +527,15 @@ export default function PayrollSystem() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Karyawan *</Label>
-                      <Select 
+                      <Select
                         required
-                        value={formData.employee_id} 
+                        value={formData.employee_id}
                         onValueChange={(value) => {
-                          const emp = employees.find(e => e.id === value);
-                          setFormData({ 
-                            ...formData, 
+                          const emp = employees.find((e) => e.id === value);
+                          setFormData({
+                            ...formData,
                             employee_id: value,
-                            basic_salary: emp?.basic_salary?.toString() || ""
+                            basic_salary: emp?.basic_salary?.toString() || "",
                           });
                         }}
                       >
@@ -412,7 +554,12 @@ export default function PayrollSystem() {
 
                     <div className="space-y-2">
                       <Label>Periode Bulan *</Label>
-                      <Select value={formData.period_month} onValueChange={(value) => setFormData({ ...formData, period_month: value })}>
+                      <Select
+                        value={formData.period_month}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, period_month: value })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -432,7 +579,12 @@ export default function PayrollSystem() {
                         type="number"
                         required
                         value={formData.period_year}
-                        onChange={(e) => setFormData({ ...formData, period_year: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            period_year: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -442,7 +594,12 @@ export default function PayrollSystem() {
                         type="number"
                         required
                         value={formData.basic_salary}
-                        onChange={(e) => setFormData({ ...formData, basic_salary: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            basic_salary: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -455,7 +612,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.transport_allowance}
-                        onChange={(e) => setFormData({ ...formData, transport_allowance: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            transport_allowance: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -464,7 +626,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.meal_allowance}
-                        onChange={(e) => setFormData({ ...formData, meal_allowance: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            meal_allowance: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -473,7 +640,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.position_allowance}
-                        onChange={(e) => setFormData({ ...formData, position_allowance: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            position_allowance: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -482,7 +654,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.overtime_hours}
-                        onChange={(e) => setFormData({ ...formData, overtime_hours: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            overtime_hours: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -491,7 +668,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.overtime_pay}
-                        onChange={(e) => setFormData({ ...formData, overtime_pay: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            overtime_pay: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -504,7 +686,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.late_deduction}
-                        onChange={(e) => setFormData({ ...formData, late_deduction: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            late_deduction: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -513,7 +700,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.absence_deduction}
-                        onChange={(e) => setFormData({ ...formData, absence_deduction: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            absence_deduction: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -522,7 +714,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.loan_deduction}
-                        onChange={(e) => setFormData({ ...formData, loan_deduction: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            loan_deduction: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -531,7 +728,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.bpjs_kesehatan_deduction}
-                        onChange={(e) => setFormData({ ...formData, bpjs_kesehatan_deduction: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bpjs_kesehatan_deduction: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -540,7 +742,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.bpjs_ketenagakerjaan_deduction}
-                        onChange={(e) => setFormData({ ...formData, bpjs_ketenagakerjaan_deduction: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bpjs_ketenagakerjaan_deduction: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -549,7 +756,12 @@ export default function PayrollSystem() {
                       <Input
                         type="number"
                         value={formData.tax_pph21}
-                        onChange={(e) => setFormData({ ...formData, tax_pph21: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            tax_pph21: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -567,7 +779,10 @@ export default function PayrollSystem() {
                   <div>
                     <p className="text-sm text-gray-600">Total Potongan</p>
                     <p className="text-xl font-bold text-red-600">
-                      Rp {calculatePayroll().totalDeductions.toLocaleString("id-ID")}
+                      Rp{" "}
+                      {calculatePayroll().totalDeductions.toLocaleString(
+                        "id-ID",
+                      )}
                     </p>
                   </div>
                   <div>
@@ -580,10 +795,17 @@ export default function PayrollSystem() {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
                   Batal
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button
+                  type="submit"
+                  className="bg-green-600 hover:bg-green-700"
+                >
                   Simpan
                 </Button>
               </div>
@@ -618,12 +840,17 @@ export default function PayrollSystem() {
               <TableBody>
                 {payrolls.map((payroll) => (
                   <TableRow key={payroll.id}>
-                    <TableCell className="font-medium">{payroll.employees?.employee_number}</TableCell>
+                    <TableCell className="font-medium">
+                      {payroll.employees?.employee_number}
+                    </TableCell>
                     <TableCell>{payroll.employees?.full_name}</TableCell>
                     <TableCell>
-                      {monthNames[payroll.period_month - 1]} {payroll.period_year}
+                      {monthNames[payroll.period_month - 1]}{" "}
+                      {payroll.period_year}
                     </TableCell>
-                    <TableCell>Rp {payroll.basic_salary.toLocaleString("id-ID")}</TableCell>
+                    <TableCell>
+                      Rp {payroll.basic_salary.toLocaleString("id-ID")}
+                    </TableCell>
                     <TableCell className="text-blue-600 font-semibold">
                       Rp {payroll.gross_salary.toLocaleString("id-ID")}
                     </TableCell>
@@ -633,7 +860,9 @@ export default function PayrollSystem() {
                     <TableCell className="font-bold text-green-600">
                       Rp {payroll.net_salary.toLocaleString("id-ID")}
                     </TableCell>
-                    <TableCell>{getStatusBadge(payroll.payment_status)}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(payroll.payment_status)}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -647,7 +876,9 @@ export default function PayrollSystem() {
                         {payroll.payment_status === "pending" && (
                           <Button
                             size="sm"
-                            onClick={() => handlePaymentStatus(payroll.id, "paid")}
+                            onClick={() =>
+                              handlePaymentStatus(payroll.id, "paid")
+                            }
                             className="bg-green-600 hover:bg-green-700"
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
