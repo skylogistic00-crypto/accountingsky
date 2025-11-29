@@ -27,7 +27,10 @@ export default function PendingRegistrasi() {
         </p>
 
         <div className="mt-6">
-          <a href="/" className="text-blue-600 hover:underline text-sm">
+          <a
+            href="https://acc.skykargo.co.id/"
+            className="text-blue-600 hover:underline text-sm"
+          >
             Kembali ke Beranda
           </a>
         </div>
