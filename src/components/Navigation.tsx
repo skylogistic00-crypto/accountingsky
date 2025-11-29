@@ -78,6 +78,27 @@ export default function Navigation() {
       roles: ["super_admin", "hr_manager", "hr_staff"],
     },
     {
+      path: "/pos",
+      label: "POS Kasir",
+      icon: ShoppingCart,
+      color: "emerald",
+      roles: ["super_admin", "admin", "cashier", "staff", "accounting_manager", "accounting_staff"],
+    },
+    {
+      path: "/warehouse-dashboard",
+      label: "Dashboard Gudang",
+      icon: Package,
+      color: "indigo",
+      roles: ["super_admin", "admin", "warehouse_manager", "warehouse_staff"],
+    },
+    {
+      path: "/pos-dashboard",
+      label: "Dashboard POS",
+      icon: ShoppingCart,
+      color: "teal",
+      roles: ["super_admin", "admin", "cashier", "staff"],
+    },
+    {
       path: "/supplier",
       label: "Suppliers",
       icon: Package,

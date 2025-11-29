@@ -27,6 +27,7 @@ import {
   TruckIcon,
   ArrowLeft,
   Package,
+  ScanLine,
 } from "lucide-react";
 import {
   Dialog,
@@ -46,6 +47,9 @@ import { useNavigate } from "react-router-dom";
 import { canEdit, canDelete } from "@/utils/roleAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { canClick } from "@/utils/roleAccess";
+import OCRScanButton from "./OCRScanButton";
+import BarcodeScanButton from "./BarcodeScanButton";
+import { useWarehouseScan } from "@/hooks/useWarehouseScan";
 
 interface BarangKeluarForm {
   id?: string;
@@ -105,6 +109,25 @@ export default function BarangKeluar() {
     payment: "",
     payment_status: "Belum Lunas",
     notes: "",
+    batch_number: "",
+    expired_date: "",
+  });
+
+  // Warehouse scan hook for autofill (Outbound)
+  const { processBarcodeScan, processOCRScan, isProcessing: isScanProcessing } = useWarehouseScan({
+    formType: "outbound",
+    onAutofill: (data) => {
+      setFormData((prev) => ({
+        ...prev,
+        sku: data.sku || prev.sku,
+        item_name: data.item_name || prev.item_name,
+        item_quantity: data.quantity?.toString() || prev.item_quantity,
+        unit: data.unit || prev.unit,
+        racks: data.location || prev.racks,
+        batch_number: data.batch_number || prev.batch_number || "",
+        expired_date: data.expired_date || prev.expired_date || "",
+      }));
+    },
   });
 
   useEffect(() => {
@@ -496,11 +519,40 @@ export default function BarangKeluar() {
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>
-                      {editingItem
-                        ? "Edit Barang Keluar"
-                        : "Tambah Barang Keluar"}
-                    </DialogTitle>
+                    <div className="flex items-center justify-between">
+                      <DialogTitle>
+                        {editingItem
+                          ? "Edit Barang Keluar"
+                          : "Tambah Barang Keluar"}
+                      </DialogTitle>
+                      <div className="flex gap-2">
+                        <OCRScanButton
+                          onImageUploaded={(url, filePath) => {
+                            toast({
+                              title: "Gambar berhasil diupload",
+                              description: `File: ${filePath}`,
+                            });
+                          }}
+                          onTextExtracted={(text) => {
+                            processOCRScan(text);
+                          }}
+                        />
+                        <BarcodeScanButton
+                          onBarcodeScanned={(code, format) => {
+                            processBarcodeScan(code, format);
+                          }}
+                          onAutofill={(data) => {
+                            if (data.sku) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                sku: data.sku || prev.sku,
+                                item_name: data.product_name || prev.item_name,
+                              }));
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     {!editingItem && (
@@ -518,7 +570,7 @@ export default function BarangKeluar() {
                                 Tidak ada barang dengan status Diambil
                               </SelectItem>
                             ) : (
-                              barangLini2Items.map((item) => (
+                              barangLini2Items.filter((item) => item.sku).map((item) => (
                                 <SelectItem key={item.id} value={item.sku}>
                                   {item.sku} -{" "}
                                   {item.nama_barang || item.item_name}

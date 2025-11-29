@@ -27,6 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { navigateBack } from "@/utils/navigation";
 
 interface CoretaxUpload {
   id: string;
@@ -143,7 +144,7 @@ export default function CoretaxReportList() {
               </div>
               <div className="flex gap-2">
                 <Button
-                  onClick={() => navigate(-1)}
+                  onClick={() => navigateBack(navigate)}
                   variant="outline"
                   className="flex items-center gap-2"
                 >

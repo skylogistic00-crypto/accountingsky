@@ -5,8 +5,8 @@ export default function PendingRegistrasi() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4">
       <div className="bg-white shadow-lg rounded-xl p-8 max-w-md w-full text-center">
         <img
-          src="https://i.ibb.co/r7nz0Qt/sky-Logo.png"
-          alt="SkyKargo Logo"
+          src="/logo.jpg"
+          alt="Sky Kargo Yaksa"
           className="w-28 mx-auto mb-4 opacity-90"
         />
 

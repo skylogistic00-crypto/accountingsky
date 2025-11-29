@@ -774,7 +774,7 @@ export default function BarangLini1() {
                               <SelectValue placeholder="-- Pilih tanggal --" />
                             </SelectTrigger>
                             <SelectContent>
-                              {availableDates.map((date) => (
+                              {availableDates.filter((date) => date).map((date) => (
                                 <SelectItem key={date} value={date}>
                                   {new Date(date).toLocaleDateString("id-ID", {
                                     weekday: "long",
@@ -812,7 +812,7 @@ export default function BarangLini1() {
                                 <SelectValue placeholder="-- Pilih SKU --" />
                               </SelectTrigger>
                               <SelectContent>
-                                {filteredStockItems.map((stock) => (
+                                {filteredStockItems.filter((stock) => stock.id).map((stock) => (
                                   <SelectItem key={stock.id} value={stock.id}>
                                     SKU: {stock.sku} - {stock.item_name}
                                   </SelectItem>

@@ -6,6 +6,8 @@ import AddStockItemModal from "./AddStockItemModal";
 import BorrowerForm from "./BorrowerForm";
 import JournalPreviewModal from "./JournalPreviewModal";
 import ApprovalTransaksi from "./ApprovalTransaksi";
+import OCRScanButton from "./OCRScanButton";
+import BarcodeScanButton from "./BarcodeScanButton";
 import { generateJournal } from "./journalRules";
 import {
   Card,
@@ -3324,6 +3326,35 @@ export default function TransaksiKeuanganForm() {
           <div className="flex gap-2">
             {showForm && (
               <>
+                <OCRScanButton
+                  onImageUploaded={(url, filePath) => {
+                    toast({
+                      title: "Gambar berhasil diupload",
+                      description: `File: ${filePath}`,
+                    });
+                  }}
+                />
+                <BarcodeScanButton
+                  onBarcodeScanned={(code, format) => {
+                    toast({
+                      title: "Barcode berhasil discan",
+                      description: `Format: ${format}`,
+                    });
+                  }}
+                  onAutofill={(data) => {
+                    if (data.is_qris && data.qris_nominal) {
+                      setNominal(data.qris_nominal.toString());
+                      if (data.qris_merchant) {
+                        setDeskripsi(`Pembayaran QRIS - ${data.qris_merchant}`);
+                      }
+                    } else if (data.product_name) {
+                      setDeskripsi(data.product_name);
+                      if (data.supplier) {
+                        setSupplier(data.supplier);
+                      }
+                    }
+                  }}
+                />
                 <Button
                   variant="outline"
                   onClick={() => setShowCart(!showCart)}
@@ -4771,7 +4802,7 @@ export default function TransaksiKeuanganForm() {
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableCategories.map((cat) => (
+                        {availableCategories.filter((cat) => cat).map((cat) => (
                           <SelectItem key={cat} value={cat}>
                             {cat}
                           </SelectItem>
@@ -4804,7 +4835,7 @@ export default function TransaksiKeuanganForm() {
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        {serviceTypes.map((type) => (
+                        {serviceTypes.filter((type) => type).map((type) => (
                           <SelectItem key={type} value={type}>
                             {type}
                           </SelectItem>
@@ -5251,7 +5282,7 @@ export default function TransaksiKeuanganForm() {
                             Tidak ada data customer
                           </SelectItem>
                         ) : (
-                          customers.map((c) => (
+                          customers.filter((c) => c.customer_name).map((c) => (
                             <SelectItem key={c.id} value={c.customer_name}>
                               {c.customer_name}
                             </SelectItem>
@@ -5278,7 +5309,7 @@ export default function TransaksiKeuanganForm() {
                             Tidak ada data consignee
                           </SelectItem>
                         ) : (
-                          consignees.map((c) => (
+                          consignees.filter((c) => c.consignee_name).map((c) => (
                             <SelectItem key={c.id} value={c.consignee_name}>
                               {c.consignee_name}
                             </SelectItem>
@@ -5304,7 +5335,7 @@ export default function TransaksiKeuanganForm() {
                       <SelectValue placeholder="-- pilih supplier --" />
                     </SelectTrigger>
                     <SelectContent>
-                      {suppliers.map((s) => (
+                      {suppliers.filter((s) => s.supplier_name).map((s) => (
                         <SelectItem key={s.id} value={s.supplier_name}>
                           {s.supplier_name}
                         </SelectItem>
@@ -5338,7 +5369,7 @@ export default function TransaksiKeuanganForm() {
                               Tidak ada data peminjam
                             </SelectItem>
                           ) : (
-                            borrowers.map((b) => (
+                            borrowers.filter((b) => b.borrower_name).map((b) => (
                               <SelectItem key={b.id} value={b.borrower_name}>
                                 {b.borrower_name} ({b.borrower_code})
                               </SelectItem>
@@ -5920,7 +5951,7 @@ export default function TransaksiKeuanganForm() {
                             Tidak ada pinjaman aktif
                           </SelectItem>
                         ) : (
-                          borrowers.map((b) => (
+                          borrowers.filter((b) => b.borrower_name).map((b) => (
                             <SelectItem key={b.id} value={b.borrower_name}>
                               {b.borrower_name} ({b.borrower_code})
                             </SelectItem>

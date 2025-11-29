@@ -604,7 +604,7 @@ export default function PurchaseRequestList() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__ALL__">Semua pemohon</SelectItem>
-                    {nameOptions.map((name) => (
+                    {nameOptions.filter((name) => name).map((name) => (
                       <SelectItem key={name} value={name}>
                         {name}
                       </SelectItem>
@@ -841,7 +841,7 @@ export default function PurchaseRequestList() {
                 <SelectValue placeholder="Pilih gudang..." />
               </SelectTrigger>
               <SelectContent>
-                {warehouses.map((warehouse) => (
+                {warehouses.filter((warehouse) => warehouse.id).map((warehouse) => (
                   <SelectItem key={warehouse.id} value={warehouse.id}>
                     {warehouse.code} - {warehouse.name}
                   </SelectItem>

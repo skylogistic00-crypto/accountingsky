@@ -48,11 +48,15 @@ import {
   TrendingDown,
   RefreshCw,
   Download,
+  ScanLine,
   FileText,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { canEdit, canDelete, canView, canClick } from "@/utils/roleAccess";
+import OCRScanButton from "./OCRScanButton";
+import BarcodeScanButton from "./BarcodeScanButton";
+import { useWarehouseScan } from "@/hooks/useWarehouseScan";
 
 interface StockAdjustment {
   id: string;
@@ -180,6 +184,37 @@ export default function StockAdjustmentForm() {
     created_by: "",
     supplier_id: "",
     stock_id: "",
+    batch_number: "",
+    expired_date: "",
+  });
+
+  // Warehouse scan hook for autofill
+  const { processBarcodeScan, processOCRScan, isProcessing: isScanProcessing } = useWarehouseScan({
+    formType: "adjustment",
+    onAutofill: (data) => {
+      setFormData((prev) => ({
+        ...prev,
+        sku: data.sku || prev.sku,
+        item_name: data.item_name || prev.item_name,
+        quantity: data.quantity || prev.quantity,
+        unit: data.unit || prev.unit,
+        rack: data.location || prev.rack,
+        batch_number: data.batch_number || prev.batch_number || "",
+        expired_date: data.expired_date || prev.expired_date || "",
+      }));
+      // Try to find and select the stock item
+      if (data.sku) {
+        const foundStock = stockItems.find((s) => s.sku === data.sku);
+        if (foundStock) {
+          setSelectedStock(foundStock);
+          setFormData((prev) => ({
+            ...prev,
+            stock_id: foundStock.id,
+            before_quantity: foundStock.item_quantity || 0,
+          }));
+        }
+      }
+    },
   });
 
   useEffect(() => {
@@ -675,14 +710,45 @@ export default function StockAdjustmentForm() {
         {showForm && (
           <Card className="mb-6 bg-white shadow-lg rounded-xl border border-slate-200">
             <CardHeader className="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50">
-              <CardTitle className="text-xl">
-                {editingId ? "✏️ Edit Transaksi" : "+ Tambah Transaksi"}
-              </CardTitle>
-              <CardDescription>
-                {editingId
-                  ? "Perbarui informasi transaksi"
-                  : "Tambahkan transaksi stock baru"}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">
+                    {editingId ? "✏️ Edit Transaksi" : "+ Tambah Transaksi"}
+                  </CardTitle>
+                  <CardDescription>
+                    {editingId
+                      ? "Perbarui informasi transaksi"
+                      : "Tambahkan transaksi stock baru"}
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <OCRScanButton
+                    onImageUploaded={(url, filePath) => {
+                      toast({
+                        title: "Gambar berhasil diupload",
+                        description: `File: ${filePath}`,
+                      });
+                    }}
+                    onTextExtracted={(text) => {
+                      processOCRScan(text);
+                    }}
+                  />
+                  <BarcodeScanButton
+                    onBarcodeScanned={(code, format) => {
+                      processBarcodeScan(code, format);
+                    }}
+                    onAutofill={(data) => {
+                      if (data.sku) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          sku: data.sku || prev.sku,
+                          item_name: data.product_name || prev.item_name,
+                        }));
+                      }
+                    }}
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -803,7 +869,7 @@ export default function StockAdjustmentForm() {
                           <SelectValue placeholder="Pilih barang..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {stockItems.map((item) => (
+                          {stockItems.filter((item) => item.sku).map((item) => (
                             <SelectItem key={item.id} value={item.sku}>
                               {item.sku} - {item.item_name} (Qty:{" "}
                               {item.item_quantity})
@@ -836,7 +902,7 @@ export default function StockAdjustmentForm() {
                             <SelectValue placeholder="Pilih supplier..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {suppliers.map((supplier) => (
+                            {suppliers.filter((supplier) => supplier.id).map((supplier) => (
                               <SelectItem key={supplier.id} value={supplier.id}>
                                 {supplier.supplier_code} -{" "}
                                 {supplier.supplier_name}
@@ -1034,7 +1100,7 @@ export default function StockAdjustmentForm() {
                         <SelectContent>
                           {REASONS[
                             formData.transaction_type as keyof typeof REASONS
-                          ]?.map((reason) => (
+                          ]?.filter((reason) => reason).map((reason) => (
                             <SelectItem key={reason} value={reason}>
                               {reason}
                             </SelectItem>

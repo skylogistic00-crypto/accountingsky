@@ -500,7 +500,7 @@ export default function ServiceItemsForm() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Kategori</SelectItem>
-                  {categories.map((cat) => (
+                  {categories.filter((cat) => cat).map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>

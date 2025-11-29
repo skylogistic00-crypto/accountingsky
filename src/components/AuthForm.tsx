@@ -368,7 +368,7 @@ export function AuthFormContent({
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => (
+                  {roles.filter((role) => role.role_name).map((role) => (
                     <SelectItem key={role.id} value={role.role_name}>
                       {humanizeRole(role.role_name)}
                     </SelectItem>
@@ -1056,7 +1056,7 @@ export function AuthFormContent({
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
-                      {roles.map((role) => (
+                      {roles.filter((role) => role.role_name).map((role) => (
                         <SelectItem key={role.id} value={role.role_name}>
                           {humanizeRole(role.role_name)}
                         </SelectItem>

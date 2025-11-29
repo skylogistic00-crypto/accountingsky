@@ -579,7 +579,7 @@ export default function StockEngineForm() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="manual">+ Input Manual</SelectItem>
-                    {itemNameList.map((item) => (
+                    {itemNameList.filter((item) => item.item_name).map((item) => (
                       <SelectItem key={item.id} value={item.item_name}>
                         {item.item_name}
                       </SelectItem>
@@ -618,7 +618,7 @@ export default function StockEngineForm() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="manual">+ Input Manual</SelectItem>
-                    {brandList.map((brandName) => (
+                    {brandList.filter((brandName) => brandName).map((brandName) => (
                       <SelectItem key={brandName} value={brandName}>
                         {brandName}
                       </SelectItem>
@@ -650,7 +650,7 @@ export default function StockEngineForm() {
                 <SelectValue placeholder="Pilih COA Account" />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
-                {coaList.map((coa) => (
+                {coaList.filter((coa) => coa.account_code).map((coa) => (
                   <SelectItem key={coa.account_code} value={coa.account_code}>
                     {coa.account_code} - {coa.account_name} ({coa.account_type})
                   </SelectItem>

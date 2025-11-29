@@ -152,7 +152,7 @@ export default function GeneralLedgerView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Akun</SelectItem>
-              {accounts.map((acc) => (
+              {accounts.filter((acc) => acc.account_code).map((acc) => (
                 <SelectItem key={acc.account_code} value={acc.account_code}>
                   {acc.account_code} - {acc.account_name}
                 </SelectItem>

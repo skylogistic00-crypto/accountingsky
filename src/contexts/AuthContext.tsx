@@ -61,6 +61,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      // ⛔ CRITICAL: Jangan auto sign-in di halaman konfirmasi email
+      const isEmailConfirmRoute =
+        window.location.pathname.startsWith("/auth/confirm");
+
+      if (isEmailConfirmRoute) {
+        console.log("⛔ Blocking auto sign-in on /auth/confirm route");
+        return; // ⛔ STOP auto sign-in
+      }
+
       setUser(session?.user ?? null);
 
       if (session?.user) {

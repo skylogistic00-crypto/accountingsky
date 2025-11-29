@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Calendar } from "@/components/ui/calendar";
+import OCRScanButton from "./OCRScanButton";
+import BarcodeScanButton from "./BarcodeScanButton";
 import {
   Popover,
   PopoverContent,
@@ -209,9 +211,39 @@ export default function CashDisbursementForm({
   return (
     <Card className="w-full bg-white">
       <CardHeader className="bg-gradient-to-r from-red-500 to-red-600">
-        <CardTitle className="text-white text-2xl">
-          Form Pengeluaran Kas
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white text-2xl">
+            Form Pengeluaran Kas
+          </CardTitle>
+          <div className="flex gap-2">
+            <OCRScanButton
+              onImageUploaded={(url, filePath) => {
+                toast({
+                  title: "Gambar berhasil diupload",
+                  description: `File: ${filePath}`,
+                });
+              }}
+            />
+            <BarcodeScanButton
+              onBarcodeScanned={(code, format) => {
+                toast({
+                  title: "Barcode berhasil discan",
+                  description: `Format: ${format}`,
+                });
+              }}
+              onAutofill={(data) => {
+                if (data.is_qris && data.qris_nominal) {
+                  setAmount(data.qris_nominal.toString());
+                  if (data.qris_merchant) {
+                    setDescription(`Pembayaran QRIS - ${data.qris_merchant}`);
+                  }
+                } else if (data.product_name) {
+                  setDescription(data.product_name);
+                }
+              }}
+            />
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">

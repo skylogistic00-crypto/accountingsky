@@ -36,6 +36,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { navigateBack } from "@/utils/navigation";
 
 interface LabaRugiDetail {
   account_code: string;
@@ -245,7 +246,7 @@ export default function ProfitLossReport() {
               </CardDescription>
             </div>
             <Button
-              onClick={() => navigate(-1)}
+              onClick={() => navigateBack(navigate)}
               variant="outline"
               className="flex items-center gap-2"
             >

@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Upload, FileText, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { navigateBack } from "@/utils/navigation";
 
 export default function CoretaxUploadForm() {
   const { toast } = useToast();
@@ -142,7 +143,7 @@ export default function CoretaxUploadForm() {
               </div>
               <div className="flex gap-2">
                 <Button
-                  onClick={() => navigate(-1)}
+                  onClick={() => navigateBack(navigate)}
                   variant="outline"
                   className="flex items-center gap-2"
                 >
@@ -199,7 +200,7 @@ export default function CoretaxUploadForm() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {monthNames.map((month, idx) => (
+                      {monthNames.filter((month) => month).map((month, idx) => (
                         <SelectItem key={idx} value={(idx + 1).toString()}>
                           {month}
                         </SelectItem>

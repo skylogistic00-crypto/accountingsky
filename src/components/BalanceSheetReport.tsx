@@ -21,6 +21,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Download, Filter, FileText, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { navigateBack } from "@/utils/navigation";
 
 interface BalanceSheetData {
   account_code: string;
@@ -201,7 +202,7 @@ export default function BalanceSheetReport() {
               </CardDescription>
             </div>
             <Button
-              onClick={() => navigate(-1)}
+              onClick={() => navigateBack(navigate)}
               variant="outline"
               className="flex items-center gap-2"
             >

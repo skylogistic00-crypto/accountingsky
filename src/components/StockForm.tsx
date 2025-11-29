@@ -62,6 +62,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { canEdit, canDelete, canView } from "@/utils/roleAccess";
 import { canClick } from "@/utils/roleAccess";
+import OCRScanButton from "./OCRScanButton";
+import BarcodeScanButton from "./BarcodeScanButton";
+import { useWarehouseScan } from "@/hooks/useWarehouseScan";
 
 interface StockItem {
   id: string;
@@ -259,6 +262,8 @@ export default function StockForm() {
     hs_category: "",
     hs_sub_category: "",
     hs_description: "",
+    batch_number: "",
+    expired_date: "",
   });
 
   // Separate state for display-only supplier info
@@ -266,6 +271,29 @@ export default function StockForm() {
     phone_number: "",
     email: "",
     address: "",
+  });
+
+  // Warehouse scan hook for autofill (GRN - Goods Receipt Note)
+  const { processBarcodeScan, processOCRScan, isProcessing: isScanProcessing } = useWarehouseScan({
+    formType: "grn",
+    onAutofill: (data) => {
+      setFormData((prev) => ({
+        ...prev,
+        sku: data.sku || prev.sku,
+        item_name: data.item_name || prev.item_name,
+        item_quantity: data.quantity || prev.item_quantity,
+        unit: data.unit || prev.unit,
+        racks: data.location || prev.racks,
+        batch_number: data.batch_number || prev.batch_number || "",
+        expired_date: data.expired_date || prev.expired_date || "",
+      }));
+      if (data.is_new_item) {
+        toast({
+          title: "Item Baru",
+          description: `SKU ${data.sku} telah dibuat otomatis`,
+        });
+      }
+    },
   });
 
   useEffect(() => {
@@ -1679,14 +1707,45 @@ export default function StockForm() {
         {showForm && (
           <Card className="mb-6 bg-white shadow-lg rounded-xl border border-slate-200">
             <CardHeader className="bg-gradient-to-r from-indigo-50 via-blue-50 to-cyan-50">
-              <CardTitle className="text-xl">
-                {editingId ? "✏️ Edit Stock" : "+ Tambah Stock"}
-              </CardTitle>
-              <CardDescription>
-                {editingId
-                  ? "Perbarui informasi stock"
-                  : "Tambahkan stock baru ke sistem"}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">
+                    {editingId ? "✏️ Edit Stock" : "+ Tambah Stock"}
+                  </CardTitle>
+                  <CardDescription>
+                    {editingId
+                      ? "Perbarui informasi stock"
+                      : "Tambahkan stock baru ke sistem"}
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <OCRScanButton
+                    onImageUploaded={(url, filePath) => {
+                      toast({
+                        title: "Gambar berhasil diupload",
+                        description: `File: ${filePath}`,
+                      });
+                    }}
+                    onTextExtracted={(text) => {
+                      processOCRScan(text);
+                    }}
+                  />
+                  <BarcodeScanButton
+                    onBarcodeScanned={(code, format) => {
+                      processBarcodeScan(code, format);
+                    }}
+                    onAutofill={(data) => {
+                      if (data.sku) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          sku: data.sku || prev.sku,
+                          item_name: data.product_name || prev.item_name,
+                        }));
+                      }
+                    }}
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -1777,7 +1836,7 @@ export default function StockForm() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="manual">+ Input Manual</SelectItem>
-                          {itemNameList.map((item) => (
+                          {itemNameList.filter((item) => item.item_name).map((item) => (
                             <SelectItem key={item.id} value={item.item_name}>
                               {item.item_name}
                             </SelectItem>
@@ -1811,7 +1870,7 @@ export default function StockForm() {
                           <SelectValue placeholder="Pilih jenis barang" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.map((cat) => (
+                          {categories.filter((cat) => cat).map((cat) => (
                             <SelectItem key={cat} value={cat}>
                               {cat}
                             </SelectItem>
@@ -1893,7 +1952,7 @@ export default function StockForm() {
                             <SelectItem value="manual">
                               + Input Manual
                             </SelectItem>
-                            {brandList.map((brandName) => (
+                            {brandList.filter((brandName) => brandName).map((brandName) => (
                               <SelectItem key={brandName} value={brandName}>
                                 {brandName}
                               </SelectItem>
@@ -2367,7 +2426,7 @@ export default function StockForm() {
                             <SelectValue placeholder="Pilih kategori HS" />
                           </SelectTrigger>
                           <SelectContent>
-                            {hsCategories.map((cat) => (
+                            {hsCategories.filter((cat) => cat).map((cat) => (
                               <SelectItem key={cat} value={cat}>
                                 {cat}
                               </SelectItem>
@@ -2493,7 +2552,7 @@ export default function StockForm() {
                             <SelectValue placeholder="Pilih jenis dokumen" />
                           </SelectTrigger>
                           <SelectContent>
-                            {CEISA_DOCUMENT_TYPES.map((type) => (
+                            {CEISA_DOCUMENT_TYPES.filter((type) => type).map((type) => (
                               <SelectItem key={type} value={type}>
                                 {type}
                               </SelectItem>
@@ -2528,7 +2587,7 @@ export default function StockForm() {
                             <SelectValue placeholder="Pilih status" />
                           </SelectTrigger>
                           <SelectContent>
-                            {CEISA_STATUS_OPTIONS.map((status) => (
+                            {CEISA_STATUS_OPTIONS.filter((status) => status).map((status) => (
                               <SelectItem key={status} value={status}>
                                 {status}
                               </SelectItem>

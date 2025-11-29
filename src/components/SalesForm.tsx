@@ -913,7 +913,7 @@ export default function SalesForm() {
                         <SelectValue placeholder="Pilih barang..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {items.map((item) => (
+                        {items.filter((item) => item.id).map((item) => (
                           <SelectItem key={item.id} value={item.id}>
                             {item.item_name} (Stok: {item.quantity})
                           </SelectItem>
@@ -929,7 +929,7 @@ export default function SalesForm() {
                         <SelectValue placeholder="Pilih jasa..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {serviceItems.map((service) => (
+                        {serviceItems.filter((service) => service.id).map((service) => (
                           <SelectItem key={service.id} value={service.id}>
                             {service.item_name} - {formatRupiah(service.price)}/
                             {service.unit}
@@ -1073,7 +1073,7 @@ export default function SalesForm() {
                       <SelectValue placeholder="Pilih customer..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {customers.map((customer) => (
+                      {customers.filter((customer) => customer.id).map((customer) => (
                         <SelectItem key={customer.id} value={customer.id}>
                           {customer.name}
                         </SelectItem>

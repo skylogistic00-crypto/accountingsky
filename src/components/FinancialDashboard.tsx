@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -10,11 +11,13 @@ import {
   Wallet,
   FileText,
   Scale,
+  ArrowLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import MonthlyFinanceChart from "./MonthlyFinanceChart";
 import { canClick } from "@/utils/roleAccess";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface FinancialSummary {
   totalRevenue: number;
@@ -24,6 +27,7 @@ interface FinancialSummary {
 }
 
 export default function FinancialDashboard() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const { userRole } = useAuth();
@@ -36,7 +40,9 @@ export default function FinancialDashboard() {
 
   // Month and year filters
   const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
+  const [selectedMonth, setSelectedMonth] = useState(
+    currentDate.getMonth() + 1,
+  );
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
 
   useEffect(() => {
@@ -112,8 +118,37 @@ export default function FinancialDashboard() {
     }).format(amount);
   };
 
+  const handleBack = () => {
+    navigate("/dashboard");
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-0">
+      {/* Header with gradient */}
+      <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
+        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="text-white hover:bg-white/20"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <TrendingUp className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  Dashboard Keuangan
+                </h1>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <div>
@@ -149,7 +184,10 @@ export default function FinancialDashboard() {
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              {Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - 2 + i).map((year) => (
+              {Array.from(
+                { length: 5 },
+                (_, i) => currentDate.getFullYear() - 2 + i,
+              ).map((year) => (
                 <option key={year} value={year}>
                   {year}
                 </option>

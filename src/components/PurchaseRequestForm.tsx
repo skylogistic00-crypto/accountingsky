@@ -806,7 +806,7 @@ export default function PurchaseRequestForm({
                   <SelectValue placeholder="Pilih supplier" />
                 </SelectTrigger>
                 <SelectContent>
-                  {suppliers.map((supplier) => (
+                  {suppliers.filter((supplier) => supplier.id).map((supplier) => (
                     <SelectItem key={supplier.id} value={supplier.id}>
                       {supplier.supplier_name}
                       {supplier.is_pkp === "YES" && (
@@ -963,7 +963,7 @@ export default function PurchaseRequestForm({
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredBrands.map((b) => (
+                    {filteredBrands.filter((b) => b.brand_name).map((b) => (
                       <SelectItem key={b.id} value={b.brand_name}>
                         {b.brand_name}
                       </SelectItem>
@@ -1033,7 +1033,7 @@ export default function PurchaseRequestForm({
                     <SelectValue placeholder="-- Pilih Gudang --" />
                   </SelectTrigger>
                   <SelectContent>
-                    {warehouses.map((w) => (
+                    {warehouses.filter((w) => w.id).map((w) => (
                       <SelectItem key={w.id} value={w.id}>
                         {w.name} ({w.code})
                       </SelectItem>

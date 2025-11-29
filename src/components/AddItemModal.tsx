@@ -128,7 +128,7 @@ export default function AddItemModal({
                 <SelectValue placeholder="-- Pilih Jenis Barang --" />
               </SelectTrigger>
               <SelectContent>
-                {jenisBarangList.map((jenis) => (
+                {jenisBarangList.filter((jenis) => jenis).map((jenis) => (
                   <SelectItem key={jenis} value={jenis}>
                     {jenis}
                   </SelectItem>

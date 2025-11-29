@@ -29,6 +29,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { navigateBack } from "@/utils/navigation";
 
 interface CashFlowDetailData {
   id: string;
@@ -160,7 +161,7 @@ export default function CashFlowReport() {
               </CardDescription>
             </div>
             <Button
-              onClick={() => navigate(-1)}
+              onClick={() => navigateBack(navigate)}
               variant="outline"
               className="flex items-center gap-2"
             >

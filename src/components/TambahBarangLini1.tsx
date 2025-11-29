@@ -219,7 +219,7 @@ export default function TambahBarangLini1() {
                     Tidak ada data tanggal masuk barang
                   </SelectItem>
                 ) : (
-                  uniqueDates.map((date) => (
+                  uniqueDates.filter((date) => date).map((date) => (
                     <SelectItem key={date} value={date}>
                       {new Date(date).toLocaleDateString("id-ID", {
                         weekday: "long",
@@ -253,7 +253,7 @@ export default function TambahBarangLini1() {
                       Tidak ada barang untuk tanggal ini
                     </SelectItem>
                   ) : (
-                    filteredStockItems.map((item) => (
+                    filteredStockItems.filter((item) => item.barcode).map((item) => (
                       <SelectItem key={item.id} value={item.barcode}>
                         {item.barcode} - {item.item_name}
                       </SelectItem>

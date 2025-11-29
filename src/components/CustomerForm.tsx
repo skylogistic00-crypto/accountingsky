@@ -593,7 +593,7 @@ export default function CustomerForm() {
                           <SelectValue placeholder="Pilih bank" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
-                          {indonesianBanks.map((bank) => (
+                          {indonesianBanks.filter((bank) => bank).map((bank) => (
                             <SelectItem key={bank} value={bank}>
                               {bank}
                             </SelectItem>
@@ -655,7 +655,7 @@ export default function CustomerForm() {
                           <SelectValue placeholder="Pilih payment terms" />
                         </SelectTrigger>
                         <SelectContent>
-                          {paymentTerms.map((term) => (
+                          {paymentTerms.filter((term) => term.id).map((term) => (
                             <SelectItem key={term.id} value={term.id}>
                               {term.term_name} - {term.description}
                             </SelectItem>

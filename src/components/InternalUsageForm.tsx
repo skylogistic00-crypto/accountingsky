@@ -402,7 +402,7 @@ export default function InternalUsageForm() {
                     <SelectValue placeholder="Pilih barang..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {items.map((item) => (
+                    {items.filter((item) => item.id).map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.item_name} (Stok: {item.qty_available})
                       </SelectItem>
@@ -497,7 +497,7 @@ export default function InternalUsageForm() {
                     <SelectValue placeholder="Pilih departemen..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((dept) => (
+                    {departments.filter((dept) => dept.id).map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name} ({dept.code})
                       </SelectItem>
@@ -517,7 +517,7 @@ export default function InternalUsageForm() {
                     <SelectValue placeholder="Pilih akun COA..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {coaAccounts.map((account) => (
+                    {coaAccounts.filter((account) => account.account_code).map((account) => (
                       <SelectItem key={account.account_code} value={account.account_code}>
                         {account.account_code} - {account.account_name}
                       </SelectItem>
@@ -553,7 +553,7 @@ export default function InternalUsageForm() {
                     <SelectValue placeholder="Pilih user..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {users.map((user) => (
+                    {users.filter((user) => user.id).map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.full_name || user.email}
                       </SelectItem>

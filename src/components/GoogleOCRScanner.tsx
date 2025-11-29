@@ -8,7 +8,16 @@ import { Textarea } from "./ui/textarea";
 import { useToast } from "./ui/use-toast";
 import Header from "./Header";
 import Navigation from "./Navigation";
-import { Upload, FileText, Loader2, Image, List, CheckCircle } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  Loader2,
+  Image,
+  List,
+  CheckCircle,
+  ArrowLeft,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function GoogleOCRScanner() {
   const [file, setFile] = useState<File | null>(null);
@@ -16,13 +25,14 @@ export default function GoogleOCRScanner() {
   const [loading, setLoading] = useState(false);
   const [ocrResult, setOcrResult] = useState<any>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
       setOcrResult(null);
-      
+
       // Create preview URL for image
       if (selectedFile.type.startsWith("image/")) {
         const previewUrl = URL.createObjectURL(selectedFile);
@@ -58,12 +68,12 @@ export default function GoogleOCRScanner() {
       // Convert file to base64
       const fileBuffer = await file.arrayBuffer();
       const base64Content = btoa(
-        String.fromCharCode(...new Uint8Array(fileBuffer))
+        String.fromCharCode(...new Uint8Array(fileBuffer)),
       );
 
       // Call Google Vision API directly
       const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
-      
+
       if (!apiKey) {
         throw new Error("Google Vision API key not configured");
       }
@@ -86,7 +96,7 @@ export default function GoogleOCRScanner() {
               },
             ],
           }),
-        }
+        },
       );
 
       if (!visionResponse.ok) {
@@ -97,7 +107,8 @@ export default function GoogleOCRScanner() {
       const visionData = await visionResponse.json();
       const textAnnotations = visionData.responses?.[0]?.textAnnotations || [];
       const fullTextAnnotation = visionData.responses?.[0]?.fullTextAnnotation;
-      const extractedText = fullTextAnnotation?.text || textAnnotations[0]?.description || "";
+      const extractedText =
+        fullTextAnnotation?.text || textAnnotations[0]?.description || "";
 
       // Upload file to Supabase Storage
       const fileName = `ocr-${Date.now()}-${file.name}`;
@@ -149,10 +160,39 @@ export default function GoogleOCRScanner() {
     }
   };
 
+  const handleBack = () => {
+    navigate("/dashboard");
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 p-0">
       <Header />
       <Navigation />
+      {/* Header with gradient */}
+      <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
+        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="text-white hover:bg-white/20"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <FileText className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  Google OCR Scanner
+                </h1>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="container mx-auto p-6 max-w-4xl">
         <Card className="bg-white">
           <CardHeader>
@@ -207,7 +247,7 @@ export default function GoogleOCRScanner() {
                       Gambar yang Diekstrak
                     </Label>
                     <div className="border rounded-lg overflow-hidden bg-gray-50 p-2">
-                      {(filePreview || ocrResult.file_url) ? (
+                      {filePreview || ocrResult.file_url ? (
                         <img
                           src={filePreview || ocrResult.file_url}
                           alt="Extracted document"
@@ -225,19 +265,23 @@ export default function GoogleOCRScanner() {
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <List className="h-4 w-4" />
-                      Hasil Ekstraksi ({parseExtractedText(ocrResult.extracted_text).length} item)
+                      Hasil Ekstraksi (
+                      {parseExtractedText(ocrResult.extracted_text).length}{" "}
+                      item)
                     </Label>
                     <div className="border rounded-lg bg-gray-50 p-4 max-h-[400px] overflow-y-auto">
                       <ul className="space-y-2">
-                        {parseExtractedText(ocrResult.extracted_text).map((item, index) => (
-                          <li
-                            key={index}
-                            className="flex items-start gap-2 p-2 bg-white rounded border text-sm"
-                          >
-                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                            <span className="text-gray-700">{item}</span>
-                          </li>
-                        ))}
+                        {parseExtractedText(ocrResult.extracted_text).map(
+                          (item, index) => (
+                            <li
+                              key={index}
+                              className="flex items-start gap-2 p-2 bg-white rounded border text-sm"
+                            >
+                              <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-700">{item}</span>
+                            </li>
+                          ),
+                        )}
                       </ul>
                     </div>
                   </div>
@@ -257,7 +301,9 @@ export default function GoogleOCRScanner() {
                   <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <FileText className="h-5 w-5 text-blue-600" />
                     <div className="flex-1">
-                      <span className="text-sm font-medium text-blue-800">File tersimpan di:</span>
+                      <span className="text-sm font-medium text-blue-800">
+                        File tersimpan di:
+                      </span>
                       <a
                         href={ocrResult.file_url}
                         target="_blank"

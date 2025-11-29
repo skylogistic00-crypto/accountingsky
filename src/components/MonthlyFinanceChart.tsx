@@ -179,7 +179,7 @@ export default function MonthlyFinanceChart() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {years.map((year) => (
+                {years.filter((year) => year).map((year) => (
                   <SelectItem key={year} value={year}>
                     {year}
                   </SelectItem>

@@ -36,7 +36,10 @@ import {
   RefreshCw,
   CheckCircle,
   Send,
+  ArrowLeft,
+  BookOpen,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface TaxReport {
   id: string;
@@ -79,6 +82,7 @@ export default function TaxReportManagement() {
   const [selectedType, setSelectedType] = useState("Pajak Masukan");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTaxReports();
@@ -270,6 +274,10 @@ export default function TaxReportManagement() {
     }
   };
 
+  const handleBack = () => {
+    navigate("/dashboard");
+  };
+
   const monthNames = [
     "Januari",
     "Februari",
@@ -293,9 +301,33 @@ export default function TaxReportManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-0">
+      {/* Header with gradient */}
+      <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
+        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="text-white hover:bg-white/20"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  Manajemen Perpajakan
+                </h1>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
             Manajemen Perpajakan
@@ -410,11 +442,13 @@ export default function TaxReportManagement() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {monthNames.map((month, idx) => (
-                      <SelectItem key={idx} value={(idx + 1).toString()}>
-                        {month}
-                      </SelectItem>
-                    ))}
+                    {monthNames
+                      .filter((month) => month)
+                      .map((month, idx) => (
+                        <SelectItem key={idx} value={(idx + 1).toString()}>
+                          {month}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

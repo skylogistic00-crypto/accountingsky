@@ -7,6 +7,122 @@ const googleVisionApiKey = Deno.env.get("GOOGLE_VISION_API_KEY");
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+interface AutofillData {
+  nominal: number | null;
+  tanggal: string | null;
+  supplier: string | null;
+  invoice: string | null;
+  nama_karyawan: string | null;
+  deskripsi: string | null;
+}
+
+function extractFinancialData(text: string): AutofillData {
+  const result: AutofillData = {
+    nominal: null,
+    tanggal: null,
+    supplier: null,
+    invoice: null,
+    nama_karyawan: null,
+    deskripsi: null,
+  };
+
+  // Extract nominal (currency amounts)
+  const nominalPatterns = [
+    /(?:Rp\.?|IDR)\s*([\d.,]+)/gi,
+    /(?:Total|Jumlah|Amount|Grand Total|Sub Total)[:\s]*([\d.,]+)/gi,
+    /([\d.,]+)\s*(?:Rupiah|IDR)/gi,
+  ];
+  
+  for (const pattern of nominalPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const numStr = match[0].replace(/[^\d]/g, '');
+      const num = parseFloat(numStr);
+      if (!isNaN(num) && num > 0) {
+        result.nominal = num;
+        break;
+      }
+    }
+  }
+
+  // Extract date (tanggal)
+  const datePatterns = [
+    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/g,
+    /(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{2,4})/gi,
+    /(?:Tanggal|Date|Tgl)[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/gi,
+  ];
+  
+  for (const pattern of datePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      result.tanggal = match[0].replace(/(?:Tanggal|Date|Tgl)[:\s]*/gi, '').trim();
+      break;
+    }
+  }
+
+  // Extract supplier
+  const supplierPatterns = [
+    /(?:Supplier|Vendor|From|Dari|PT\.|CV\.)[:\s]*([A-Za-z\s\.]+)/gi,
+    /(?:PT|CV|UD|Toko)\s+([A-Za-z\s]+)/gi,
+  ];
+  
+  for (const pattern of supplierPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      result.supplier = match[0].trim().substring(0, 100);
+      break;
+    }
+  }
+
+  // Extract invoice number
+  const invoicePatterns = [
+    /(?:Invoice|Inv|No\.?|Nomor|Faktur)[:\s#]*([A-Za-z0-9\-\/]+)/gi,
+    /(?:Receipt|Kwitansi|Nota)[:\s#]*([A-Za-z0-9\-\/]+)/gi,
+  ];
+  
+  for (const pattern of invoicePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      result.invoice = match[0].replace(/(?:Invoice|Inv|No\.?|Nomor|Faktur|Receipt|Kwitansi|Nota)[:\s#]*/gi, '').trim();
+      break;
+    }
+  }
+
+  // Extract employee name (nama karyawan)
+  const employeePatterns = [
+    /(?:Nama|Name|Karyawan|Employee|Kasir|Cashier)[:\s]*([A-Za-z\s]+)/gi,
+    /(?:Diterima oleh|Received by|Dibuat oleh|Created by)[:\s]*([A-Za-z\s]+)/gi,
+  ];
+  
+  for (const pattern of employeePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      result.nama_karyawan = match[0].replace(/(?:Nama|Name|Karyawan|Employee|Kasir|Cashier|Diterima oleh|Received by|Dibuat oleh|Created by)[:\s]*/gi, '').trim();
+      break;
+    }
+  }
+
+  // Extract description (deskripsi)
+  const descPatterns = [
+    /(?:Keterangan|Description|Deskripsi|Item|Barang)[:\s]*([^\n]+)/gi,
+    /(?:Untuk|For)[:\s]*([^\n]+)/gi,
+  ];
+  
+  for (const pattern of descPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      result.deskripsi = match[0].replace(/(?:Keterangan|Description|Deskripsi|Item|Barang|Untuk|For)[:\s]*/gi, '').trim().substring(0, 255);
+      break;
+    }
+  }
+
+  if (!result.deskripsi && text.length > 0) {
+    result.deskripsi = text.substring(0, 100).replace(/\n/g, ' ').trim();
+  }
+
+  return result;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -24,34 +140,50 @@ Deno.serve(async (req) => {
       throw new Error("No file provided");
     }
 
-    // Upload file to Supabase Storage
+    // 1. Upload file to ocr_uploads bucket
     const fileName = `ocr-${Date.now()}-${file.name}`;
     const fileBuffer = await file.arrayBuffer();
     
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("documents")
+      .from("ocr_uploads")
       .upload(fileName, fileBuffer, {
         contentType: file.type,
         upsert: false,
       });
 
     if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
+      // Fallback to documents bucket if ocr_uploads doesn't exist
+      const { data: fallbackUpload, error: fallbackError } = await supabase.storage
+        .from("documents")
+        .upload(fileName, fileBuffer, {
+          contentType: file.type,
+          upsert: false,
+        });
+      
+      if (fallbackError) {
+        throw new Error(`Upload failed: ${fallbackError.message}`);
+      }
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from("documents")
-      .getPublicUrl(fileName);
+    // 2. Generate signed URL
+    const bucketName = uploadError ? "documents" : "ocr_uploads";
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from(bucketName)
+      .createSignedUrl(fileName, 3600);
 
-    const fileUrl = urlData.publicUrl;
+    let fileUrl: string;
+    
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      // Fallback to public URL
+      const { data: urlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(fileName);
+      fileUrl = urlData.publicUrl;
+    } else {
+      fileUrl = signedUrlData.signedUrl;
+    }
 
-    // Convert file to base64
-    const base64Content = btoa(
-      String.fromCharCode(...new Uint8Array(fileBuffer))
-    );
-
-    // Call Google Vision API
+    // 3. Call Google Vision API using imageUri mode (no size limit)
     const visionResponse = await fetch(
       `https://vision.googleapis.com/v1/images:annotate?key=${googleVisionApiKey}`,
       {
@@ -63,7 +195,9 @@ Deno.serve(async (req) => {
           requests: [
             {
               image: {
-                content: base64Content,
+                source: {
+                  imageUri: fileUrl,
+                },
               },
               features: [
                 {
@@ -84,19 +218,30 @@ Deno.serve(async (req) => {
 
     const visionData = await visionResponse.json();
     
-    // Extract text from response
+    // 4. Extract fullTextAnnotation.text
     const extractedText =
       visionData.responses?.[0]?.fullTextAnnotation?.text || "";
 
-    // Save to database
+    // 5. Extract financial data for autofill
+    const autofillData = extractFinancialData(extractedText);
+
+    // 6. Save to ocr_results table with autofill data
     const { data: dbData, error: dbError } = await supabase
       .from("ocr_results")
       .insert([
         {
           file_url: fileUrl,
+          file_path: fileName,
           extracted_text: extractedText,
           json_data: visionData,
           ocr_data: visionData,
+          nominal: autofillData.nominal,
+          tanggal: autofillData.tanggal,
+          supplier: autofillData.supplier,
+          invoice: autofillData.invoice,
+          nama_karyawan: autofillData.nama_karyawan,
+          deskripsi: autofillData.deskripsi,
+          autofill_status: 'completed',
         },
       ])
       .select()
@@ -111,7 +256,9 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         file_url: fileUrl,
+        file_path: fileName,
         extracted_text: extractedText,
+        autofill: autofillData,
         json_data: visionData,
         db_record: dbData,
       }),

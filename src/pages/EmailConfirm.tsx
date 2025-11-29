@@ -6,9 +6,15 @@ export default function EmailConfirm() {
   useEffect(() => {
     console.log("EmailConfirm loaded — preventing auto login");
 
-    // Hapus semua session lokal supabase
-    localStorage.removeItem("supabase.auth.token");
-    localStorage.removeItem("sb-%-auth-token"); // wildcard untuk client baru Supabase
+    // ⛔ CRITICAL: Hapus SEMUA session Supabase
+    // Supabase menyimpan token dengan format: sb-{project-ref}-auth-token
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("sb-") || key.includes("supabase")) {
+        localStorage.removeItem(key);
+        console.log("🗑️ Removed:", key);
+      }
+    });
+
     sessionStorage.clear();
 
     // Pastikan hash dihapus agar Supabase tidak ambil token

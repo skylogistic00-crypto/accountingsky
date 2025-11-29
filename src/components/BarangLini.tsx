@@ -700,7 +700,7 @@ export default function BarangLini() {
                                   <SelectValue placeholder="-- Pilih tanggal --" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {availableDates.map((date) => (
+                                  {availableDates.filter((date) => date).map((date) => (
                                     <SelectItem key={date} value={date}>
                                       {new Date(date).toLocaleDateString(
                                         "id-ID",

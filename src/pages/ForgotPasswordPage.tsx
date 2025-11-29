@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Mail, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
+import { navigateBack } from "@/utils/navigation";
 import {
   Card,
   CardContent,
@@ -78,7 +79,7 @@ const ForgotPasswordPage: React.FC = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate(-1)}
+                onClick={() => navigateBack(navigate, "/login")}
                 className="h-8 w-8"
               >
                 <ArrowLeft className="h-4 w-4" />

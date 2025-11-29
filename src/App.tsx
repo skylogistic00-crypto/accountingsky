@@ -43,6 +43,10 @@ import StockAdjustmentForm from "@/components/StockAdjustmentForm";
 import StockBarangImport from "@/components/StockBarangImport";
 import HRDDashboard from "@/components/HRDDashboard";
 import DataKaryawan from "@/components/DataKaryawan";
+import POSTerminal from "@/components/POSTerminal";
+import WarehouseDashboard from "@/components/WarehouseDashboard";
+import POSDashboard from "@/components/POSDashboard";
+import AccountMappingsManager from "@/components/AccountMappingsManager";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -690,7 +694,60 @@ function AppRoutesContent() {
         }
       />
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route
+        path="/pos"
+        element={
+          <ProtectedRoute
+            allowedRoles={["super_admin", "admin", "cashier", "staff"]}
+          >
+            <POSTerminal />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/warehouse-dashboard"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "admin",
+              "warehouse_manager",
+              "warehouse_staff",
+            ]}
+          >
+            <WarehouseDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/pos-dashboard"
+        element={
+          <ProtectedRoute
+            allowedRoles={["super_admin", "admin", "cashier", "staff"]}
+          >
+            <POSDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/account-mappings"
+        element={
+          <ProtectedRoute allowedRoles={["super_admin", "accounting_manager"]}>
+            <div className="min-h-screen bg-white">
+              <Header />
+              <Navigation />
+              <div className="container mx-auto px-4 py-8">
+                <AccountMappingsManager />
+              </div>
+            </div>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

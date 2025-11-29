@@ -26,7 +26,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Download, Filter, Search } from "lucide-react";
+import {
+  Loader2,
+  Download,
+  Filter,
+  Search,
+  ArrowLeft,
+  FileText,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface FinancialReportData {
   report_type: string;
@@ -46,6 +54,7 @@ export default function IntegratedFinancialReport() {
 
   const [reportType, setReportType] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchReportData();
@@ -159,8 +168,37 @@ export default function IntegratedFinancialReport() {
     });
   };
 
+  const handleBack = () => {
+    navigate("/dashboard");
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-0 space-y-4">
+      {/* Header with gradient */}
+      <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
+        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="text-white hover:bg-white/20"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <FileText className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  Laporan Keuangan
+                </h1>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <Card className="max-w-7xl mx-auto rounded-2xl shadow-md">
         <CardHeader className="p-4">
           <CardTitle className="text-2xl">Laporan Keuangan</CardTitle>

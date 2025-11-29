@@ -1279,7 +1279,7 @@ export default function WarehousesForm() {
                         <SelectValue placeholder="Select warehouse" />
                       </SelectTrigger>
                       <SelectContent>
-                        {warehouses.map((w) => (
+                        {warehouses.filter((w) => w.id).map((w) => (
                           <SelectItem key={w.id} value={w.id}>
                             {w.name}
                           </SelectItem>
@@ -1354,7 +1354,7 @@ export default function WarehousesForm() {
                         <SelectValue placeholder="Select zone" />
                       </SelectTrigger>
                       <SelectContent>
-                        {zones.map((z) => (
+                        {zones.filter((z) => z.id).map((z) => (
                           <SelectItem key={z.id} value={z.id}>
                             {z.name}
                           </SelectItem>
@@ -1446,7 +1446,7 @@ export default function WarehousesForm() {
                         <SelectValue placeholder="Select rack" />
                       </SelectTrigger>
                       <SelectContent>
-                        {racks.map((r) => (
+                        {racks.filter((r) => r.id).map((r) => (
                           <SelectItem key={r.id} value={r.id}>
                             {r.name}
                           </SelectItem>

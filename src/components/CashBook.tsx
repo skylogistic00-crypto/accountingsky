@@ -52,6 +52,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { canClick, canDelete, canEdit } from "@/utils/roleAccess";
+import { navigateBack } from "@/utils/navigation";
 
 interface KasTransaksi {
   id?: string;
@@ -486,7 +487,7 @@ export default function CashBook() {
           <div className="container mx-auto px-4 py-6 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <Button
-                onClick={() => navigate(-1)}
+                onClick={() => navigateBack(navigate)}
                 variant="outline"
                 className="bg-white/20 text-white hover:bg-white/30 border-white/30"
               >
@@ -582,7 +583,7 @@ export default function CashBook() {
                           <SelectValue placeholder="Pilih kategori (opsional)" />
                         </SelectTrigger>
                         <SelectContent>
-                          {serviceCategories.map((category) => (
+                          {serviceCategories.filter((category) => category).map((category) => (
                             <SelectItem key={category} value={category}>
                               {category}
                             </SelectItem>
