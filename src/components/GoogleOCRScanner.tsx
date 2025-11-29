@@ -18,141 +18,148 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  parseOCR,
+  type DocumentType,
+  type ParsedOCRData,
+} from "@/utils/ocrParser";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+
+// Convert file to Base64
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function GoogleOCRScanner() {
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ocrResult, setOcrResult] = useState<any>(null);
+  const [extractedText, setExtractedText] = useState<string>("");
+  const [documentType, setDocumentType] = useState<DocumentType>("NPWP");
+  const [parsedData, setParsedData] = useState<ParsedOCRData | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
-      setOcrResult(null);
+    if (!e.target.files?.[0]) return;
 
-      // Create preview URL for image
-      if (selectedFile.type.startsWith("image/")) {
-        const previewUrl = URL.createObjectURL(selectedFile);
-        setFilePreview(previewUrl);
-      } else {
-        setFilePreview(null);
-      }
+    const f = e.target.files[0];
+    setFile(f);
+
+    if (f.type.startsWith("image/")) {
+      setFilePreview(URL.createObjectURL(f));
+    } else {
+      setFilePreview(null);
     }
   };
 
-  // Parse extracted text into list items
-  const parseExtractedText = (text: string): string[] => {
-    if (!text) return [];
-    return text
+  const parseExtractedTextLines = (text: string) =>
+    text
       .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-  };
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
 
   const handleProcessOCR = async () => {
     if (!file) {
       toast({
         title: "Error",
-        description: "Please select a file first",
+        description: "Harap pilih file terlebih dahulu.",
         variant: "destructive",
       });
       return;
     }
 
-    setLoading(true);
-
     try {
-      // Convert file to base64
-      const fileBuffer = await file.arrayBuffer();
-      const base64Content = btoa(
-        String.fromCharCode(...new Uint8Array(fileBuffer)),
-      );
+      setLoading(true);
 
-      // Call Google Vision API directly
-      const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
+      // Convert to Base64
+      const base64Content = await fileToBase64(file);
 
-      if (!apiKey) {
-        throw new Error("Google Vision API key not configured");
-      }
-
-      const visionResponse = await fetch(
-        `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
+      // Call Supabase Edge Function
+      const { data: raw, error: visionError } = await supabase.functions.invoke(
+        "vision-google-ocr",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            requests: [
-              {
-                image: { content: base64Content },
-                features: [
-                  { type: "TEXT_DETECTION" },
-                  { type: "DOCUMENT_TEXT_DETECTION" },
-                ],
-              },
-            ],
-          }),
+          body: { file_base64: base64Content },
         },
       );
 
-      if (!visionResponse.ok) {
-        const errorData = await visionResponse.json();
-        throw new Error(errorData.error?.message || "Vision API failed");
+      if (visionError) throw visionError;
+
+      // ===== FIX — PARSE RAW JSON FROM SUPABASE =====
+      let visionData;
+      try {
+        visionData = typeof raw === "string" ? JSON.parse(raw) : raw;
+      } catch (err) {
+        console.error("❌ JSON PARSE FAILED:", err);
+        console.log("RAW:", raw);
+        throw new Error("Vision API returned invalid JSON.");
       }
 
-      const visionData = await visionResponse.json();
-      const textAnnotations = visionData.responses?.[0]?.textAnnotations || [];
-      const fullTextAnnotation = visionData.responses?.[0]?.fullTextAnnotation;
-      const extractedText =
-        fullTextAnnotation?.text || textAnnotations[0]?.description || "";
+      console.log("=== RAW GOOGLE RESPONSE ===", visionData);
 
-      // Upload file to Supabase Storage
-      const fileName = `ocr-${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
+      // ===== EXTRACT FINAL TEXT =====
+      let fullText = "";
+
+      const resp = visionData?.responses?.[0];
+
+      if (resp?.textAnnotations?.length > 0) {
+        fullText = resp.textAnnotations[0].description;
+      } else if (resp?.fullTextAnnotation?.text) {
+        fullText = resp.fullTextAnnotation.text;
+      } else {
+        fullText = "(EMPTY RAW TEXT – CHECK PARSER)";
+      }
+
+      console.log("=== FINAL OCR TEXT ===", fullText);
+
+      setExtractedText(fullText);
+
+      // Parse result based on document type
+      const parsed = parseOCR(fullText, documentType);
+      setParsedData(parsed);
+
+      // Upload original file
+      const fileBuffer = await file.arrayBuffer();
+      const uploaded = await supabase.storage
         .from("documents")
-        .upload(fileName, fileBuffer, {
+        .upload(`ocr-${Date.now()}-${file.name}`, fileBuffer, {
           contentType: file.type,
-          upsert: false,
         });
 
-      if (uploadError) {
-        console.warn("Upload warning:", uploadError.message);
-      }
-
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from("documents")
-        .getPublicUrl(fileName);
+        .getPublicUrl(uploaded.data?.path || "");
 
-      // Save to database
-      const { error: dbError } = await supabase.from("ocr_results").insert({
-        file_url: urlData?.publicUrl || "",
-        extracted_text: extractedText,
+      await supabase.from("ocr_results").insert({
+        file_url: urlData?.publicUrl,
+        extracted_text: fullText,
       });
 
-      if (dbError) {
-        console.warn("DB save warning:", dbError.message);
-      }
-
       setOcrResult({
-        success: true,
-        extracted_text: extractedText,
+        extracted_text: fullText,
         file_url: urlData?.publicUrl,
       });
 
-      toast({
-        title: "Success",
-        description: "OCR processing completed successfully",
-      });
-    } catch (error: any) {
-      console.error("OCR Error:", error);
+      toast({ title: "Success", description: "OCR berhasil diproses!" });
+    } catch (e: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to process OCR",
+        description: e.message,
         variant: "destructive",
       });
     } finally {
@@ -160,159 +167,168 @@ export default function GoogleOCRScanner() {
     }
   };
 
-  const handleBack = () => {
-    navigate("/dashboard");
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 p-0">
+    <div className="min-h-screen bg-slate-50">
       <Header />
       <Navigation />
-      {/* Header with gradient */}
-      <div className="border-b bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 shadow-lg">
-        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBack}
-              className="text-white hover:bg-white/20"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <FileText className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">
-                  Google OCR Scanner
-                </h1>
-              </div>
-            </div>
-          </div>
+
+      {/* Header Title */}
+      <div className="border-b bg-gradient-to-r from-indigo-600 to-blue-600 p-6 shadow-lg">
+        <div className="container mx-auto flex items-center gap-3">
+          <Button
+            variant="ghost"
+            className="text-white"
+            onClick={() => navigate("/dashboard")}
+          >
+            <ArrowLeft />
+          </Button>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <FileText /> Google OCR Scanner
+          </h1>
         </div>
       </div>
+
+      {/* Content */}
       <div className="container mx-auto p-6 max-w-4xl">
-        <Card className="bg-white">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-6 w-6" />
-              Google OCR Scanner
+              <FileText /> Google OCR Scanner
             </CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="file">Upload File (Image/PDF)</Label>
-              <div className="flex items-center gap-4">
-                <Input
-                  id="file"
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={handleFileChange}
-                  className="flex-1"
-                />
-                {file && (
-                  <span className="text-sm text-gray-600">{file.name}</span>
-                )}
-              </div>
+            {/* Document Type */}
+            <div>
+              <Label>Jenis Dokumen</Label>
+              <Select
+                value={documentType}
+                onValueChange={(v) => setDocumentType(v as DocumentType)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih dokumen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="KTP">KTP</SelectItem>
+                  <SelectItem value="NPWP">NPWP</SelectItem>
+                  <SelectItem value="SIM">SIM</SelectItem>
+                  <SelectItem value="INVOICE">Invoice</SelectItem>
+                  <SelectItem value="NOTA">Nota</SelectItem>
+                  <SelectItem value="KWITANSI">Kwitansi</SelectItem>
+                  <SelectItem value="SURAT_JALAN">Surat Jalan</SelectItem>
+                  <SelectItem value="CASH_DISBURSEMENT">
+                    Cash Disbursement
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
+            {/* Upload File */}
+            <div>
+              <Label>Upload File (JPG, PNG, PDF)</Label>
+              <Input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={handleFileChange}
+              />
+              {file && <p className="text-sm mt-1">{file.name}</p>}
+            </div>
+
+            {/* OCR Button */}
             <Button
               onClick={handleProcessOCR}
-              disabled={!file || loading}
+              disabled={loading || !file}
               className="w-full"
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
                   Processing...
                 </>
               ) : (
                 <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Process with Google Vision
+                  <Upload className="h-4 w-4 mr-2" /> Process with Google Vision
                 </>
               )}
             </Button>
 
+            {/* RESULTS */}
             {ocrResult && (
               <div className="space-y-6">
-                {/* Image Preview Section */}
+                {/* Parsed JSON */}
+                <div className="bg-blue-50 p-4 rounded border">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <FileText /> Data {documentType}
+                  </h3>
+                  <pre className="bg-white rounded p-3 text-sm max-h-96 overflow-auto">
+                    {JSON.stringify(parsedData, null, 2)}
+                  </pre>
+                </div>
+
+                {/* Preview & Extracted Lines */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Extracted Image */}
-                  <div className="space-y-2">
+                  {/* Image Preview */}
+                  <div>
                     <Label className="flex items-center gap-2">
-                      <Image className="h-4 w-4" />
-                      Gambar yang Diekstrak
+                      <Image /> Gambar Dokumen
                     </Label>
-                    <div className="border rounded-lg overflow-hidden bg-gray-50 p-2">
-                      {filePreview || ocrResult.file_url ? (
+                    <div className="border bg-gray-50 rounded p-2">
+                      {filePreview ? (
                         <img
-                          src={filePreview || ocrResult.file_url}
-                          alt="Extracted document"
-                          className="w-full h-auto max-h-[400px] object-contain rounded"
+                          src={filePreview}
+                          className="w-full max-h-[350px] object-contain"
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-[200px] text-gray-400">
-                          <span>No image preview available</span>
-                        </div>
+                        <p className="text-gray-400">Tidak ada gambar</p>
                       )}
                     </div>
                   </div>
 
                   {/* Extracted List */}
-                  <div className="space-y-2">
+                  <div>
                     <Label className="flex items-center gap-2">
-                      <List className="h-4 w-4" />
-                      Hasil Ekstraksi (
-                      {parseExtractedText(ocrResult.extracted_text).length}{" "}
-                      item)
+                      <List /> Hasil Ekstraksi (
+                      {parseExtractedTextLines(ocrResult.extracted_text).length}
+                      )
                     </Label>
-                    <div className="border rounded-lg bg-gray-50 p-4 max-h-[400px] overflow-y-auto">
-                      <ul className="space-y-2">
-                        {parseExtractedText(ocrResult.extracted_text).map(
-                          (item, index) => (
-                            <li
-                              key={index}
-                              className="flex items-start gap-2 p-2 bg-white rounded border text-sm"
-                            >
-                              <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                              <span className="text-gray-700">{item}</span>
-                            </li>
-                          ),
-                        )}
-                      </ul>
-                    </div>
+
+                    <ul className="border rounded bg-gray-50 max-h-[350px] overflow-auto p-3 space-y-2">
+                      {parseExtractedTextLines(ocrResult.extracted_text).map(
+                        (line, i) => (
+                          <li
+                            key={i}
+                            className="p-2 bg-white border rounded flex gap-2 text-sm"
+                          >
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            {line}
+                          </li>
+                        ),
+                      )}
+                    </ul>
                   </div>
                 </div>
 
-                {/* Full Text (Collapsible) */}
-                <div className="space-y-2">
-                  <Label>Teks Lengkap</Label>
+                {/* Full Text */}
+                <div>
+                  <Label>Full Text</Label>
                   <Textarea
-                    value={ocrResult.extracted_text || ""}
+                    value={ocrResult.extracted_text}
                     readOnly
                     className="min-h-[150px] font-mono text-sm"
                   />
                 </div>
 
+                {/* File URL */}
                 {ocrResult.file_url && (
-                  <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="p-3 bg-blue-50 border rounded flex gap-2">
                     <FileText className="h-5 w-5 text-blue-600" />
-                    <div className="flex-1">
-                      <span className="text-sm font-medium text-blue-800">
-                        File tersimpan di:
-                      </span>
-                      <a
-                        href={ocrResult.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline ml-2 break-all"
-                      >
-                        {ocrResult.file_url}
-                      </a>
-                    </div>
+                    <a
+                      href={ocrResult.file_url}
+                      target="_blank"
+                      className="text-blue-600 underline break-all"
+                    >
+                      {ocrResult.file_url}
+                    </a>
                   </div>
                 )}
               </div>

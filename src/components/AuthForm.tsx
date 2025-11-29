@@ -42,6 +42,7 @@ export function AuthFormContent({
   const [roles, setRoles] = useState<any[]>([]);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<any>(null);
 
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({
@@ -105,7 +106,7 @@ export function AuthFormContent({
   const loadRoles = async () => {
     const { data, error } = await supabase
       .from("roles")
-      .select("id, role_name, entity")
+      .select("role_id, role_name, entity")
       .order("role_name", { ascending: true });
 
     if (error) {
@@ -182,6 +183,8 @@ export function AuthFormContent({
       ) {
         // Employee/Driver details
         Object.assign(details, {
+          first_name: signUpData.firstName,
+          last_name: signUpData.lastName,
           ktp_address: signUpData.ktpAddress,
           ijasah: signUpData.ijasah,
           ktp_number: signUpData.ktpNumber,
@@ -240,8 +243,19 @@ export function AuthFormContent({
         signUpData.fullName,
         entityType,
         signUpData.phoneNumber || entityFormData.phone_number,
-        details,
+        details, // <---- semua field ada di sini
         fileUrls,
+        selectedRole?.role_name || null,
+        selectedRole?.role_id || null,
+        selectedRole?.entity || signUpData.roleEntity || null,
+        // <- hanya dikirim jika ingin masuk tabel USERS
+        signUpData.ktpNumber,
+        signUpData.ktpAddress,
+        signUpData.firstName,
+        signUpData.lastName,
+        signUpData.religion,
+        signUpData.ethnicity,
+        signUpData.education,
       );
 
       toast({
@@ -343,11 +357,12 @@ export function AuthFormContent({
               <Select
                 value={signUpData.roleName}
                 onValueChange={(value) => {
-                  const selectedRole = roles.find((r) => r.role_name === value);
+                  const foundRole = roles.find((r) => r.role_name === value);
+                  setSelectedRole(foundRole || null);
                   setSignUpData({
                     ...signUpData,
                     roleName: value,
-                    roleEntity: selectedRole?.entity || "",
+                    roleEntity: foundRole?.entity || "",
                   });
                   const lowerRole = value.toLowerCase();
                   if (lowerRole.includes("supplier")) {
@@ -368,11 +383,13 @@ export function AuthFormContent({
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.filter((role) => role.role_name).map((role) => (
-                    <SelectItem key={role.id} value={role.role_name}>
-                      {humanizeRole(role.role_name)}
-                    </SelectItem>
-                  ))}
+                  {roles
+                    .filter((role) => role.role_name)
+                    .map((role) => (
+                      <SelectItem key={role.role_id} value={role.role_name}>
+                        {humanizeRole(role.role_name)}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1031,13 +1048,14 @@ export function AuthFormContent({
                   <Select
                     value={signUpData.roleName}
                     onValueChange={(value) => {
-                      const selectedRole = roles.find(
+                      const foundRole = roles.find(
                         (r) => r.role_name === value,
                       );
+                      setSelectedRole(foundRole || null);
                       setSignUpData({
                         ...signUpData,
                         roleName: value,
-                        roleEntity: selectedRole?.entity || "",
+                        roleEntity: foundRole?.entity || "",
                       });
                       // Check if role is supplier, consignee, or shipper
                       const lowerRole = value.toLowerCase();
@@ -1056,11 +1074,13 @@ export function AuthFormContent({
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
-                      {roles.filter((role) => role.role_name).map((role) => (
-                        <SelectItem key={role.id} value={role.role_name}>
-                          {humanizeRole(role.role_name)}
-                        </SelectItem>
-                      ))}
+                      {roles
+                        .filter((role) => role.role_name)
+                        .map((role) => (
+                          <SelectItem key={role.id} value={role.role_name}>
+                            {humanizeRole(role.role_name)}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

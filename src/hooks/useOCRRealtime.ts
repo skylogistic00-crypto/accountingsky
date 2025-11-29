@@ -129,13 +129,24 @@ export async function uploadAndProcessOCR(file: File): Promise<{
   error?: string;
 }> {
   try {
-    const formData = new FormData();
-    formData.append("file", file);
+    // Convert file to base64
+    const reader = new FileReader();
+    const base64Content = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
 
     const { data, error } = await supabase.functions.invoke(
-      "supabase-functions-vision-google-ocr",
+      "vision-google-ocr",
       {
-        body: formData,
+        body: {
+          file_base64: base64Content,
+        },
       }
     );
 

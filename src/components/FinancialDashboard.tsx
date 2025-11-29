@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import MonthlyFinanceChart from "./MonthlyFinanceChart";
 import { canClick } from "@/utils/roleAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import TransactionDetailModal from "./TransactionDetailModal";
 
 interface FinancialSummary {
   totalRevenue: number;
@@ -38,6 +39,10 @@ export default function FinancialDashboard() {
     totalAssets: 0,
   });
 
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<"pendapatan" | "beban" | "laba">("pendapatan");
+
   // Month and year filters
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(
@@ -53,37 +58,88 @@ export default function FinancialDashboard() {
     setLoading(true);
 
     try {
-      // Fetch data from vw_dashboard_summary view with month and year filters
-      const { data, error } = await supabase
-        .from("vw_dashboard_summary")
-        .select("category, year, month, amount")
-        .eq("year", selectedYear)
-        .eq("month", selectedMonth);
+      const startDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+      const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+      const endDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-      if (error) throw error;
+      // Fetch Penjualan Barang
+      const { data: salesBarang } = await supabase
+        .from("sales_transactions")
+        .select("nominal")
+        .gte("tanggal", startDate)
+        .lte("tanggal", endDate)
+        .eq("jenis_transaksi", "Penjualan Barang");
 
-      console.log("📊 Data from vw_dashboard_summary:", data);
+      // Fetch Penjualan Jasa
+      const { data: salesJasa } = await supabase
+        .from("sales_transactions")
+        .select("nominal")
+        .gte("tanggal", startDate)
+        .lte("tanggal", endDate)
+        .eq("jenis_transaksi", "Penjualan Jasa");
 
-      // Initialize values
-      let totalRevenue = 0;
-      let totalExpense = 0;
+      // Fetch Penerimaan Kas & Bank
+      const { data: receipts } = await supabase
+        .from("cash_and_bank_receipts")
+        .select("nominal")
+        .gte("tanggal", startDate)
+        .lte("tanggal", endDate);
+
+      // Fetch Pembelian Barang
+      const { data: purchaseBarang } = await supabase
+        .from("purchase_transactions")
+        .select("nominal")
+        .gte("tanggal", startDate)
+        .lte("tanggal", endDate)
+        .eq("jenis_transaksi", "Pembelian Barang");
+
+      // Fetch Pembelian Jasa
+      const { data: purchaseJasa } = await supabase
+        .from("purchase_transactions")
+        .select("nominal")
+        .gte("tanggal", startDate)
+        .lte("tanggal", endDate)
+        .eq("jenis_transaksi", "Pembelian Jasa");
+
+      // Fetch Pengeluaran Kas
+      const { data: disbursements } = await supabase
+        .from("cash_disbursement")
+        .select("amount")
+        .gte("transaction_date", startDate)
+        .lte("transaction_date", endDate);
+
+      // Calculate totals
+      const totalPenjualanBarang = (salesBarang || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
+      const totalPenjualanJasa = (salesJasa || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
+      const totalPenerimaanKas = (receipts || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
+      
+      const totalPembelianBarang = (purchaseBarang || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
+      const totalPembelianJasa = (purchaseJasa || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
+      const totalPengeluaranKas = (disbursements || []).reduce((sum, t) => sum + (t.amount || 0), 0);
+
+      const totalRevenue = totalPenjualanBarang + totalPenjualanJasa + totalPenerimaanKas;
+      const totalExpense = totalPembelianBarang + totalPembelianJasa + totalPengeluaranKas;
+      const netProfit = totalRevenue - totalExpense;
+
+      // Fetch total assets (unchanged)
+      const { data: assetsData } = await supabase
+        .from("chart_of_accounts")
+        .select("account_code")
+        .eq("account_type", "Aset");
+
       let totalAssets = 0;
+      if (assetsData && assetsData.length > 0) {
+        const accountCodes = assetsData.map((a) => a.account_code);
+        const { data: glData } = await supabase
+          .from("general_ledger")
+          .select("debit, credit")
+          .in("account_code", accountCodes);
 
-      // Aggregate amounts by category
-      data?.forEach((item) => {
-        const amount = Number(item.amount) || 0;
-        const category = (item.category || "").trim().toLowerCase();
-
-        if (category === "pendapatan") {
-          totalRevenue += amount;
-        } else if (category === "beban") {
-          totalExpense += amount;
-        } else if (category === "aset") {
-          totalAssets += amount;
-        }
-      });
-
-      const netProfit = totalRevenue + totalExpense; // totalBeban sudah negatif dari view
+        totalAssets = (glData || []).reduce(
+          (sum, item) => sum + (item.debit || 0) - (item.credit || 0),
+          0
+        );
+      }
 
       setSummary({
         totalRevenue,
@@ -205,106 +261,98 @@ export default function FinancialDashboard() {
             {/* Summary Cards */}
             <div className="grid md:grid-cols-4 gap-4">
               {/* Total Pendapatan */}
-              {/*  <Link to="/profit-loss">*/}
-              <Link
-                to="/profit-loss"
-                onClick={(e) => {
-                  if (!canClick(userRole)) {
-                    e.preventDefault();
+              <Card 
+                className="bg-white shadow-md rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => {
+                  if (canClick(userRole)) {
+                    setModalType("pendapatan");
+                    setModalOpen(true);
                   }
                 }}
               >
-                <Card className="bg-white shadow-md rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">
-                      Total Pendapatan Bulan Ini
-                    </CardTitle>
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-green-700">
-                      {formatRupiah(summary.totalRevenue)}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Klik untuk detail
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    Total Pendapatan Bulan Ini
+                  </CardTitle>
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-700">
+                    {formatRupiah(summary.totalRevenue)}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Klik untuk detail
+                  </p>
+                </CardContent>
+              </Card>
 
               {/* Total Beban */}
-              {/* <Link to="/profit-loss">*/}
-              <Link
-                to="/profit-loss"
-                onClick={(e) => {
-                  if (!canClick(userRole)) {
-                    e.preventDefault();
+              <Card 
+                className="bg-white shadow-md rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => {
+                  if (canClick(userRole)) {
+                    setModalType("beban");
+                    setModalOpen(true);
                   }
                 }}
               >
-                <Card className="bg-white shadow-md rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">
-                      Total Beban Bulan Ini
-                    </CardTitle>
-                    <TrendingDown className="h-5 w-5 text-red-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-700">
-                      {formatRupiah(summary.totalExpense)}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Klik untuk detail
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    Total Beban Bulan Ini
+                  </CardTitle>
+                  <TrendingDown className="h-5 w-5 text-red-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-700">
+                    {formatRupiah(summary.totalExpense)}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Klik untuk detail
+                  </p>
+                </CardContent>
+              </Card>
 
               {/* Laba Bersih */}
-              {/*<Link to="/profit-loss">*/}
-              <Link
-                to="/profit-loss"
-                onClick={(e) => {
-                  if (!canClick(userRole)) {
-                    e.preventDefault();
+              <Card
+                className={`shadow-md rounded-2xl border-2 hover:shadow-lg transition-shadow cursor-pointer ${
+                  summary.netProfit >= 0
+                    ? "bg-blue-50 border-blue-500"
+                    : "bg-orange-50 border-orange-500"
+                }`}
+                onClick={() => {
+                  if (canClick(userRole)) {
+                    setModalType("laba");
+                    setModalOpen(true);
                   }
                 }}
               >
-                <Card
-                  className={`shadow-md rounded-2xl border-2 hover:shadow-lg transition-shadow cursor-pointer ${
-                    summary.netProfit >= 0
-                      ? "bg-blue-50 border-blue-500"
-                      : "bg-orange-50 border-orange-500"
-                  }`}
-                >
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">
-                      Laba Bersih Bulan Ini
-                    </CardTitle>
-                    <DollarSign
-                      className={`h-5 w-5 ${
-                        summary.netProfit >= 0
-                          ? "text-blue-600"
-                          : "text-orange-600"
-                      }`}
-                    />
-                  </CardHeader>
-                  <CardContent>
-                    <div
-                      className={`text-2xl font-bold ${
-                        summary.netProfit >= 0
-                          ? "text-blue-700"
-                          : "text-orange-700"
-                      }`}
-                    >
-                      {formatRupiah(Math.abs(summary.netProfit))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {summary.netProfit >= 0 ? "Laba" : "Rugi"}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    Laba Bersih Bulan Ini
+                  </CardTitle>
+                  <DollarSign
+                    className={`h-5 w-5 ${
+                      summary.netProfit >= 0
+                        ? "text-blue-600"
+                        : "text-orange-600"
+                    }`}
+                  />
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className={`text-2xl font-bold ${
+                      summary.netProfit >= 0
+                        ? "text-blue-700"
+                        : "text-orange-700"
+                    }`}
+                  >
+                    {formatRupiah(Math.abs(summary.netProfit))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {summary.netProfit >= 0 ? "Laba" : "Rugi"}
+                  </p>
+                </CardContent>
+              </Card>
 
               {/* Total Aset */}
               {/*<Link to="/balance-sheet">*/}
@@ -449,6 +497,15 @@ export default function FinancialDashboard() {
           </>
         )}
       </div>
+
+      {/* Transaction Detail Modal */}
+      <TransactionDetailModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        type={modalType}
+        month={selectedMonth}
+        year={selectedYear}
+      />
     </div>
   );
 }

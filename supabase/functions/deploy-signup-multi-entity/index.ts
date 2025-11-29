@@ -1,4 +1,17 @@
 import { corsHeaders } from "@shared/cors.ts";
+
+const PICA_SECRET = Deno.env.get("PICA_SECRET_KEY")!;
+const PICA_CONNECTION_KEY = Deno.env.get("PICA_SUPABASE_CONNECTION_KEY")!;
+const SUPABASE_PROJECT_REF = Deno.env.get("SUPABASE_PROJECT_ID")!;
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders, status: 200 });
+  }
+
+  try {
+    // The signup-multi-entity function code
+    const functionCode = `import { corsHeaders } from "@shared/cors.ts";
 import { createSupabaseClient } from "@shared/supabase-client.ts";
 import { validateEmail, validatePassword, validateRequiredFields } from "@shared/validation.ts";
 
@@ -11,7 +24,6 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("REQUEST BODY:", body);
 
-    // destructure and accept role fields coming from UI
     const { 
       email, 
       password, 
@@ -24,17 +36,15 @@ Deno.serve(async (req) => {
       role_id 
     } = body;
 
-    // Validate required fields
     const requiredFields = ["email", "password", "full_name", "entity_type"];
     const validation = validateRequiredFields(body, requiredFields);
     if (!validation.valid) {
       return new Response(
-        JSON.stringify({ error: `Missing required fields: ${validation.missing?.join(", ")}` }),
+        JSON.stringify({ error: \`Missing required fields: \${validation.missing?.join(", ")}\` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
 
-    // Validate email
     if (!validateEmail(email)) {
       return new Response(
         JSON.stringify({ error: "Invalid email format" }),
@@ -42,7 +52,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate password
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
       return new Response(
@@ -53,25 +62,18 @@ Deno.serve(async (req) => {
 
     const supabase = createSupabaseClient();
 
-    // Keep original entity_type for display (e.g., "Karyawan")
-    const originalEntityType = entity_type || "customer";
-    
-    // Normalize entity type for table mapping only
-    let normalizedEntityType = originalEntityType
+    let normalizedEntityType = (entity_type || "customer")
       .toString()
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, "_");
+      .replace(/\\s+/g, "_");
 
-    // Map synonyms for table insertion only
     if (normalizedEntityType === "karyawan") normalizedEntityType = "employee";
 
-    // Determine role: prefer explicit role_name from UI, fallback by entity default
     const normalizedRoleFromUI = role_name && typeof role_name === "string"
-      ? role_name.trim().toLowerCase().replace(/\s+/g, "_")
+      ? role_name.trim().toLowerCase().replace(/\\s+/g, "_")
       : null;
 
-    // fallback rules (only used if UI didn't send a role)
     const fallbackRoleForEntity = (() => {
       if (normalizedEntityType === "employee") return "admin";
       if (["supplier", "customer", "consignee", "shipper", "driver"].includes(normalizedEntityType)) {
@@ -86,7 +88,6 @@ Deno.serve(async (req) => {
 
     console.log("Normalized entity:", normalizedEntityType, "resolved role:", role, "role_id:", resolvedRoleId, "role_name:", resolvedRoleName);
 
-    // Create auth user with email verification
     const redirectTo = "https://acc.skykargo.co.id/email-redirect/index.html";
     const { data: authUser, error: authError } = await supabase.auth.signUp({
       email,
@@ -126,8 +127,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Prepare users table data
-    // Use original entity from role selection (e.g., "Karyawan") not normalized
     const usersData: Record<string, any> = {
       id: authUser.user.id,
       email,
@@ -135,14 +134,13 @@ Deno.serve(async (req) => {
       role,
       role_id: resolvedRoleId,
       role_name: resolvedRoleName,
-      entity_type: originalEntityType,  // Keep original value like "Karyawan"
-      entity: originalEntityType,        // Keep original value like "Karyawan"
+      entity_type: normalizedEntityType,
+      entity: normalizedEntityType,
       phone,
       is_active: false,
       created_at: new Date().toISOString()
     };
 
-    // For suppliers, add supplier-specific fields to users table
     if (normalizedEntityType === "supplier") {
       usersData.supplier_name = details.entity_name || full_name;
       usersData.contact_person = details.contact_person || full_name;
@@ -153,14 +151,12 @@ Deno.serve(async (req) => {
       usersData.bank_account_holder = details.bank_account_holder;
     }
 
-    // Upsert into users table (handles duplicate key errors)
     const { error: userError } = await supabase
       .from("users")
       .upsert(usersData, { onConflict: "id" });
 
     if (userError) {
       console.error("User upsert error:", userError);
-      // Rollback: delete auth user
       try {
         await supabase.auth.admin.deleteUser(authUser.user.id);
       } catch (delErr) {
@@ -172,11 +168,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Insert into entity-specific table based on entity_type
     let entityError = null;
     const normalizedEntity = normalizedEntityType.toLowerCase();
     
-    // Define allowed columns for each entity type
     const allowedColumns: Record<string, string[]> = {
       supplier: ["address", "city", "country", "is_pkp", "tax_id", "bank_name", "bank_account_holder", "payment_terms", "category", "currency", "status"],
       customer: ["address", "city", "country", "is_pkp", "tax_id", "bank_name", "bank_account_holder", "payment_terms", "category", "currency", "status", "birth_date"],
@@ -186,7 +180,6 @@ Deno.serve(async (req) => {
       driver: ["license_number", "license_type", "license_expiry", "address", "city", "country", "status"],
     };
     
-    // Filter entity data to only include allowed columns
     const filterEntityData = (data: Record<string, any>, entityType: string): Record<string, any> => {
       const allowed = allowedColumns[entityType] || [];
       const filtered: Record<string, any> = {};
@@ -198,7 +191,6 @@ Deno.serve(async (req) => {
       return filtered;
     };
     
-    // Merge details and file_urls into entity data
     const entityData = filterEntityData({ ...details, ...file_urls }, normalizedEntity);
     
     try {
@@ -267,11 +259,9 @@ Deno.serve(async (req) => {
       
       if (entityError) {
         console.error("Entity insert error:", entityError);
-        // Don't rollback - entity table is optional
       }
     } catch (err) {
       console.error("Entity creation error:", err);
-      // Continue without entity record
     }
 
     return new Response(
@@ -284,6 +274,56 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("Signup error:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    );
+  }
+});`;
+
+    const url = `https://api.picaos.com/v1/passthrough/projects/${SUPABASE_PROJECT_REF}/functions/deploy`;
+
+    const body = {
+      file: [functionCode],
+      metadata: {
+        entrypoint_path: "index.ts",
+        import_map_path: "deno.json",
+        static_patterns: ["**/*"],
+        verify_jwt: true,
+        name: "signup-multi-entity"
+      }
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "x-pica-secret": PICA_SECRET,
+        "x-pica-connection-key": PICA_CONNECTION_KEY,
+        "x-pica-action-id": "conn_mod_def::GC40T84CyNM::ee8XBvT6TRua_1upUL_H5Q",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (response.status === 201) {
+      const data = await response.json();
+      return new Response(
+        JSON.stringify({ success: true, data }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 201 }
+      );
+    } else {
+      const errorText = await response.text();
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          status: response.status, 
+          error: errorText 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: response.status }
+      );
+    }
+  } catch (error) {
+    console.error("Deploy error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }

@@ -125,7 +125,7 @@ function extractFinancialData(text: string): AutofillData {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders, status: 200 });
   }
 
   try {
@@ -133,94 +133,105 @@ Deno.serve(async (req) => {
       throw new Error("GOOGLE_VISION_API_KEY is not configured");
     }
 
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const { file_base64 } = await req.json();
 
-    if (!file) {
-      throw new Error("No file provided");
+    if (!file_base64) {
+      throw new Error("No file_base64 provided");
     }
 
-    // 1. Upload file to ocr_uploads bucket
-    const fileName = `ocr-${Date.now()}-${file.name}`;
-    const fileBuffer = await file.arrayBuffer();
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("ocr_uploads")
-      .upload(fileName, fileBuffer, {
-        contentType: file.type,
-        upsert: false,
-      });
+    console.log("Received file_base64, length:", file_base64.length);
 
-    if (uploadError) {
-      // Fallback to documents bucket if ocr_uploads doesn't exist
-      const { data: fallbackUpload, error: fallbackError } = await supabase.storage
-        .from("documents")
+    // Try direct base64 approach first (works for images and PDFs)
+    let visionData: any;
+    let extractedText = "";
+    let fileUrl = "";
+    let fileName = "";
+
+    try {
+      console.log("Attempting direct base64 OCR...");
+      
+      // Call Google Vision API with base64 content directly
+      const visionResponse = await fetch(
+        `https://vision.googleapis.com/v1/images:annotate?key=${googleVisionApiKey}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            requests: [
+              {
+                image: {
+                  content: file_base64,
+                },
+                features: [
+                  {
+                    type: "DOCUMENT_TEXT_DETECTION",
+                    maxResults: 1,
+                  },
+                ],
+              },
+            ],
+          }),
+        }
+      );
+
+      if (!visionResponse.ok) {
+        const errorText = await visionResponse.text();
+        console.error("Vision API error:", errorText);
+        throw new Error(`Google Vision API error: ${errorText}`);
+      }
+
+      visionData = await visionResponse.json();
+      console.log("Vision API response received");
+      
+      // Extract text
+      extractedText = visionData.responses?.[0]?.fullTextAnnotation?.text || "";
+      console.log("Extracted text length:", extractedText.length);
+
+      // Upload file to storage for record keeping
+      const binaryString = atob(file_base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      fileName = `ocr-${Date.now()}.jpg`;
+      const fileBuffer = bytes.buffer;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("ocr_uploads")
         .upload(fileName, fileBuffer, {
-          contentType: file.type,
+          contentType: "image/jpeg",
           upsert: false,
         });
-      
-      if (fallbackError) {
-        throw new Error(`Upload failed: ${fallbackError.message}`);
+
+      if (uploadError) {
+        console.log("Upload to ocr_uploads failed, trying documents bucket");
+        const { data: fallbackUpload, error: fallbackError } = await supabase.storage
+          .from("documents")
+          .upload(fileName, fileBuffer, {
+            contentType: "image/jpeg",
+            upsert: false,
+          });
+        
+        if (!fallbackError) {
+          const { data: urlData } = supabase.storage
+            .from("documents")
+            .getPublicUrl(fileName);
+          fileUrl = urlData.publicUrl;
+        }
+      } else {
+        const { data: urlData } = supabase.storage
+          .from("ocr_uploads")
+          .getPublicUrl(fileName);
+        fileUrl = urlData.publicUrl;
       }
+
+    } catch (error: any) {
+      console.error("Direct base64 OCR failed:", error.message);
+      throw error;
     }
-
-    // 2. Generate signed URL
-    const bucketName = uploadError ? "documents" : "ocr_uploads";
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-      .from(bucketName)
-      .createSignedUrl(fileName, 3600);
-
-    let fileUrl: string;
-    
-    if (signedUrlError || !signedUrlData?.signedUrl) {
-      // Fallback to public URL
-      const { data: urlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(fileName);
-      fileUrl = urlData.publicUrl;
-    } else {
-      fileUrl = signedUrlData.signedUrl;
-    }
-
-    // 3. Call Google Vision API using imageUri mode (no size limit)
-    const visionResponse = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate?key=${googleVisionApiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          requests: [
-            {
-              image: {
-                source: {
-                  imageUri: fileUrl,
-                },
-              },
-              features: [
-                {
-                  type: "DOCUMENT_TEXT_DETECTION",
-                  maxResults: 1,
-                },
-              ],
-            },
-          ],
-        }),
-      }
-    );
-
-    if (!visionResponse.ok) {
-      const errorText = await visionResponse.text();
-      throw new Error(`Google Vision API error: ${errorText}`);
-    }
-
-    const visionData = await visionResponse.json();
-    
-    // 4. Extract fullTextAnnotation.text
-    const extractedText =
-      visionData.responses?.[0]?.fullTextAnnotation?.text || "";
 
     // 5. Extract financial data for autofill
     const autofillData = extractFinancialData(extractedText);

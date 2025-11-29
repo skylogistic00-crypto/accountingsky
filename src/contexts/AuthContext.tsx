@@ -17,7 +17,15 @@ interface AuthContextType {
     email: string,
     password: string,
     fullName: string,
-    role?: string,
+    entityType: string,
+    phone?: string,
+    details?: Record<string, any>,
+    fileUrls?: Record<string, string>,
+    roleName?: string,
+    roleId?: number | null,
+    roleEntity?: string,
+    ktp_number?: string,
+    ktp_address?: string,
   ) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -174,10 +182,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     fullName: string,
-    entityType: string = "customer",
+    entityType: string,
     phone?: string,
     details?: Record<string, any>,
     fileUrls?: Record<string, string>,
+    roleName?: string,
+    roleId?: number | null,
+    roleEntity?: string,
+    ktp_number?: string,
+    ktp_address?: string,
+    first_name?: string,
+    last_name?: string,
   ) => {
     const { data, error } = await supabase.functions.invoke(
       "supabase-functions-signup-multi-entity",
@@ -186,19 +201,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email,
           password,
           full_name: fullName,
-          entity_type: entityType,
+          entity_type: roleEntity || entityType,
           phone,
-          details: details || {},
+          details: details || {}, // <--- semua data employee masuk di sini
           file_urls: fileUrls || {},
+          role_name: roleName,
+          role_id: roleId,
+          ktp_number, // <--- untuk tabel users
+          ktp_address, // <--- untuk tabel users
+          first_name,
+          last_name,
         },
       },
     );
 
     if (error) throw error;
-
-    // Auto login after successful signup
-    //await supabase.auth.signInWithPassword({ email, password });
-
     return data;
   };
 

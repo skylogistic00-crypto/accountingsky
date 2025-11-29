@@ -47,6 +47,7 @@ import POSTerminal from "@/components/POSTerminal";
 import WarehouseDashboard from "@/components/WarehouseDashboard";
 import POSDashboard from "@/components/POSDashboard";
 import AccountMappingsManager from "@/components/AccountMappingsManager";
+import CreateProfitLossView from "@/components/CreateProfitLossView";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -742,6 +743,19 @@ function AppRoutesContent() {
               <div className="container mx-auto px-4 py-8">
                 <AccountMappingsManager />
               </div>
+            </div>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/create-profit-loss-view"
+        element={
+          <ProtectedRoute allowedRoles={["super_admin", "accounting_manager"]}>
+            <div className="min-h-screen bg-white">
+              <Header />
+              <Navigation />
+              <CreateProfitLossView />
             </div>
           </ProtectedRoute>
         }

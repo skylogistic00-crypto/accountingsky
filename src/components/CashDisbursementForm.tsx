@@ -37,8 +37,11 @@ export default function CashDisbursementForm({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
+  const [taxAmount, setTaxAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Tunai");
   const [bankAccount, setBankAccount] = useState("");
+  const [cashAccountId, setCashAccountId] = useState("");
+  const [bankAccountId, setBankAccountId] = useState("");
   const [notes, setNotes] = useState("");
   const [coaExpenseCode, setCoaExpenseCode] = useState("");
   const [coaCashCode, setCoaCashCode] = useState("");
@@ -49,6 +52,7 @@ export default function CashDisbursementForm({
   const [coaAccounts, setCoaAccounts] = useState<any[]>([]);
   const [expenseAccounts, setExpenseAccounts] = useState<any[]>([]);
   const [cashAccounts, setCashAccounts] = useState<any[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
 
   const { toast } = useToast();
 
@@ -79,9 +83,19 @@ export default function CashDisbursementForm({
       );
       setCashAccounts(cash);
 
+      // Filter bank accounts (1-12xx)
+      const banks = (data || []).filter((acc: any) =>
+        acc.account_code.startsWith("1-12"),
+      );
+      setBankAccounts(banks);
+
       // Set default accounts
       if (expenses.length > 0) setCoaExpenseCode(expenses[0].account_code);
-      if (cash.length > 0) setCoaCashCode(cash[0].account_code);
+      if (cash.length > 0) {
+        setCoaCashCode(cash[0].account_code);
+        setCashAccountId(cash[0].id);
+      }
+      if (banks.length > 0) setBankAccountId(banks[0].id);
     } catch (error: any) {
       console.error("Error fetching COA:", error);
       toast({
@@ -163,25 +177,34 @@ export default function CashDisbursementForm({
         description: description,
         category: category || null,
         amount: parseFloat(amount),
+        tax_amount: taxAmount ? parseFloat(taxAmount) : 0,
         payment_method: paymentMethod,
         bank_account: bankAccount || null,
+        cash_account_id: paymentMethod === "Tunai" ? cashAccountId || null : null,
+        bank_account_id: paymentMethod !== "Tunai" ? bankAccountId || null : null,
         coa_expense_code: coaExpenseCode,
         coa_cash_code: coaCashCode,
         attachment_url: attachmentUrl,
         notes: notes || null,
         created_by: user?.id,
-        approval_status: "waiting_approval",
+        approval_status: "approved",
       };
 
-      const { error } = await supabase
+      const { data: insertedData, error } = await supabase
         .from("cash_disbursement")
-        .insert(disbursementData);
+        .insert(disbursementData)
+        .select("id, account_code, account_name")
+        .single();
 
       if (error) throw error;
 
+      const disbursementId = insertedData?.id;
+      console.log("✅ Disbursement saved with ID:", disbursementId);
+      console.log("✅ Auto-mapped COA:", insertedData?.account_code, insertedData?.account_name);
+
       toast({
         title: "✅ Berhasil",
-        description: "Pengeluaran kas berhasil disimpan dan menunggu approval",
+        description: `Pengeluaran berhasil disimpan dan COA terisi otomatis. (ID: ${disbursementId?.slice(0, 8)}...)`,
       });
 
       // Reset form
@@ -189,6 +212,7 @@ export default function CashDisbursementForm({
       setDescription("");
       setCategory("");
       setAmount("");
+      setTaxAmount("");
       setPaymentMethod("Tunai");
       setBankAccount("");
       setNotes("");
@@ -319,7 +343,7 @@ export default function CashDisbursementForm({
             </div>
           </div>
 
-          {/* Amount and Bank Account */}
+          {/* Amount and Tax Amount */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="amount">Jumlah (Rp) *</Label>
@@ -334,16 +358,64 @@ export default function CashDisbursementForm({
               />
             </div>
 
-            {paymentMethod !== "Tunai" && (
+            <div className="space-y-2">
+              <Label htmlFor="tax-amount">Pajak (Rp)</Label>
+              <Input
+                id="tax-amount"
+                type="number"
+                step="0.01"
+                value={taxAmount}
+                onChange={(e) => setTaxAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+
+          {/* Bank Account / Cash Account Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {paymentMethod === "Tunai" ? (
               <div className="space-y-2">
-                <Label htmlFor="bank-account">Rekening Bank</Label>
-                <Input
-                  id="bank-account"
-                  value={bankAccount}
-                  onChange={(e) => setBankAccount(e.target.value)}
-                  placeholder="Nomor rekening atau nama bank"
-                />
+                <Label htmlFor="cash-account">Akun Kas</Label>
+                <Select value={cashAccountId} onValueChange={setCashAccountId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih akun kas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cashAccounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.account_code} - {acc.account_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="bank-account-id">Akun Bank</Label>
+                  <Select value={bankAccountId} onValueChange={setBankAccountId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih akun bank" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.account_code} - {acc.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bank-account">Nomor Rekening</Label>
+                  <Input
+                    id="bank-account"
+                    value={bankAccount}
+                    onChange={(e) => setBankAccount(e.target.value)}
+                    placeholder="Nomor rekening atau nama bank"
+                  />
+                </div>
+              </>
             )}
           </div>
 
