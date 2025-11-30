@@ -10,6 +10,11 @@ const CORS = {
 
 const OPENAI_API_KEY = Deno.env.get("OPEN_AI_KEY")!;
 
+interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 async function fetchFullSchema(supabase: any) {
   const { data, error } = await supabase.rpc("execute_sql", {
     query: `
@@ -35,16 +40,101 @@ function buildSchemaDescription(schemaRows: any[]) {
     tables[tableName].push(`${row.column_name}(${row.data_type})`);
   }
 
-  let description = "Database Schema:\n\n";
+  let description = "Database Tables:\n";
   for (const [table, columns] of Object.entries(tables)) {
-    description += `Table: ${table}\n`;
-    description += `Columns: ${columns.join(", ")}\n\n`;
+    description += `- ${table}: ${columns.slice(0, 5).join(", ")}${columns.length > 5 ? "..." : ""}\n`;
   }
   
   return description;
 }
 
-async function generateSQL(userQuestion: string, schemaDescription: string) {
+async function analyzeIntent(
+  userQuestion: string, 
+  conversationHistory: ConversationMessage[],
+  schemaDescription: string
+): Promise<{
+  intent: string;
+  clarifiedQuestion: string;
+  needsClarification: boolean;
+  clarificationQuestion?: string;
+  suggestedQueries?: string[];
+}> {
+  const historyText = conversationHistory
+    .slice(-6) // Last 6 messages for context
+    .map(m => `${m.role === "user" ? "User" : "AI"}: ${m.content}`)
+    .join("\n");
+
+  const systemPrompt = `You are an intelligent AI assistant that understands user intent from natural language queries about a database.
+
+${schemaDescription}
+
+Your job is to:
+1. Understand what the user REALLY wants, even if they don't express it clearly
+2. Use conversation history to understand context
+3. Clarify ambiguous requests
+4. Suggest related queries they might want
+
+IMPORTANT MAPPINGS:
+- "rp", "rupiah", "nilai", "harga" → usually means monetary value (selling_price, purchase_price, total_amount, nominal)
+- "total", "jumlah" → could mean COUNT or SUM depending on context
+- "stok", "barang", "item" → stock table
+- "gudang", "warehouse" → warehouses table
+- "pelanggan", "customer" → customers table
+- "supplier", "pemasok" → suppliers table
+- "transaksi", "penjualan" → sales_transactions or kas_transaksi
+- "karyawan", "pegawai" → employees table
+
+Respond in JSON format:
+{
+  "intent": "brief description of what user wants",
+  "clarifiedQuestion": "the question rewritten clearly for SQL generation",
+  "needsClarification": true/false,
+  "clarificationQuestion": "question to ask user if unclear (optional)",
+  "suggestedQueries": ["related query 1", "related query 2"] (optional, max 3)
+}`;
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { 
+          role: "user", 
+          content: `Conversation history:\n${historyText}\n\nCurrent question: ${userQuestion}\n\nAnalyze the intent and respond in JSON.`
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 500
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  let content = data.choices[0].message.content.trim();
+  
+  // Remove markdown code blocks if present
+  content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  
+  try {
+    return JSON.parse(content);
+  } catch {
+    return {
+      intent: "database query",
+      clarifiedQuestion: userQuestion,
+      needsClarification: false
+    };
+  }
+}
+
+async function generateSQL(userQuestion: string, schemaDescription: string): Promise<string> {
   const systemPrompt = `You are an AI assistant that generates read-only SQL queries for a PostgreSQL database.
 
 ${schemaDescription}
@@ -105,7 +195,7 @@ Generate the SQL query for the user's question:`;
   return sql;
 }
 
-function validateSQL(sql: string) {
+function validateSQL(sql: string): boolean {
   const lowered = sql.toLowerCase().trim();
   
   if (!lowered.startsWith("select")) return false;
@@ -122,7 +212,16 @@ function validateSQL(sql: string) {
   return true;
 }
 
-async function generateExplanation(question: string, sqlResult: any) {
+async function generateExplanation(
+  question: string, 
+  sqlResult: any,
+  conversationHistory: ConversationMessage[]
+): Promise<string> {
+  const historyContext = conversationHistory
+    .slice(-4)
+    .map(m => `${m.role === "user" ? "User" : "AI"}: ${m.content}`)
+    .join("\n");
+
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -134,7 +233,15 @@ async function generateExplanation(question: string, sqlResult: any) {
       messages: [
         {
           role: "system",
-          content: "You are a helpful assistant. Provide a concise, natural language answer in Indonesian based on the query results. Keep it short and direct."
+          content: `You are a helpful assistant. Provide a concise, natural language answer in Indonesian based on the query results. 
+          
+Keep it short and direct. Use proper formatting:
+- For numbers, use Indonesian format (e.g., Rp 1.234.567)
+- For lists, use bullet points
+- Be conversational and friendly
+
+Previous conversation:
+${historyContext}`
         },
         {
           role: "user",
@@ -142,7 +249,7 @@ async function generateExplanation(question: string, sqlResult: any) {
         }
       ],
       temperature: 0.7,
-      max_tokens: 200
+      max_tokens: 300
     })
   });
 
@@ -162,7 +269,7 @@ serve(async (req) => {
   }
 
   try {
-    const { question } = await req.json();
+    const { question, conversationHistory = [] } = await req.json();
     
     if (!question) {
       return new Response(JSON.stringify({
@@ -174,17 +281,36 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SERVICE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log("=== AI SMART SEARCH ===");
+    console.log("=== AI INTENT ANALYZER ===");
     console.log("Question:", question);
+    console.log("History length:", conversationHistory.length);
 
+    // Fetch full database schema
     const schemaRows = await fetchFullSchema(supabase);
     const schemaDescription = buildSchemaDescription(schemaRows);
     
     console.log(`Schema loaded: ${schemaRows.length} columns`);
 
-    const sql = await generateSQL(question, schemaDescription);
+    // Step 1: Analyze user intent
+    const intentAnalysis = await analyzeIntent(question, conversationHistory, schemaDescription);
+    console.log("Intent analysis:", JSON.stringify(intentAnalysis));
+
+    // If clarification needed, return early
+    if (intentAnalysis.needsClarification && intentAnalysis.clarificationQuestion) {
+      return new Response(JSON.stringify({
+        success: true,
+        needsClarification: true,
+        clarificationQuestion: intentAnalysis.clarificationQuestion,
+        suggestedQueries: intentAnalysis.suggestedQueries,
+        intent: intentAnalysis.intent
+      }), { headers: CORS });
+    }
+
+    // Step 2: Generate SQL query using clarified question
+    const sql = await generateSQL(intentAnalysis.clarifiedQuestion, schemaDescription);
     console.log("Generated SQL:", sql);
 
+    // Validate SQL
     if (!validateSQL(sql)) {
       return new Response(JSON.stringify({
         error: "Generated SQL query is not valid or safe",
@@ -193,6 +319,7 @@ serve(async (req) => {
       }), { status: 400, headers: CORS });
     }
 
+    // Step 3: Execute SQL query
     const { data: queryResult, error: queryError } = await supabase.rpc("execute_sql", {
       query: sql
     });
@@ -208,15 +335,19 @@ serve(async (req) => {
 
     console.log("Query result:", JSON.stringify(queryResult).substring(0, 200));
 
-    const explanation = await generateExplanation(question, queryResult);
+    // Step 4: Generate natural language explanation with context
+    const explanation = await generateExplanation(question, queryResult, conversationHistory);
 
     return new Response(JSON.stringify({
       success: true,
       question,
+      intent: intentAnalysis.intent,
+      clarifiedQuestion: intentAnalysis.clarifiedQuestion,
       sql,
       result: queryResult,
       explanation,
-      rowCount: Array.isArray(queryResult) ? queryResult.length : 1
+      rowCount: Array.isArray(queryResult) ? queryResult.length : 1,
+      suggestedQueries: intentAnalysis.suggestedQueries
     }), { headers: CORS });
 
   } catch (error: any) {
@@ -227,4 +358,3 @@ serve(async (req) => {
     }), { status: 500, headers: CORS });
   }
 });
-

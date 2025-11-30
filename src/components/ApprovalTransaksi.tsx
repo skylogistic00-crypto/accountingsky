@@ -54,7 +54,11 @@ interface PendingTransaction {
   notes?: string;
 }
 
-export default function ApprovalTransaksi() {
+interface ApprovalTransaksiProps {
+  onApprovalComplete?: () => void;
+}
+
+export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransaksiProps = {}) {
   const [pendingTransactions, setPendingTransactions] = useState<
     PendingTransaction[]
   >([]);
@@ -210,6 +214,11 @@ export default function ApprovalTransaksi() {
       });
 
       fetchPendingTransactions();
+      
+      // Call callback to reload parent transactions
+      if (onApprovalComplete) {
+        onApprovalComplete();
+      }
     } catch (error: any) {
       console.error("Error approving transaction:", error);
       toast({
@@ -458,6 +467,11 @@ export default function ApprovalTransaksi() {
       setRejectionReason("");
       setSelectedTransaction(null);
       fetchPendingTransactions();
+      
+      // Call callback to reload parent transactions
+      if (onApprovalComplete) {
+        onApprovalComplete();
+      }
     } catch (error: any) {
       console.error("Error rejecting transaction:", error);
       toast({

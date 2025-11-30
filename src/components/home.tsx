@@ -70,6 +70,14 @@ function Home() {
       roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
+      title: "Finance Transactions",
+      description: "Manage expense transactions with OCR",
+      icon: DollarSign,
+      path: "/finance/transactions",
+      color: "bg-emerald-500",
+      roles: ["super_admin", "accounting_manager", "accounting_staff", "finance_manager", "finance_staff"],
+    },
+    {
       title: "Manajemen Stok",
       description: "Kelola inventori dan stok barang",
       icon: Package,

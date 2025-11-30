@@ -10,7 +10,14 @@ const CORS = {
 
 const OPENAI_API_KEY = Deno.env.get("OPEN_AI_KEY")!;
 
-async function fetchFullSchema(supabase: any) {
+interface SchemaRow {
+  table_schema: string;
+  table_name: string;
+  column_name: string;
+  data_type: string;
+}
+
+async function fetchFullSchema(supabase: any): Promise<SchemaRow[]> {
   const { data, error } = await supabase.rpc("execute_sql", {
     query: `
       SELECT table_schema, table_name, column_name, data_type
@@ -24,7 +31,7 @@ async function fetchFullSchema(supabase: any) {
   return data || [];
 }
 
-function buildSchemaDescription(schemaRows: any[]) {
+function buildSchemaDescription(schemaRows: SchemaRow[]): string {
   const tables: Record<string, string[]> = {};
   
   for (const row of schemaRows) {
@@ -44,7 +51,7 @@ function buildSchemaDescription(schemaRows: any[]) {
   return description;
 }
 
-async function generateSQL(userQuestion: string, schemaDescription: string) {
+async function generateSQL(userQuestion: string, schemaDescription: string): Promise<string> {
   const systemPrompt = `You are an AI assistant that generates read-only SQL queries for a PostgreSQL database.
 
 ${schemaDescription}
@@ -54,25 +61,15 @@ IMPORTANT RULES:
 2. Do NOT generate INSERT, UPDATE, DELETE, DROP, ALTER, or any data modification queries
 3. Return ONLY the SQL query without explanation or markdown formatting
 4. Use proper PostgreSQL syntax
-5. For list queries, add LIMIT 100. For SUM/COUNT/AVG queries, do NOT add LIMIT
+5. Always add LIMIT 100 to prevent large result sets
 6. Use table and column names exactly as shown in the schema
 7. For COUNT queries, use "as count" alias
-8. For SUM queries, use COALESCE(SUM(column), 0) as total to handle NULL
-9. For "total rp" or "total harga" or "total nilai", SUM the price/amount column
-
-COLUMN MAPPING (IMPORTANT):
-- stock table: "selling_price" for harga jual, "purchase_price" for harga beli, "quantity" for jumlah stok
-- sales_transactions: "total_amount" for total penjualan
-- kas_transaksi: "nominal" for nilai transaksi
-- purchase_transactions: "total_amount" for total pembelian
+8. For date filtering, use proper date format: 'YYYY-MM-DD'
 
 Examples:
 - "berapa jumlah gudang" → SELECT COUNT(*) as count FROM warehouses
 - "list semua customer" → SELECT * FROM customers LIMIT 100
-- "total stok" → SELECT COALESCE(SUM(quantity), 0) as total FROM stock
-- "total rp" or "total harga jual" → SELECT COALESCE(SUM(selling_price * quantity), 0) as total FROM stock
-- "total nilai stok" → SELECT COALESCE(SUM(selling_price * quantity), 0) as total_nilai FROM stock
-- "berapa total penjualan" → SELECT COALESCE(SUM(total_amount), 0) as total FROM sales_transactions
+- "total stok" → SELECT SUM(quantity) as total FROM stock
 
 Generate the SQL query for the user's question:`;
 
@@ -100,16 +97,19 @@ Generate the SQL query for the user's question:`;
   const data = await response.json();
   let sql = data.choices[0].message.content.trim();
   
+  // Remove markdown code blocks if present
   sql = sql.replace(/```sql\n?/g, "").replace(/```\n?/g, "").trim();
   
   return sql;
 }
 
-function validateSQL(sql: string) {
+function validateSQL(sql: string): boolean {
   const lowered = sql.toLowerCase().trim();
   
+  // Must start with SELECT
   if (!lowered.startsWith("select")) return false;
   
+  // Block dangerous keywords
   const dangerousKeywords = [
     "insert", "update", "delete", "drop", "alter", "truncate",
     "create", "grant", "revoke", "execute", "call"
@@ -122,7 +122,11 @@ function validateSQL(sql: string) {
   return true;
 }
 
-async function generateExplanation(question: string, sqlResult: any) {
+async function generateExplanation(question: string, sqlResult: any): Promise<string> {
+  const resultSummary = Array.isArray(sqlResult) 
+    ? `Found ${sqlResult.length} results` 
+    : JSON.stringify(sqlResult);
+
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -147,9 +151,7 @@ async function generateExplanation(question: string, sqlResult: any) {
   });
 
   if (!response.ok) {
-    return Array.isArray(sqlResult) 
-      ? `Ditemukan ${sqlResult.length} hasil` 
-      : JSON.stringify(sqlResult);
+    return resultSummary;
   }
 
   const data = await response.json();
@@ -174,17 +176,20 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SERVICE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log("=== AI SMART SEARCH ===");
+    console.log("=== AI QUERY EXECUTOR ===");
     console.log("Question:", question);
 
+    // Fetch full database schema
     const schemaRows = await fetchFullSchema(supabase);
     const schemaDescription = buildSchemaDescription(schemaRows);
     
-    console.log(`Schema loaded: ${schemaRows.length} columns`);
+    console.log(`Schema loaded: ${Object.keys(schemaRows).length} tables`);
 
+    // Generate SQL query using OpenAI
     const sql = await generateSQL(question, schemaDescription);
     console.log("Generated SQL:", sql);
 
+    // Validate SQL
     if (!validateSQL(sql)) {
       return new Response(JSON.stringify({
         error: "Generated SQL query is not valid or safe",
@@ -193,6 +198,7 @@ serve(async (req) => {
       }), { status: 400, headers: CORS });
     }
 
+    // Execute SQL query
     const { data: queryResult, error: queryError } = await supabase.rpc("execute_sql", {
       query: sql
     });
@@ -208,6 +214,7 @@ serve(async (req) => {
 
     console.log("Query result:", JSON.stringify(queryResult).substring(0, 200));
 
+    // Generate natural language explanation
     const explanation = await generateExplanation(question, queryResult);
 
     return new Response(JSON.stringify({
@@ -228,3 +235,57 @@ serve(async (req) => {
   }
 });
 
+  try {
+    // Build OpenAI request for query execution
+    const openaiRequestBody = {
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are a SQL query executor assistant. Convert natural language queries into SQL and explain the results.",
+        },
+        {
+          role: "user",
+          content: body.query,
+        },
+      ],
+      temperature: 0.7,
+      n: 1,
+    };
+
+    console.log("Executing AI query:", body.query.substring(0, 50));
+
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(openaiRequestBody),
+    });
+
+    if (!openaiResponse.ok) {
+      const errorBody = await openaiResponse.text();
+      console.error("OpenAI API error:", errorBody);
+      return new Response(
+        JSON.stringify({ error: "OpenAI API error", details: errorBody }),
+        { status: openaiResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const data = await openaiResponse.json();
+    const result = data.choices?.[0]?.message?.content || "No response from AI";
+
+    return new Response(
+      JSON.stringify({ result }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("Query executor error:", error);
+    return new Response(
+      JSON.stringify({ error: "Internal server error", details: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

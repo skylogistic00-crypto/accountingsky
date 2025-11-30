@@ -20,6 +20,7 @@ import {
   Upload,
   Briefcase,
   ScanText,
+  MessageCircle,
 } from "lucide-react";
 
 export default function Navigation() {
@@ -279,6 +280,13 @@ export default function Navigation() {
       roles: ["super_admin", "accounting_manager"],
     },
     {
+      path: "/finance/transactions",
+      label: "Finance Transactions",
+      icon: DollarSign,
+      color: "emerald",
+      roles: ["super_admin", "accounting_manager", "accounting_staff", "finance_manager", "finance_staff"],
+    },
+    {
       path: "/coa-management",
       label: "Chart of Accounts",
       icon: FileText,
@@ -344,6 +352,23 @@ export default function Navigation() {
       icon: FileText,
       color: "slate",
       roles: ["super_admin", "accounting_staff", "accounting_manager"],
+    },
+    {
+      path: "/chat-ai",
+      label: "Chat AI",
+      icon: MessageCircle,
+      color: "purple",
+      roles: [
+        "super_admin",
+        "admin",
+        "accounting_manager",
+        "accounting_staff",
+        "warehouse_manager",
+        "warehouse_staff",
+        "hrd_manager",
+        "hrd_staff",
+        "member",
+      ],
     },
   ];
 

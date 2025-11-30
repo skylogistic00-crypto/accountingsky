@@ -14,6 +14,156 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_mappings: {
+        Row: {
+          category: string
+          created_at: string | null
+          credit_account: string | null
+          debit_account: string | null
+          id: number
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          credit_account?: string | null
+          debit_account?: string | null
+          id?: number
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          credit_account?: string | null
+          debit_account?: string | null
+          id?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_allowed_tables: {
+        Row: {
+          allowed_columns: string[] | null
+          id: number
+          schema_name: string | null
+          table_name: string | null
+        }
+        Insert: {
+          allowed_columns?: string[] | null
+          id?: number
+          schema_name?: string | null
+          table_name?: string | null
+        }
+        Update: {
+          allowed_columns?: string[] | null
+          id?: number
+          schema_name?: string | null
+          table_name?: string | null
+        }
+        Relationships: []
+      }
+      ai_chat_logs: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          message: string | null
+          meta: Json | null
+          model: string | null
+          role: string | null
+          tokens_used: number | null
+          user_id: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          meta?: Json | null
+          model?: string | null
+          role?: string | null
+          tokens_used?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          meta?: Json | null
+          model?: string | null
+          role?: string | null
+          tokens_used?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_query_logs: {
+        Row: {
+          allowed: boolean | null
+          created_at: string | null
+          error_text: string | null
+          generated_sql: string | null
+          id: string
+          prompt: string | null
+          rows_returned: number | null
+          sanitized_sql: string | null
+          user_id: string | null
+        }
+        Insert: {
+          allowed?: boolean | null
+          created_at?: string | null
+          error_text?: string | null
+          generated_sql?: string | null
+          id?: string
+          prompt?: string | null
+          rows_returned?: number | null
+          sanitized_sql?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          allowed?: boolean | null
+          created_at?: string | null
+          error_text?: string | null
+          generated_sql?: string | null
+          id?: string
+          prompt?: string | null
+          rows_returned?: number | null
+          sanitized_sql?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_role_whitelist: {
+        Row: {
+          allow_delete: boolean | null
+          allow_insert: boolean | null
+          allow_update: boolean | null
+          allowed_columns: string[]
+          id: number
+          role: string
+          table_name: string
+        }
+        Insert: {
+          allow_delete?: boolean | null
+          allow_insert?: boolean | null
+          allow_update?: boolean | null
+          allowed_columns: string[]
+          id?: number
+          role: string
+          table_name: string
+        }
+        Update: {
+          allow_delete?: boolean | null
+          allow_insert?: boolean | null
+          allow_update?: boolean | null
+          allowed_columns?: string[]
+          id?: number
+          role?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       airwaybills: {
         Row: {
           arrival_airport_code: string
@@ -766,6 +916,7 @@ export type Database = {
           approval_status: string | null
           approved_at: string | null
           approved_by: string | null
+          bukti: string | null
           category: string | null
           coa_cash_code: string | null
           coa_contra_code: string | null
@@ -773,6 +924,7 @@ export type Database = {
           description: string | null
           id: string
           journal_ref: string | null
+          ocr_data: Json | null
           payment_method: string | null
           reference_number: string | null
           source_destination: string | null
@@ -785,6 +937,7 @@ export type Database = {
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          bukti?: string | null
           category?: string | null
           coa_cash_code?: string | null
           coa_contra_code?: string | null
@@ -792,6 +945,7 @@ export type Database = {
           description?: string | null
           id?: string
           journal_ref?: string | null
+          ocr_data?: Json | null
           payment_method?: string | null
           reference_number?: string | null
           source_destination?: string | null
@@ -804,6 +958,7 @@ export type Database = {
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          bukti?: string | null
           category?: string | null
           coa_cash_code?: string | null
           coa_contra_code?: string | null
@@ -811,6 +966,7 @@ export type Database = {
           description?: string | null
           id?: string
           journal_ref?: string | null
+          ocr_data?: Json | null
           payment_method?: string | null
           reference_number?: string | null
           source_destination?: string | null
@@ -822,71 +978,119 @@ export type Database = {
       }
       cash_disbursement: {
         Row: {
+          account_code: string | null
           amount: number
           approval_status: string | null
           approved_at: string | null
           approved_by: string | null
           attachment_url: string | null
           bank_account: string | null
+          bank_account_id: string | null
+          bukti: string | null
+          cash_account_id: string | null
           category: string | null
           coa_cash_code: string | null
           coa_expense_code: string | null
+          cost_center_id: string | null
           created_at: string | null
           created_by: string | null
+          currency_code: string | null
           description: string
           document_number: string | null
+          evidence_url: string | null
+          exchange_rate: number | null
+          external_reference: string | null
           id: string
+          journal_id: string | null
           journal_ref: string | null
+          normalized_amount: number | null
           notes: string | null
+          ocr_data: Json | null
           payee_name: string
           payment_method: string
           rejection_reason: string | null
+          status: string | null
+          tax_amount: number | null
+          tax_code: string | null
+          tax_type: string | null
           transaction_date: string
           updated_at: string | null
         }
         Insert: {
+          account_code?: string | null
           amount: number
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
           attachment_url?: string | null
           bank_account?: string | null
+          bank_account_id?: string | null
+          bukti?: string | null
+          cash_account_id?: string | null
           category?: string | null
           coa_cash_code?: string | null
           coa_expense_code?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          currency_code?: string | null
           description: string
           document_number?: string | null
+          evidence_url?: string | null
+          exchange_rate?: number | null
+          external_reference?: string | null
           id?: string
+          journal_id?: string | null
           journal_ref?: string | null
+          normalized_amount?: number | null
           notes?: string | null
+          ocr_data?: Json | null
           payee_name: string
           payment_method: string
           rejection_reason?: string | null
+          status?: string | null
+          tax_amount?: number | null
+          tax_code?: string | null
+          tax_type?: string | null
           transaction_date: string
           updated_at?: string | null
         }
         Update: {
+          account_code?: string | null
           amount?: number
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
           attachment_url?: string | null
           bank_account?: string | null
+          bank_account_id?: string | null
+          bukti?: string | null
+          cash_account_id?: string | null
           category?: string | null
           coa_cash_code?: string | null
           coa_expense_code?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          currency_code?: string | null
           description?: string
           document_number?: string | null
+          evidence_url?: string | null
+          exchange_rate?: number | null
+          external_reference?: string | null
           id?: string
+          journal_id?: string | null
           journal_ref?: string | null
+          normalized_amount?: number | null
           notes?: string | null
+          ocr_data?: Json | null
           payee_name?: string
           payment_method?: string
           rejection_reason?: string | null
+          status?: string | null
+          tax_amount?: number | null
+          tax_code?: string | null
+          tax_type?: string | null
           transaction_date?: string
           updated_at?: string | null
         }
@@ -977,6 +1181,20 @@ export type Database = {
             referencedColumns: ["account_code"]
           },
           {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
+          {
             foreignKeyName: "fk_coa_contra"
             columns: ["coa_contra_code"]
             isOneToOne: false
@@ -1002,6 +1220,20 @@ export type Database = {
             columns: ["coa_contra_code"]
             isOneToOne: false
             referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_contra"
+            columns: ["coa_contra_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_contra"
+            columns: ["coa_contra_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
             referencedColumns: ["account_code"]
           },
         ]
@@ -1138,6 +1370,30 @@ export type Database = {
           service_category?: string
           service_type?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      coa_mapping: {
+        Row: {
+          account_code: string
+          account_name: string
+          category: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          category: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          category?: string
+          created_at?: string | null
+          id?: string
         }
         Relationships: []
       }
@@ -1395,6 +1651,480 @@ export type Database = {
           },
         ]
       }
+      data_karyawan: {
+        Row: {
+          agama: string | null
+          alamat: string | null
+          alasan_bergabung: string | null
+          alasan_tidak_medical: string | null
+          anak1_nama: string | null
+          anak1_pendidikan_pekerjaan: string | null
+          anak1_tanggal_lahir: string | null
+          anak1_tempat_lahir: string | null
+          anak2_nama: string | null
+          anak2_pendidikan_pekerjaan: string | null
+          anak2_tanggal_lahir: string | null
+          anak2_tempat_lahir: string | null
+          anak3_nama: string | null
+          anak3_pendidikan_pekerjaan: string | null
+          anak3_tanggal_lahir: string | null
+          anak3_tempat_lahir: string | null
+          ayah_nama: string | null
+          ayah_pekerjaan: string | null
+          ayah_pendidikan: string | null
+          ayah_tanggal_lahir: string | null
+          bahasa1_lisan: string | null
+          bahasa1_nama: string | null
+          bahasa1_tulisan: string | null
+          bahasa2_lisan: string | null
+          bahasa2_nama: string | null
+          bahasa2_tulisan: string | null
+          bahasa3_lisan: string | null
+          bahasa3_nama: string | null
+          bahasa3_tulisan: string | null
+          bersedia_medical_checkup: boolean | null
+          buku: string | null
+          cara_mengisi_waktu: string | null
+          created_at: string
+          gaji_all_in_terakhir: number | null
+          gaji_diharapkan: number | null
+          golongan_darah: string | null
+          hobi: string | null
+          hukum_kapan_dimana: string | null
+          hukum_perkara: string | null
+          ibu_nama: string | null
+          ibu_pekerjaan: string | null
+          ibu_pendidikan: string | null
+          ibu_tanggal_lahir: string | null
+          id: string
+          jenis_tempat_tinggal: string | null
+          jenis_transportasi: string | null
+          kebangsaan: string | null
+          kenalan1_jabatan: string | null
+          kenalan1_nama: string | null
+          kenalan2_jabatan: string | null
+          kenalan2_nama: string | null
+          kerja1_alamat_perusahaan: string | null
+          kerja1_alasan_pindah: string | null
+          kerja1_jabatan: string | null
+          kerja1_nama_perusahaan: string | null
+          kerja1_periode_mulai: string | null
+          kerja1_periode_selesai: string | null
+          kerja2_alamat_perusahaan: string | null
+          kerja2_alasan_pindah: string | null
+          kerja2_jabatan: string | null
+          kerja2_nama_perusahaan: string | null
+          kerja2_periode_mulai: string | null
+          kerja2_periode_selesai: string | null
+          kerja3_alamat_perusahaan: string | null
+          kerja3_alasan_pindah: string | null
+          kerja3_jabatan: string | null
+          kerja3_nama_perusahaan: string | null
+          kerja3_periode_mulai: string | null
+          kerja3_periode_selesai: string | null
+          majalah: string | null
+          masih_bekerja: boolean | null
+          memakai_kacamata: boolean | null
+          minus_kanan: string | null
+          minus_kiri: string | null
+          nama_lengkap: string
+          nama_pasangan: string | null
+          nama_tanda_tangan: string | null
+          no_ktp_paspor: string | null
+          no_telepon: string | null
+          nonformal1_jenis: string | null
+          nonformal1_penyelenggara: string | null
+          nonformal1_sertifikat: boolean | null
+          nonformal1_tahun: number | null
+          nonformal1_tempat: string | null
+          nonformal2_jenis: string | null
+          nonformal2_penyelenggara: string | null
+          nonformal2_sertifikat: boolean | null
+          nonformal2_tahun: number | null
+          nonformal2_tempat: string | null
+          nonformal3_jenis: string | null
+          nonformal3_penyelenggara: string | null
+          nonformal3_sertifikat: boolean | null
+          nonformal3_tahun: number | null
+          nonformal3_tempat: string | null
+          organisasi1_jabatan: string | null
+          organisasi1_nama: string | null
+          organisasi2_jabatan: string | null
+          organisasi2_nama: string | null
+          pekerjaan_membantu: string | null
+          pekerjaan_mirip: string | null
+          pekerjaan_pasangan: string | null
+          pelajaran_favorit_sma: string | null
+          pelajaran_favorit_smp: string | null
+          pelajaran_favorit_univ: string | null
+          pend1_lulus: boolean | null
+          pend1_nama_sekolah: string | null
+          pend1_periode_mulai: string | null
+          pend1_periode_selesai: string | null
+          pend1_tempat: string | null
+          pend2_lulus: boolean | null
+          pend2_nama_sekolah: string | null
+          pend2_periode_mulai: string | null
+          pend2_periode_selesai: string | null
+          pend2_tempat: string | null
+          pend3_lulus: boolean | null
+          pend3_nama_sekolah: string | null
+          pend3_periode_mulai: string | null
+          pend3_periode_selesai: string | null
+          pend3_tempat: string | null
+          penjelasan_struktur_org: string | null
+          pernah_berurusan_hukum: boolean | null
+          pernah_organisasi: boolean | null
+          pernah_sakit_keras: boolean | null
+          posisi_dilamar: string
+          sakit_keras_jenis_waktu: string | null
+          sakit_keras_lama_rawat: string | null
+          saudara1_jk: string | null
+          saudara1_nama: string | null
+          saudara1_pekerjaan: string | null
+          saudara1_pendidikan: string | null
+          saudara1_tanggal_lahir: string | null
+          saudara2_jk: string | null
+          saudara2_nama: string | null
+          saudara2_pekerjaan: string | null
+          saudara2_pendidikan: string | null
+          saudara2_tanggal_lahir: string | null
+          sim_a_berlaku_sampai: string | null
+          sim_a_dikeluarkan_oleh: string | null
+          sim_b1_berlaku_sampai: string | null
+          sim_b1_dikeluarkan_oleh: string | null
+          sim_b2_berlaku_sampai: string | null
+          sim_b2_dikeluarkan_oleh: string | null
+          sim_c_berlaku_sampai: string | null
+          sim_c_dikeluarkan_oleh: string | null
+          status_pernikahan: string | null
+          struktur_gaji_terakhir: string | null
+          surat_kabar: string | null
+          tanggal_form: string | null
+          tanggal_lahir: string | null
+          tanggal_lahir_pasangan: string | null
+          tanggal_mulai_bersedia: string | null
+          tempat_lahir: string | null
+          tempat_lahir_pasangan: string | null
+          tunjangan_diharapkan: string | null
+          updated_at: string
+        }
+        Insert: {
+          agama?: string | null
+          alamat?: string | null
+          alasan_bergabung?: string | null
+          alasan_tidak_medical?: string | null
+          anak1_nama?: string | null
+          anak1_pendidikan_pekerjaan?: string | null
+          anak1_tanggal_lahir?: string | null
+          anak1_tempat_lahir?: string | null
+          anak2_nama?: string | null
+          anak2_pendidikan_pekerjaan?: string | null
+          anak2_tanggal_lahir?: string | null
+          anak2_tempat_lahir?: string | null
+          anak3_nama?: string | null
+          anak3_pendidikan_pekerjaan?: string | null
+          anak3_tanggal_lahir?: string | null
+          anak3_tempat_lahir?: string | null
+          ayah_nama?: string | null
+          ayah_pekerjaan?: string | null
+          ayah_pendidikan?: string | null
+          ayah_tanggal_lahir?: string | null
+          bahasa1_lisan?: string | null
+          bahasa1_nama?: string | null
+          bahasa1_tulisan?: string | null
+          bahasa2_lisan?: string | null
+          bahasa2_nama?: string | null
+          bahasa2_tulisan?: string | null
+          bahasa3_lisan?: string | null
+          bahasa3_nama?: string | null
+          bahasa3_tulisan?: string | null
+          bersedia_medical_checkup?: boolean | null
+          buku?: string | null
+          cara_mengisi_waktu?: string | null
+          created_at?: string
+          gaji_all_in_terakhir?: number | null
+          gaji_diharapkan?: number | null
+          golongan_darah?: string | null
+          hobi?: string | null
+          hukum_kapan_dimana?: string | null
+          hukum_perkara?: string | null
+          ibu_nama?: string | null
+          ibu_pekerjaan?: string | null
+          ibu_pendidikan?: string | null
+          ibu_tanggal_lahir?: string | null
+          id?: string
+          jenis_tempat_tinggal?: string | null
+          jenis_transportasi?: string | null
+          kebangsaan?: string | null
+          kenalan1_jabatan?: string | null
+          kenalan1_nama?: string | null
+          kenalan2_jabatan?: string | null
+          kenalan2_nama?: string | null
+          kerja1_alamat_perusahaan?: string | null
+          kerja1_alasan_pindah?: string | null
+          kerja1_jabatan?: string | null
+          kerja1_nama_perusahaan?: string | null
+          kerja1_periode_mulai?: string | null
+          kerja1_periode_selesai?: string | null
+          kerja2_alamat_perusahaan?: string | null
+          kerja2_alasan_pindah?: string | null
+          kerja2_jabatan?: string | null
+          kerja2_nama_perusahaan?: string | null
+          kerja2_periode_mulai?: string | null
+          kerja2_periode_selesai?: string | null
+          kerja3_alamat_perusahaan?: string | null
+          kerja3_alasan_pindah?: string | null
+          kerja3_jabatan?: string | null
+          kerja3_nama_perusahaan?: string | null
+          kerja3_periode_mulai?: string | null
+          kerja3_periode_selesai?: string | null
+          majalah?: string | null
+          masih_bekerja?: boolean | null
+          memakai_kacamata?: boolean | null
+          minus_kanan?: string | null
+          minus_kiri?: string | null
+          nama_lengkap: string
+          nama_pasangan?: string | null
+          nama_tanda_tangan?: string | null
+          no_ktp_paspor?: string | null
+          no_telepon?: string | null
+          nonformal1_jenis?: string | null
+          nonformal1_penyelenggara?: string | null
+          nonformal1_sertifikat?: boolean | null
+          nonformal1_tahun?: number | null
+          nonformal1_tempat?: string | null
+          nonformal2_jenis?: string | null
+          nonformal2_penyelenggara?: string | null
+          nonformal2_sertifikat?: boolean | null
+          nonformal2_tahun?: number | null
+          nonformal2_tempat?: string | null
+          nonformal3_jenis?: string | null
+          nonformal3_penyelenggara?: string | null
+          nonformal3_sertifikat?: boolean | null
+          nonformal3_tahun?: number | null
+          nonformal3_tempat?: string | null
+          organisasi1_jabatan?: string | null
+          organisasi1_nama?: string | null
+          organisasi2_jabatan?: string | null
+          organisasi2_nama?: string | null
+          pekerjaan_membantu?: string | null
+          pekerjaan_mirip?: string | null
+          pekerjaan_pasangan?: string | null
+          pelajaran_favorit_sma?: string | null
+          pelajaran_favorit_smp?: string | null
+          pelajaran_favorit_univ?: string | null
+          pend1_lulus?: boolean | null
+          pend1_nama_sekolah?: string | null
+          pend1_periode_mulai?: string | null
+          pend1_periode_selesai?: string | null
+          pend1_tempat?: string | null
+          pend2_lulus?: boolean | null
+          pend2_nama_sekolah?: string | null
+          pend2_periode_mulai?: string | null
+          pend2_periode_selesai?: string | null
+          pend2_tempat?: string | null
+          pend3_lulus?: boolean | null
+          pend3_nama_sekolah?: string | null
+          pend3_periode_mulai?: string | null
+          pend3_periode_selesai?: string | null
+          pend3_tempat?: string | null
+          penjelasan_struktur_org?: string | null
+          pernah_berurusan_hukum?: boolean | null
+          pernah_organisasi?: boolean | null
+          pernah_sakit_keras?: boolean | null
+          posisi_dilamar: string
+          sakit_keras_jenis_waktu?: string | null
+          sakit_keras_lama_rawat?: string | null
+          saudara1_jk?: string | null
+          saudara1_nama?: string | null
+          saudara1_pekerjaan?: string | null
+          saudara1_pendidikan?: string | null
+          saudara1_tanggal_lahir?: string | null
+          saudara2_jk?: string | null
+          saudara2_nama?: string | null
+          saudara2_pekerjaan?: string | null
+          saudara2_pendidikan?: string | null
+          saudara2_tanggal_lahir?: string | null
+          sim_a_berlaku_sampai?: string | null
+          sim_a_dikeluarkan_oleh?: string | null
+          sim_b1_berlaku_sampai?: string | null
+          sim_b1_dikeluarkan_oleh?: string | null
+          sim_b2_berlaku_sampai?: string | null
+          sim_b2_dikeluarkan_oleh?: string | null
+          sim_c_berlaku_sampai?: string | null
+          sim_c_dikeluarkan_oleh?: string | null
+          status_pernikahan?: string | null
+          struktur_gaji_terakhir?: string | null
+          surat_kabar?: string | null
+          tanggal_form?: string | null
+          tanggal_lahir?: string | null
+          tanggal_lahir_pasangan?: string | null
+          tanggal_mulai_bersedia?: string | null
+          tempat_lahir?: string | null
+          tempat_lahir_pasangan?: string | null
+          tunjangan_diharapkan?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agama?: string | null
+          alamat?: string | null
+          alasan_bergabung?: string | null
+          alasan_tidak_medical?: string | null
+          anak1_nama?: string | null
+          anak1_pendidikan_pekerjaan?: string | null
+          anak1_tanggal_lahir?: string | null
+          anak1_tempat_lahir?: string | null
+          anak2_nama?: string | null
+          anak2_pendidikan_pekerjaan?: string | null
+          anak2_tanggal_lahir?: string | null
+          anak2_tempat_lahir?: string | null
+          anak3_nama?: string | null
+          anak3_pendidikan_pekerjaan?: string | null
+          anak3_tanggal_lahir?: string | null
+          anak3_tempat_lahir?: string | null
+          ayah_nama?: string | null
+          ayah_pekerjaan?: string | null
+          ayah_pendidikan?: string | null
+          ayah_tanggal_lahir?: string | null
+          bahasa1_lisan?: string | null
+          bahasa1_nama?: string | null
+          bahasa1_tulisan?: string | null
+          bahasa2_lisan?: string | null
+          bahasa2_nama?: string | null
+          bahasa2_tulisan?: string | null
+          bahasa3_lisan?: string | null
+          bahasa3_nama?: string | null
+          bahasa3_tulisan?: string | null
+          bersedia_medical_checkup?: boolean | null
+          buku?: string | null
+          cara_mengisi_waktu?: string | null
+          created_at?: string
+          gaji_all_in_terakhir?: number | null
+          gaji_diharapkan?: number | null
+          golongan_darah?: string | null
+          hobi?: string | null
+          hukum_kapan_dimana?: string | null
+          hukum_perkara?: string | null
+          ibu_nama?: string | null
+          ibu_pekerjaan?: string | null
+          ibu_pendidikan?: string | null
+          ibu_tanggal_lahir?: string | null
+          id?: string
+          jenis_tempat_tinggal?: string | null
+          jenis_transportasi?: string | null
+          kebangsaan?: string | null
+          kenalan1_jabatan?: string | null
+          kenalan1_nama?: string | null
+          kenalan2_jabatan?: string | null
+          kenalan2_nama?: string | null
+          kerja1_alamat_perusahaan?: string | null
+          kerja1_alasan_pindah?: string | null
+          kerja1_jabatan?: string | null
+          kerja1_nama_perusahaan?: string | null
+          kerja1_periode_mulai?: string | null
+          kerja1_periode_selesai?: string | null
+          kerja2_alamat_perusahaan?: string | null
+          kerja2_alasan_pindah?: string | null
+          kerja2_jabatan?: string | null
+          kerja2_nama_perusahaan?: string | null
+          kerja2_periode_mulai?: string | null
+          kerja2_periode_selesai?: string | null
+          kerja3_alamat_perusahaan?: string | null
+          kerja3_alasan_pindah?: string | null
+          kerja3_jabatan?: string | null
+          kerja3_nama_perusahaan?: string | null
+          kerja3_periode_mulai?: string | null
+          kerja3_periode_selesai?: string | null
+          majalah?: string | null
+          masih_bekerja?: boolean | null
+          memakai_kacamata?: boolean | null
+          minus_kanan?: string | null
+          minus_kiri?: string | null
+          nama_lengkap?: string
+          nama_pasangan?: string | null
+          nama_tanda_tangan?: string | null
+          no_ktp_paspor?: string | null
+          no_telepon?: string | null
+          nonformal1_jenis?: string | null
+          nonformal1_penyelenggara?: string | null
+          nonformal1_sertifikat?: boolean | null
+          nonformal1_tahun?: number | null
+          nonformal1_tempat?: string | null
+          nonformal2_jenis?: string | null
+          nonformal2_penyelenggara?: string | null
+          nonformal2_sertifikat?: boolean | null
+          nonformal2_tahun?: number | null
+          nonformal2_tempat?: string | null
+          nonformal3_jenis?: string | null
+          nonformal3_penyelenggara?: string | null
+          nonformal3_sertifikat?: boolean | null
+          nonformal3_tahun?: number | null
+          nonformal3_tempat?: string | null
+          organisasi1_jabatan?: string | null
+          organisasi1_nama?: string | null
+          organisasi2_jabatan?: string | null
+          organisasi2_nama?: string | null
+          pekerjaan_membantu?: string | null
+          pekerjaan_mirip?: string | null
+          pekerjaan_pasangan?: string | null
+          pelajaran_favorit_sma?: string | null
+          pelajaran_favorit_smp?: string | null
+          pelajaran_favorit_univ?: string | null
+          pend1_lulus?: boolean | null
+          pend1_nama_sekolah?: string | null
+          pend1_periode_mulai?: string | null
+          pend1_periode_selesai?: string | null
+          pend1_tempat?: string | null
+          pend2_lulus?: boolean | null
+          pend2_nama_sekolah?: string | null
+          pend2_periode_mulai?: string | null
+          pend2_periode_selesai?: string | null
+          pend2_tempat?: string | null
+          pend3_lulus?: boolean | null
+          pend3_nama_sekolah?: string | null
+          pend3_periode_mulai?: string | null
+          pend3_periode_selesai?: string | null
+          pend3_tempat?: string | null
+          penjelasan_struktur_org?: string | null
+          pernah_berurusan_hukum?: boolean | null
+          pernah_organisasi?: boolean | null
+          pernah_sakit_keras?: boolean | null
+          posisi_dilamar?: string
+          sakit_keras_jenis_waktu?: string | null
+          sakit_keras_lama_rawat?: string | null
+          saudara1_jk?: string | null
+          saudara1_nama?: string | null
+          saudara1_pekerjaan?: string | null
+          saudara1_pendidikan?: string | null
+          saudara1_tanggal_lahir?: string | null
+          saudara2_jk?: string | null
+          saudara2_nama?: string | null
+          saudara2_pekerjaan?: string | null
+          saudara2_pendidikan?: string | null
+          saudara2_tanggal_lahir?: string | null
+          sim_a_berlaku_sampai?: string | null
+          sim_a_dikeluarkan_oleh?: string | null
+          sim_b1_berlaku_sampai?: string | null
+          sim_b1_dikeluarkan_oleh?: string | null
+          sim_b2_berlaku_sampai?: string | null
+          sim_b2_dikeluarkan_oleh?: string | null
+          sim_c_berlaku_sampai?: string | null
+          sim_c_dikeluarkan_oleh?: string | null
+          status_pernikahan?: string | null
+          struktur_gaji_terakhir?: string | null
+          surat_kabar?: string | null
+          tanggal_form?: string | null
+          tanggal_lahir?: string | null
+          tanggal_lahir_pasangan?: string | null
+          tanggal_mulai_bersedia?: string | null
+          tempat_lahir?: string | null
+          tempat_lahir_pasangan?: string | null
+          tunjangan_diharapkan?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deliveries: {
         Row: {
           city: string | null
@@ -1445,30 +2175,30 @@ export type Database = {
       }
       departments: {
         Row: {
-          code: string
+          code: string | null
           created_at: string | null
+          department_name: string
           description: string | null
           id: string
           is_active: boolean | null
-          name: string
           updated_at: string | null
         }
         Insert: {
-          code: string
+          code?: string | null
           created_at?: string | null
+          department_name: string
           description?: string | null
           id?: string
           is_active?: boolean | null
-          name: string
           updated_at?: string | null
         }
         Update: {
-          code?: string
+          code?: string | null
           created_at?: string | null
+          department_name?: string
           description?: string | null
           id?: string
           is_active?: boolean | null
-          name?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -1526,6 +2256,7 @@ export type Database = {
           npwp: string | null
           pic_name: string | null
           pic_phone: string | null
+          plate_number: string | null
           sensitive_encrypted: boolean | null
           status: string | null
           tipe_driver: string | null
@@ -1534,7 +2265,13 @@ export type Database = {
           upload_ktp_url: string | null
           upload_sim_url: string | null
           upload_skck_url: string | null
+          upload_stnk_url: string | null
+          upload_vehicle_photo_url: string | null
           user_id: string | null
+          vehicle_brand: string | null
+          vehicle_color: string | null
+          vehicle_model: string | null
+          vehicle_year: string | null
           verification_notes: string | null
           verification_status: string | null
           verified_at: string | null
@@ -1568,6 +2305,7 @@ export type Database = {
           npwp?: string | null
           pic_name?: string | null
           pic_phone?: string | null
+          plate_number?: string | null
           sensitive_encrypted?: boolean | null
           status?: string | null
           tipe_driver?: string | null
@@ -1576,7 +2314,13 @@ export type Database = {
           upload_ktp_url?: string | null
           upload_sim_url?: string | null
           upload_skck_url?: string | null
+          upload_stnk_url?: string | null
+          upload_vehicle_photo_url?: string | null
           user_id?: string | null
+          vehicle_brand?: string | null
+          vehicle_color?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: string | null
           verification_notes?: string | null
           verification_status?: string | null
           verified_at?: string | null
@@ -1610,6 +2354,7 @@ export type Database = {
           npwp?: string | null
           pic_name?: string | null
           pic_phone?: string | null
+          plate_number?: string | null
           sensitive_encrypted?: boolean | null
           status?: string | null
           tipe_driver?: string | null
@@ -1618,7 +2363,13 @@ export type Database = {
           upload_ktp_url?: string | null
           upload_sim_url?: string | null
           upload_skck_url?: string | null
+          upload_stnk_url?: string | null
+          upload_vehicle_photo_url?: string | null
           user_id?: string | null
+          vehicle_brand?: string | null
+          vehicle_color?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: string | null
           verification_notes?: string | null
           verification_status?: string | null
           verified_at?: string | null
@@ -1784,28 +2535,59 @@ export type Database = {
         Row: {
           address: string | null
           agama: string | null
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          basic_salary: number | null
+          birth_date: string | null
           birth_place: string | null
+          bpjs_kesehatan: string | null
+          bpjs_ketenagakerjaan: string | null
           city: string | null
+          contract_file_url: string | null
           country: string | null
           created_at: string | null
+          cv_file_url: string | null
           departemen: string | null
           department: string | null
           department_id: string | null
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
+          employee_code: string | null
+          employee_number: string | null
+          employment_status: string | null
           etnis: string | null
           foto_selfie_url: string | null
           full_name: string | null
-          hire_date: string | null
+          gender: string | null
+          graduation_year: string | null
           id: string
+          institution_name: string | null
           jabatan: string | null
+          join_date: string | null
           kontak_referensi_nama: string | null
           kontak_referensi_nomor: string | null
           ktp_address: string | null
+          ktp_file_url: string | null
           ktp_number: number | null
+          last_education: string | null
+          major: string | null
+          marital_status: string | null
           nik: string | null
           nomor_kk: string | null
           nomor_telepon: string | null
+          notes: string | null
+          npwp_file_url: string | null
+          npwp_number: string | null
+          phone: string | null
+          photo_url: string | null
           position: string | null
           position_id: string | null
+          postal_code: string | null
+          province: string | null
+          religion: string | null
           sensitive_encrypted: boolean | null
           status: string | null
           updated_at: string | null
@@ -1813,6 +2595,7 @@ export type Database = {
           upload_ktp_url: string | null
           upload_skck_url: string | null
           user_id: string | null
+          "users.entity": string | null
           verification_notes: string | null
           verification_status: string | null
           verified_at: string | null
@@ -1821,28 +2604,59 @@ export type Database = {
         Insert: {
           address?: string | null
           agama?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          basic_salary?: number | null
+          birth_date?: string | null
           birth_place?: string | null
+          bpjs_kesehatan?: string | null
+          bpjs_ketenagakerjaan?: string | null
           city?: string | null
+          contract_file_url?: string | null
           country?: string | null
           created_at?: string | null
+          cv_file_url?: string | null
           departemen?: string | null
           department?: string | null
           department_id?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          employee_code?: string | null
+          employee_number?: string | null
+          employment_status?: string | null
           etnis?: string | null
           foto_selfie_url?: string | null
           full_name?: string | null
-          hire_date?: string | null
+          gender?: string | null
+          graduation_year?: string | null
           id?: string
+          institution_name?: string | null
           jabatan?: string | null
+          join_date?: string | null
           kontak_referensi_nama?: string | null
           kontak_referensi_nomor?: string | null
           ktp_address?: string | null
+          ktp_file_url?: string | null
           ktp_number?: number | null
+          last_education?: string | null
+          major?: string | null
+          marital_status?: string | null
           nik?: string | null
           nomor_kk?: string | null
           nomor_telepon?: string | null
+          notes?: string | null
+          npwp_file_url?: string | null
+          npwp_number?: string | null
+          phone?: string | null
+          photo_url?: string | null
           position?: string | null
           position_id?: string | null
+          postal_code?: string | null
+          province?: string | null
+          religion?: string | null
           sensitive_encrypted?: boolean | null
           status?: string | null
           updated_at?: string | null
@@ -1850,6 +2664,7 @@ export type Database = {
           upload_ktp_url?: string | null
           upload_skck_url?: string | null
           user_id?: string | null
+          "users.entity"?: string | null
           verification_notes?: string | null
           verification_status?: string | null
           verified_at?: string | null
@@ -1858,28 +2673,59 @@ export type Database = {
         Update: {
           address?: string | null
           agama?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          basic_salary?: number | null
+          birth_date?: string | null
           birth_place?: string | null
+          bpjs_kesehatan?: string | null
+          bpjs_ketenagakerjaan?: string | null
           city?: string | null
+          contract_file_url?: string | null
           country?: string | null
           created_at?: string | null
+          cv_file_url?: string | null
           departemen?: string | null
           department?: string | null
           department_id?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          employee_code?: string | null
+          employee_number?: string | null
+          employment_status?: string | null
           etnis?: string | null
           foto_selfie_url?: string | null
           full_name?: string | null
-          hire_date?: string | null
+          gender?: string | null
+          graduation_year?: string | null
           id?: string
+          institution_name?: string | null
           jabatan?: string | null
+          join_date?: string | null
           kontak_referensi_nama?: string | null
           kontak_referensi_nomor?: string | null
           ktp_address?: string | null
+          ktp_file_url?: string | null
           ktp_number?: number | null
+          last_education?: string | null
+          major?: string | null
+          marital_status?: string | null
           nik?: string | null
           nomor_kk?: string | null
           nomor_telepon?: string | null
+          notes?: string | null
+          npwp_file_url?: string | null
+          npwp_number?: string | null
+          phone?: string | null
+          photo_url?: string | null
           position?: string | null
           position_id?: string | null
+          postal_code?: string | null
+          province?: string | null
+          religion?: string | null
           sensitive_encrypted?: boolean | null
           status?: string | null
           updated_at?: string | null
@@ -1887,6 +2733,7 @@ export type Database = {
           upload_ktp_url?: string | null
           upload_skck_url?: string | null
           user_id?: string | null
+          "users.entity"?: string | null
           verification_notes?: string | null
           verification_status?: string | null
           verified_at?: string | null
@@ -1919,7 +2766,10 @@ export type Database = {
       employment_contracts: {
         Row: {
           allowances: Json | null
-          contract_number: string
+          basic_salary: number | null
+          benefits: string | null
+          contract_file_url: string | null
+          contract_number: string | null
           contract_type: string | null
           created_at: string | null
           employee_id: string | null
@@ -1933,7 +2783,10 @@ export type Database = {
         }
         Insert: {
           allowances?: Json | null
-          contract_number: string
+          basic_salary?: number | null
+          benefits?: string | null
+          contract_file_url?: string | null
+          contract_number?: string | null
           contract_type?: string | null
           created_at?: string | null
           employee_id?: string | null
@@ -1947,7 +2800,10 @@ export type Database = {
         }
         Update: {
           allowances?: Json | null
-          contract_number?: string
+          basic_salary?: number | null
+          benefits?: string | null
+          contract_file_url?: string | null
+          contract_number?: string | null
           contract_type?: string | null
           created_at?: string | null
           employee_id?: string | null
@@ -1969,6 +2825,334 @@ export type Database = {
           },
         ]
       }
+      facilities: {
+        Row: {
+          capacity: number | null
+          created_at: string | null
+          description: string | null
+          entity_id: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          operating_hours: Json | null
+          price_per_hour: number | null
+          price_per_visit: number | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          operating_hours?: Json | null
+          price_per_hour?: number | null
+          price_per_visit?: number | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          operating_hours?: Json | null
+          price_per_hour?: number | null
+          price_per_visit?: number | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      facility_slots: {
+        Row: {
+          booked_count: number | null
+          created_at: string | null
+          end_time: string
+          facility_id: string | null
+          id: string
+          is_available: boolean | null
+          max_capacity: number | null
+          slot_date: string
+          start_time: string
+        }
+        Insert: {
+          booked_count?: number | null
+          created_at?: string | null
+          end_time: string
+          facility_id?: string | null
+          id?: string
+          is_available?: boolean | null
+          max_capacity?: number | null
+          slot_date: string
+          start_time: string
+        }
+        Update: {
+          booked_count?: number | null
+          created_at?: string | null
+          end_time?: string
+          facility_id?: string | null
+          id?: string
+          is_available?: boolean | null
+          max_capacity?: number | null
+          slot_date?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facility_slots_facility_id_fkey"
+            columns: ["facility_id"]
+            isOneToOne: false
+            referencedRelation: "facilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_approvals: {
+        Row: {
+          approved_by: string | null
+          approved_by_name: string | null
+          approved_name: string | null
+          created_at: string | null
+          id: string
+          level: string | null
+          notes: string | null
+          status: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_by_name?: string | null
+          approved_name?: string | null
+          created_at?: string | null
+          id?: string
+          level?: string | null
+          notes?: string | null
+          status?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          approved_by_name?: string | null
+          approved_name?: string | null
+          created_at?: string | null
+          id?: string
+          level?: string | null
+          notes?: string | null
+          status?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_approvals_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "finance_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_transaction_breakdown: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          item_name: string | null
+          price: number | null
+          qty: number | null
+          raw_text: string | null
+          subtotal: number | null
+          transaction_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_name?: string | null
+          price?: number | null
+          qty?: number | null
+          raw_text?: string | null
+          subtotal?: number | null
+          transaction_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          item_name?: string | null
+          price?: number | null
+          qty?: number | null
+          raw_text?: string | null
+          subtotal?: number | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_transaction_breakdown_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "finance_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_transaction_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          finance_transaction_id: string | null
+          id: string
+          line_total: number | null
+          qty: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          finance_transaction_id?: string | null
+          id?: string
+          line_total?: number | null
+          qty?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          finance_transaction_id?: string | null
+          id?: string
+          line_total?: number | null
+          qty?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_transaction_items_finance_transaction_id_fkey"
+            columns: ["finance_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "finance_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_transactions: {
+        Row: {
+          amount: number | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          date_trans: string | null
+          description: string | null
+          employee_id: string | null
+          employee_name: string | null
+          file_url: string | null
+          id: string
+          merchant: string | null
+          ocr_data: Json | null
+          ocr_date: string | null
+          ocr_merchant: string | null
+          ocr_raw: Json | null
+          ocr_raw_json: Json | null
+          ocr_total: number | null
+          ppn: number | null
+          status: string | null
+          total: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_trans?: string | null
+          description?: string | null
+          employee_id?: string | null
+          employee_name?: string | null
+          file_url?: string | null
+          id?: string
+          merchant?: string | null
+          ocr_data?: Json | null
+          ocr_date?: string | null
+          ocr_merchant?: string | null
+          ocr_raw?: Json | null
+          ocr_raw_json?: Json | null
+          ocr_total?: number | null
+          ppn?: number | null
+          status?: string | null
+          total?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_trans?: string | null
+          description?: string | null
+          employee_id?: string | null
+          employee_name?: string | null
+          file_url?: string | null
+          id?: string
+          merchant?: string | null
+          ocr_data?: Json | null
+          ocr_date?: string | null
+          ocr_merchant?: string | null
+          ocr_raw?: Json | null
+          ocr_raw_json?: Json | null
+          ocr_total?: number | null
+          ppn?: number | null
+          status?: string | null
+          total?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      finance_transactions_line_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          detected_tax: number | null
+          finance_transaction_id: string | null
+          id: string
+          line_total: number | null
+          qty: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          detected_tax?: number | null
+          finance_transaction_id?: string | null
+          id?: string
+          line_total?: number | null
+          qty?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          detected_tax?: number | null
+          finance_transaction_id?: string | null
+          id?: string
+          line_total?: number | null
+          qty?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_transactions_line_items_finance_transaction_id_fkey"
+            columns: ["finance_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "finance_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       general_ledger: {
         Row: {
           created_at: string | null
@@ -1980,6 +3164,7 @@ export type Database = {
           description: string | null
           id: string
           journal_entry_id: string | null
+          journal_number: number | null
           updated_at: string | null
         }
         Insert: {
@@ -1992,6 +3177,7 @@ export type Database = {
           description?: string | null
           id?: string
           journal_entry_id?: string | null
+          journal_number?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -2004,15 +3190,107 @@ export type Database = {
           description?: string | null
           id?: string
           journal_entry_id?: string | null
+          journal_number?: number | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_gl_credit_account"
+            columns: ["credit_account"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_credit_account"
+            columns: ["credit_account"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_credit_account"
+            columns: ["credit_account"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_credit_account"
+            columns: ["credit_account"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_credit_account"
+            columns: ["credit_account"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_credit_account"
+            columns: ["credit_account"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_debit_account"
+            columns: ["debit_account"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_debit_account"
+            columns: ["debit_account"]
+            isOneToOne: false
+            referencedRelation: "vw_coa_accounts_by_service"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_debit_account"
+            columns: ["debit_account"]
+            isOneToOne: false
+            referencedRelation: "vw_laba_rugi_detail"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_debit_account"
+            columns: ["debit_account"]
+            isOneToOne: false
+            referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_debit_account"
+            columns: ["debit_account"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_gl_debit_account"
+            columns: ["debit_account"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
           {
             foreignKeyName: "general_ledger_journal_entry_id_fkey"
             columns: ["journal_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "general_ledger_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cash_flow_report"
+            referencedColumns: ["journal_entry_id"]
           },
         ]
       }
@@ -2470,6 +3748,8 @@ export type Database = {
           entry_type: string | null
           id: string
           jenis_transaksi: string | null
+          journal_date: string | null
+          journal_number: string | null
           journal_ref: string | null
           kategori: string | null
           license_plate: string | null
@@ -2478,6 +3758,8 @@ export type Database = {
           nama: string | null
           posting_date: string | null
           reference: string | null
+          reference_id: string | null
+          reference_type: string | null
           sales_transactions_id: string | null
           service_type: string | null
           source_id: string | null
@@ -2510,6 +3792,8 @@ export type Database = {
           entry_type?: string | null
           id?: string
           jenis_transaksi?: string | null
+          journal_date?: string | null
+          journal_number?: string | null
           journal_ref?: string | null
           kategori?: string | null
           license_plate?: string | null
@@ -2518,6 +3802,8 @@ export type Database = {
           nama?: string | null
           posting_date?: string | null
           reference?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
           sales_transactions_id?: string | null
           service_type?: string | null
           source_id?: string | null
@@ -2550,6 +3836,8 @@ export type Database = {
           entry_type?: string | null
           id?: string
           jenis_transaksi?: string | null
+          journal_date?: string | null
+          journal_number?: string | null
           journal_ref?: string | null
           kategori?: string | null
           license_plate?: string | null
@@ -2558,6 +3846,8 @@ export type Database = {
           nama?: string | null
           posting_date?: string | null
           reference?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
           sales_transactions_id?: string | null
           service_type?: string | null
           source_id?: string | null
@@ -2635,6 +3925,13 @@ export type Database = {
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "journal_entry_items_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cash_flow_report"
+            referencedColumns: ["journal_entry_id"]
+          },
         ]
       }
       journal_entry_lines: {
@@ -2676,6 +3973,13 @@ export type Database = {
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "journal_entry_lines_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cash_flow_report"
+            referencedColumns: ["journal_entry_id"]
+          },
         ]
       }
       kas_transaksi: {
@@ -2695,6 +3999,7 @@ export type Database = {
           keterangan: string | null
           nominal: number
           nominal_signed: number | null
+          ocr_data: Json | null
           payment_type: string
           quantity: number | null
           rejection_reason: string | null
@@ -2722,6 +4027,7 @@ export type Database = {
           keterangan?: string | null
           nominal: number
           nominal_signed?: number | null
+          ocr_data?: Json | null
           payment_type: string
           quantity?: number | null
           rejection_reason?: string | null
@@ -2749,6 +4055,7 @@ export type Database = {
           keterangan?: string | null
           nominal?: number
           nominal_signed?: number | null
+          ocr_data?: Json | null
           payment_type?: string
           quantity?: number | null
           rejection_reason?: string | null
@@ -2854,6 +4161,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           created_at: string | null
+          document_url: string | null
           employee_id: string | null
           end_date: string
           id: string
@@ -2869,6 +4177,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string | null
+          document_url?: string | null
           employee_id?: string | null
           end_date: string
           id?: string
@@ -2884,6 +4193,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string | null
+          document_url?: string | null
           employee_id?: string | null
           end_date?: string
           id?: string
@@ -3170,6 +4480,20 @@ export type Database = {
             referencedColumns: ["account_code"]
           },
           {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
+          {
             foreignKeyName: "fk_coa_interest"
             columns: ["coa_interest_code"]
             isOneToOne: false
@@ -3198,6 +4522,20 @@ export type Database = {
             referencedColumns: ["account_code"]
           },
           {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
+          {
             foreignKeyName: "fk_coa_loan"
             columns: ["coa_loan_code"]
             isOneToOne: false
@@ -3223,6 +4561,20 @@ export type Database = {
             columns: ["coa_loan_code"]
             isOneToOne: false
             referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
             referencedColumns: ["account_code"]
           },
         ]
@@ -3294,6 +4646,165 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      memberships: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration_months: number
+          entity_id: string | null
+          facility_type: string
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number
+          updated_at: string | null
+          visits_per_month: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration_months: number
+          entity_id?: string | null
+          facility_type: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price: number
+          updated_at?: string | null
+          visits_per_month?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration_months?: number
+          entity_id?: string | null
+          facility_type?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          updated_at?: string | null
+          visits_per_month?: number | null
+        }
+        Relationships: []
+      }
+      noa_documents: {
+        Row: {
+          arrival_date: string | null
+          bl_number: string | null
+          cbm: string | null
+          charges: Json | null
+          consignee: string | null
+          container_no: string | null
+          created_at: string | null
+          created_by: string | null
+          file_url: string | null
+          full_json: Json | null
+          goods_description: string | null
+          gross_weight: string | null
+          hs_code: string | null
+          id: string
+          port_discharge: string | null
+          port_loading: string | null
+          shipper: string | null
+          status: string | null
+          vessel: string | null
+          voyage: string | null
+        }
+        Insert: {
+          arrival_date?: string | null
+          bl_number?: string | null
+          cbm?: string | null
+          charges?: Json | null
+          consignee?: string | null
+          container_no?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          file_url?: string | null
+          full_json?: Json | null
+          goods_description?: string | null
+          gross_weight?: string | null
+          hs_code?: string | null
+          id?: string
+          port_discharge?: string | null
+          port_loading?: string | null
+          shipper?: string | null
+          status?: string | null
+          vessel?: string | null
+          voyage?: string | null
+        }
+        Update: {
+          arrival_date?: string | null
+          bl_number?: string | null
+          cbm?: string | null
+          charges?: Json | null
+          consignee?: string | null
+          container_no?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          file_url?: string | null
+          full_json?: Json | null
+          goods_description?: string | null
+          gross_weight?: string | null
+          hs_code?: string | null
+          id?: string
+          port_discharge?: string | null
+          port_loading?: string | null
+          shipper?: string | null
+          status?: string | null
+          vessel?: string | null
+          voyage?: string | null
+        }
+        Relationships: []
+      }
+      ocr_results: {
+        Row: {
+          confidence: string | null
+          created_at: string | null
+          created_by: string | null
+          extracted_data: Json | null
+          extracted_text: string | null
+          file_name: string | null
+          file_url: string | null
+          id: string
+          image_url: string | null
+          raw_text: string | null
+          updated_at: string | null
+          user_id: string | null
+          "users.entity": string | null
+        }
+        Insert: {
+          confidence?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          extracted_data?: Json | null
+          extracted_text?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          image_url?: string | null
+          raw_text?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          "users.entity"?: string | null
+        }
+        Update: {
+          confidence?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          extracted_data?: Json | null
+          extracted_text?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          image_url?: string | null
+          raw_text?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          "users.entity"?: string | null
+        }
+        Relationships: []
       }
       password_resets: {
         Row: {
@@ -3422,54 +4933,84 @@ export type Database = {
       }
       performance_reviews: {
         Row: {
+          achievements: string | null
           areas_for_improvement: string | null
+          attendance_punctuality: string | null
           comments: string | null
+          communication: string | null
           created_at: string | null
           criteria: Json | null
           employee_id: string | null
           goals: string | null
           id: string
+          initiative: string | null
+          leadership: string | null
           overall_rating: number | null
+          problem_solving: string | null
+          productivity: string | null
+          quality_of_work: string | null
           review_date: string
           review_period_end: string
           review_period_start: string
           reviewer_id: string | null
           status: string | null
           strengths: string | null
+          teamwork: string | null
+          training_needs: string | null
           updated_at: string | null
         }
         Insert: {
+          achievements?: string | null
           areas_for_improvement?: string | null
+          attendance_punctuality?: string | null
           comments?: string | null
+          communication?: string | null
           created_at?: string | null
           criteria?: Json | null
           employee_id?: string | null
           goals?: string | null
           id?: string
+          initiative?: string | null
+          leadership?: string | null
           overall_rating?: number | null
+          problem_solving?: string | null
+          productivity?: string | null
+          quality_of_work?: string | null
           review_date: string
           review_period_end: string
           review_period_start: string
           reviewer_id?: string | null
           status?: string | null
           strengths?: string | null
+          teamwork?: string | null
+          training_needs?: string | null
           updated_at?: string | null
         }
         Update: {
+          achievements?: string | null
           areas_for_improvement?: string | null
+          attendance_punctuality?: string | null
           comments?: string | null
+          communication?: string | null
           created_at?: string | null
           criteria?: Json | null
           employee_id?: string | null
           goals?: string | null
           id?: string
+          initiative?: string | null
+          leadership?: string | null
           overall_rating?: number | null
+          problem_solving?: string | null
+          productivity?: string | null
+          quality_of_work?: string | null
           review_date?: string
           review_period_end?: string
           review_period_start?: string
           reviewer_id?: string | null
           status?: string | null
           strengths?: string | null
+          teamwork?: string | null
+          training_needs?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -3791,6 +5332,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           brand: string | null
+          bukti: string | null
           coa_cash_code: string | null
           coa_expense_code: string | null
           coa_inventory_code: string | null
@@ -3803,6 +5345,7 @@ export type Database = {
           item_name: string | null
           journal_ref: string | null
           notes: string | null
+          ocr_data: Json | null
           payment_method: string | null
           ppn_amount: number | null
           ppn_percentage: number | null
@@ -3824,6 +5367,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           brand?: string | null
+          bukti?: string | null
           coa_cash_code?: string | null
           coa_expense_code?: string | null
           coa_inventory_code?: string | null
@@ -3836,6 +5380,7 @@ export type Database = {
           item_name?: string | null
           journal_ref?: string | null
           notes?: string | null
+          ocr_data?: Json | null
           payment_method?: string | null
           ppn_amount?: number | null
           ppn_percentage?: number | null
@@ -3857,6 +5402,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           brand?: string | null
+          bukti?: string | null
           coa_cash_code?: string | null
           coa_expense_code?: string | null
           coa_inventory_code?: string | null
@@ -3869,6 +5415,7 @@ export type Database = {
           item_name?: string | null
           journal_ref?: string | null
           notes?: string | null
+          ocr_data?: Json | null
           payment_method?: string | null
           ppn_amount?: number | null
           ppn_percentage?: number | null
@@ -3915,6 +5462,20 @@ export type Database = {
             referencedColumns: ["account_code"]
           },
           {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
+          {
             foreignKeyName: "fk_coa_expense"
             columns: ["coa_expense_code"]
             isOneToOne: false
@@ -3940,6 +5501,20 @@ export type Database = {
             columns: ["coa_expense_code"]
             isOneToOne: false
             referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_expense"
+            columns: ["coa_expense_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_expense"
+            columns: ["coa_expense_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
             referencedColumns: ["account_code"]
           },
           {
@@ -3971,6 +5546,20 @@ export type Database = {
             referencedColumns: ["account_code"]
           },
           {
+            foreignKeyName: "fk_coa_inventory"
+            columns: ["coa_inventory_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_inventory"
+            columns: ["coa_inventory_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
+          {
             foreignKeyName: "fk_coa_payable"
             columns: ["coa_payable_code"]
             isOneToOne: false
@@ -3999,6 +5588,20 @@ export type Database = {
             referencedColumns: ["account_code"]
           },
           {
+            foreignKeyName: "fk_coa_payable"
+            columns: ["coa_payable_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_payable"
+            columns: ["coa_payable_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
+          {
             foreignKeyName: "fk_coa_tax"
             columns: ["coa_tax_code"]
             isOneToOne: false
@@ -4024,6 +5627,20 @@ export type Database = {
             columns: ["coa_tax_code"]
             isOneToOne: false
             referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_tax"
+            columns: ["coa_tax_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_tax"
+            columns: ["coa_tax_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
             referencedColumns: ["account_code"]
           },
           {
@@ -4079,6 +5696,45 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          can_create: boolean | null
+          can_delete: boolean | null
+          can_edit: boolean | null
+          can_view: boolean | null
+          created_at: string | null
+          entity_id: string | null
+          id: string
+          menu_key: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          entity_id?: string | null
+          id?: string
+          menu_key: string
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          entity_id?: string | null
+          id?: string
+          menu_key?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       roles: {
         Row: {
           created_at: string | null
@@ -4114,7 +5770,9 @@ export type Database = {
       }
       sales_transactions: {
         Row: {
+          approval_status: string | null
           brand: string | null
+          bukti: string | null
           coa_account_code: string | null
           coa_account_name: string | null
           coa_cash_code: string | null
@@ -4132,6 +5790,7 @@ export type Database = {
           item_name: string
           journal_ref: string | null
           notes: string | null
+          ocr_data: Json | null
           payment_method: string | null
           pph_amount: number | null
           pph_percentage: number | null
@@ -4152,7 +5811,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          approval_status?: string | null
           brand?: string | null
+          bukti?: string | null
           coa_account_code?: string | null
           coa_account_name?: string | null
           coa_cash_code?: string | null
@@ -4170,6 +5831,7 @@ export type Database = {
           item_name: string
           journal_ref?: string | null
           notes?: string | null
+          ocr_data?: Json | null
           payment_method?: string | null
           pph_amount?: number | null
           pph_percentage?: number | null
@@ -4190,7 +5852,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          approval_status?: string | null
           brand?: string | null
+          bukti?: string | null
           coa_account_code?: string | null
           coa_account_name?: string | null
           coa_cash_code?: string | null
@@ -4208,6 +5872,7 @@ export type Database = {
           item_name?: string
           journal_ref?: string | null
           notes?: string | null
+          ocr_data?: Json | null
           payment_method?: string | null
           pph_amount?: number | null
           pph_percentage?: number | null
@@ -4344,6 +6009,20 @@ export type Database = {
             columns: ["coa_account_code"]
             isOneToOne: false
             referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "service_items_coa_account_code_fkey"
+            columns: ["coa_account_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "service_items_coa_account_code_fkey"
+            columns: ["coa_account_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
             referencedColumns: ["account_code"]
           },
         ]
@@ -4515,6 +6194,36 @@ export type Database = {
           },
         ]
       }
+      sql_audit_logs: {
+        Row: {
+          created_at: string | null
+          error: string | null
+          executed_at: string
+          id: string
+          query: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error?: string | null
+          executed_at?: string
+          id?: string
+          query: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error?: string | null
+          executed_at?: string
+          id?: string
+          query?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stock: {
         Row: {
           barcode: string | null
@@ -4534,6 +6243,7 @@ export type Database = {
           id: string
           is_pajak: boolean | null
           item_name: string
+          item_quantity: number | null
           jenis_barang: string | null
           kode_barang: string | null
           lot_id: string | null
@@ -4584,6 +6294,7 @@ export type Database = {
           id?: string
           is_pajak?: boolean | null
           item_name: string
+          item_quantity?: number | null
           jenis_barang?: string | null
           kode_barang?: string | null
           lot_id?: string | null
@@ -4634,6 +6345,7 @@ export type Database = {
           id?: string
           is_pajak?: boolean | null
           item_name?: string
+          item_quantity?: number | null
           jenis_barang?: string | null
           kode_barang?: string | null
           lot_id?: string | null
@@ -5469,6 +7181,20 @@ export type Database = {
             referencedRelation: "vw_laporan_keuangan"
             referencedColumns: ["account_code"]
           },
+          {
+            foreignKeyName: "fk_coa_selected"
+            columns: ["coa_selected"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_selected"
+            columns: ["coa_selected"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
         ]
       }
       trial_balance: {
@@ -5567,6 +7293,60 @@ export type Database = {
         }
         Relationships: []
       }
+      user_memberships: {
+        Row: {
+          created_at: string | null
+          end_date: string
+          id: string
+          membership_id: string | null
+          payment_status: string | null
+          remaining_visits: number | null
+          start_date: string
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date: string
+          id?: string
+          membership_id?: string | null
+          payment_status?: string | null
+          remaining_visits?: number | null
+          start_date: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          membership_id?: string | null
+          payment_status?: string | null
+          remaining_visits?: number | null
+          start_date?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_memberships_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           address: string | null
@@ -5609,6 +7389,7 @@ export type Database = {
           status: Database["public"]["Enums"]["user_status"]
           supplier_name: string | null
           updated_at: string | null
+          "upload-ijasah": string | null
         }
         Insert: {
           address?: string | null
@@ -5651,6 +7432,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["user_status"]
           supplier_name?: string | null
           updated_at?: string | null
+          "upload-ijasah"?: string | null
         }
         Update: {
           address?: string | null
@@ -5693,6 +7475,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["user_status"]
           supplier_name?: string | null
           updated_at?: string | null
+          "upload-ijasah"?: string | null
         }
         Relationships: [
           {
@@ -5701,6 +7484,257 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["role_id"]
+          },
+        ]
+      }
+      vehicle_models: {
+        Row: {
+          brand: string
+          category: string
+          created_at: string | null
+          description: string | null
+          entity_id: string | null
+          features: Json | null
+          fuel_type: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          model: string
+          price_per_day: number
+          price_per_month: number | null
+          price_per_week: number | null
+          seat_capacity: number | null
+          transmission: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          brand: string
+          category: string
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          features?: Json | null
+          fuel_type?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          model: string
+          price_per_day: number
+          price_per_month?: number | null
+          price_per_week?: number | null
+          seat_capacity?: number | null
+          transmission?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          brand?: string
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          features?: Json | null
+          fuel_type?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          model?: string
+          price_per_day?: number
+          price_per_month?: number | null
+          price_per_week?: number | null
+          seat_capacity?: number | null
+          transmission?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      vehicle_rentals: {
+        Row: {
+          additional_charges: number | null
+          base_price: number
+          created_at: string | null
+          created_by: string | null
+          customer_id: string | null
+          deposit_amount: number | null
+          discount: number | null
+          end_date: string
+          fuel_level_end: string | null
+          fuel_level_start: string | null
+          id: string
+          notes: string | null
+          odometer_end: number | null
+          odometer_start: number | null
+          payment_status: string | null
+          pickup_location: string | null
+          pickup_time: string | null
+          rental_number: string
+          rental_type: string | null
+          return_location: string | null
+          return_time: string | null
+          start_date: string
+          status: string | null
+          total_amount: number
+          updated_at: string | null
+          user_id: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          additional_charges?: number | null
+          base_price: number
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string | null
+          deposit_amount?: number | null
+          discount?: number | null
+          end_date: string
+          fuel_level_end?: string | null
+          fuel_level_start?: string | null
+          id?: string
+          notes?: string | null
+          odometer_end?: number | null
+          odometer_start?: number | null
+          payment_status?: string | null
+          pickup_location?: string | null
+          pickup_time?: string | null
+          rental_number: string
+          rental_type?: string | null
+          return_location?: string | null
+          return_time?: string | null
+          start_date: string
+          status?: string | null
+          total_amount: number
+          updated_at?: string | null
+          user_id?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          additional_charges?: number | null
+          base_price?: number
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string | null
+          deposit_amount?: number | null
+          discount?: number | null
+          end_date?: string
+          fuel_level_end?: string | null
+          fuel_level_start?: string | null
+          id?: string
+          notes?: string | null
+          odometer_end?: number | null
+          odometer_start?: number | null
+          payment_status?: string | null
+          pickup_location?: string | null
+          pickup_time?: string | null
+          rental_number?: string
+          rental_type?: string | null
+          return_location?: string | null
+          return_time?: string | null
+          start_date?: string
+          status?: string | null
+          total_amount?: number
+          updated_at?: string | null
+          user_id?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_rentals_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_rentals_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_rentals_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "vw_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_rentals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_rentals_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          color: string | null
+          condition_notes: string | null
+          created_at: string | null
+          entity_id: string | null
+          id: string
+          insurance_expiry: string | null
+          kir_expiry: string | null
+          license_plate: string
+          model_id: string | null
+          odometer: number | null
+          photos: Json | null
+          status: string | null
+          stnk_expiry: string | null
+          updated_at: string | null
+          vin_number: string | null
+          year: number | null
+        }
+        Insert: {
+          color?: string | null
+          condition_notes?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          kir_expiry?: string | null
+          license_plate: string
+          model_id?: string | null
+          odometer?: number | null
+          photos?: Json | null
+          status?: string | null
+          stnk_expiry?: string | null
+          updated_at?: string | null
+          vin_number?: string | null
+          year?: number | null
+        }
+        Update: {
+          color?: string | null
+          condition_notes?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          kir_expiry?: string | null
+          license_plate?: string
+          model_id?: string | null
+          odometer?: number | null
+          photos?: Json | null
+          status?: string | null
+          stnk_expiry?: string | null
+          updated_at?: string | null
+          vin_number?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_models"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5866,11 +7900,31 @@ export type Database = {
       }
       vw_cash_flow_report: {
         Row: {
-          bulan: string | null
-          saldo_kas_bersih: number | null
-          tahun: number | null
-          total_kas_keluar: number | null
-          total_kas_masuk: number | null
+          cash_in: number | null
+          cash_movement: number | null
+          cash_out: number | null
+          description: string | null
+          entry_date: string | null
+          jenis_transaksi: string | null
+          journal_entry_id: string | null
+        }
+        Insert: {
+          cash_in?: never
+          cash_movement?: never
+          cash_out?: never
+          description?: string | null
+          entry_date?: never
+          jenis_transaksi?: string | null
+          journal_entry_id?: string | null
+        }
+        Update: {
+          cash_in?: never
+          cash_movement?: never
+          cash_out?: never
+          description?: string | null
+          entry_date?: never
+          jenis_transaksi?: string | null
+          journal_entry_id?: string | null
         }
         Relationships: []
       }
@@ -5910,8 +7964,25 @@ export type Database = {
       }
       vw_dashboard_summary: {
         Row: {
+          amount: number | null
+          category: string | null
+          credit_total: number | null
+          debit_total: number | null
+          entry_date: string | null
+          month: number | null
+          year: number | null
+        }
+        Relationships: []
+      }
+      vw_financial_report_from_journal_entries: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
           account_type: string | null
-          total_balance: number | null
+          amount: number | null
+          credit_total: number | null
+          debit_total: number | null
+          entry_date: string | null
         }
         Relationships: []
       }
@@ -6065,6 +8136,20 @@ export type Database = {
             referencedColumns: ["account_code"]
           },
           {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_cash"
+            columns: ["coa_cash_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
+          {
             foreignKeyName: "fk_coa_interest"
             columns: ["coa_interest_code"]
             isOneToOne: false
@@ -6093,6 +8178,20 @@ export type Database = {
             referencedColumns: ["account_code"]
           },
           {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_interest"
+            columns: ["coa_interest_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
+            referencedColumns: ["account_code"]
+          },
+          {
             foreignKeyName: "fk_coa_loan"
             columns: ["coa_loan_code"]
             isOneToOne: false
@@ -6118,9 +8217,35 @@ export type Database = {
             columns: ["coa_loan_code"]
             isOneToOne: false
             referencedRelation: "vw_laporan_keuangan"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_from_journal"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_coa_loan"
+            columns: ["coa_loan_code"]
+            isOneToOne: false
+            referencedRelation: "vw_trial_balance_per_account"
             referencedColumns: ["account_code"]
           },
         ]
+      }
+      vw_profit_and_loss: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          balance: number | null
+          credit: number | null
+          debit: number | null
+          entry_date: string | null
+        }
+        Relationships: []
       }
       vw_purchase_requests: {
         Row: {
@@ -6146,6 +8271,29 @@ export type Database = {
           request_date?: never
           status?: string | null
           total_amount?: number | null
+        }
+        Relationships: []
+      }
+      vw_trial_balance_from_journal: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          credit: number | null
+          debit: number | null
+          entry_date: string | null
+        }
+        Relationships: []
+      }
+      vw_trial_balance_per_account: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          balance: number | null
+          entry_date: string | null
+          total_credit: number | null
+          total_debit: number | null
         }
         Relationships: []
       }
@@ -6179,6 +8327,10 @@ export type Database = {
         }
         Returns: string
       }
+      ai_safe_sql_exec: {
+        Args: { sql_text: string }
+        Returns: Record<string, unknown>[]
+      }
       ai_update_booking_time: {
         Args: {
           p_booking_id: string
@@ -6187,6 +8339,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      apply_coa_mapping_to_disbursement: {
+        Args: { p_disbursement_id: string }
+        Returns: undefined
       }
       calculate_late_fee:
         | {
@@ -6210,6 +8366,7 @@ export type Database = {
         Args: { p_base_amount: number; p_tax_percentage: number }
         Returns: number
       }
+      cancel_journal: { Args: { p_journal_id: string }; Returns: string }
       check_availability: {
         Args: { e: string; f_id: string; s: string }
         Returns: boolean
@@ -6221,6 +8378,7 @@ export type Database = {
         Returns: string
       }
       create_monthly_tax_reminders: { Args: never; Returns: undefined }
+      execute_sql: { Args: { query: string }; Returns: Json }
       fn_income_statement: {
         Args: { p_end: string; p_start: string }
         Returns: {
@@ -6237,13 +8395,47 @@ export type Database = {
       }
       fn_update_coa_balance: { Args: never; Returns: undefined }
       gen_stock_code: { Args: never; Returns: string }
+      generate_booking_reference: { Args: never; Returns: string }
       generate_contract_number: { Args: never; Returns: string }
       generate_employee_number: { Args: never; Returns: string }
+      generate_journal_number: { Args: never; Returns: string }
       generate_kas_document_number: { Args: never; Returns: string }
+      generate_laba_rugi: {
+        Args: never
+        Returns: {
+          amount: number
+          type: string
+        }[]
+      }
+      generate_neraca: {
+        Args: never
+        Returns: {
+          amount: number
+          type: string
+        }[]
+      }
       generate_pr_code: { Args: never; Returns: string }
+      generate_rental_number: { Args: never; Returns: string }
       generate_supplier_code: {
         Args: { pad_len?: number; prefix?: string }
         Returns: string
+      }
+      generate_trial_balance: {
+        Args: never
+        Returns: {
+          account_code: string
+          total_credit: number
+          total_debit: number
+        }[]
+      }
+      get_balance_sheet: {
+        Args: { p_as_of_date: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          amount: number
+          section: string
+        }[]
       }
       get_brands_by_item: {
         Args: { p_item_name: string }
@@ -6262,6 +8454,17 @@ export type Database = {
           revenue_account_name: string
         }[]
       }
+      get_general_ledger: {
+        Args: { p_account_code: string }
+        Returns: {
+          balance: number
+          credit: number
+          debit: number
+          description: string
+          journal_date: string
+          journal_ref: string
+        }[]
+      }
       get_hari_di_gudang: { Args: { tanggal_masuk: string }; Returns: number }
       get_hari_di_lini: { Args: { tanggal_masuk: string }; Returns: number }
       get_product_reference: {
@@ -6278,12 +8481,31 @@ export type Database = {
           unit: string
         }[]
       }
+      get_profit_and_loss: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          amount: number
+          section: string
+        }[]
+      }
       get_service_types_by_category: {
         Args: { p_category: string }
         Returns: {
           description: string
           revenue_account_code: string
           service_type: string
+        }[]
+      }
+      get_trial_balance: {
+        Args: never
+        Returns: {
+          account_code: string
+          account_name: string
+          balance: number
+          total_credit: number
+          total_debit: number
         }[]
       }
       get_user_department: { Args: never; Returns: string }
@@ -6319,6 +8541,14 @@ export type Database = {
           sub_category: string
         }[]
       }
+      post_cash_disbursement: {
+        Args: { disbursement_id: string }
+        Returns: string
+      }
+      post_cash_disbursement_to_journal: {
+        Args: { p_disbursement_id: string }
+        Returns: string
+      }
       post_journal_to_general_ledger: {
         Args: { p_journal_id: string }
         Returns: undefined
@@ -6342,6 +8572,7 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.repost_gl_for_journal_entry(p_je_id => text), public.repost_gl_for_journal_entry(p_je_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      reverse_journal: { Args: { journal_id: string }; Returns: undefined }
       set_app_user: { Args: { uid: string }; Returns: undefined }
     }
     Enums: {

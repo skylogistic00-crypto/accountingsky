@@ -48,6 +48,12 @@ import WarehouseDashboard from "@/components/WarehouseDashboard";
 import POSDashboard from "@/components/POSDashboard";
 import AccountMappingsManager from "@/components/AccountMappingsManager";
 import CreateProfitLossView from "@/components/CreateProfitLossView";
+import FinanceTransactionsList from "@/components/FinanceTransactionsList";
+import TestOpenAIConnection from "@/components/TestOpenAIConnection";
+import FinanceTransactionsPage from "@/components/FinanceTransactionsPage";
+import FinanceTransactionDetail from "@/components/FinanceTransactionDetail";
+import ChatAI from "@/pages/ChatAI";
+import FloatingChatAI from "@/components/FloatingChatAI";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -95,6 +101,7 @@ function App() {
       <AuthProvider>
         <AppRoutesContent />
         <Toaster />
+        <FloatingChatAI />
       </AuthProvider>
     </ThemeProvider>
   );
@@ -760,6 +767,72 @@ function AppRoutesContent() {
           </ProtectedRoute>
         }
       />
+
+      {/* Finance Transactions Routes */}
+      <Route
+        path="/finance/transactions"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+              "finance_manager",
+              "finance_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <FinanceTransactionsList />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/finance/transactions/new"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+              "finance_manager",
+              "finance_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <FinanceTransactionsPage />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/finance/transactions/:id"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+              "finance_manager",
+              "finance_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <FinanceTransactionDetail />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="/test-openai" element={<TestOpenAIConnection />} />
+
+      <Route path="/chat-ai" element={<ChatAI />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
