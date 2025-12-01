@@ -59,7 +59,7 @@ interface Employee {
   province: string;
   postal_code: string;
   ktp_number: string;
-  ktp_file_url: string;
+  ktp_document_url: string;
   npwp_number: string;
   npwp_file_url: string;
   bpjs_kesehatan: string;
@@ -70,6 +70,7 @@ interface Employee {
   join_date: string;
   basic_salary: number;
   bank_name: string;
+  ethnicity: string;
   bank_account_number: string;
   bank_account_holder: string;
   emergency_contact_name: string;
@@ -79,7 +80,7 @@ interface Employee {
   institution_name: string;
   major: string;
   graduation_year: number;
-  photo_url: string;
+  selfie_url: string;
   cv_file_url: string;
   contract_file_url: string;
   status: string;
@@ -119,6 +120,7 @@ export default function EmployeeManagementAdvanced({
 
   const [formData, setFormData] = useState({
     full_name: "",
+    ethnicity: "",
     email: "",
     phone: "",
     birth_date: "",
@@ -240,8 +242,8 @@ export default function EmployeeManagementAdvanced({
     setUploading(true);
 
     try {
-      let photoUrl = editingEmployee?.photo_url || "";
-      let ktpUrl = editingEmployee?.ktp_file_url || "";
+      let selfieUrl = editingEmployee?.selfie_url || "";
+      let ktpUrl = editingEmployee?.ktp_document_url || "";
       let npwpUrl = editingEmployee?.npwp_file_url || "";
       let cvUrl = editingEmployee?.cv_file_url || "";
       let contractUrl = editingEmployee?.contract_file_url || "";
@@ -269,8 +271,8 @@ export default function EmployeeManagementAdvanced({
         graduation_year: formData.graduation_year
           ? parseInt(formData.graduation_year)
           : null,
-        photo_url: photoUrl,
-        ktp_file_url: ktpUrl,
+        selfie_url: selfie_url,
+        ktp_document_url: ktpUrl,
         npwp_file_url: npwpUrl,
         cv_file_url: cvUrl,
         contract_file_url: contractUrl,
@@ -325,6 +327,7 @@ export default function EmployeeManagementAdvanced({
     setEditingEmployee(employee);
     setFormData({
       full_name: employee.full_name,
+      ethnicity: employee.ethnicity,
       email: employee.email,
       phone: employee.phone || "",
       birth_date: employee.birth_date || "",
@@ -681,7 +684,7 @@ export default function EmployeeManagementAdvanced({
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Agama</Label>
+                      <Label>Agama1</Label>
                       <Select
                         value={formData.religion}
                         onValueChange={(value) =>
@@ -698,6 +701,33 @@ export default function EmployeeManagementAdvanced({
                           <SelectItem value="Hindu">Hindu</SelectItem>
                           <SelectItem value="Buddha">Buddha</SelectItem>
                           <SelectItem value="Konghucu">Konghucu</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Ethnicity</Label>
+                      <Select
+                        value={formData.ethnicity}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, ethnicity: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih Suku" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Sunda">Sunda</SelectItem>
+                          <SelectItem value="Jawa">Jawa</SelectItem>
+                          <SelectItem value="Batak">Batak</SelectItem>
+                          <SelectItem value="Ambon">Ambon</SelectItem>
+                          <SelectItem value="Madura">Madura</SelectItem>
+                          <SelectItem value="Betawi">Betawi</SelectItem>
+                          <SelectItem value="Melayu">Melayu</SelectItem>
+                          <SelectItem value="Bugis">Bugis</SelectItem>
+                          <SelectItem value="Bali">Bali</SelectItem>
+                          <SelectItem value="Dayak">Dayak</SelectItem>
+                          <SelectItem value="Tionghoa">Tionghoa</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -778,9 +808,9 @@ export default function EmployeeManagementAdvanced({
                           })
                         }
                       />
-                      {editingEmployee?.photo_url && (
+                      {editingEmployee?.selfie_url && (
                         <a
-                          href={editingEmployee.photo_url}
+                          href={editingEmployee.selfie_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-blue-600 hover:underline flex items-center gap-1"
@@ -965,7 +995,7 @@ export default function EmployeeManagementAdvanced({
                       />
                       {editingEmployee?.ktp_file_url && (
                         <a
-                          href={editingEmployee.ktp_file_url}
+                          href={editingEmployee.ktp_document_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-blue-600 hover:underline flex items-center gap-1"
@@ -1260,9 +1290,9 @@ export default function EmployeeManagementAdvanced({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {employee.photo_url && (
+                        {employee.selfie_url && (
                           <img
-                            src={employee.photo_url}
+                            src={employee.selfie_url}
                             alt={employee.full_name}
                             className="h-8 w-8 rounded-full object-cover"
                           />

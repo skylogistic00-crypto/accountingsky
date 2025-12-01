@@ -996,13 +996,16 @@ export type Database = {
           created_by: string | null
           currency_code: string | null
           description: string
+          disbursement_type: string | null
           document_number: string | null
+          employee_name: string | null
           evidence_url: string | null
           exchange_rate: number | null
           external_reference: string | null
           id: string
           journal_id: string | null
           journal_ref: string | null
+          keterangan: string | null
           normalized_amount: number | null
           notes: string | null
           ocr_data: Json | null
@@ -1010,6 +1013,7 @@ export type Database = {
           payment_method: string
           rejection_reason: string | null
           status: string | null
+          tanggal: string | null
           tax_amount: number | null
           tax_code: string | null
           tax_type: string | null
@@ -1035,13 +1039,16 @@ export type Database = {
           created_by?: string | null
           currency_code?: string | null
           description: string
+          disbursement_type?: string | null
           document_number?: string | null
+          employee_name?: string | null
           evidence_url?: string | null
           exchange_rate?: number | null
           external_reference?: string | null
           id?: string
           journal_id?: string | null
           journal_ref?: string | null
+          keterangan?: string | null
           normalized_amount?: number | null
           notes?: string | null
           ocr_data?: Json | null
@@ -1049,6 +1056,7 @@ export type Database = {
           payment_method: string
           rejection_reason?: string | null
           status?: string | null
+          tanggal?: string | null
           tax_amount?: number | null
           tax_code?: string | null
           tax_type?: string | null
@@ -1074,13 +1082,16 @@ export type Database = {
           created_by?: string | null
           currency_code?: string | null
           description?: string
+          disbursement_type?: string | null
           document_number?: string | null
+          employee_name?: string | null
           evidence_url?: string | null
           exchange_rate?: number | null
           external_reference?: string | null
           id?: string
           journal_id?: string | null
           journal_ref?: string | null
+          keterangan?: string | null
           normalized_amount?: number | null
           notes?: string | null
           ocr_data?: Json | null
@@ -1088,6 +1099,7 @@ export type Database = {
           payment_method?: string
           rejection_reason?: string | null
           status?: string | null
+          tanggal?: string | null
           tax_amount?: number | null
           tax_code?: string | null
           tax_type?: string | null
@@ -2534,7 +2546,6 @@ export type Database = {
       employees: {
         Row: {
           address: string | null
-          agama: string | null
           bank_account_holder: string | null
           bank_account_number: string | null
           bank_name: string | null
@@ -2551,6 +2562,7 @@ export type Database = {
           departemen: string | null
           department: string | null
           department_id: string | null
+          education: string | null
           email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
@@ -2558,7 +2570,9 @@ export type Database = {
           employee_code: string | null
           employee_number: string | null
           employment_status: string | null
-          etnis: string | null
+          ethnicity: string | null
+          family_card_url: string | null
+          first_name: string | null
           foto_selfie_url: string | null
           full_name: string | null
           gender: string | null
@@ -2570,14 +2584,16 @@ export type Database = {
           kontak_referensi_nama: string | null
           kontak_referensi_nomor: string | null
           ktp_address: string | null
-          ktp_file_url: string | null
+          ktp_document_url: string | null
           ktp_number: number | null
           last_education: string | null
+          last_name: string | null
+          license_expiry_date: string | null
+          license_number: string | null
           major: string | null
           marital_status: string | null
           nik: string | null
           nomor_kk: string | null
-          nomor_telepon: string | null
           notes: string | null
           npwp_file_url: string | null
           npwp_number: string | null
@@ -2588,9 +2604,13 @@ export type Database = {
           postal_code: string | null
           province: string | null
           religion: string | null
+          selfie_url: string | null
           sensitive_encrypted: boolean | null
+          sim_url: string | null
+          skck_url: string | null
           status: string | null
           updated_at: string | null
+          upload_ijasah: string | null
           upload_kk_url: string | null
           upload_ktp_url: string | null
           upload_skck_url: string | null
@@ -2603,7 +2623,6 @@ export type Database = {
         }
         Insert: {
           address?: string | null
-          agama?: string | null
           bank_account_holder?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
@@ -2620,6 +2639,7 @@ export type Database = {
           departemen?: string | null
           department?: string | null
           department_id?: string | null
+          education?: string | null
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -2627,7 +2647,9 @@ export type Database = {
           employee_code?: string | null
           employee_number?: string | null
           employment_status?: string | null
-          etnis?: string | null
+          ethnicity?: string | null
+          family_card_url?: string | null
+          first_name?: string | null
           foto_selfie_url?: string | null
           full_name?: string | null
           gender?: string | null
@@ -2639,14 +2661,16 @@ export type Database = {
           kontak_referensi_nama?: string | null
           kontak_referensi_nomor?: string | null
           ktp_address?: string | null
-          ktp_file_url?: string | null
+          ktp_document_url?: string | null
           ktp_number?: number | null
           last_education?: string | null
+          last_name?: string | null
+          license_expiry_date?: string | null
+          license_number?: string | null
           major?: string | null
           marital_status?: string | null
           nik?: string | null
           nomor_kk?: string | null
-          nomor_telepon?: string | null
           notes?: string | null
           npwp_file_url?: string | null
           npwp_number?: string | null
@@ -2657,9 +2681,13 @@ export type Database = {
           postal_code?: string | null
           province?: string | null
           religion?: string | null
+          selfie_url?: string | null
           sensitive_encrypted?: boolean | null
+          sim_url?: string | null
+          skck_url?: string | null
           status?: string | null
           updated_at?: string | null
+          upload_ijasah?: string | null
           upload_kk_url?: string | null
           upload_ktp_url?: string | null
           upload_skck_url?: string | null
@@ -2672,7 +2700,6 @@ export type Database = {
         }
         Update: {
           address?: string | null
-          agama?: string | null
           bank_account_holder?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
@@ -2689,6 +2716,7 @@ export type Database = {
           departemen?: string | null
           department?: string | null
           department_id?: string | null
+          education?: string | null
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -2696,7 +2724,9 @@ export type Database = {
           employee_code?: string | null
           employee_number?: string | null
           employment_status?: string | null
-          etnis?: string | null
+          ethnicity?: string | null
+          family_card_url?: string | null
+          first_name?: string | null
           foto_selfie_url?: string | null
           full_name?: string | null
           gender?: string | null
@@ -2708,14 +2738,16 @@ export type Database = {
           kontak_referensi_nama?: string | null
           kontak_referensi_nomor?: string | null
           ktp_address?: string | null
-          ktp_file_url?: string | null
+          ktp_document_url?: string | null
           ktp_number?: number | null
           last_education?: string | null
+          last_name?: string | null
+          license_expiry_date?: string | null
+          license_number?: string | null
           major?: string | null
           marital_status?: string | null
           nik?: string | null
           nomor_kk?: string | null
-          nomor_telepon?: string | null
           notes?: string | null
           npwp_file_url?: string | null
           npwp_number?: string | null
@@ -2726,9 +2758,13 @@ export type Database = {
           postal_code?: string | null
           province?: string | null
           religion?: string | null
+          selfie_url?: string | null
           sensitive_encrypted?: boolean | null
+          sim_url?: string | null
+          skck_url?: string | null
           status?: string | null
           updated_at?: string | null
+          upload_ijasah?: string | null
           upload_kk_url?: string | null
           upload_ktp_url?: string | null
           upload_skck_url?: string | null
@@ -7363,7 +7399,6 @@ export type Database = {
           entity: string | null
           entity_type: string | null
           ethnicity: string | null
-          expiry_date: string | null
           family_card_url: string | null
           first_name: string | null
           full_name: string | null
@@ -7375,9 +7410,9 @@ export type Database = {
           ktp_number: number | null
           last_login: string | null
           last_name: string | null
+          license_expiry_date: string | null
           license_number: string | null
           phone: string | null
-          phone_number: string | null
           pkp_status: string | null
           religion: string | null
           role: string
@@ -7389,7 +7424,7 @@ export type Database = {
           status: Database["public"]["Enums"]["user_status"]
           supplier_name: string | null
           updated_at: string | null
-          "upload-ijasah": string | null
+          upload_ijasah: string | null
         }
         Insert: {
           address?: string | null
@@ -7406,7 +7441,6 @@ export type Database = {
           entity?: string | null
           entity_type?: string | null
           ethnicity?: string | null
-          expiry_date?: string | null
           family_card_url?: string | null
           first_name?: string | null
           full_name?: string | null
@@ -7418,9 +7452,9 @@ export type Database = {
           ktp_number?: number | null
           last_login?: string | null
           last_name?: string | null
+          license_expiry_date?: string | null
           license_number?: string | null
           phone?: string | null
-          phone_number?: string | null
           pkp_status?: string | null
           religion?: string | null
           role?: string
@@ -7432,7 +7466,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["user_status"]
           supplier_name?: string | null
           updated_at?: string | null
-          "upload-ijasah"?: string | null
+          upload_ijasah?: string | null
         }
         Update: {
           address?: string | null
@@ -7449,7 +7483,6 @@ export type Database = {
           entity?: string | null
           entity_type?: string | null
           ethnicity?: string | null
-          expiry_date?: string | null
           family_card_url?: string | null
           first_name?: string | null
           full_name?: string | null
@@ -7461,9 +7494,9 @@ export type Database = {
           ktp_number?: number | null
           last_login?: string | null
           last_name?: string | null
+          license_expiry_date?: string | null
           license_number?: string | null
           phone?: string | null
-          phone_number?: string | null
           pkp_status?: string | null
           religion?: string | null
           role?: string
@@ -7475,7 +7508,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["user_status"]
           supplier_name?: string | null
           updated_at?: string | null
-          "upload-ijasah"?: string | null
+          upload_ijasah?: string | null
         }
         Relationships: [
           {

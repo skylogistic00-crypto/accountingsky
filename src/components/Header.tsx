@@ -43,7 +43,10 @@ export default function Header({ publicMode = false }) {
     <div>
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="container mx-auto px-1 py-1 flex items-center justify-between">
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/70 backdrop-blur-sm shadow-[inset_0_0_3px_rgba(255,255,255,0.6),_0_4px_10px_rgba(0,0,0,0.1)] border border-slate-200 hover:shadow-[0_6px_12px_rgba(0,0,0,0.15)] transition-all duration-300">
+          <div 
+            onClick={() => window.location.href = '/'}
+            className="flex items-center gap-3 p-3 rounded-2xl bg-white/70 backdrop-blur-sm shadow-[inset_0_0_3px_rgba(255,255,255,0.6),_0_4px_10px_rgba(0,0,0,0.1)] border border-slate-200 hover:shadow-[0_6px_12px_rgba(0,0,0,0.15)] transition-all duration-300 cursor-pointer"
+          >
             <img
               src="/logo.jpg"
               alt="Sakti Kargo Yaksa"

@@ -810,6 +810,26 @@ function AppRoutesContent() {
         }
       />
       <Route
+        path="/finance/transactions/edit/:id"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+              "finance_manager",
+              "finance_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <FinanceTransactionsPage mode="edit" />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/finance/transactions/:id"
         element={
           <ProtectedRoute

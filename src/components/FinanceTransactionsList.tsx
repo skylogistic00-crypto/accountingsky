@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Loader2, RefreshCw } from "lucide-react";
+import { Plus, Search, Loader2, RefreshCw, Edit } from "lucide-react";
 
 interface FinanceTransaction {
   id: string;
@@ -239,29 +239,76 @@ export default function FinanceTransactionsList() {
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead className="text-center">Edit</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredTransactions.map((transaction) => (
                       <TableRow
                         key={transaction.id}
-                        className="cursor-pointer hover:bg-gray-50"
-                        onClick={() =>
-                          navigate(`/finance/transactions/${transaction.id}`)
-                        }
+                        className="hover:bg-gray-50"
                       >
-                        <TableCell className="font-medium">
+                        <TableCell 
+                          className="font-medium cursor-pointer"
+                          onClick={() =>
+                            navigate(`/finance/transactions/${transaction.id}`)
+                          }
+                        >
                           {transaction.merchant}
                         </TableCell>
-                        <TableCell>{transaction.employee_name}</TableCell>
-                        <TableCell>
+                        <TableCell 
+                          className="cursor-pointer"
+                          onClick={() =>
+                            navigate(`/finance/transactions/${transaction.id}`)
+                          }
+                        >
+                          {transaction.employee_name}
+                        </TableCell>
+                        <TableCell 
+                          className="cursor-pointer"
+                          onClick={() =>
+                            navigate(`/finance/transactions/${transaction.id}`)
+                          }
+                        >
                           <Badge variant="outline">{transaction.category}</Badge>
                         </TableCell>
-                        <TableCell className="text-right font-mono">
+                        <TableCell 
+                          className="text-right font-mono cursor-pointer"
+                          onClick={() =>
+                            navigate(`/finance/transactions/${transaction.id}`)
+                          }
+                        >
                           {formatCurrency(transaction.total)}
                         </TableCell>
-                        <TableCell>{getStatusBadge(transaction.status)}</TableCell>
-                        <TableCell>{formatDate(transaction.date_trans)}</TableCell>
+                        <TableCell 
+                          className="cursor-pointer"
+                          onClick={() =>
+                            navigate(`/finance/transactions/${transaction.id}`)
+                          }
+                        >
+                          {getStatusBadge(transaction.status)}
+                        </TableCell>
+                        <TableCell 
+                          className="cursor-pointer"
+                          onClick={() =>
+                            navigate(`/finance/transactions/${transaction.id}`)
+                          }
+                        >
+                          {formatDate(transaction.date_trans)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/finance/transactions/edit/${transaction.id}`);
+                            }}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

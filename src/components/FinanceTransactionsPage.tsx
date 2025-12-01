@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -29,11 +29,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Upload, Loader2, Save, Trash2, ScanLine } from "lucide-react";
 import {
-  parseOCRText,
-  BreakdownItem,
-} from "@/utils/FinanceOCRParser";
+  ArrowLeft,
+  Upload,
+  Loader2,
+  Save,
+  Trash2,
+  ScanLine,
+} from "lucide-react";
+import { parseOCRText, BreakdownItem } from "@/utils/FinanceOCRParser";
 import {
   Dialog,
   DialogContent,
@@ -66,11 +70,17 @@ interface FormData {
   total: number;
 }
 
-export default function FinanceTransactionsPage() {
+export default function FinanceTransactionsPage({
+  mode = "create",
+}: {
+  mode?: "create" | "edit";
+}) {
   const navigate = useNavigate();
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { id } = useParams<{ id: string }>();
+  const [isLoading, setIsLoading] = useState(mode === "edit");
 
   const [formData, setFormData] = useState<FormData>({
     employee_name: userProfile?.full_name || "",
@@ -94,20 +104,94 @@ export default function FinanceTransactionsPage() {
   const [ocrFilePreview, setOcrFilePreview] = useState<string | null>(null);
   const ocrFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Load transaction data when in edit mode
+  useEffect(() => {
+    if (mode === "edit" && id) {
+      loadTransactionData();
+    }
+  }, [mode, id]);
+
+  const loadTransactionData = async () => {
+    try {
+      setIsLoading(true);
+
+      // Fetch transaction
+      const { data: transaction, error: transError } = await supabase
+        .from("finance_transactions")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (transError) throw transError;
+
+      // Fetch breakdown items
+      const { data: breakdown, error: breakdownError } = await supabase
+        .from("finance_transaction_breakdown")
+        .select("*")
+        .eq("transaction_id", id);
+
+      if (breakdownError) throw breakdownError;
+
+      // Set form data
+      setFormData({
+        employee_name: transaction.employee_name,
+        merchant: transaction.merchant,
+        category: transaction.category,
+        date_trans: transaction.date_trans,
+        description: transaction.description || "",
+        amount: transaction.amount,
+        ppn: transaction.ppn,
+        total: transaction.total,
+      });
+
+      // Set breakdown items
+      if (breakdown) {
+        setBreakdownItems(
+          breakdown.map((item) => ({
+            description: item.description || "",
+            qty: item.qty,
+            price: item.price,
+            subtotal: item.subtotal,
+          })),
+        );
+      }
+
+      // Set preview URL if file exists
+      if (transaction.file_url) {
+        setPreviewUrl(transaction.file_url);
+      }
+
+      toast({
+        title: "Data loaded",
+        description: "Transaction data loaded successfully",
+      });
+    } catch (error: any) {
+      console.error("Load error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load transaction data",
+        variant: "destructive",
+      });
+      navigate("/finance/transactions");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
-      
+
       // Auto-calculate total when amount or ppn changes
       if (name === "amount") {
         const amount = parseFloat(value) || 0;
         updated.ppn = parseFloat((amount * 0.1).toFixed(2));
         updated.total = amount + updated.ppn;
       }
-      
+
       return updated;
     });
   };
@@ -153,7 +237,7 @@ export default function FinanceTransactionsPage() {
         "vision-google-ocr",
         {
           body: { file_base64: base64 },
-        }
+        },
       );
 
       if (error) throw error;
@@ -172,7 +256,7 @@ export default function FinanceTransactionsPage() {
 
       // Parse OCR text
       const parsed = parseOCRText(fullText);
-      
+
       setFormData((prev) => ({
         ...prev,
         merchant: parsed.merchant || prev.merchant,
@@ -195,7 +279,8 @@ export default function FinanceTransactionsPage() {
       console.error("OCR Error:", error);
       toast({
         title: "OCR Error",
-        description: error instanceof Error ? error.message : "Failed to process OCR",
+        description:
+          error instanceof Error ? error.message : "Failed to process OCR",
         variant: "destructive",
       });
     } finally {
@@ -213,19 +298,19 @@ export default function FinanceTransactionsPage() {
   const updateBreakdownItem = (
     index: number,
     field: keyof BreakdownItem,
-    value: string | number
+    value: string | number,
   ) => {
     setBreakdownItems((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
-      
+
       // Auto-calculate subtotal
       if (field === "qty" || field === "price") {
         const qty = field === "qty" ? Number(value) : updated[index].qty;
         const price = field === "price" ? Number(value) : updated[index].price;
         updated[index].subtotal = qty * price;
       }
-      
+
       return updated;
     });
   };
@@ -275,7 +360,7 @@ export default function FinanceTransactionsPage() {
         "vision-google-ocr",
         {
           body: { file_base64: base64Content },
-        }
+        },
       );
 
       if (visionError) throw visionError;
@@ -308,7 +393,9 @@ export default function FinanceTransactionsPage() {
         ...prev,
         merchant: parsed.nama || prev.merchant,
         description: fullText.substring(0, 200),
-        date_trans: parsed.alamat ? new Date().toISOString().split("T")[0] : prev.date_trans,
+        date_trans: parsed.alamat
+          ? new Date().toISOString().split("T")[0]
+          : prev.date_trans,
       }));
 
       // Parse with finance parser for amounts
@@ -356,7 +443,8 @@ export default function FinanceTransactionsPage() {
       console.error("OCR Error:", error);
       toast({
         title: "OCR Error",
-        description: error instanceof Error ? error.message : "Gagal memproses OCR",
+        description:
+          error instanceof Error ? error.message : "Gagal memproses OCR",
         variant: "destructive",
       });
     } finally {
@@ -376,9 +464,9 @@ export default function FinanceTransactionsPage() {
 
     setIsSaving(true);
     try {
-      let fileUrl = null;
+      let fileUrl = previewUrl; // Keep existing file URL if no new file
 
-      // Upload file if selected
+      // Upload file if new file selected
       if (selectedFile) {
         const fileExt = selectedFile.name.split(".").pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -397,55 +485,106 @@ export default function FinanceTransactionsPage() {
         fileUrl = urlData.publicUrl;
       }
 
-      // Insert transaction
-      const { data: transaction, error: transactionError } = await supabase
-        .from("finance_transactions")
-        .insert({
-          employee_name: formData.employee_name,
-          merchant: formData.merchant,
-          category: formData.category,
-          date_trans: formData.date_trans,
-          description: formData.description,
-          amount: formData.amount,
-          ppn: formData.ppn,
-          total: formData.total,
-          file_url: fileUrl,
-          status: "pending",
-          created_by: user?.id,
-        })
-        .select()
-        .single();
+      if (mode === "edit" && id) {
+        // Update existing transaction
+        const { error: updateError } = await supabase
+          .from("finance_transactions")
+          .update({
+            employee_name: formData.employee_name,
+            merchant: formData.merchant,
+            category: formData.category,
+            date_trans: formData.date_trans,
+            description: formData.description,
+            amount: formData.amount,
+            ppn: formData.ppn,
+            total: formData.total,
+            file_url: fileUrl,
+          })
+          .eq("id", id);
 
-      if (transactionError) throw transactionError;
+        if (updateError) throw updateError;
 
-      // Insert breakdown items
-      if (breakdownItems.length > 0 && transaction) {
-        const breakdownData = breakdownItems.map((item) => ({
-          transaction_id: transaction.id,
-          qty: item.qty,
-          price: item.price,
-          subtotal: item.subtotal,
-          description: item.description || null,
-        }));
-
-        const { error: breakdownError } = await supabase
+        // Delete existing breakdown items
+        const { error: deleteError } = await supabase
           .from("finance_transaction_breakdown")
-          .insert(breakdownData);
+          .delete()
+          .eq("transaction_id", id);
 
-        if (breakdownError) throw breakdownError;
+        if (deleteError) throw deleteError;
+
+        // Insert new breakdown items
+        if (breakdownItems.length > 0) {
+          const breakdownData = breakdownItems.map((item) => ({
+            transaction_id: id,
+            qty: item.qty,
+            price: item.price,
+            subtotal: item.subtotal,
+            description: item.description || null,
+          }));
+
+          const { error: breakdownError } = await supabase
+            .from("finance_transaction_breakdown")
+            .insert(breakdownData);
+
+          if (breakdownError) throw breakdownError;
+        }
+
+        toast({
+          title: "Success",
+          description: "Transaction updated successfully",
+        });
+      } else {
+        // Insert new transaction
+        const { data: transaction, error: transactionError } = await supabase
+          .from("finance_transactions")
+          .insert({
+            employee_name: formData.employee_name,
+            merchant: formData.merchant,
+            category: formData.category,
+            date_trans: formData.date_trans,
+            description: formData.description,
+            amount: formData.amount,
+            ppn: formData.ppn,
+            total: formData.total,
+            file_url: fileUrl,
+            status: "pending",
+            created_by: user?.id,
+          })
+          .select()
+          .single();
+
+        if (transactionError) throw transactionError;
+
+        // Insert breakdown items
+        if (breakdownItems.length > 0 && transaction) {
+          const breakdownData = breakdownItems.map((item) => ({
+            transaction_id: transaction.id,
+            qty: item.qty,
+            price: item.price,
+            subtotal: item.subtotal,
+            description: item.description || null,
+          }));
+
+          const { error: breakdownError } = await supabase
+            .from("finance_transaction_breakdown")
+            .insert(breakdownData);
+
+          if (breakdownError) throw breakdownError;
+        }
+
+        toast({
+          title: "Success",
+          description: "Transaction saved successfully",
+        });
       }
-
-      toast({
-        title: "Success",
-        description: "Transaction saved successfully",
-      });
 
       navigate("/finance/transactions");
     } catch (error) {
       console.error("Save Error:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save transaction",
+        description:
+          error instanceof Error ? error.message : "Failed to save transaction",
         variant: "destructive",
       });
     } finally {
@@ -468,314 +607,339 @@ export default function FinanceTransactionsPage() {
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                New Finance Transaction
+                {mode === "edit"
+                  ? "Edit Finance Transaction"
+                  : "New Finance Transaction"}
               </h1>
-              <p className="text-gray-500">Create a new expense transaction</p>
+              <p className="text-gray-500">
+                {mode === "edit"
+                  ? "Update expense transaction"
+                  : "Create a new expense transaction"}
+              </p>
             </div>
           </div>
-
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* OCR Upload Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Upload Receipt</CardTitle>
-              <CardDescription>
-                Upload an image to extract data using OCR
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                {previewUrl ? (
-                  <div className="space-y-4">
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="max-h-64 mx-auto rounded-lg"
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* OCR Upload Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upload Receipt</CardTitle>
+                  <CardDescription>
+                    Upload an image to extract data using OCR
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    {previewUrl ? (
+                      <div className="space-y-4">
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          className="max-h-64 mx-auto rounded-lg"
+                        />
+                        <Button
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          Change Image
+                        </Button>
+                      </div>
+                    ) : (
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="h-12 w-12 mx-auto text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-500">
+                          Click to upload receipt image
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileSelect}
                     />
-                    <Button
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      Change Image
-                    </Button>
                   </div>
-                ) : (
-                  <div
-                    className="cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="h-12 w-12 mx-auto text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-500">
-                      Click to upload receipt image
-                    </p>
-                  </div>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileSelect}
-                />
-              </div>
 
+                  <Button
+                    onClick={processOCR}
+                    disabled={!selectedFile || isProcessingOCR}
+                    className="w-full"
+                  >
+                    {isProcessingOCR ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing OCR...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Process with OCR
+                      </>
+                    )}
+                  </Button>
+
+                  {extractedText && (
+                    <div className="space-y-2">
+                      <Label>Extracted Text</Label>
+                      <Textarea
+                        value={extractedText}
+                        readOnly
+                        className="h-48 font-mono text-xs"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Form Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Transaction Details</CardTitle>
+                  <CardDescription>
+                    Fill in the transaction information
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="employee_name">Employee Name *</Label>
+                      <Input
+                        id="employee_name"
+                        name="employee_name"
+                        value={formData.employee_name}
+                        onChange={handleInputChange}
+                        placeholder="Enter employee name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="merchant">Merchant *</Label>
+                      <Input
+                        id="merchant"
+                        name="merchant"
+                        value={formData.merchant}
+                        onChange={handleInputChange}
+                        placeholder="Enter merchant name"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select
+                        value={formData.category}
+                        onValueChange={handleCategoryChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="date_trans">Date</Label>
+                      <Input
+                        id="date_trans"
+                        name="date_trans"
+                        type="date"
+                        value={formData.date_trans}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      placeholder="Enter description"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="amount">Amount</Label>
+                      <Input
+                        id="amount"
+                        name="amount"
+                        type="number"
+                        value={formData.amount}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ppn">PPN (10%)</Label>
+                      <Input
+                        id="ppn"
+                        name="ppn"
+                        type="number"
+                        value={formData.ppn}
+                        readOnly
+                        className="bg-gray-100"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="total">Total</Label>
+                      <Input
+                        id="total"
+                        name="total"
+                        type="number"
+                        value={formData.total}
+                        readOnly
+                        className="bg-gray-100 font-bold"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Breakdown Items */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Breakdown Items</CardTitle>
+                  <CardDescription>
+                    Add individual items from the receipt
+                  </CardDescription>
+                </div>
+                <Button onClick={addBreakdownItem} variant="outline" size="sm">
+                  Add Item
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {breakdownItems.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="w-24">Qty</TableHead>
+                        <TableHead className="w-32">Price</TableHead>
+                        <TableHead className="w-32">Subtotal</TableHead>
+                        <TableHead className="w-16"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {breakdownItems.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Input
+                              value={item.description || ""}
+                              onChange={(e) =>
+                                updateBreakdownItem(
+                                  index,
+                                  "description",
+                                  e.target.value,
+                                )
+                              }
+                              placeholder="Item description"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={item.qty}
+                              onChange={(e) =>
+                                updateBreakdownItem(
+                                  index,
+                                  "qty",
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
+                              min={1}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={item.price}
+                              onChange={(e) =>
+                                updateBreakdownItem(
+                                  index,
+                                  "price",
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={item.subtotal}
+                              readOnly
+                              className="bg-gray-100"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeBreakdownItem(index)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-center text-gray-500 py-8">
+                    No breakdown items. Click "Add Item" to add items.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Save Button */}
+            <div className="flex justify-end gap-4">
               <Button
-                onClick={processOCR}
-                disabled={!selectedFile || isProcessingOCR}
-                className="w-full"
+                variant="outline"
+                onClick={() => navigate("/finance/transactions")}
               >
-                {isProcessingOCR ? (
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing OCR...
+                    {mode === "edit" ? "Updating..." : "Saving..."}
                   </>
                 ) : (
                   <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Process with OCR
+                    <Save className="h-4 w-4 mr-2" />
+                    {mode === "edit"
+                      ? "Update Transaction"
+                      : "Save Transaction"}
                   </>
                 )}
               </Button>
-
-              {extractedText && (
-                <div className="space-y-2">
-                  <Label>Extracted Text</Label>
-                  <Textarea
-                    value={extractedText}
-                    readOnly
-                    className="h-48 font-mono text-xs"
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Form Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Transaction Details</CardTitle>
-              <CardDescription>
-                Fill in the transaction information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="employee_name">Employee Name *</Label>
-                  <Input
-                    id="employee_name"
-                    name="employee_name"
-                    value={formData.employee_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter employee name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="merchant">Merchant *</Label>
-                  <Input
-                    id="merchant"
-                    name="merchant"
-                    value={formData.merchant}
-                    onChange={handleInputChange}
-                    placeholder="Enter merchant name"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={handleCategoryChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date_trans">Date</Label>
-                  <Input
-                    id="date_trans"
-                    name="date_trans"
-                    type="date"
-                    value={formData.date_trans}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Enter description"
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Amount</Label>
-                  <Input
-                    id="amount"
-                    name="amount"
-                    type="number"
-                    value={formData.amount}
-                    onChange={handleInputChange}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ppn">PPN (10%)</Label>
-                  <Input
-                    id="ppn"
-                    name="ppn"
-                    type="number"
-                    value={formData.ppn}
-                    readOnly
-                    className="bg-gray-100"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="total">Total</Label>
-                  <Input
-                    id="total"
-                    name="total"
-                    type="number"
-                    value={formData.total}
-                    readOnly
-                    className="bg-gray-100 font-bold"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Breakdown Items */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Breakdown Items</CardTitle>
-              <CardDescription>
-                Add individual items from the receipt
-              </CardDescription>
             </div>
-            <Button onClick={addBreakdownItem} variant="outline" size="sm">
-              Add Item
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {breakdownItems.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="w-24">Qty</TableHead>
-                    <TableHead className="w-32">Price</TableHead>
-                    <TableHead className="w-32">Subtotal</TableHead>
-                    <TableHead className="w-16"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {breakdownItems.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <Input
-                          value={item.description || ""}
-                          onChange={(e) =>
-                            updateBreakdownItem(index, "description", e.target.value)
-                          }
-                          placeholder="Item description"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={item.qty}
-                          onChange={(e) =>
-                            updateBreakdownItem(index, "qty", parseInt(e.target.value) || 0)
-                          }
-                          min={1}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={item.price}
-                          onChange={(e) =>
-                            updateBreakdownItem(index, "price", parseFloat(e.target.value) || 0)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={item.subtotal}
-                          readOnly
-                          className="bg-gray-100"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeBreakdownItem(index)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <p className="text-center text-gray-500 py-8">
-                No breakdown items. Click "Add Item" to add items.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Save Button */}
-        <div className="flex justify-end gap-4">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/finance/transactions")}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Save Transaction
-              </>
-            )}
-          </Button>
-        </div>
+          </>
+        )}
       </div>
-
-
     </div>
   );
 }

@@ -10,6 +10,8 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     console.log("REQUEST BODY:", body);
+    console.log("DETAILS OBJECT:", body.details);
+    console.log("FILE_URLS OBJECT:", body.file_urls);
 
     // destructure and accept role fields coming from UI
     const { 
@@ -175,12 +177,14 @@ Deno.serve(async (req) => {
       // Get skck_url - file already uploaded from frontend
       const skckUrl = details.skck_url || file_urls.skck_url || null;
       
-      console.log("Setting upload_ijasah:", ijasahUrl);
-      console.log("Setting ktp_document_url:", ktpDocUrl);
-      console.log("Setting selfie_url:", selfieUrl);
-      console.log("Setting family_card_url:", familyCardUrl);
-      console.log("Setting sim_url:", simUrl);
-      console.log("Setting skck_url:", skckUrl);
+      console.log("=== DOCUMENT URLS DEBUG ===");
+      console.log("upload_ijasah:", ijasahUrl);
+      console.log("ktp_document_url:", ktpDocUrl);
+      console.log("selfie_url:", selfieUrl);
+      console.log("family_card_url:", familyCardUrl);
+      console.log("sim_url:", simUrl);
+      console.log("skck_url:", skckUrl);
+      console.log("=== END DEBUG ===");
       
       usersData["upload_ijasah"] = ijasahUrl;
       usersData["ktp_document_url"] = ktpDocUrl;
@@ -211,6 +215,10 @@ Deno.serve(async (req) => {
     }
 
     // Upsert into users table (handles duplicate key errors)
+    console.log("=== USERS DATA TO UPSERT ===");
+    console.log(JSON.stringify(usersData, null, 2));
+    console.log("=== END USERS DATA ===");
+    
     const { error: userError } = await supabase
       .from("users")
       .upsert(usersData, { onConflict: "id" });
@@ -300,11 +308,32 @@ Deno.serve(async (req) => {
         });
         entityError = error;
       } else if (normalizedEntity === "employee") {
+        // Get document URLs for employees table
+        const empKtpDocUrl = details.ktp_document_url || file_urls.ktp_document_url || null;
+        const empSelfieUrl = details.selfie_url || file_urls.selfie_url || null;
+        const empIjasahUrl = upload_ijasah || details.upload_ijasah || file_urls.upload_ijasah_url || null;
+        const empFamilyCardUrl = details.family_card_url || file_urls.family_card_url || null;
+        const empSimUrl = details.sim_url || file_urls.sim_url || null;
+        const empSkckUrl = details.skck_url || file_urls.skck_url || null;
+        
         const { error } = await supabase.from("employees").insert({
           user_id: authUser.user.id,
           full_name,
           email,
           phone,
+          ktp_document_url: empKtpDocUrl,
+          selfie_url: empSelfieUrl,
+          upload_ijasah: empIjasahUrl,
+          family_card_url: empFamilyCardUrl,
+          sim_url: empSimUrl,
+          skck_url: empSkckUrl,
+          ktp_number: ktp_number || details.ktp_number || null,
+          ktp_address: ktp_address || details.ktp_address || null,
+          first_name: first_name || details.first_name || null,
+          last_name: last_name || details.last_name || null,
+          religion: religion || details.religion || null,
+          ethnicity: ethnicity || details.ethnicity || null,
+          education: education || details.education || null,
           ...entityData,
         });
         entityError = error;

@@ -536,7 +536,7 @@ export default function TransaksiKeuanganForm() {
       try {
         visionData = typeof raw === "string" ? JSON.parse(raw) : raw;
       } catch (err) {
-        console.error("❌ JSON PARSE FAILED:", err);
+        console.error("JSON PARSE FAILED:", err);
         throw new Error("Vision API returned invalid JSON.");
       }
 
@@ -677,9 +677,9 @@ export default function TransaksiKeuanganForm() {
       setBuktiFile(ocrFile);
     }
     
-    console.log("✅ OCR Data Saved to State:", ocrData);
-    console.log("📋 Applied fields:", appliedFields);
-    console.log("📦 Extracted items:", extractedItems);
+    console.log("OCR Data Saved to State:", ocrData);
+    console.log("Applied fields:", appliedFields);
+    console.log("Extracted items:", extractedItems);
     
     if (appliedFields.length > 0) {
       toast({
@@ -1114,10 +1114,10 @@ export default function TransaksiKeuanganForm() {
     try {
       const { data, error } = await supabase.from("suppliers").select("*");
       if (error) throw error;
-      console.log("✅ Suppliers loaded:", data);
+      console.log("Suppliers loaded:", data);
       setSuppliers(data || []);
     } catch (err) {
-      console.error("❌ Error loading suppliers:", err);
+      console.error("Error loading suppliers:", err);
       setSuppliers([]);
     }
   };
@@ -1126,14 +1126,14 @@ export default function TransaksiKeuanganForm() {
     try {
       const { data, error } = await supabase.from("customers").select("*");
       if (error) throw error;
-      console.log("✅ Customers loaded:", data);
+      console.log("Customers loaded:", data);
       console.log("Total customers:", data?.length || 0);
       if (data && data.length > 0) {
         console.log("Sample customer:", data[0]);
       }
       setCustomers(data || []);
     } catch (err) {
-      console.error("❌ Error loading customers:", err);
+      console.error("Error loading customers:", err);
       setCustomers([]);
     }
   };
@@ -1142,10 +1142,10 @@ export default function TransaksiKeuanganForm() {
     try {
       const { data, error } = await supabase.from("consignees").select("*");
       if (error) throw error;
-      console.log("✅ Consignees loaded:", data);
+      console.log("Consignees loaded:", data);
       setConsignees(data || []);
     } catch (err) {
-      console.error("❌ Error loading consignees:", err);
+      console.error("Error loading consignees:", err);
       setConsignees([]);
     }
   };
@@ -1158,10 +1158,10 @@ export default function TransaksiKeuanganForm() {
         .ilike("account_name", "%bank - %")
         .order("account_code");
       if (error) throw error;
-      console.log("✅ Banks loaded:", data);
+      console.log("Banks loaded:", data);
       setBanks(data || []);
     } catch (err) {
-      console.error("❌ Error loading banks:", err);
+      console.error("Error loading banks:", err);
       setBanks([]);
     }
   };
@@ -1174,10 +1174,10 @@ export default function TransaksiKeuanganForm() {
         .ilike("account_name", "%kas - %")
         .order("account_code");
       if (error) throw error;
-      console.log("✅ Kas accounts loaded:", data);
+      console.log("Kas accounts loaded:", data);
       setKasAccounts(data || []);
     } catch (err) {
-      console.error("❌ Error loading kas accounts:", err);
+      console.error("Error loading kas accounts:", err);
       setKasAccounts([]);
     }
   };
@@ -1208,7 +1208,7 @@ export default function TransaksiKeuanganForm() {
         .order("tanggal", { ascending: false });
 
       if (kasError) {
-        console.error("❌ Error loading kas_transaksi:", kasError);
+        console.error("Error loading kas_transaksi:", kasError);
       }
 
       // Load from cash_disbursement (approved, waiting approval, and rejected)
@@ -1238,7 +1238,7 @@ export default function TransaksiKeuanganForm() {
         .order("transaction_date", { ascending: false });
 
       if (purchaseError) {
-        console.error("❌ Error loading purchase_transactions:", purchaseError);
+        console.error("Error loading purchase_transactions:", purchaseError);
       }
 
       // Load from sales_transactions
@@ -1248,7 +1248,7 @@ export default function TransaksiKeuanganForm() {
         .order("transaction_date", { ascending: false });
 
       if (salesError) {
-        console.error("❌ Error loading sales_transactions:", salesError);
+        console.error("Error loading sales_transactions:", salesError);
       }
 
       // Load from internal_usage
@@ -1258,7 +1258,7 @@ export default function TransaksiKeuanganForm() {
         .order("usage_date", { ascending: false });
 
       if (internalError) {
-        console.error("❌ Error loading internal_usage:", internalError);
+        console.error("Error loading internal_usage:", internalError);
       }
 
       // Load from cash_and_bank_receipts (Penerimaan Kas & Bank)
@@ -1266,18 +1266,17 @@ export default function TransaksiKeuanganForm() {
         await supabase
           .from("cash_and_bank_receipts")
           .select("*")
-          .eq("transaction_type", "Penerimaan")
           .order("transaction_date", { ascending: false });
 
       if (cashReceiptsError) {
         console.error(
-          "❌ Error loading cash_and_bank_receipts:",
+          "Error loading cash_and_bank_receipts:",
           cashReceiptsError,
         );
       } else {
-        console.log("✅ Cash receipts data loaded:", cashReceiptsData);
+        console.log("Cash receipts data loaded:", cashReceiptsData);
         console.log(
-          "✅ First cash receipt bukti:",
+          "First cash receipt bukti:",
           cashReceiptsData?.[0]?.bukti,
         );
       }
@@ -1292,7 +1291,7 @@ export default function TransaksiKeuanganForm() {
         .order("transaction_date", { ascending: false });
 
       if (approvalError) {
-        console.error("❌ Error loading approval_transaksi:", approvalError);
+        console.error("Error loading approval_transaksi:", approvalError);
       }
 
       // Note: expenses and loans tables are not used in this view
@@ -1388,7 +1387,7 @@ export default function TransaksiKeuanganForm() {
       );
 
       setTransactions(allTransactions);
-      console.log("✅ Total transactions loaded:", allTransactions.length);
+      console.log("Total transactions loaded:", allTransactions.length);
 
       if (allTransactions.length === 0) {
         toast({
@@ -1402,7 +1401,7 @@ export default function TransaksiKeuanganForm() {
         });
       }
     } catch (err: any) {
-      console.error("❌ Exception:", err);
+      console.error("Exception:", err);
       setTransactions([]);
       toast({
         title: "❌ Error",
@@ -1568,7 +1567,7 @@ export default function TransaksiKeuanganForm() {
         // Use account names as service types for Kas & Bank
         const kasAccounts = data?.map((acc) => acc.account_name) || [];
         setServiceTypes(kasAccounts);
-        console.log("✅ Kas accounts loaded:", kasAccounts);
+        console.log("Kas accounts loaded:", kasAccounts);
       } else {
         // Normal flow for other categories
         const { data, error } = await supabase
@@ -2283,6 +2282,7 @@ export default function TransaksiKeuanganForm() {
           coa_cogs_code: "5-1100",
           coa_inventory_code: coaSelected || "",
           coa_tax_code: taxAmount > 0 ? "2-1250" : null,
+          description: description,
           notes: description,
           journal_ref: journalRef,
           approval_status: "approved",
@@ -2291,7 +2291,7 @@ export default function TransaksiKeuanganForm() {
         });
 
         if (error) throw new Error(`Sales Transaction: ${error.message}`);
-        console.log("✅ ROUTER: Sales transaction (Barang) saved");
+        console.log("ROUTER: Sales transaction (Barang) saved");
         break;
       }
 
@@ -2324,6 +2324,7 @@ export default function TransaksiKeuanganForm() {
           coa_cogs_code: null,
           coa_inventory_code: null,
           coa_tax_code: taxAmount > 0 ? "2-1250" : null,
+          description: description,
           notes: description,
           journal_ref: journalRef,
           approval_status: "approved",
@@ -2332,7 +2333,7 @@ export default function TransaksiKeuanganForm() {
         });
 
         if (error) throw new Error(`Sales Transaction: ${error.message}`);
-        console.log("✅ ROUTER: Sales transaction (Jasa) saved");
+        console.log("ROUTER: Sales transaction (Jasa) saved");
         break;
       }
 
@@ -2349,6 +2350,7 @@ export default function TransaksiKeuanganForm() {
           payment_method: paymentType === "cash" ? "Tunai" : "Hutang",
           coa_inventory_code: mainDebitLine?.account_code || "",
           coa_cash_code: mainCreditLine?.account_code || "",
+          description: description,
           notes: description,
           journal_ref: journalRef,
           bukti: uploadedBuktiUrl || null,
@@ -2357,7 +2359,7 @@ export default function TransaksiKeuanganForm() {
 
         if (error)
           throw new Error(`Purchase Transaction: ${error.message}`);
-        console.log("✅ ROUTER: Purchase transaction (Barang) saved");
+        console.log("ROUTER: Purchase transaction (Barang) saved");
         break;
       }
 
@@ -2375,6 +2377,7 @@ export default function TransaksiKeuanganForm() {
           payment_method: paymentType === "cash" ? "Tunai" : "Transfer Bank",
           coa_expense_code: expenseLine?.account_code || "6-1100",
           coa_cash_code: cashLine?.account_code || "1-1100",
+          description: description,
           notes: description,
           created_by: user?.id,
           approval_status: "waiting_approval",
@@ -2384,7 +2387,7 @@ export default function TransaksiKeuanganForm() {
 
         if (error)
           throw new Error(`Cash Disbursement: ${error.message}`);
-        console.log("✅ ROUTER: Cash disbursement (Pembelian Jasa) saved");
+        console.log("ROUTER: Cash disbursement (Pembelian Jasa) saved");
         break;
       }
 
@@ -2413,7 +2416,7 @@ export default function TransaksiKeuanganForm() {
           });
 
         if (error) throw new Error(`Cash Receipt: ${error.message}`);
-        console.log("✅ ROUTER: Cash receipt saved");
+        console.log("ROUTER: Cash receipt saved");
         break;
       }
 
@@ -2437,6 +2440,7 @@ export default function TransaksiKeuanganForm() {
             jenisPembayaranPengeluaran === "Cash" ? "Tunai" : "Transfer Bank",
           coa_expense_code: expenseLine?.account_code || "6-1100",
           coa_cash_code: cashLine?.account_code || "1-1100",
+          description: description,
           notes: description,
           created_by: user?.id,
           approval_status: "waiting_approval",
@@ -2446,7 +2450,7 @@ export default function TransaksiKeuanganForm() {
 
         if (error)
           throw new Error(`Cash Disbursement: ${error.message}`);
-        console.log("✅ ROUTER: Cash disbursement saved");
+        console.log("ROUTER: Cash disbursement saved");
         break;
       }
 
@@ -2487,10 +2491,10 @@ export default function TransaksiKeuanganForm() {
         });
 
         if (error) {
-          console.error("❌ Journal Entry Error:", error);
+          console.error("Journal Entry Error:", error);
           throw new Error(`Journal Entry: ${error.message}`);
         }
-        console.log("✅ Journal Entry saved:", data);
+        console.log("Journal Entry saved:", data);
       }
 
       // Step 7: Save HPP entry if exists (for Penjualan Barang)
@@ -2511,10 +2515,10 @@ export default function TransaksiKeuanganForm() {
         });
 
         if (error) {
-          console.error("❌ HPP Entry Error:", error);
+          console.error("HPP Entry Error:", error);
           throw new Error(`HPP Entry: ${error.message}`);
         }
-        console.log("✅ HPP Entry saved:", data);
+        console.log("HPP Entry saved:", data);
       }
 
       // Step 8: Upload bukti file ONCE if exists
@@ -2542,7 +2546,7 @@ export default function TransaksiKeuanganForm() {
           .upload(filePath, fileToUpload);
 
         if (uploadError) {
-          console.error("❌ File Upload Error:", uploadError);
+          console.error("File Upload Error:", uploadError);
           throw new Error(`File Upload: ${uploadError.message}`);
         }
 
@@ -2552,7 +2556,7 @@ export default function TransaksiKeuanganForm() {
           .getPublicUrl(filePath);
 
         uploadedBuktiUrl = urlData.publicUrl;
-        console.log("✅ File uploaded successfully:", uploadedBuktiUrl);
+        console.log("File uploaded successfully:", uploadedBuktiUrl);
       } else {
         console.log("⚠️ No buktiFile or ocrFile found - skipping upload");
       }
@@ -2578,6 +2582,8 @@ export default function TransaksiKeuanganForm() {
             account_name: cashLine.account_name,
             nominal: parseFloat(String(cashLine.amount)),
             keterangan: previewMemo,
+            description: previewMemo,
+            notes: previewMemo,
             bukti: uploadedBuktiUrl || null,
             ocr_data: ocrAppliedData ? {
               extractedText: ocrAppliedData.extractedText,
@@ -2587,10 +2593,10 @@ export default function TransaksiKeuanganForm() {
           } as any);
 
           if (error) {
-            console.error("❌ Cash Book Error:", error);
+            console.error("Cash Book Error:", error);
             throw new Error(`Cash Book: ${error.message}`);
           }
-          console.log("✅ Cash Book saved:", data);
+          console.log("Cash Book saved:", data);
         }
       }
 
@@ -2827,13 +2833,13 @@ export default function TransaksiKeuanganForm() {
             .upload(filePath, item.buktiFile);
 
           if (uploadError) {
-            console.error("❌ Upload error:", uploadError);
+            console.error("Upload error:", uploadError);
           } else {
             const { data: urlData } = supabase.storage
               .from("documents")
               .getPublicUrl(filePath);
             uploadedBuktiUrl = urlData.publicUrl;
-            console.log("✅ Bukti file uploaded:", uploadedBuktiUrl);
+            console.log("Bukti file uploaded:", uploadedBuktiUrl);
           }
         } else {
           console.log("⚠️ No buktiFile found in cart item - skipping upload");
@@ -2929,6 +2935,8 @@ export default function TransaksiKeuanganForm() {
               nominal: parseFloat(String(cashLine.amount)),
               tanggal: journalData.tanggal,
               keterangan: journalData.memo,
+              description: journalData.memo,
+              notes: journalData.memo,
               source:
                 item.jenisTransaksi === "Pembelian Jasa"
                   ? "Service Purchase"
@@ -3037,12 +3045,12 @@ export default function TransaksiKeuanganForm() {
 
           if (cashReceiptError) {
             console.error(
-              "❌ Error saving to cash_and_bank_receipts:",
+              "Error saving to cash_and_bank_receipts:",
               cashReceiptError,
             );
             throw new Error(`Cash Receipt: ${cashReceiptError.message}`);
           } else {
-            console.log("✅ Cash and bank receipt saved successfully");
+            console.log("Cash and bank receipt saved successfully");
           }
         }
 
@@ -3103,7 +3111,7 @@ export default function TransaksiKeuanganForm() {
               transaction_date: item.tanggal,
               transaction_type: "Jasa",
               item_name: `${item.kategori} - ${item.jenisLayanan}`,
-              description: null,
+              description: item.description,
               stock_before: null,
               quantity: quantity,
               stock_after: null,
@@ -3146,10 +3154,10 @@ export default function TransaksiKeuanganForm() {
               .single();
 
             if (borrowerError) {
-              console.error("❌ Error fetching borrower:", borrowerError);
+              console.error("Error fetching borrower:", borrowerError);
             } else {
               borrowerId = borrowerData?.id;
-              console.log("✅ Borrower ID found:", borrowerId);
+              console.log("Borrower ID found:", borrowerId);
             }
           }
 
@@ -3185,10 +3193,10 @@ export default function TransaksiKeuanganForm() {
             .select();
 
           if (loanError) {
-            console.error("❌ Error creating loan:", loanError);
+            console.error("Error creating loan:", loanError);
             throw new Error(`Failed to create loan: ${loanError.message}`);
           } else {
-            console.log("✅ Loan created successfully:", loanResult);
+            console.log("Loan created successfully:", loanResult);
 
             // Create installment schedule if available
             if (
@@ -3223,7 +3231,7 @@ export default function TransaksiKeuanganForm() {
                   installmentError,
                 );
               } else {
-                console.log("✅ Installments created successfully");
+                console.log("Installments created successfully");
               }
             }
           }
@@ -3441,6 +3449,7 @@ export default function TransaksiKeuanganForm() {
             coa_inventory_code: item.coaSelected || null,
             coa_payable_code:
               item.paymentType !== "cash" ? mainCreditLine?.account_code : null,
+            description: item.description || null,
             notes: item.description || null,
             journal_ref: journalRef,
             approval_status: needsApproval ? "waiting_approval" : "approved",
@@ -3458,10 +3467,10 @@ export default function TransaksiKeuanganForm() {
             await supabase.from("purchase_transactions").insert(purchaseData);
 
           if (purchaseError) {
-            console.error("❌ Purchase Transaction Error:", purchaseError);
+            console.error("Purchase Transaction Error:", purchaseError);
             throw new Error(`Purchase Transaction: ${purchaseError.message}`);
           }
-          console.log("✅ Purchase Transaction saved:", purchaseData_result);
+          console.log("Purchase Transaction saved:", purchaseData_result);
         }
 
         // Send Pembelian Jasa to purchase_transactions table
@@ -3495,6 +3504,7 @@ export default function TransaksiKeuanganForm() {
             coa_inventory_code: item.coaSelected || null,
             coa_payable_code:
               item.paymentType !== "cash" ? mainCreditLine?.account_code : null,
+            description: item.description || null,
             notes: item.description || null,
             journal_ref: journalRef,
             approval_status: needsApproval ? "waiting_approval" : "approved",
@@ -3512,7 +3522,7 @@ export default function TransaksiKeuanganForm() {
             await supabase.from("purchase_transactions").insert(purchaseData);
 
           if (purchaseError) {
-            console.error("❌ Purchase Transaction Error:", purchaseError);
+            console.error("Purchase Transaction Error:", purchaseError);
             throw new Error(`Purchase Transaction: ${purchaseError.message}`);
           }
           console.log(
@@ -3588,7 +3598,7 @@ export default function TransaksiKeuanganForm() {
       // Reload transactions to show new data
       await loadTransactions();
     } catch (error: any) {
-      console.error("❌ Checkout Error:", error);
+      console.error("Checkout Error:", error);
       toast({
         title: "❌ Error",
         description: error.message || "Gagal menyimpan transaksi",
@@ -3735,6 +3745,7 @@ export default function TransaksiKeuanganForm() {
                   onClick={() => {
                     setShowForm(false);
                     setShowReport(true);
+                    resetForm();
                   }}
                   className="bg-white/20 text-white hover:bg-white/30 border-white/30"
                 >
@@ -4128,7 +4139,7 @@ export default function TransaksiKeuanganForm() {
                     {loadingTransactions ? (
                       <TableRow>
                         <TableCell
-                          colSpan={11}
+                          colSpan={12}
                           className="text-center text-gray-500 py-8"
                         >
                           Memuat data...
@@ -4137,7 +4148,7 @@ export default function TransaksiKeuanganForm() {
                     ) : transactions.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={11}
+                          colSpan={12}
                           className="text-center text-gray-500 py-8"
                         >
                           Belum ada transaksi. Klik "Tambah Transaksi" untuk
@@ -4858,7 +4869,7 @@ export default function TransaksiKeuanganForm() {
                     {/* Total Penerimaan Kas */}
                     <TableRow>
                       <TableCell
-                        colSpan={9}
+                        colSpan={10}
                         className="text-right font-bold text-lg"
                       >
                         Total Penerimaan Kas:
@@ -4982,7 +4993,7 @@ export default function TransaksiKeuanganForm() {
                     {/* Total Pengeluaran Kas */}
                     <TableRow>
                       <TableCell
-                        colSpan={9}
+                        colSpan={10}
                         className="text-right font-bold text-lg"
                       >
                         Total Pengeluaran Kas:
@@ -5108,7 +5119,7 @@ export default function TransaksiKeuanganForm() {
                     {/* Total Net */}
                     <TableRow className="bg-slate-200">
                       <TableCell
-                        colSpan={9}
+                        colSpan={10}
                         className="text-right font-bold text-xl"
                       >
                         Total Net:
@@ -5272,6 +5283,7 @@ export default function TransaksiKeuanganForm() {
         {showForm && !showCart && (
           <Card className="bg-white rounded-xl shadow-lg border border-slate-200">
             <CardContent className="p-6 space-y-6">
+              
               {/* ROW 1 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
