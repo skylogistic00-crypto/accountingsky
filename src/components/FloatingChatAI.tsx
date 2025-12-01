@@ -19,7 +19,7 @@ export default function FloatingChatAI() {
     {
       id: "welcome",
       role: "assistant",
-      content: "Halo! Saya AI Assistant. 💬\n\n💡 Ketik **'cek data'** untuk melihat data apa saja yang tersedia di database Anda.\n\n📎 Upload gambar atau dokumen untuk analisis!\n\n🎤 Gunakan voice input untuk berbicara!",
+      content: "Halo! Saya AI Assistant. 💬\n\n💡 Ketik **'cek data'** untuk melihat data apa saja yang tersedia di database Anda.\n\n📎 Upload gambar atau dokumen untuk analisis!",
     }
   ]);
   const [input, setInput] = useState("");

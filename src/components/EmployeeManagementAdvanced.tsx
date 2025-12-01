@@ -3,13 +3,43 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Search, UserPlus, Upload, FileText, Download, Eye, X } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  UserPlus,
+  Upload,
+  FileText,
+  Download,
+  Eye,
+  X,
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -69,7 +99,11 @@ interface Position {
   department_id: string;
 }
 
-export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: () => void }) {
+export default function EmployeeManagementAdvanced({
+  onUpdate,
+}: {
+  onUpdate?: () => void;
+}) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -134,7 +168,9 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
 
   useEffect(() => {
     if (formData.department_id) {
-      setFilteredPositions(positions.filter(p => p.department_id === formData.department_id));
+      setFilteredPositions(
+        positions.filter((p) => p.department_id === formData.department_id),
+      );
     } else {
       setFilteredPositions(positions);
     }
@@ -143,46 +179,58 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
   const loadEmployees = async () => {
     const { data, error } = await supabase
       .from("employees")
-      .select(`
+      .select(
+        `
         *,
         departments(department_name),
         positions(position_name)
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
       setEmployees(data || []);
     }
   };
 
   const loadDepartments = async () => {
-    const { data } = await supabase.from("departments").select("*").order("department_name");
+    const { data } = await supabase
+      .from("departments")
+      .select("*")
+      .order("department_name");
     setDepartments(data || []);
   };
 
   const loadPositions = async () => {
-    const { data } = await supabase.from("positions").select("*").order("position_name");
+    const { data } = await supabase
+      .from("positions")
+      .select("*")
+      .order("position_name");
     setPositions(data || []);
   };
 
   const uploadFile = async (file: File, path: string) => {
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name.split(".").pop();
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `${path}/${fileName}`;
 
     const { error: uploadError, data } = await supabase.storage
-      .from('employee-documents')
+      .from("employee-documents")
       .upload(filePath, file);
 
     if (uploadError) {
       throw uploadError;
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('employee-documents')
-      .getPublicUrl(filePath);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("employee-documents").getPublicUrl(filePath);
 
     return publicUrl;
   };
@@ -200,25 +248,27 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
 
       // Upload files if selected
       if (files.photo) {
-        photoUrl = await uploadFile(files.photo, 'photos');
+        photoUrl = await uploadFile(files.photo, "photos");
       }
       if (files.ktp) {
-        ktpUrl = await uploadFile(files.ktp, 'ktp');
+        ktpUrl = await uploadFile(files.ktp, "ktp");
       }
       if (files.npwp) {
-        npwpUrl = await uploadFile(files.npwp, 'npwp');
+        npwpUrl = await uploadFile(files.npwp, "npwp");
       }
       if (files.cv) {
-        cvUrl = await uploadFile(files.cv, 'cv');
+        cvUrl = await uploadFile(files.cv, "cv");
       }
       if (files.contract) {
-        contractUrl = await uploadFile(files.contract, 'contracts');
+        contractUrl = await uploadFile(files.contract, "contracts");
       }
 
       const employeeData = {
         ...formData,
         basic_salary: parseFloat(formData.basic_salary) || 0,
-        graduation_year: formData.graduation_year ? parseInt(formData.graduation_year) : null,
+        graduation_year: formData.graduation_year
+          ? parseInt(formData.graduation_year)
+          : null,
         photo_url: photoUrl,
         ktp_file_url: ktpUrl,
         npwp_file_url: npwpUrl,
@@ -234,10 +284,15 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
           .eq("id", editingEmployee.id);
 
         if (error) throw error;
-        toast({ title: "Berhasil", description: "Data karyawan berhasil diupdate" });
+        toast({
+          title: "Berhasil",
+          description: "Data karyawan berhasil diupdate",
+        });
       } else {
-        const { data: empNumber } = await supabase.rpc("generate_employee_number");
-        
+        const { data: empNumber } = await supabase.rpc(
+          "generate_employee_number",
+        );
+
         const { error } = await supabase.from("employees").insert({
           employee_number: empNumber,
           ...employeeData,
@@ -245,7 +300,10 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
         });
 
         if (error) throw error;
-        toast({ title: "Berhasil", description: "Karyawan baru berhasil ditambahkan" });
+        toast({
+          title: "Berhasil",
+          description: "Karyawan baru berhasil ditambahkan",
+        });
       }
 
       loadEmployees();
@@ -253,7 +311,11 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
     }
@@ -304,7 +366,11 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
     const { error } = await supabase.from("employees").delete().eq("id", id);
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
       toast({ title: "Berhasil", description: "Karyawan berhasil dihapus" });
       loadEmployees();
@@ -319,9 +385,16 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
       .eq("id", id);
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
-      toast({ title: "Berhasil", description: `Status karyawan diubah menjadi ${status}` });
+      toast({
+        title: "Berhasil",
+        description: `Status karyawan diubah menjadi ${status}`,
+      });
       loadEmployees();
       onUpdate?.();
     }
@@ -372,26 +445,47 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
     setEditingEmployee(null);
   };
 
-  const filteredEmployees = employees.filter(emp => {
-    const matchesSearch = emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredEmployees = employees.filter((emp) => {
+    const matchesSearch =
+      emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.employee_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesDepartment = filterDepartment === "all" || emp.department_id === filterDepartment;
-    const matchesStatus = filterStatus === "all" || emp.status === filterStatus;
-    const matchesEmploymentStatus = filterEmploymentStatus === "all" || emp.employment_status === filterEmploymentStatus;
 
-    return matchesSearch && matchesDepartment && matchesStatus && matchesEmploymentStatus;
+    const matchesDepartment =
+      filterDepartment === "all" || emp.department_id === filterDepartment;
+    const matchesStatus = filterStatus === "all" || emp.status === filterStatus;
+    const matchesEmploymentStatus =
+      filterEmploymentStatus === "all" ||
+      emp.employment_status === filterEmploymentStatus;
+
+    return (
+      matchesSearch &&
+      matchesDepartment &&
+      matchesStatus &&
+      matchesEmploymentStatus
+    );
   });
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
       active: { variant: "default", label: "Aktif", color: "bg-green-500" },
-      inactive: { variant: "secondary", label: "Tidak Aktif", color: "bg-gray-500" },
-      terminated: { variant: "destructive", label: "Diberhentikan", color: "bg-red-500" },
+      inactive: {
+        variant: "secondary",
+        label: "Tidak Aktif",
+        color: "bg-gray-500",
+      },
+      terminated: {
+        variant: "destructive",
+        label: "Diberhentikan",
+        color: "bg-red-500",
+      },
       resigned: { variant: "outline", label: "Resign", color: "bg-orange-500" },
     };
-    const config = variants[status] || { variant: "default", label: status, color: "bg-gray-500" };
+    const config = variants[status] || {
+      variant: "default",
+      label: status,
+      color: "bg-gray-500",
+    };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -414,7 +508,10 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
               />
             </div>
 
-            <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+            <Select
+              value={filterDepartment}
+              onValueChange={setFilterDepartment}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Semua Departemen" />
               </SelectTrigger>
@@ -428,7 +525,10 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
               </SelectContent>
             </Select>
 
-            <Select value={filterEmploymentStatus} onValueChange={setFilterEmploymentStatus}>
+            <Select
+              value={filterEmploymentStatus}
+              onValueChange={setFilterEmploymentStatus}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Status Kepegawaian" />
               </SelectTrigger>
@@ -462,13 +562,18 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Manajemen Karyawan</h2>
-          <p className="text-gray-600">Total: {filteredEmployees.length} karyawan</p>
+          <p className="text-gray-600">
+            Total: {filteredEmployees.length} karyawan
+          </p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) resetForm();
-        }}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700">
               <UserPlus className="h-4 w-4 mr-2" />
@@ -477,7 +582,9 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingEmployee ? "Edit Karyawan" : "Tambah Karyawan Baru"}</DialogTitle>
+              <DialogTitle>
+                {editingEmployee ? "Edit Karyawan" : "Tambah Karyawan Baru"}
+              </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6">
               <Tabs defaultValue="personal" className="w-full">
@@ -497,7 +604,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Input
                         required
                         value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            full_name: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -507,7 +619,9 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                         type="email"
                         required
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                       />
                     </div>
 
@@ -515,13 +629,20 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>No. Telepon</Label>
                       <Input
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, phone: e.target.value })
+                        }
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Jenis Kelamin</Label>
-                      <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+                      <Label>Jenis Kelamin1</Label>
+                      <Select
+                        value={formData.gender}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, gender: value })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -536,7 +657,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Tempat Lahir</Label>
                       <Input
                         value={formData.birth_place}
-                        onChange={(e) => setFormData({ ...formData, birth_place: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            birth_place: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -545,13 +671,23 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Input
                         type="date"
                         value={formData.birth_date}
-                        onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            birth_date: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label>Agama</Label>
-                      <Select value={formData.religion} onValueChange={(value) => setFormData({ ...formData, religion: value })}>
+                      <Select
+                        value={formData.religion}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, religion: value })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih agama" />
                         </SelectTrigger>
@@ -568,12 +704,19 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
 
                     <div className="space-y-2">
                       <Label>Status Pernikahan</Label>
-                      <Select value={formData.marital_status} onValueChange={(value) => setFormData({ ...formData, marital_status: value })}>
+                      <Select
+                        value={formData.marital_status}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, marital_status: value })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Belum Menikah">Belum Menikah</SelectItem>
+                          <SelectItem value="Belum Menikah">
+                            Belum Menikah
+                          </SelectItem>
                           <SelectItem value="Menikah">Menikah</SelectItem>
                           <SelectItem value="Cerai">Cerai</SelectItem>
                         </SelectContent>
@@ -584,7 +727,9 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Alamat</Label>
                       <Textarea
                         value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: e.target.value })
+                        }
                       />
                     </div>
 
@@ -592,7 +737,9 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Kota</Label>
                       <Input
                         value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, city: e.target.value })
+                        }
                       />
                     </div>
 
@@ -600,7 +747,9 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Provinsi</Label>
                       <Input
                         value={formData.province}
-                        onChange={(e) => setFormData({ ...formData, province: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, province: e.target.value })
+                        }
                       />
                     </div>
 
@@ -608,7 +757,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Kode Pos</Label>
                       <Input
                         value={formData.postal_code}
-                        onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            postal_code: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -617,10 +771,20 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => setFiles({ ...files, photo: e.target.files?.[0] || null })}
+                        onChange={(e) =>
+                          setFiles({
+                            ...files,
+                            photo: e.target.files?.[0] || null,
+                          })
+                        }
                       />
                       {editingEmployee?.photo_url && (
-                        <a href={editingEmployee.photo_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                        <a
+                          href={editingEmployee.photo_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
                           <Eye className="h-3 w-3" /> Lihat foto saat ini
                         </a>
                       )}
@@ -633,10 +797,16 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Departemen *</Label>
-                      <Select 
+                      <Select
                         required
-                        value={formData.department_id} 
-                        onValueChange={(value) => setFormData({ ...formData, department_id: value, position_id: "" })}
+                        value={formData.department_id}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            department_id: value,
+                            position_id: "",
+                          })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih departemen" />
@@ -653,10 +823,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
 
                     <div className="space-y-2">
                       <Label>Jabatan *</Label>
-                      <Select 
+                      <Select
                         required
-                        value={formData.position_id} 
-                        onValueChange={(value) => setFormData({ ...formData, position_id: value })}
+                        value={formData.position_id}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, position_id: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih jabatan" />
@@ -673,7 +845,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
 
                     <div className="space-y-2">
                       <Label>Status Kepegawaian *</Label>
-                      <Select value={formData.employment_status} onValueChange={(value) => setFormData({ ...formData, employment_status: value })}>
+                      <Select
+                        value={formData.employment_status}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, employment_status: value })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -693,7 +870,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                         type="date"
                         required
                         value={formData.join_date}
-                        onChange={(e) => setFormData({ ...formData, join_date: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            join_date: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -703,7 +885,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                         type="number"
                         required
                         value={formData.basic_salary}
-                        onChange={(e) => setFormData({ ...formData, basic_salary: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            basic_salary: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -711,7 +898,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Nama Bank</Label>
                       <Input
                         value={formData.bank_name}
-                        onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bank_name: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -719,7 +911,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>No. Rekening</Label>
                       <Input
                         value={formData.bank_account_number}
-                        onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bank_account_number: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -727,7 +924,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Nama Pemilik Rekening</Label>
                       <Input
                         value={formData.bank_account_holder}
-                        onChange={(e) => setFormData({ ...formData, bank_account_holder: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bank_account_holder: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -740,7 +942,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>No. KTP</Label>
                       <Input
                         value={formData.ktp_number}
-                        onChange={(e) => setFormData({ ...formData, ktp_number: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            ktp_number: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -749,10 +956,20 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Input
                         type="file"
                         accept="image/*,.pdf"
-                        onChange={(e) => setFiles({ ...files, ktp: e.target.files?.[0] || null })}
+                        onChange={(e) =>
+                          setFiles({
+                            ...files,
+                            ktp: e.target.files?.[0] || null,
+                          })
+                        }
                       />
                       {editingEmployee?.ktp_file_url && (
-                        <a href={editingEmployee.ktp_file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                        <a
+                          href={editingEmployee.ktp_file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
                           <Download className="h-3 w-3" /> Download KTP
                         </a>
                       )}
@@ -762,7 +979,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>No. NPWP</Label>
                       <Input
                         value={formData.npwp_number}
-                        onChange={(e) => setFormData({ ...formData, npwp_number: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            npwp_number: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -771,10 +993,20 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Input
                         type="file"
                         accept="image/*,.pdf"
-                        onChange={(e) => setFiles({ ...files, npwp: e.target.files?.[0] || null })}
+                        onChange={(e) =>
+                          setFiles({
+                            ...files,
+                            npwp: e.target.files?.[0] || null,
+                          })
+                        }
                       />
                       {editingEmployee?.npwp_file_url && (
-                        <a href={editingEmployee.npwp_file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                        <a
+                          href={editingEmployee.npwp_file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
                           <Download className="h-3 w-3" /> Download NPWP
                         </a>
                       )}
@@ -784,7 +1016,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>No. BPJS Kesehatan</Label>
                       <Input
                         value={formData.bpjs_kesehatan}
-                        onChange={(e) => setFormData({ ...formData, bpjs_kesehatan: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bpjs_kesehatan: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -792,7 +1029,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>No. BPJS Ketenagakerjaan</Label>
                       <Input
                         value={formData.bpjs_ketenagakerjaan}
-                        onChange={(e) => setFormData({ ...formData, bpjs_ketenagakerjaan: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bpjs_ketenagakerjaan: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -801,10 +1043,20 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Input
                         type="file"
                         accept=".pdf,.doc,.docx"
-                        onChange={(e) => setFiles({ ...files, cv: e.target.files?.[0] || null })}
+                        onChange={(e) =>
+                          setFiles({
+                            ...files,
+                            cv: e.target.files?.[0] || null,
+                          })
+                        }
                       />
                       {editingEmployee?.cv_file_url && (
-                        <a href={editingEmployee.cv_file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                        <a
+                          href={editingEmployee.cv_file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
                           <Download className="h-3 w-3" /> Download CV
                         </a>
                       )}
@@ -815,10 +1067,20 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Input
                         type="file"
                         accept=".pdf"
-                        onChange={(e) => setFiles({ ...files, contract: e.target.files?.[0] || null })}
+                        onChange={(e) =>
+                          setFiles({
+                            ...files,
+                            contract: e.target.files?.[0] || null,
+                          })
+                        }
                       />
                       {editingEmployee?.contract_file_url && (
-                        <a href={editingEmployee.contract_file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                        <a
+                          href={editingEmployee.contract_file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
                           <Download className="h-3 w-3" /> Download Kontrak
                         </a>
                       )}
@@ -831,7 +1093,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Pendidikan Terakhir</Label>
-                      <Select value={formData.last_education} onValueChange={(value) => setFormData({ ...formData, last_education: value })}>
+                      <Select
+                        value={formData.last_education}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, last_education: value })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih pendidikan" />
                         </SelectTrigger>
@@ -851,7 +1118,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Nama Institusi</Label>
                       <Input
                         value={formData.institution_name}
-                        onChange={(e) => setFormData({ ...formData, institution_name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            institution_name: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -859,7 +1131,9 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Jurusan</Label>
                       <Input
                         value={formData.major}
-                        onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, major: e.target.value })
+                        }
                       />
                     </div>
 
@@ -868,7 +1142,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Input
                         type="number"
                         value={formData.graduation_year}
-                        onChange={(e) => setFormData({ ...formData, graduation_year: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            graduation_year: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -881,7 +1160,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Nama Kontak Darurat</Label>
                       <Input
                         value={formData.emergency_contact_name}
-                        onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            emergency_contact_name: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -889,7 +1173,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Hubungan</Label>
                       <Input
                         value={formData.emergency_contact_relation}
-                        onChange={(e) => setFormData({ ...formData, emergency_contact_relation: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            emergency_contact_relation: e.target.value,
+                          })
+                        }
                         placeholder="Contoh: Orang Tua, Saudara, Pasangan"
                       />
                     </div>
@@ -898,7 +1187,12 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>No. Telepon Darurat</Label>
                       <Input
                         value={formData.emergency_contact_phone}
-                        onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            emergency_contact_phone: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -906,7 +1200,9 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
                       <Label>Catatan</Label>
                       <Textarea
                         value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, notes: e.target.value })
+                        }
                         placeholder="Catatan tambahan tentang karyawan..."
                       />
                     </div>
@@ -915,11 +1211,23 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
               </Tabs>
 
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
                   Batal
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={uploading}>
-                  {uploading ? "Menyimpan..." : editingEmployee ? "Update" : "Simpan"}
+                <Button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={uploading}
+                >
+                  {uploading
+                    ? "Menyimpan..."
+                    : editingEmployee
+                      ? "Update"
+                      : "Simpan"}
                 </Button>
               </div>
             </form>
@@ -947,46 +1255,68 @@ export default function EmployeeManagementAdvanced({ onUpdate }: { onUpdate?: ()
               <TableBody>
                 {filteredEmployees.map((employee) => (
                   <TableRow key={employee.id}>
-                    <TableCell className="font-medium">{employee.employee_number}</TableCell>
+                    <TableCell className="font-medium">
+                      {employee.employee_number}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {employee.photo_url && (
-                          <img src={employee.photo_url} alt={employee.full_name} className="h-8 w-8 rounded-full object-cover" />
+                          <img
+                            src={employee.photo_url}
+                            alt={employee.full_name}
+                            className="h-8 w-8 rounded-full object-cover"
+                          />
                         )}
                         {employee.full_name}
                       </div>
                     </TableCell>
                     <TableCell>{employee.email}</TableCell>
-                    <TableCell>{employee.departments?.department_name}</TableCell>
+                    <TableCell>
+                      {employee.departments?.department_name}
+                    </TableCell>
                     <TableCell>{employee.positions?.position_name}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{employee.employment_status}</Badge>
+                      <Badge variant="outline">
+                        {employee.employment_status}
+                      </Badge>
                     </TableCell>
                     <TableCell>{getStatusBadge(employee.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(employee)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(employee)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         {employee.status === "active" && (
-                          <Button 
-                            size="sm" 
-                            variant="secondary" 
-                            onClick={() => handleStatusChange(employee.id, "inactive")}
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() =>
+                              handleStatusChange(employee.id, "inactive")
+                            }
                           >
                             Nonaktifkan
                           </Button>
                         )}
                         {employee.status === "inactive" && (
-                          <Button 
-                            size="sm" 
-                            variant="default" 
-                            onClick={() => handleStatusChange(employee.id, "active")}
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() =>
+                              handleStatusChange(employee.id, "active")
+                            }
                           >
                             Aktifkan
                           </Button>
                         )}
-                        <Button size="sm" variant="destructive" onClick={() => handleDelete(employee.id)}>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(employee.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

@@ -67,6 +67,7 @@ export function AuthFormContent({
     plateNumber: "",
     vehicleYear: "",
     vehicleColor: "",
+    uploadIjasah: null as File | null,
     selfiePhoto: null as File | null,
     familyCard: null as File | null,
     ktpDocument: null as File | null,
@@ -142,6 +143,43 @@ export function AuthFormContent({
     }
   };
 
+  // Helper function to upload file to bucket
+  const uploadFileToBucket = async (
+    file: File,
+    folder: string,
+    userId?: string,
+  ): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = userId
+        ? `${folder}/${userId}/${fileName}`
+        : `${folder}/temp_${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from("employee-documents")
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: false,
+        });
+
+      if (error) {
+        console.error("Upload error:", error);
+        return null;
+      }
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("employee-documents").getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (err) {
+      console.error("Upload failed:", err);
+      return null;
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -150,7 +188,7 @@ export function AuthFormContent({
       const details: Record<string, any> = {};
       const fileUrls: Record<string, string> = {};
 
-      const entityType = signUpData.roleName; // roleName is actually entity_type
+      const entityType = signUpData.roleEntity; // roleEntity is the actual entity_type (karyawan, driver_perusahaan, etc.)
 
       if (
         entityType === "supplier" ||
@@ -186,7 +224,6 @@ export function AuthFormContent({
           first_name: signUpData.firstName,
           last_name: signUpData.lastName,
           ktp_address: signUpData.ktpAddress,
-          ijasah: signUpData.ijasah,
           ktp_number: signUpData.ktpNumber,
           religion: signUpData.religion,
           ethnicity: signUpData.ethnicity,
@@ -194,6 +231,20 @@ export function AuthFormContent({
           license_number: signUpData.licenseNumber,
           license_expiry_date: signUpData.licenseExpiryDate,
         });
+
+        // Upload ijasah file to bucket if provided
+        if (signUpData.uploadIjasah) {
+          console.log("Uploading ijasah file:", signUpData.uploadIjasah.name);
+          const ijasahUrl = await uploadFileToBucket(
+            signUpData.uploadIjasah,
+            "upload_ijasah",
+          );
+          console.log("Ijasah upload result:", ijasahUrl);
+          if (ijasahUrl) {
+            details.upload_ijasah = ijasahUrl;
+            fileUrls.upload_ijasah_url = ijasahUrl;
+          }
+        }
 
         // Additional vehicle details for Driver Mitra
         if (entityType === "driver_mitra") {
@@ -206,24 +257,74 @@ export function AuthFormContent({
           });
         }
 
-        // File URLs for karyawan entity - map to correct database columns
+        // Upload KTP document to bucket if provided
         if (signUpData.ktpDocument) {
-          fileUrls.upload_ktp_url = `LOCAL:${signUpData.ktpDocument.name}`;
+          console.log("Uploading KTP document:", signUpData.ktpDocument.name);
+          const ktpUrl = await uploadFileToBucket(
+            signUpData.ktpDocument,
+            "ktp",
+          );
+          console.log("KTP upload result:", ktpUrl);
+          if (ktpUrl) {
+            details.ktp_document_url = ktpUrl;
+            fileUrls.ktp_document_url = ktpUrl;
+          }
         }
-        if (signUpData.ijasahDocument) {
-          fileUrls.upload_ijasah_url = `LOCAL:${signUpData.ijasahDocument.name}`;
-        }
+        
+        // Upload selfie photo to bucket if provided
         if (signUpData.selfiePhoto) {
-          fileUrls.foto_selfie_url = `LOCAL:${signUpData.selfiePhoto.name}`;
+          console.log("Uploading selfie photo:", signUpData.selfiePhoto.name);
+          const selfieUrl = await uploadFileToBucket(
+            signUpData.selfiePhoto,
+            "selfi",
+          );
+          console.log("Selfie upload result:", selfieUrl);
+          if (selfieUrl) {
+            details.selfie_url = selfieUrl;
+            fileUrls.selfie_url = selfieUrl;
+          }
         }
+        
+        // Upload family card to bucket if provided
         if (signUpData.familyCard) {
-          fileUrls.upload_kk_url = `LOCAL:${signUpData.familyCard.name}`;
+          console.log("Uploading family card:", signUpData.familyCard.name);
+          const familyCardUrl = await uploadFileToBucket(
+            signUpData.familyCard,
+            "family_card",
+          );
+          console.log("Family card upload result:", familyCardUrl);
+          if (familyCardUrl) {
+            details.family_card_url = familyCardUrl;
+            fileUrls.family_card_url = familyCardUrl;
+          }
         }
+        
+        // Upload SIM document to bucket if provided
         if (signUpData.simDocument) {
-          fileUrls.upload_sim_url = `LOCAL:${signUpData.simDocument.name}`;
+          console.log("Uploading SIM document:", signUpData.simDocument.name);
+          const simUrl = await uploadFileToBucket(
+            signUpData.simDocument,
+            "sim",
+          );
+          console.log("SIM upload result:", simUrl);
+          if (simUrl) {
+            details.sim_url = simUrl;
+            fileUrls.sim_url = simUrl;
+          }
         }
+        
+        // Upload SKCK document to bucket if provided
         if (signUpData.skckDocument) {
-          fileUrls.upload_skck_url = `LOCAL:${signUpData.skckDocument.name}`;
+          console.log("Uploading SKCK document:", signUpData.skckDocument.name);
+          const skckUrl = await uploadFileToBucket(
+            signUpData.skckDocument,
+            "skck",
+          );
+          console.log("SKCK upload result:", skckUrl);
+          if (skckUrl) {
+            details.skck_url = skckUrl;
+            fileUrls.skck_url = skckUrl;
+          }
         }
 
         // Additional file URLs for Driver Mitra
@@ -243,7 +344,7 @@ export function AuthFormContent({
         signUpData.fullName,
         entityType,
         signUpData.phoneNumber || entityFormData.phone_number,
-        details, // <---- semua field ada di sini
+        details, // <---- semua field ada di sini termasuk upload_ijasah URL
         fileUrls,
         selectedRole?.role_name || null,
         selectedRole?.role_id || null,
@@ -255,7 +356,10 @@ export function AuthFormContent({
         signUpData.lastName,
         signUpData.religion,
         signUpData.ethnicity,
+        signUpData.licenseNumber,
+        signUpData.licenseExpiryDate,
         signUpData.education,
+        details.upload_ijasah || fileUrls.upload_ijasah_url || null,
       );
 
       toast({
@@ -851,17 +955,17 @@ export function AuthFormContent({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="upload-ijasah" className="text-sm">
+                        <Label htmlFor="upload_ijasah" className="text-sm">
                           Ijasah *
                         </Label>
                         <Input
-                          id="upload-ijasah"
+                          id="upload_ijasah"
                           type="file"
                           accept="image/*"
                           onChange={(e) =>
                             setSignUpData({
                               ...signUpData,
-                              ijasahDocument: e.target.files?.[0] || null,
+                              uploadIjasah: e.target.files?.[0] || null,
                             })
                           }
                           className="bg-white"
@@ -1157,7 +1261,7 @@ export function AuthFormContent({
                           onChange={(e) =>
                             setSignUpData({
                               ...signUpData,
-                              ijasahDocument: e.target.files?.[0] || null,
+                              uploadIjasah: e.target.files?.[0] || null,
                             })
                           }
                           className="bg-white"

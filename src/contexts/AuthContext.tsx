@@ -26,6 +26,12 @@ interface AuthContextType {
     roleEntity?: string,
     ktp_number?: string,
     ktp_address?: string,
+    religion?: string,
+    ethnicity?: string,
+    license_number?: string,
+    license_expiry_date?: string,
+    education?: string,
+    upload_ijasah?: string,
   ) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -193,6 +199,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ktp_address?: string,
     first_name?: string,
     last_name?: string,
+    religion?: string,
+    ethnicity?: string,
+    license_number?: string,
+    license_expiry_date?: string,
+    education?: string,
+    upload_ijasah?: string,
   ) => {
     const { data, error } = await supabase.functions.invoke(
       "supabase-functions-signup-multi-entity",
@@ -211,6 +223,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ktp_address, // <--- untuk tabel users
           first_name,
           last_name,
+          religion,
+          ethnicity,
+          license_number,
+          license_expiry_date,
+          education,
+          upload_ijasah,
         },
       },
     );

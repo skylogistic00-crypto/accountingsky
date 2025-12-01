@@ -473,13 +473,7 @@ export default function FinanceTransactionsPage() {
               <p className="text-gray-500">Create a new expense transaction</p>
             </div>
           </div>
-          <Button
-            onClick={() => setShowOCRModal(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <ScanLine className="h-4 w-4 mr-2" />
-            Scan OCR
-          </Button>
+
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -781,83 +775,7 @@ export default function FinanceTransactionsPage() {
         </div>
       </div>
 
-      {/* OCR Scanner Modal */}
-      <Dialog open={showOCRModal} onOpenChange={setShowOCRModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Scan OCR - Upload Receipt</DialogTitle>
-            <DialogDescription>
-              Upload gambar receipt untuk ekstrak data otomatis
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* File Upload */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              {ocrFilePreview ? (
-                <div className="space-y-4">
-                  <img
-                    src={ocrFilePreview}
-                    alt="Preview"
-                    className="max-h-64 mx-auto rounded-lg"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => ocrFileInputRef.current?.click()}
-                  >
-                    Change Image
-                  </Button>
-                </div>
-              ) : (
-                <div
-                  className="cursor-pointer"
-                  onClick={() => ocrFileInputRef.current?.click()}
-                >
-                  <Upload className="h-12 w-12 mx-auto text-gray-400" />
-                  <p className="mt-2 text-sm text-gray-500">
-                    Click to upload receipt image
-                  </p>
-                </div>
-              )}
-              <input
-                ref={ocrFileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleOCRFileChange}
-              />
-            </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowOCRModal(false)}
-                disabled={isProcessingOCR}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleScanOCR}
-                disabled={!ocrFile || isProcessingOCR}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {isProcessingOCR ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing OCR...
-                  </>
-                ) : (
-                  <>
-                    <ScanLine className="h-4 w-4 mr-2" />
-                    Process OCR
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

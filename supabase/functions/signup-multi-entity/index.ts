@@ -21,7 +21,17 @@ Deno.serve(async (req) => {
       details = {}, 
       file_urls = {}, 
       role_name, 
-      role_id 
+      role_id,
+      ktp_number,
+      ktp_address,
+      first_name,
+      last_name,
+      religion,
+      ethnicity,
+      license_number,
+      license_expiry_date,
+      education,
+      upload_ijasah
     } = body;
 
     // Validate required fields
@@ -141,6 +151,53 @@ Deno.serve(async (req) => {
       is_active: false,
       created_at: new Date().toISOString()
     };
+
+    // Add employee/karyawan specific fields to users table
+    // Check for karyawan, driver_perusahaan, driver_mitra, employee, or driver
+    const isEmployeeType = ["employee", "driver", "karyawan", "driver_perusahaan", "driver_mitra"].includes(normalizedEntityType);
+    
+    if (isEmployeeType) {
+      // Get upload_ijasah URL - file already uploaded from frontend
+      const ijasahUrl = upload_ijasah || details.upload_ijasah || file_urls.upload_ijasah_url || null;
+      
+      // Get ktp_document_url - file already uploaded from frontend
+      const ktpDocUrl = details.ktp_document_url || file_urls.ktp_document_url || null;
+      
+      // Get selfie_url - file already uploaded from frontend
+      const selfieUrl = details.selfie_url || file_urls.selfie_url || null;
+      
+      // Get family_card_url - file already uploaded from frontend
+      const familyCardUrl = details.family_card_url || file_urls.family_card_url || null;
+      
+      // Get sim_url - file already uploaded from frontend
+      const simUrl = details.sim_url || file_urls.sim_url || null;
+      
+      // Get skck_url - file already uploaded from frontend
+      const skckUrl = details.skck_url || file_urls.skck_url || null;
+      
+      console.log("Setting upload_ijasah:", ijasahUrl);
+      console.log("Setting ktp_document_url:", ktpDocUrl);
+      console.log("Setting selfie_url:", selfieUrl);
+      console.log("Setting family_card_url:", familyCardUrl);
+      console.log("Setting sim_url:", simUrl);
+      console.log("Setting skck_url:", skckUrl);
+      
+      usersData["upload_ijasah"] = ijasahUrl;
+      usersData["ktp_document_url"] = ktpDocUrl;
+      usersData["selfie_url"] = selfieUrl;
+      usersData["family_card_url"] = familyCardUrl;
+      usersData["sim_url"] = simUrl;
+      usersData["skck_url"] = skckUrl;
+      usersData.ktp_number = ktp_number || details.ktp_number || null;
+      usersData.ktp_address = ktp_address || details.ktp_address || null;
+      usersData.first_name = first_name || details.first_name || null;
+      usersData.last_name = last_name || details.last_name || null;
+      usersData.religion = religion || details.religion || null;
+      usersData.ethnicity = ethnicity || details.ethnicity || null;
+      usersData.education = education || details.education || null;
+      usersData.license_number = license_number || details.license_number || null;
+      usersData.license_expiry_date = license_expiry_date || details.license_expiry_date || null;
+    }
 
     // For suppliers, add supplier-specific fields to users table
     if (normalizedEntityType === "supplier") {

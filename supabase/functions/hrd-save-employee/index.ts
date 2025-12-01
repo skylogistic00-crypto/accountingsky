@@ -45,6 +45,17 @@ Deno.serve(async (req) => {
       return isNaN(num) ? "NULL" : String(num);
     };
 
+    // Sanitize UUID fields - returns NULL for empty strings or wraps valid UUIDs in quotes
+    const sanitizeUUID = (val: string | null | undefined): string => {
+      if (val === null || val === undefined || val === "" || val.trim() === "") return "NULL";
+      // Basic UUID validation (8-4-4-4-12 format)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(val.trim())) {
+        return `'${val.trim()}'`;
+      }
+      return "NULL";
+    };
+
     // Sanitize date fields - returns NULL for empty strings or null values
     const sanitizeDate = (dateValue: string | null | undefined): string => {
       if (dateValue === null || dateValue === undefined) {
@@ -89,8 +100,8 @@ Deno.serve(async (req) => {
           ${sanitize(data.npwp_number)},
           ${sanitize(data.bpjs_kesehatan)},
           ${sanitize(data.bpjs_ketenagakerjaan)},
-          ${data.department_id ? sanitize(data.department_id) : "NULL"},
-          ${data.position_id ? sanitize(data.position_id) : "NULL"},
+          ${sanitizeUUID(data.department_id)},
+          ${sanitizeUUID(data.position_id)},
           ${sanitize(data.employment_status)},
           ${sanitizeDate(data.join_date)},
           ${sanitizeNumber(data.basic_salary)},
@@ -128,8 +139,8 @@ Deno.serve(async (req) => {
           npwp_number = ${sanitize(data.npwp_number)},
           bpjs_kesehatan = ${sanitize(data.bpjs_kesehatan)},
           bpjs_ketenagakerjaan = ${sanitize(data.bpjs_ketenagakerjaan)},
-          department_id = ${data.department_id ? sanitize(data.department_id) : "NULL"},
-          position_id = ${data.position_id ? sanitize(data.position_id) : "NULL"},
+          department_id = ${sanitizeUUID(data.department_id)},
+          position_id = ${sanitizeUUID(data.position_id)},
           employment_status = ${sanitize(data.employment_status)},
           join_date = ${sanitizeDate(data.join_date)},
           basic_salary = ${sanitizeNumber(data.basic_salary)},

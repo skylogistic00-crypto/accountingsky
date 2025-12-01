@@ -2648,6 +2648,7 @@ export default function TransaksiKeuanganForm() {
     setJenisPembayaranPengeluaran("Cash");
     setNamaKaryawanPengeluaran("");
     setBuktiFile(null);
+    setBuktiUrl("");
     setOcrAppliedData(null);
     setOcrFile(null);
     setOcrFilePreview(null);
@@ -7443,31 +7444,33 @@ export default function TransaksiKeuanganForm() {
                 />
               </div>
 
-              {/* UPLOAD BUKTI + SCAN OCR */}
+              {/* SCAN OCR BUKTI */}
               <div className="space-y-2">
-                <Label htmlFor="bukti">Upload Bukti</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="bukti"
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setBuktiFile(file);
-                      }
-                    }}
-                    className="cursor-pointer flex-1"
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => setShowOCRModal(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <ScanLine className="h-4 w-4 mr-2" />
-                    Scan OCR
-                  </Button>
-                </div>
+                <Label>Scan OCR Bukti</Label>
+                <OCRScanButton
+                  onImageUploaded={(url, filePath) => {
+                    toast({
+                      title: "Gambar berhasil diupload",
+                      description: "Sedang memproses OCR...",
+                    });
+                  }}
+                  onTextExtracted={(text) => {
+                    console.log("📄 OCR Text extracted:", text);
+                    const parsed = parseOCR(text);
+                    if (parsed) {
+                      setOcrAppliedData(parsed);
+                      if (parsed.nominal) setNominal(parsed.nominal.toString());
+                      if (parsed.tanggal) setTanggal(parsed.tanggal);
+                      if (parsed.description) setDescription(parsed.description);
+                      toast({
+                        title: "✅ OCR Berhasil",
+                        description: "Data telah diisi otomatis",
+                      });
+                    }
+                  }}
+                  bucketName="documents"
+                  folderPath="transaksi-bukti"
+                />
                 {buktiFile && (
                   <p className="text-sm text-slate-600">
                     File terpilih: {buktiFile.name}
@@ -7565,6 +7568,116 @@ export default function TransaksiKeuanganForm() {
                   </details>
                 </div>
               )}
+
+              {/* UPLOAD BUKTI FOTO */}
+              <div className="space-y-2 mt-6">
+                <Label htmlFor="bukti-foto" className="text-base font-semibold">
+                  Bukti Foto Transaksi
+                </Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="bukti-foto"
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      setBuktiFile(file);
+                      
+                      // Upload to Supabase Storage
+                      try {
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                        const filePath = `transaksi-bukti/${fileName}`;
+
+                        const { error: uploadError } = await supabase.storage
+                          .from('documents')
+                          .upload(filePath, file);
+
+                        if (uploadError) throw uploadError;
+
+                        const { data: { publicUrl } } = supabase.storage
+                          .from('documents')
+                          .getPublicUrl(filePath);
+
+                        setBuktiUrl(publicUrl);
+                        
+                        toast({
+                          title: "✅ Bukti berhasil diupload",
+                          description: "File bukti transaksi telah tersimpan",
+                        });
+                      } catch (error: any) {
+                        console.error('Upload error:', error);
+                        toast({
+                          title: "❌ Upload gagal",
+                          description: error.message,
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  {buktiFile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setBuktiFile(null);
+                        setBuktiUrl("");
+                        // Reset file input
+                        const fileInput = document.getElementById('bukti-foto') as HTMLInputElement;
+                        if (fileInput) fileInput.value = '';
+                      }}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                {/* Preview Bukti */}
+                {buktiUrl && buktiFile && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        {buktiFile.type.startsWith('image/') ? (
+                          <img
+                            src={buktiUrl}
+                            alt="Bukti Transaksi"
+                            className="w-24 h-24 object-cover rounded border"
+                          />
+                        ) : (
+                          <div className="w-24 h-24 bg-gray-200 rounded border flex items-center justify-center">
+                            <FileText className="h-8 w-8 text-gray-500" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-green-800">
+                          ✅ Bukti berhasil diupload
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          {buktiFile.name}
+                        </p>
+                        <a
+                          href={buktiUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                        >
+                          Lihat file →
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <p className="text-xs text-slate-500">
+                  Upload foto bukti transaksi (struk, invoice, kwitansi, dll). Format: JPG, PNG, atau PDF
+                </p>
+              </div>
 
               {/* BUTTONS */}
               <div className="flex gap-4 pt-4">
