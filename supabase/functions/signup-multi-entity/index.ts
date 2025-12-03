@@ -288,13 +288,16 @@ Deno.serve(async (req) => {
         });
         entityError = error;
       } else if (normalizedEntity === "consignee") {
+        // Remove full_name from entityData if it exists
+        const { full_name: _, ...cleanEntityData } = entityData as any;
+        
         const { error } = await supabase.from("consignees").insert({
           user_id: authUser.user.id,
           consignee_name: details.entity_name || full_name,
           contact_person: details.contact_person || full_name,
           email,
           phone_number: phone || "",
-          ...entityData,
+          ...cleanEntityData,
         });
         entityError = error;
       } else if (normalizedEntity === "shipper") {
@@ -340,12 +343,44 @@ Deno.serve(async (req) => {
       } else if (normalizedEntity === "driver" || normalizedEntity === "driver_perusahaan" || normalizedEntity === "driver_mitra") {
         const driverType = normalizedEntity === "driver_perusahaan" ? "perusahaan" : 
                           normalizedEntity === "driver_mitra" ? "mitra" : "general";
+        
+        // Get all driver-specific fields from details and file_urls
+        const drvKtpDocUrl = details.ktp_document_url || file_urls.ktp_document_url || null;
+        const drvSelfieUrl = details.selfie_url || file_urls.selfie_url || null;
+        const drvSimUrl = details.sim_url || file_urls.sim_url || null;
+        const drvSkckUrl = details.skck_url || file_urls.skck_url || null;
+        const drvFamilyCardUrl = details.family_card_url || file_urls.family_card_url || null;
+        const drvStnkUrl = details.upload_stnk_url || file_urls.upload_stnk_url || null;
+        const drvVehiclePhoto = details.vehicle_photo || file_urls.upload_vehicle_photo_url || null;
+        
         const { error } = await supabase.from("drivers").insert({
           user_id: authUser.user.id,
           full_name,
           email,
           phone,
           driver_type: driverType,
+          // KTP and personal info
+          ktp_number: ktp_number || details.ktp_number || null,
+          ktp_address: ktp_address || details.ktp_address || null,
+          religion: religion || details.religion || null,
+          ethnicity: ethnicity || details.ethnicity || null,
+          // License info
+          license_number: license_number || details.license_number || null,
+          license_expiry: license_expiry_date || details.license_expiry || details.license_expiry_date || null,
+          // Vehicle info (for driver_mitra)
+          vehicle_brand: details.vehicle_brand || null,
+          vehicle_model: details.vehicle_model || null,
+          plate_number: details.plate_number || null,
+          vehicle_year: details.vehicle_year || null,
+          vehicle_color: details.vehicle_color || null,
+          // Document URLs
+          ktp_document_url: drvKtpDocUrl,
+          selfie_url: drvSelfieUrl,
+          sim_url: drvSimUrl,
+          skck_url: drvSkckUrl,
+          family_card_url: drvFamilyCardUrl,
+          upload_stnk_url: drvStnkUrl,
+          vehicle_photo: drvVehiclePhoto,
           ...entityData,
         });
         entityError = error;

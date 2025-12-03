@@ -14,15 +14,17 @@ import { AuthFormContent } from "@/components/AuthForm";
 
 export default function Header({ publicMode = false }) {
   const { toast } = useToast();
-
-  // 🛑 publicMode → JANGAN akses useAuth
-  const { user, signOut, userProfile } = publicMode
-    ? { user: null, signOut: null, userProfile: null }
-    : useAuth();
-
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [suspendedModal, setSuspendedModal] = useState(false);
   const [inactiveModal, setInactiveModal] = useState(false);
+
+  // Always call useAuth to maintain hook order
+  const authContext = useAuth();
+  
+  // Use auth context only if not in public mode
+  const { user, signOut, userProfile } = publicMode
+    ? { user: null, signOut: null, userProfile: null }
+    : authContext;
 
   const handleSignOut = async () => {
     if (!signOut) return; // safety if public mode

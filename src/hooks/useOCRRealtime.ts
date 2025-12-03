@@ -142,7 +142,7 @@ export async function uploadAndProcessOCR(file: File): Promise<{
     });
 
     const { data, error } = await supabase.functions.invoke(
-      "vision-google-ocr",
+      "supabase-functions-vision-google-ocr",
       {
         body: {
           file_base64: base64Content,

@@ -30,7 +30,6 @@ import CashFlowReport from "@/components/CashFlowReport";
 import TaxReportManagement from "@/components/TaxReportManagement";
 import CoretaxUploadForm from "@/components/CoretaxUploadForm";
 import CoretaxReportList from "@/components/CoretaxReportList";
-import GoogleOCRScanner from "@/components/GoogleOCRScanner";
 import ServiceItemsForm from "@/components/ServiceItemsForm";
 import ApprovalTransaksi from "@/components/ApprovalTransaksi";
 import CashDisbursementForm from "@/components/CashDisbursementForm";
@@ -54,6 +53,7 @@ import FinanceTransactionsPage from "@/components/FinanceTransactionsPage";
 import FinanceTransactionDetail from "@/components/FinanceTransactionDetail";
 import ChatAI from "@/pages/ChatAI";
 import FloatingChatAI from "@/components/FloatingChatAI";
+import GoogleOCRScanner from "@/components/GoogleOCRScanner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -638,17 +638,16 @@ function AppRoutesContent() {
           </ProtectedRoute>
         }
       />
+      {/* OCR Scanner */}
       <Route
         path="/google-ocr-scanner"
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              "super_admin",
-              "accounting_manager",
-              "accounting_staff",
-            ]}
-          >
-            <GoogleOCRScanner />
+          <ProtectedRoute>
+            <div className="min-h-screen bg-gray-50">
+              <Header />
+              <Navigation />
+              <GoogleOCRScanner />
+            </div>
           </ProtectedRoute>
         }
       />

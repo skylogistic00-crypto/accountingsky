@@ -133,6 +133,7 @@ export default function EmployeeManagementAdvanced({
     province: "",
     postal_code: "",
     ktp_number: "",
+    ktp_document_url: "",
     npwp_number: "",
     bpjs_kesehatan: "",
     bpjs_ketenagakerjaan: "",
@@ -250,7 +251,7 @@ export default function EmployeeManagementAdvanced({
 
       // Upload files if selected
       if (files.photo) {
-        photoUrl = await uploadFile(files.photo, "photos");
+        selfieUrl = await uploadFile(files.photo, "selfie");
       }
       if (files.ktp) {
         ktpUrl = await uploadFile(files.ktp, "ktp");
@@ -271,7 +272,7 @@ export default function EmployeeManagementAdvanced({
         graduation_year: formData.graduation_year
           ? parseInt(formData.graduation_year)
           : null,
-        selfie_url: selfie_url,
+        selfie_url: selfieUrl,
         ktp_document_url: ktpUrl,
         npwp_file_url: npwpUrl,
         cv_file_url: cvUrl,
@@ -340,6 +341,7 @@ export default function EmployeeManagementAdvanced({
       province: employee.province || "",
       postal_code: employee.postal_code || "",
       ktp_number: employee.ktp_number || "",
+      ktp_document_url: employee.ktp_document_url || "",
       npwp_number: employee.npwp_number || "",
       bpjs_kesehatan: employee.bpjs_kesehatan || "",
       bpjs_ketenagakerjaan: employee.bpjs_ketenagakerjaan || "",
@@ -439,7 +441,7 @@ export default function EmployeeManagementAdvanced({
       notes: "",
     });
     setFiles({
-      photo: null,
+      selfie: null,
       ktp: null,
       npwp: null,
       cv: null,
@@ -639,7 +641,7 @@ export default function EmployeeManagementAdvanced({
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Jenis Kelamin1</Label>
+                      <Label>Jenis Kelamin</Label>
                       <Select
                         value={formData.gender}
                         onValueChange={(value) =>
@@ -684,7 +686,7 @@ export default function EmployeeManagementAdvanced({
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Agama1</Label>
+                      <Label>Agama</Label>
                       <Select
                         value={formData.religion}
                         onValueChange={(value) =>
@@ -993,7 +995,7 @@ export default function EmployeeManagementAdvanced({
                           })
                         }
                       />
-                      {editingEmployee?.ktp_file_url && (
+                      {editingEmployee?.ktp_document_url && (
                         <a
                           href={editingEmployee.ktp_document_url}
                           target="_blank"
@@ -1286,7 +1288,7 @@ export default function EmployeeManagementAdvanced({
                 {filteredEmployees.map((employee) => (
                   <TableRow key={employee.id}>
                     <TableCell className="font-medium">
-                      {employee.employee_number}
+                      {employee.employee_code}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

@@ -188,7 +188,18 @@ export function AuthFormContent({
       const details: Record<string, any> = {};
       const fileUrls: Record<string, string> = {};
 
-      const entityType = signUpData.roleEntity; // roleEntity is the actual entity_type (karyawan, driver_perusahaan, etc.)
+      // roleEntity is the actual entity_type (karyawan, driver_perusahaan, etc.)
+      // Fallback to roleName if roleEntity is empty (for roles like Consignee, Supplier, Shipper)
+      let entityType = signUpData.roleEntity;
+      if (!entityType && signUpData.roleName) {
+        // Map role names to entity types
+        const roleNameLower = signUpData.roleName.toLowerCase();
+        if (roleNameLower === "consignee") entityType = "consignee";
+        else if (roleNameLower === "supplier") entityType = "supplier";
+        else if (roleNameLower === "shipper") entityType = "shipper";
+        else if (roleNameLower === "customer") entityType = "customer";
+        else entityType = roleNameLower.replace(/\s+/g, "_");
+      }
 
       if (
         entityType === "supplier" ||
@@ -329,26 +340,49 @@ export function AuthFormContent({
 
         // Additional file URLs for Driver Mitra
         if (entityType === "driver_mitra") {
+          // Upload STNK document
           if (signUpData.stnkDocument) {
-            fileUrls.upload_stnk_url = `LOCAL:${signUpData.stnkDocument.name}`;
+            console.log("Uploading STNK document:", signUpData.stnkDocument.name);
+            const stnkUrl = await uploadFileToBucket(
+              signUpData.stnkDocument,
+              "stnk",
+            );
+            console.log("STNK upload result:", stnkUrl);
+            if (stnkUrl) {
+              details.upload_stnk_url = stnkUrl;
+              fileUrls.upload_stnk_url = stnkUrl;
+            }
           }
+          // Upload vehicle photo
           if (signUpData.vehiclePhoto) {
-            fileUrls.upload_vehicle_photo_url = `LOCAL:${signUpData.vehiclePhoto.name}`;
+            console.log("Uploading vehicle photo:", signUpData.vehiclePhoto.name);
+            const vehiclePhotoUrl = await uploadFileToBucket(
+              signUpData.vehiclePhoto,
+              "vehicle_photo",
+            );
+            console.log("Vehicle photo upload result:", vehiclePhotoUrl);
+            if (vehiclePhotoUrl) {
+              details.vehicle_photo = vehiclePhotoUrl;
+              fileUrls.upload_vehicle_photo_url = vehiclePhotoUrl;
+            }
           }
         }
       }
 
+      // Determine fullName - use contact_person for entity roles if fullName is empty
+      const fullName = signUpData.fullName || entityFormData.contact_person || entityFormData.entity_name || "";
+
       await signUp(
         signUpData.email,
         signUpData.password,
-        signUpData.fullName,
+        fullName,
         entityType,
         signUpData.phoneNumber || entityFormData.phone_number,
         details, // <---- semua field ada di sini termasuk upload_ijasah URL
         fileUrls,
-        selectedRole?.role_name || null,
+        selectedRole?.role_name || signUpData.roleName || null,
         selectedRole?.role_id || null,
-        selectedRole?.entity || signUpData.roleEntity || null,
+        entityType, // Use the computed entityType instead of selectedRole?.entity
         // <- hanya dikirim jika ingin masuk tabel USERS
         signUpData.ktpNumber,
         signUpData.ktpAddress,
@@ -498,7 +532,7 @@ export function AuthFormContent({
               </Select>
             </div>
 
-            {/* Show entity-specific form if supplier, consignee, or shipper is selected */}
+            {/* Show entity-specific inline form if supplier, consignee, or shipper is selected */}
             {showEntityForm && (
               <div className="space-y-3 bg-white p-3 rounded-lg border border-slate-200">
                 <h3 className="text-sm font-medium text-slate-700 border-b pb-2">
@@ -506,9 +540,276 @@ export function AuthFormContent({
                   {showEntityForm === "consignee" && "Consignee Information"}
                   {showEntityForm === "shipper" && "Shipper Information"}
                 </h3>
-                {showEntityForm === "supplier" && <SupplierForm />}
-                {showEntityForm === "consignee" && <ConsigneeForm />}
-                {showEntityForm === "shipper" && <ShipperForm />}
+
+                {/* Entity Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="entity-name-mobile" className="text-sm">
+                    {showEntityForm === "supplier" && "Supplier Name *"}
+                    {showEntityForm === "consignee" && "Consignee Name *"}
+                    {showEntityForm === "shipper" && "Shipper Name *"}
+                  </Label>
+                  <Input
+                    id="entity-name-mobile"
+                    type="text"
+                    placeholder={`PT. ${showEntityForm.charAt(0).toUpperCase() + showEntityForm.slice(1)} Indonesia`}
+                    value={entityFormData.entity_name}
+                    onChange={(e) =>
+                      setEntityFormData({
+                        ...entityFormData,
+                        entity_name: e.target.value,
+                      })
+                    }
+                    required
+                    className="bg-slate-50"
+                  />
+                </div>
+
+                {/* Contact Person & Phone */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="contact-person-mobile" className="text-sm">
+                      Contact Person *
+                    </Label>
+                    <Input
+                      id="contact-person-mobile"
+                      type="text"
+                      placeholder="John Doe"
+                      value={entityFormData.contact_person}
+                      onChange={(e) =>
+                        setEntityFormData({
+                          ...entityFormData,
+                          contact_person: e.target.value,
+                        })
+                      }
+                      required
+                      className="bg-slate-50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone-mobile" className="text-sm">
+                      Phone *
+                    </Label>
+                    <Input
+                      id="phone-mobile"
+                      type="tel"
+                      placeholder="+62 812 3456 7890"
+                      value={entityFormData.phone_number}
+                      onChange={(e) =>
+                        setEntityFormData({
+                          ...entityFormData,
+                          phone_number: e.target.value,
+                        })
+                      }
+                      required
+                      className="bg-slate-50"
+                    />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="entity-email-mobile" className="text-sm">
+                    Email *
+                  </Label>
+                  <Input
+                    id="entity-email-mobile"
+                    type="email"
+                    placeholder={`${showEntityForm}@example.com`}
+                    value={entityFormData.email}
+                    onChange={(e) =>
+                      setEntityFormData({
+                        ...entityFormData,
+                        email: e.target.value,
+                      })
+                    }
+                    required
+                    className="bg-slate-50"
+                  />
+                </div>
+
+                {/* City & Country */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="city-mobile" className="text-sm">
+                      City
+                    </Label>
+                    <Input
+                      id="city-mobile"
+                      type="text"
+                      placeholder="Jakarta"
+                      value={entityFormData.city}
+                      onChange={(e) =>
+                        setEntityFormData({
+                          ...entityFormData,
+                          city: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="country-mobile" className="text-sm">
+                      Country
+                    </Label>
+                    <Input
+                      id="country-mobile"
+                      type="text"
+                      placeholder="Indonesia"
+                      value={entityFormData.country}
+                      onChange={(e) =>
+                        setEntityFormData({
+                          ...entityFormData,
+                          country: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50"
+                    />
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="space-y-2">
+                  <Label htmlFor="address-mobile" className="text-sm">
+                    Address
+                  </Label>
+                  <Input
+                    id="address-mobile"
+                    type="text"
+                    placeholder="Jl. Sudirman No. 123"
+                    value={entityFormData.address}
+                    onChange={(e) =>
+                      setEntityFormData({
+                        ...entityFormData,
+                        address: e.target.value,
+                      })
+                    }
+                    className="bg-slate-50"
+                  />
+                </div>
+
+                {/* Tax Info */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="is-pkp-mobile" className="text-sm">
+                      PKP Status
+                    </Label>
+                    <Select
+                      value={entityFormData.is_pkp}
+                      onValueChange={(value) =>
+                        setEntityFormData({
+                          ...entityFormData,
+                          is_pkp: value,
+                        })
+                      }
+                    >
+                      <SelectTrigger className="bg-slate-50">
+                        <SelectValue placeholder="Select PKP" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PKP">PKP</SelectItem>
+                        <SelectItem value="NON-PKP">NON-PKP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tax-id-mobile" className="text-sm">
+                      Tax ID (NPWP)
+                    </Label>
+                    <Input
+                      id="tax-id-mobile"
+                      type="text"
+                      placeholder="00.000.000.0-000.000"
+                      value={entityFormData.tax_id}
+                      onChange={(e) =>
+                        setEntityFormData({
+                          ...entityFormData,
+                          tax_id: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50"
+                    />
+                  </div>
+                </div>
+
+                {/* Bank Info */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-name-mobile" className="text-sm">
+                      Bank Name
+                    </Label>
+                    <Input
+                      id="bank-name-mobile"
+                      type="text"
+                      placeholder="Bank BCA"
+                      value={entityFormData.bank_name}
+                      onChange={(e) =>
+                        setEntityFormData({
+                          ...entityFormData,
+                          bank_name: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-holder-mobile" className="text-sm">
+                      Account Holder
+                    </Label>
+                    <Input
+                      id="bank-holder-mobile"
+                      type="text"
+                      placeholder="PT. Company Name"
+                      value={entityFormData.bank_account_holder}
+                      onChange={(e) =>
+                        setEntityFormData({
+                          ...entityFormData,
+                          bank_account_holder: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50"
+                    />
+                  </div>
+                </div>
+
+                {/* Category & Payment Terms */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="category-mobile" className="text-sm">
+                      Category
+                    </Label>
+                    <Input
+                      id="category-mobile"
+                      type="text"
+                      placeholder="GOODS"
+                      value={entityFormData.category}
+                      onChange={(e) =>
+                        setEntityFormData({
+                          ...entityFormData,
+                          category: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="payment-terms-mobile" className="text-sm">
+                      Payment Terms
+                    </Label>
+                    <Input
+                      id="payment-terms-mobile"
+                      type="text"
+                      placeholder="NET 30"
+                      value={entityFormData.payment_terms}
+                      onChange={(e) =>
+                        setEntityFormData({
+                          ...entityFormData,
+                          payment_terms: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1068,18 +1369,18 @@ export function AuthFormContent({
                     </div>
                   </div>
                 )}
-
-                <div className="pt-2 sticky bottom-0 bg-white border-t">
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                    disabled={loading}
-                  >
-                    {loading ? "Creating account..." : "Sign Up"}
-                  </Button>
-                </div>
               </>
             )}
+
+            <div className="pt-2 sticky bottom-0 bg-white border-t">
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                disabled={loading}
+              >
+                {loading ? "Creating account..." : "Sign Up"}
+              </Button>
+            </div>
           </form>
         </TabsContent>
       </Tabs>
@@ -1189,18 +1490,284 @@ export function AuthFormContent({
                   </Select>
                 </div>
 
-                {/* Show entity-specific form if supplier, consignee, or shipper is selected */}
+                {/* Show entity-specific inline form if supplier, consignee, or shipper is selected */}
                 {showEntityForm && (
                   <div className="space-y-4 bg-white p-4 rounded-lg border border-slate-200">
                     <h3 className="text-sm font-semibold text-slate-700 border-b pb-2">
                       {showEntityForm === "supplier" && "Supplier Information"}
-                      {showEntityForm === "consignee" &&
-                        "Consignee Information"}
+                      {showEntityForm === "consignee" && "Consignee Information"}
                       {showEntityForm === "shipper" && "Shipper Information"}
                     </h3>
-                    {showEntityForm === "supplier" && <SupplierForm />}
-                    {showEntityForm === "consignee" && <ConsigneeForm />}
-                    {showEntityForm === "shipper" && <ShipperForm />}
+
+                    {/* Entity Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="entity-name" className="text-sm">
+                        {showEntityForm === "supplier" && "Supplier Name *"}
+                        {showEntityForm === "consignee" && "Consignee Name *"}
+                        {showEntityForm === "shipper" && "Shipper Name *"}
+                      </Label>
+                      <Input
+                        id="entity-name"
+                        type="text"
+                        placeholder={`PT. ${showEntityForm.charAt(0).toUpperCase() + showEntityForm.slice(1)} Indonesia`}
+                        value={entityFormData.entity_name}
+                        onChange={(e) =>
+                          setEntityFormData({
+                            ...entityFormData,
+                            entity_name: e.target.value,
+                          })
+                        }
+                        required
+                        className="bg-slate-50"
+                      />
+                    </div>
+
+                    {/* Contact Person & Phone */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="contact-person" className="text-sm">
+                          Contact Person *
+                        </Label>
+                        <Input
+                          id="contact-person"
+                          type="text"
+                          placeholder="John Doe"
+                          value={entityFormData.contact_person}
+                          onChange={(e) =>
+                            setEntityFormData({
+                              ...entityFormData,
+                              contact_person: e.target.value,
+                            })
+                          }
+                          required
+                          className="bg-slate-50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-sm">
+                          Phone *
+                        </Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="+62 812 3456 7890"
+                          value={entityFormData.phone_number}
+                          onChange={(e) =>
+                            setEntityFormData({
+                              ...entityFormData,
+                              phone_number: e.target.value,
+                            })
+                          }
+                          required
+                          className="bg-slate-50"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email */}
+                    <div className="space-y-2">
+                      <Label htmlFor="entity-email" className="text-sm">
+                        Email *
+                      </Label>
+                      <Input
+                        id="entity-email"
+                        type="email"
+                        placeholder={`${showEntityForm}@example.com`}
+                        value={entityFormData.email}
+                        onChange={(e) =>
+                          setEntityFormData({
+                            ...entityFormData,
+                            email: e.target.value,
+                          })
+                        }
+                        required
+                        className="bg-slate-50"
+                      />
+                    </div>
+
+                    {/* City & Country */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="city" className="text-sm">
+                          City
+                        </Label>
+                        <Input
+                          id="city"
+                          type="text"
+                          placeholder="Jakarta"
+                          value={entityFormData.city}
+                          onChange={(e) =>
+                            setEntityFormData({
+                              ...entityFormData,
+                              city: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="country" className="text-sm">
+                          Country
+                        </Label>
+                        <Input
+                          id="country"
+                          type="text"
+                          placeholder="Indonesia"
+                          value={entityFormData.country}
+                          onChange={(e) =>
+                            setEntityFormData({
+                              ...entityFormData,
+                              country: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Address */}
+                    <div className="space-y-2">
+                      <Label htmlFor="address" className="text-sm">
+                        Address
+                      </Label>
+                      <Input
+                        id="address"
+                        type="text"
+                        placeholder="Jl. Sudirman No. 123"
+                        value={entityFormData.address}
+                        onChange={(e) =>
+                          setEntityFormData({
+                            ...entityFormData,
+                            address: e.target.value,
+                          })
+                        }
+                        className="bg-slate-50"
+                      />
+                    </div>
+
+                    {/* Tax Info */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="is-pkp" className="text-sm">
+                          PKP Status
+                        </Label>
+                        <Select
+                          value={entityFormData.is_pkp}
+                          onValueChange={(value) =>
+                            setEntityFormData({
+                              ...entityFormData,
+                              is_pkp: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="bg-slate-50">
+                            <SelectValue placeholder="Select PKP Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PKP">PKP</SelectItem>
+                            <SelectItem value="NON-PKP">NON-PKP</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="tax-id" className="text-sm">
+                          Tax ID (NPWP)
+                        </Label>
+                        <Input
+                          id="tax-id"
+                          type="text"
+                          placeholder="00.000.000.0-000.000"
+                          value={entityFormData.tax_id}
+                          onChange={(e) =>
+                            setEntityFormData({
+                              ...entityFormData,
+                              tax_id: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Bank Info */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="bank-name" className="text-sm">
+                          Bank Name
+                        </Label>
+                        <Input
+                          id="bank-name"
+                          type="text"
+                          placeholder="Bank BCA"
+                          value={entityFormData.bank_name}
+                          onChange={(e) =>
+                            setEntityFormData({
+                              ...entityFormData,
+                              bank_name: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bank-holder" className="text-sm">
+                          Account Holder
+                        </Label>
+                        <Input
+                          id="bank-holder"
+                          type="text"
+                          placeholder="PT. Company Name"
+                          value={entityFormData.bank_account_holder}
+                          onChange={(e) =>
+                            setEntityFormData({
+                              ...entityFormData,
+                              bank_account_holder: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Category & Payment Terms */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="category" className="text-sm">
+                          Category
+                        </Label>
+                        <Input
+                          id="category"
+                          type="text"
+                          placeholder="GOODS"
+                          value={entityFormData.category}
+                          onChange={(e) =>
+                            setEntityFormData({
+                              ...entityFormData,
+                              category: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="payment-terms" className="text-sm">
+                          Payment Terms
+                        </Label>
+                        <Input
+                          id="payment-terms"
+                          type="text"
+                          placeholder="NET 30"
+                          value={entityFormData.payment_terms}
+                          onChange={(e) =>
+                            setEntityFormData({
+                              ...entityFormData,
+                              payment_terms: e.target.value,
+                            })
+                          }
+                          className="bg-slate-50"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 

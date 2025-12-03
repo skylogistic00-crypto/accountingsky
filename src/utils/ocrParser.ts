@@ -28,48 +28,57 @@ function parseKTP(text: string): ParsedOCRData {
   const nikMatch = upper.match(/\b(\d{16})\b/);
   const nik = nikMatch ? nikMatch[1] : "";
 
-  // Nama
+  // Nama - lebih fleksibel
   let nama = "";
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].toUpperCase();
-    if (line.includes("NAMA") && !line.includes("KEWARGANEGARAAN")) {
-      const afterNama = line.split(/NAMA\s*:?\s*/i)[1];
-      if (afterNama && afterNama.length > 2 && /^[A-Z]/.test(afterNama)) {
-        nama = afterNama.split(/\s+(?:TEMPAT|JENIS|ALAMAT)/)[0].trim();
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("NAMA") && !lineUpper.includes("KEWARGANEGARAAN")) {
+      const parts = line.split(/NAMA\s*:?\s*/i);
+      if (parts.length > 1 && parts[1].trim().length > 2) {
+        nama = parts[1].trim();
       } else if (i + 1 < lines.length) {
         nama = lines[i + 1].trim();
       }
       break;
     }
   }
-  if (!nama) {
-    const namaFallback = upper.match(/\d{16}\s+([A-Z][A-Z\s]+?)(?=\s+(?:TEMPAT|JAKARTA|JENIS|LAKI|PEREMPUAN))/);
-    if (namaFallback) nama = namaFallback[1].trim();
-  }
 
-  // Tempat/Tgl Lahir
+  // Tempat/Tgl Lahir - lebih fleksibel
   let ttl = "";
-  const ttlMatch = upper.match(/([A-Z]+)\s*,?\s*(\d{2}[-/]\d{2}[-/]\d{4})/);
-  if (ttlMatch) ttl = `${ttlMatch[1]}, ${ttlMatch[2]}`;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("TEMPAT") && lineUpper.includes("LAHIR")) {
+      const parts = line.split(/TEMPAT.*?LAHIR\s*:?\s*/i);
+      if (parts.length > 1) {
+        ttl = parts[1].trim();
+      } else if (i + 1 < lines.length) {
+        ttl = lines[i + 1].trim();
+      }
+      break;
+    }
+  }
 
   // Jenis Kelamin
   let jenisKelamin = "";
-  if (upper.includes("LAKI-LAKI")) jenisKelamin = "LAKI-LAKI";
+  if (upper.includes("LAKI-LAKI") || upper.includes("LAKI LAKI")) jenisKelamin = "LAKI-LAKI";
   else if (upper.includes("PEREMPUAN")) jenisKelamin = "PEREMPUAN";
 
-  // Gol Darah
+  // Gol Darah - lebih fleksibel
   let golDarah = "-";
-  const golMatch = upper.match(/GOL\.?\s*DARAH\s*:?\s*([ABO]+|[-])/);
+  const golMatch = upper.match(/GOL\.?\s*DARAH\s*:?\s*([A-O]|[-])/);
   if (golMatch) golDarah = golMatch[1].trim() || "-";
 
-  // Alamat
+  // Alamat - lebih fleksibel
   let alamat = "";
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].toUpperCase();
-    if (line.includes("ALAMAT") && !line.includes("EMAIL")) {
-      const afterAlamat = line.split(/ALAMAT\s*:?\s*/i)[1];
-      if (afterAlamat && afterAlamat.length > 2) {
-        alamat = afterAlamat.split(/\s+(?:RT\/?RW|\d{3}\/)/)[0].trim();
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("ALAMAT") && !lineUpper.includes("EMAIL")) {
+      const parts = line.split(/ALAMAT\s*:?\s*/i);
+      if (parts.length > 1 && parts[1].trim().length > 2) {
+        alamat = parts[1].trim();
       } else if (i + 1 < lines.length) {
         alamat = lines[i + 1].trim();
       }
@@ -77,10 +86,15 @@ function parseKTP(text: string): ParsedOCRData {
     }
   }
 
-  // RT/RW
+  // RT/RW - lebih fleksibel
   let rtRw = "";
-  const rtMatch = upper.match(/(\d{3}\/\d{3})/);
-  if (rtMatch) rtRw = rtMatch[1];
+  const rtMatch = upper.match(/RT\s*\/?\s*RW\s*:?\s*(\d{1,3}\s*\/\s*\d{1,3})/);
+  if (rtMatch) {
+    rtRw = rtMatch[1].replace(/\s+/g, "");
+  } else {
+    const rtMatch2 = upper.match(/(\d{1,3})\s*\/\s*(\d{1,3})/);
+    if (rtMatch2) rtRw = `${rtMatch2[1]}/${rtMatch2[2]}`;
+  }
 
   // Kel/Desa
   let kelDes = "";
@@ -94,14 +108,18 @@ function parseKTP(text: string): ParsedOCRData {
     }
   }
 
-  // Kecamatan
+  // Kecamatan - lebih fleksibel
   let kecamatan = "";
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].toUpperCase();
-    if (line.includes("KECAMATAN")) {
-      const afterKec = line.split(/KECAMATAN\s*:?\s*/i)[1];
-      if (afterKec) kecamatan = afterKec.split(/\s+(?:AGAMA|PROVINSI)/)[0].trim();
-      else if (i + 1 < lines.length) kecamatan = lines[i + 1].trim();
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("KECAMATAN") || lineUpper.includes("KEC")) {
+      const parts = line.split(/KECAMATAN\s*:?\s*/i);
+      if (parts.length > 1 && parts[1].trim().length > 2) {
+        kecamatan = parts[1].trim();
+      } else if (i + 1 < lines.length) {
+        kecamatan = lines[i + 1].trim();
+      }
       break;
     }
   }
@@ -118,14 +136,18 @@ function parseKTP(text: string): ParsedOCRData {
   else if (upper.includes("CERAI MATI")) statusKawin = "CERAI MATI";
   else if (upper.includes("KAWIN")) statusKawin = "KAWIN";
 
-  // Pekerjaan
+  // Pekerjaan - lebih fleksibel
   let pekerjaan = "";
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].toUpperCase();
-    if (line.includes("PEKERJAAN")) {
-      const afterPekerjaan = line.split(/PEKERJAAN\s*:?\s*/i)[1];
-      if (afterPekerjaan) pekerjaan = afterPekerjaan.split(/\s+(?:KEWARGANEGARAAN|WNI)/)[0].trim();
-      else if (i + 1 < lines.length) pekerjaan = lines[i + 1].trim();
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("PEKERJAAN")) {
+      const parts = line.split(/PEKERJAAN\s*:?\s*/i);
+      if (parts.length > 1 && parts[1].trim().length > 2) {
+        pekerjaan = parts[1].trim();
+      } else if (i + 1 < lines.length) {
+        pekerjaan = lines[i + 1].trim();
+      }
       break;
     }
   }
@@ -135,9 +157,13 @@ function parseKTP(text: string): ParsedOCRData {
   if (upper.includes("WNI")) wni = "WNI";
   else if (upper.includes("WNA")) wni = "WNA";
 
-  // Berlaku Hingga
+  // Berlaku Hingga - lebih fleksibel
   let berlaku = "";
   if (upper.includes("SEUMUR HIDUP")) berlaku = "SEUMUR HIDUP";
+  else {
+    const berlakuMatch = upper.match(/BERLAKU\s*HINGGA\s*:?\s*(\d{2}[-\/]\d{2}[-\/]\d{4})/);
+    if (berlakuMatch) berlaku = berlakuMatch[1];
+  }
 
   return {
     type: "KTP",

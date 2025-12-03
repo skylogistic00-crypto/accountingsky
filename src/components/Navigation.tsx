@@ -325,17 +325,6 @@ export default function Navigation() {
       ],
     },
     {
-      path: "/google-ocr-scanner",
-      label: "Google OCR Scanner",
-      icon: ScanText,
-      color: "cyan",
-      roles: [
-        "super_admin",
-        "accounting_manager",
-        "accounting_staff",
-      ],
-    },
-    {
       path: "/coretax-report",
       label: "Daftar Upload Coretax",
       icon: FileText,

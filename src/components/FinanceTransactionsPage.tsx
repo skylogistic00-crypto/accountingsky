@@ -36,6 +36,7 @@ import {
   Save,
   Trash2,
   ScanLine,
+  X,
 } from "lucide-react";
 import { parseOCRText, BreakdownItem } from "@/utils/FinanceOCRParser";
 import {
@@ -45,7 +46,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { parseOCR, type ParsedOCRData } from "@/utils/ocrParser";
+import { parseOCR, type ParsedOCRData, type DocumentType } from "@/utils/ocrParser";
 
 const CATEGORIES = [
   "Travel",
@@ -98,6 +99,8 @@ export default function FinanceTransactionsPage({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string>("");
   const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+  const [documentType, setDocumentType] = useState<DocumentType>("INVOICE");
+  const [parsedOCRData, setParsedOCRData] = useState<ParsedOCRData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showOCRModal, setShowOCRModal] = useState(false);
   const [ocrFile, setOcrFile] = useState<File | null>(null);
@@ -166,7 +169,6 @@ export default function FinanceTransactionsPage({
         description: "Transaction data loaded successfully",
       });
     } catch (error: any) {
-      console.error("Load error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to load transaction data",
@@ -233,8 +235,8 @@ export default function FinanceTransactionsPage({
       });
 
       // Call OCR edge function
-      const { data, error } = await supabase.functions.invoke(
-        "vision-google-ocr",
+      const { data: raw, error } = await supabase.functions.invoke(
+        "supabase-functions-vision-google-ocr",
         {
           body: { file_base64: base64 },
         },
@@ -242,33 +244,47 @@ export default function FinanceTransactionsPage({
 
       if (error) throw error;
 
+      // Parse raw JSON from Supabase
+      let visionData;
+      try {
+        visionData = typeof raw === "string" ? JSON.parse(raw) : raw;
+      } catch (err) {
+        throw new Error("Vision API returned invalid JSON.");
+      }
+
       // Extract text from response
       let fullText = "";
-      if (data?.responses?.[0]?.fullTextAnnotation?.text) {
-        fullText = data.responses[0].fullTextAnnotation.text;
-      } else if (data?.responses?.[0]?.textAnnotations?.[0]?.description) {
-        fullText = data.responses[0].textAnnotations[0].description;
-      } else if (typeof data === "string") {
-        fullText = data;
+      const resp = visionData?.responses?.[0];
+
+      if (resp?.textAnnotations?.length > 0) {
+        fullText = resp.textAnnotations[0].description;
+      } else if (resp?.fullTextAnnotation?.text) {
+        fullText = resp.fullTextAnnotation.text;
+      } else {
+        fullText = "";
       }
 
       setExtractedText(fullText);
 
-      // Parse OCR text
-      const parsed = parseOCRText(fullText);
+      // Parse result based on document type
+      const parsed = parseOCR(fullText, documentType);
+      setParsedOCRData(parsed);
+
+      // Parse OCR text for finance data
+      const financeParsed = parseOCRText(fullText);
 
       setFormData((prev) => ({
         ...prev,
-        merchant: parsed.merchant || prev.merchant,
-        category: parsed.category || prev.category,
-        date_trans: parsed.date || prev.date_trans,
-        amount: parsed.total || prev.amount,
-        ppn: parsed.ppn || prev.ppn,
-        total: (parsed.total || 0) + (parsed.ppn || 0),
+        merchant: financeParsed.merchant || prev.merchant,
+        category: financeParsed.category || prev.category,
+        date_trans: financeParsed.date || prev.date_trans,
+        amount: financeParsed.total || prev.amount,
+        ppn: financeParsed.ppn || prev.ppn,
+        total: (financeParsed.total || 0) + (financeParsed.ppn || 0),
       }));
 
-      if (parsed.breakdown.length > 0) {
-        setBreakdownItems(parsed.breakdown);
+      if (financeParsed.breakdown.length > 0) {
+        setBreakdownItems(financeParsed.breakdown);
       }
 
       toast({
@@ -344,22 +360,36 @@ export default function FinanceTransactionsPage({
     try {
       setIsProcessingOCR(true);
 
-      // Convert to Base64
-      const base64Content = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = (reader.result as string).split(",")[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(ocrFile);
-      });
+      // 1. Upload file to Supabase Storage
+      const fileName = `scan_${Date.now()}.jpg`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("ocr_uploads")
+        .upload(fileName, ocrFile, { upsert: true });
 
-      // Call Supabase Edge Function
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      console.log("File uploaded:", uploadData.path);
+
+      // 2. Create signed URL (valid for 300 seconds)
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from("ocr_uploads")
+        .createSignedUrl(uploadData.path, 300);
+
+      if (signedError) {
+        console.error("Signed URL error:", signedError);
+        throw new Error(`Failed to create signed URL: ${signedError.message}`);
+      }
+
+      console.log("Signed URL created:", signedData.signedUrl);
+
+      // 3. Call Supabase Edge Function with signed URL
       const { data: raw, error: visionError } = await supabase.functions.invoke(
-        "vision-google-ocr",
+        "supabase-functions-vision-google-ocr",
         {
-          body: { file_base64: base64Content },
+          body: { signedUrl: signedData.signedUrl },
         },
       );
 
@@ -376,11 +406,15 @@ export default function FinanceTransactionsPage({
 
       // Extract text
       let fullText = "";
-      const resp = visionData?.responses?.[0];
-      if (resp?.textAnnotations?.length > 0) {
-        fullText = resp.textAnnotations[0].description;
-      } else if (resp?.fullTextAnnotation?.text) {
-        fullText = resp.fullTextAnnotation.text;
+      if (visionData?.extracted_text) {
+        fullText = visionData.extracted_text;
+      } else {
+        const resp = visionData?.responses?.[0];
+        if (resp?.textAnnotations?.length > 0) {
+          fullText = resp.textAnnotations[0].description;
+        } else if (resp?.fullTextAnnotation?.text) {
+          fullText = resp.fullTextAnnotation.text;
+        }
       }
 
       setExtractedText(fullText);
@@ -413,25 +447,9 @@ export default function FinanceTransactionsPage({
         setBreakdownItems(financeParsed.breakdown);
       }
 
-      // Upload file to storage
-      const fileBuffer = await ocrFile.arrayBuffer();
-      const fileExt = ocrFile.name.split(".").pop();
-      const fileName = `ocr-${Date.now()}.${fileExt}`;
-      const filePath = `transactions/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("finance-documents")
-        .upload(filePath, fileBuffer, {
-          contentType: ocrFile.type,
-        });
-
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage
-          .from("finance-documents")
-          .getPublicUrl(filePath);
-        setPreviewUrl(urlData.publicUrl);
-        setSelectedFile(ocrFile);
-      }
+      // Set preview URL from signed URL
+      setPreviewUrl(signedData.signedUrl);
+      setSelectedFile(ocrFile);
 
       toast({
         title: "OCR Berhasil",
@@ -439,12 +457,11 @@ export default function FinanceTransactionsPage({
       });
 
       setShowOCRModal(false);
-    } catch (error) {
-      console.error("OCR Error:", error);
+    } catch (err: any) {
+      console.error("OCR Error:", err);
       toast({
         title: "OCR Error",
-        description:
-          error instanceof Error ? error.message : "Gagal memproses OCR",
+        description: err.message || "Gagal memproses OCR",
         variant: "destructive",
       });
     } finally {
@@ -636,6 +653,31 @@ export default function FinanceTransactionsPage({
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Document Type Selector */}
+                  <div className="space-y-2">
+                    <Label>Jenis Dokumen</Label>
+                    <Select
+                      value={documentType}
+                      onValueChange={(v) => setDocumentType(v as DocumentType)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih jenis dokumen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="INVOICE">Invoice</SelectItem>
+                        <SelectItem value="NOTA">Nota</SelectItem>
+                        <SelectItem value="KWITANSI">Kwitansi</SelectItem>
+                        <SelectItem value="CASH_DISBURSEMENT">
+                          Cash Disbursement
+                        </SelectItem>
+                        <SelectItem value="SURAT_JALAN">Surat Jalan</SelectItem>
+                        <SelectItem value="KTP">KTP</SelectItem>
+                        <SelectItem value="NPWP">NPWP</SelectItem>
+                        <SelectItem value="SIM">SIM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                     {previewUrl ? (
                       <div className="space-y-4">
@@ -690,13 +732,26 @@ export default function FinanceTransactionsPage({
                   </Button>
 
                   {extractedText && (
-                    <div className="space-y-2">
-                      <Label>Extracted Text</Label>
+                    <div className="space-y-2 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-green-800 font-semibold">✅ Hasil Scan OCR</Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setExtractedText("")}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <Textarea
                         value={extractedText}
                         readOnly
-                        className="h-48 font-mono text-xs"
+                        className="h-48 font-mono text-xs bg-white"
+                        placeholder="Extracted text will appear here..."
                       />
+                      <p className="text-xs text-green-700">
+                        📝 Text berhasil di-extract dan form sudah di-autofill
+                      </p>
                     </div>
                   )}
                 </CardContent>

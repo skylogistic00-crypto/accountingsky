@@ -52,6 +52,7 @@ interface FinanceTransaction {
   file_url: string | null;
   status: string;
   created_at: string;
+  rejection_reason?: string;
 }
 
 interface BreakdownItem {
@@ -422,6 +423,17 @@ export default function FinanceTransactionDetail() {
                       View Document
                       <ExternalLink className="h-3 w-3" />
                     </a>
+                  </div>
+                </div>
+              )}
+
+              {transaction.status === "rejected" && transaction.rejection_reason && (
+                <div className="border-t pt-4">
+                  <Label className="text-red-600 font-semibold">Alasan Di Reject:</Label>
+                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-sm text-red-800">
+                      {transaction.rejection_reason}
+                    </p>
                   </div>
                 </div>
               )}

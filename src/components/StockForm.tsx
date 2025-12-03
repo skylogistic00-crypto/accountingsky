@@ -2686,19 +2686,13 @@ export default function StockForm() {
                     SKU
                   </TableHead>
                   <TableHead className="font-semibold text-slate-700">
-                    Tanggal Masuk
-                  </TableHead>
-                  <TableHead className="font-semibold text-slate-700">
                     Gudang
                   </TableHead>
                   <TableHead className="font-semibold text-slate-700">
-                    Racks
-                  </TableHead>
-                  <TableHead className="font-semibold text-slate-700">
-                    Lots
-                  </TableHead>
-                  <TableHead className="font-semibold text-slate-700">
                     Jumlah
+                  </TableHead>
+                  <TableHead className="font-semibold text-slate-700">
+                    Unit
                   </TableHead>
                   <TableHead className="text-center font-semibold text-slate-700">
                     Aksi
@@ -2709,7 +2703,7 @@ export default function StockForm() {
                 {filteredItems.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={9}
+                      colSpan={6}
                       className="text-center text-slate-500 py-12"
                     >
                       <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
@@ -2743,23 +2737,13 @@ export default function StockForm() {
                           {item.sku}
                         </TableCell>
                         <TableCell className="text-slate-700">
-                          {item.item_arrival_date
-                            ? new Date(
-                                item.item_arrival_date,
-                              ).toLocaleDateString("id-ID")
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-slate-700">
                           {item.warehouses || "-"}
                         </TableCell>
                         <TableCell className="text-slate-700">
-                          {item.racks || "-"}
+                          {item.quantity || 0}
                         </TableCell>
                         <TableCell className="text-slate-700">
-                          {item.lots || "-"}
-                        </TableCell>
-                        <TableCell className="text-slate-700">
-                          {item.item_quantity}
+                          {item.unit || "-"}
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-center gap-2">

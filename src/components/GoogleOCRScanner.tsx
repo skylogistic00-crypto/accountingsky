@@ -31,26 +31,13 @@ import {
   SelectValue,
 } from "./ui/select";
 
-// Convert file to Base64
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(",")[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 export default function GoogleOCRScanner() {
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ocrResult, setOcrResult] = useState<any>(null);
   const [extractedText, setExtractedText] = useState<string>("");
-  const [documentType, setDocumentType] = useState<DocumentType>("NPWP");
+  const [documentType, setDocumentType] = useState<DocumentType>("KTP");
   const [parsedData, setParsedData] = useState<ParsedOCRData | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -87,14 +74,36 @@ export default function GoogleOCRScanner() {
     try {
       setLoading(true);
 
-      // Convert to Base64
-      const base64Content = await fileToBase64(file);
+      // 1. Upload file to Supabase Storage
+      const fileName = `scan_${Date.now()}.jpg`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("ocr_uploads")
+        .upload(fileName, file, { upsert: true });
 
-      // Call Supabase Edge Function
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      console.log("File uploaded:", uploadData.path);
+
+      // 2. Create signed URL (valid for 300 seconds)
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from("ocr_uploads")
+        .createSignedUrl(uploadData.path, 300);
+
+      if (signedError) {
+        console.error("Signed URL error:", signedError);
+        throw new Error(`Failed to create signed URL: ${signedError.message}`);
+      }
+
+      console.log("Signed URL created:", signedData.signedUrl);
+
+      // 3. Call Supabase Edge Function with signed URL
       const { data: raw, error: visionError } = await supabase.functions.invoke(
-        "vision-google-ocr",
+        "supabase-functions-vision-google-ocr",
         {
-          body: { file_base64: base64Content },
+          body: { signedUrl: signedData.signedUrl },
         },
       );
 
@@ -115,51 +124,48 @@ export default function GoogleOCRScanner() {
       // ===== EXTRACT FINAL TEXT =====
       let fullText = "";
 
-      const resp = visionData?.responses?.[0];
-
-      if (resp?.textAnnotations?.length > 0) {
-        fullText = resp.textAnnotations[0].description;
-      } else if (resp?.fullTextAnnotation?.text) {
-        fullText = resp.fullTextAnnotation.text;
+      // Check if response has extracted_text (from edge function)
+      if (visionData?.extracted_text) {
+        fullText = visionData.extracted_text;
       } else {
-        fullText = "(EMPTY RAW TEXT – CHECK PARSER)";
+        const resp = visionData?.responses?.[0];
+
+        if (resp?.textAnnotations?.length > 0) {
+          fullText = resp.textAnnotations[0].description;
+        } else if (resp?.fullTextAnnotation?.text) {
+          fullText = resp.fullTextAnnotation.text;
+        } else {
+          fullText = "(EMPTY RAW TEXT – CHECK PARSER)";
+        }
       }
 
       console.log("=== FINAL OCR TEXT ===", fullText);
 
       setExtractedText(fullText);
 
-      // Parse result based on document type
-      const parsed = parseOCR(fullText, documentType);
-      setParsedData(parsed);
+      // Check if KTP data is available from edge function
+      if (visionData?.ktp_data && visionData?.document_type === "KTP") {
+        setParsedData(visionData.ktp_data);
+      } else {
+        // Parse result based on document type
+        const parsed = parseOCR(fullText, documentType);
+        setParsedData(parsed);
+      }
 
-      // Upload original file
-      const fileBuffer = await file.arrayBuffer();
-      const uploaded = await supabase.storage
-        .from("documents")
-        .upload(`ocr-${Date.now()}-${file.name}`, fileBuffer, {
-          contentType: file.type,
-        });
-
-      const { data: urlData } = supabase.storage
-        .from("documents")
-        .getPublicUrl(uploaded.data?.path || "");
-
-      await supabase.from("ocr_results").insert({
-        file_url: urlData?.publicUrl,
-        extracted_text: fullText,
-      });
-
+      // Set OCR result (edge function already handles database storage)
       setOcrResult({
         extracted_text: fullText,
-        file_url: urlData?.publicUrl,
+        file_url: visionData?.file_url || signedData.signedUrl,
       });
 
       toast({ title: "Success", description: "OCR berhasil diproses!" });
     } catch (e: any) {
+      console.error("OCR Error:", e);
+      const errorMessage = e.message || "Unknown error occurred";
+      const errorDetails = e.details || e.toString();
       toast({
-        title: "Error",
-        description: e.message,
+        title: "OCR Error",
+        description: `${errorMessage}${errorDetails ? ` - ${errorDetails}` : ""}`,
         variant: "destructive",
       });
     } finally {
@@ -264,6 +270,166 @@ export default function GoogleOCRScanner() {
                     {JSON.stringify(parsedData, null, 2)}
                   </pre>
                 </div>
+
+                {/* KTP Input Fields */}
+                {documentType === "KTP" && (
+                  <div className="bg-white p-6 rounded border">
+                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                      <FileText className="h-5 w-5" /> Form Data KTP
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="nik">NIK</Label>
+                        <Input
+                          id="nik"
+                          placeholder="Nomor Induk Kependudukan"
+                          defaultValue={parsedData?.nik || ""}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="nama">Nama</Label>
+                        <Input
+                          id="nama"
+                          placeholder="Nama Lengkap"
+                          defaultValue={parsedData?.nama || ""}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="tempat_tanggal_lahir">Tempat/Tanggal Lahir</Label>
+                        <Input
+                          id="tempat_tanggal_lahir"
+                          placeholder="Contoh: Jakarta, 17-08-1990"
+                          defaultValue={parsedData?.tempat_tgl_lahir || ""}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="jenis_kelamin">Jenis Kelamin</Label>
+                        <Select defaultValue={parsedData?.jenis_kelamin || ""}>
+                          <SelectTrigger id="jenis_kelamin">
+                            <SelectValue placeholder="Pilih jenis kelamin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="LAKI-LAKI">Laki-laki</SelectItem>
+                            <SelectItem value="PEREMPUAN">Perempuan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="golongan_darah">Golongan Darah</Label>
+                        <Select defaultValue={parsedData?.golongan_darah || ""}>
+                          <SelectTrigger id="golongan_darah">
+                            <SelectValue placeholder="Pilih golongan darah" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="A">A</SelectItem>
+                            <SelectItem value="B">B</SelectItem>
+                            <SelectItem value="AB">AB</SelectItem>
+                            <SelectItem value="O">O</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <Label htmlFor="alamat">Alamat</Label>
+                        <Input
+                          id="alamat"
+                          placeholder="Alamat Lengkap"
+                          defaultValue={parsedData?.alamat || ""}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="rt_rw">RT/RW</Label>
+                        <Input
+                          id="rt_rw"
+                          placeholder="000/000"
+                          defaultValue={parsedData?.rt_rw || ""}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="kelurahan">Kelurahan/Desa</Label>
+                        <Input
+                          id="kelurahan"
+                          placeholder="Kelurahan/Desa"
+                          defaultValue={parsedData?.kel_des || ""}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="kecamatan">Kecamatan</Label>
+                        <Input
+                          id="kecamatan"
+                          placeholder="Kecamatan"
+                          defaultValue={parsedData?.kecamatan || ""}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="agama">Agama</Label>
+                        <Select defaultValue={parsedData?.agama || ""}>
+                          <SelectTrigger id="agama">
+                            <SelectValue placeholder="Pilih agama" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ISLAM">Islam</SelectItem>
+                            <SelectItem value="KRISTEN">Kristen</SelectItem>
+                            <SelectItem value="KATOLIK">Katolik</SelectItem>
+                            <SelectItem value="HINDU">Hindu</SelectItem>
+                            <SelectItem value="BUDDHA">Buddha</SelectItem>
+                            <SelectItem value="KONGHUCU">Konghucu</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="status_perkawinan">Status Perkawinan</Label>
+                        <Select defaultValue={parsedData?.status_perkawinan || ""}>
+                          <SelectTrigger id="status_perkawinan">
+                            <SelectValue placeholder="Pilih status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="BELUM KAWIN">Belum Kawin</SelectItem>
+                            <SelectItem value="KAWIN">Kawin</SelectItem>
+                            <SelectItem value="CERAI HIDUP">Cerai Hidup</SelectItem>
+                            <SelectItem value="CERAI MATI">Cerai Mati</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="pekerjaan">Pekerjaan</Label>
+                        <Input
+                          id="pekerjaan"
+                          placeholder="Pekerjaan"
+                          defaultValue={parsedData?.pekerjaan || ""}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="kewarganegaraan">Kewarganegaraan</Label>
+                        <Input
+                          id="kewarganegaraan"
+                          placeholder="WNI/WNA"
+                          defaultValue={parsedData?.kewarganegaraan || "WNI"}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="berlaku_hingga">Berlaku Hingga</Label>
+                        <Input
+                          id="berlaku_hingga"
+                          placeholder="SEUMUR HIDUP / DD-MM-YYYY"
+                          defaultValue={parsedData?.berlaku_hingga || "SEUMUR HIDUP"}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Preview & Extracted Lines */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

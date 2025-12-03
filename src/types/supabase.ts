@@ -921,6 +921,7 @@ export type Database = {
           coa_cash_code: string | null
           coa_contra_code: string | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           id: string
           journal_ref: string | null
@@ -942,6 +943,7 @@ export type Database = {
           coa_cash_code?: string | null
           coa_contra_code?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           id?: string
           journal_ref?: string | null
@@ -963,6 +965,7 @@ export type Database = {
           coa_cash_code?: string | null
           coa_contra_code?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           id?: string
           journal_ref?: string | null
@@ -2242,47 +2245,48 @@ export type Database = {
       drivers: {
         Row: {
           address: string | null
-          agama: string | null
           birth_place: string | null
           city: string | null
           country: string | null
           created_at: string | null
-          etnis: string | null
-          foto_selfie_url: string | null
+          driver_code: string | null
+          driver_type: string | null
+          email: string | null
+          ethnicity: string | null
+          family_card_url: string | null
           full_name: string | null
           gender: string | null
           id: string
           kontak_referensi_nama: string | null
           kontak_referensi_nomor: string | null
           ktp_address: string | null
+          ktp_document_url: string | null
           ktp_number: number | null
           license_expiry: string | null
           license_number: string | null
           license_type: string | null
           nama_perusahaan_mitra: string | null
           nib: string | null
-          nomor_kendaraan: string | null
           nomor_kk: string | null
-          nomor_sim: string | null
-          nomor_telepon: string | null
           npwp: string | null
+          phone: string | null
           pic_name: string | null
           pic_phone: string | null
           plate_number: string | null
+          religion: string | null
+          selfie_url: string | null
           sensitive_encrypted: boolean | null
+          sim_url: string | null
+          skck_url: string | null
           status: string | null
           tipe_driver: string | null
           updated_at: string | null
-          upload_kk_url: string | null
-          upload_ktp_url: string | null
-          upload_sim_url: string | null
-          upload_skck_url: string | null
           upload_stnk_url: string | null
-          upload_vehicle_photo_url: string | null
           user_id: string | null
           vehicle_brand: string | null
           vehicle_color: string | null
           vehicle_model: string | null
+          vehicle_photo: string | null
           vehicle_year: string | null
           verification_notes: string | null
           verification_status: string | null
@@ -2291,47 +2295,48 @@ export type Database = {
         }
         Insert: {
           address?: string | null
-          agama?: string | null
           birth_place?: string | null
           city?: string | null
           country?: string | null
           created_at?: string | null
-          etnis?: string | null
-          foto_selfie_url?: string | null
+          driver_code?: string | null
+          driver_type?: string | null
+          email?: string | null
+          ethnicity?: string | null
+          family_card_url?: string | null
           full_name?: string | null
           gender?: string | null
           id?: string
           kontak_referensi_nama?: string | null
           kontak_referensi_nomor?: string | null
           ktp_address?: string | null
+          ktp_document_url?: string | null
           ktp_number?: number | null
           license_expiry?: string | null
           license_number?: string | null
           license_type?: string | null
           nama_perusahaan_mitra?: string | null
           nib?: string | null
-          nomor_kendaraan?: string | null
           nomor_kk?: string | null
-          nomor_sim?: string | null
-          nomor_telepon?: string | null
           npwp?: string | null
+          phone?: string | null
           pic_name?: string | null
           pic_phone?: string | null
           plate_number?: string | null
+          religion?: string | null
+          selfie_url?: string | null
           sensitive_encrypted?: boolean | null
+          sim_url?: string | null
+          skck_url?: string | null
           status?: string | null
           tipe_driver?: string | null
           updated_at?: string | null
-          upload_kk_url?: string | null
-          upload_ktp_url?: string | null
-          upload_sim_url?: string | null
-          upload_skck_url?: string | null
           upload_stnk_url?: string | null
-          upload_vehicle_photo_url?: string | null
           user_id?: string | null
           vehicle_brand?: string | null
           vehicle_color?: string | null
           vehicle_model?: string | null
+          vehicle_photo?: string | null
           vehicle_year?: string | null
           verification_notes?: string | null
           verification_status?: string | null
@@ -2340,47 +2345,48 @@ export type Database = {
         }
         Update: {
           address?: string | null
-          agama?: string | null
           birth_place?: string | null
           city?: string | null
           country?: string | null
           created_at?: string | null
-          etnis?: string | null
-          foto_selfie_url?: string | null
+          driver_code?: string | null
+          driver_type?: string | null
+          email?: string | null
+          ethnicity?: string | null
+          family_card_url?: string | null
           full_name?: string | null
           gender?: string | null
           id?: string
           kontak_referensi_nama?: string | null
           kontak_referensi_nomor?: string | null
           ktp_address?: string | null
+          ktp_document_url?: string | null
           ktp_number?: number | null
           license_expiry?: string | null
           license_number?: string | null
           license_type?: string | null
           nama_perusahaan_mitra?: string | null
           nib?: string | null
-          nomor_kendaraan?: string | null
           nomor_kk?: string | null
-          nomor_sim?: string | null
-          nomor_telepon?: string | null
           npwp?: string | null
+          phone?: string | null
           pic_name?: string | null
           pic_phone?: string | null
           plate_number?: string | null
+          religion?: string | null
+          selfie_url?: string | null
           sensitive_encrypted?: boolean | null
+          sim_url?: string | null
+          skck_url?: string | null
           status?: string | null
           tipe_driver?: string | null
           updated_at?: string | null
-          upload_kk_url?: string | null
-          upload_ktp_url?: string | null
-          upload_sim_url?: string | null
-          upload_skck_url?: string | null
           upload_stnk_url?: string | null
-          upload_vehicle_photo_url?: string | null
           user_id?: string | null
           vehicle_brand?: string | null
           vehicle_color?: string | null
           vehicle_model?: string | null
+          vehicle_photo?: string | null
           vehicle_year?: string | null
           verification_notes?: string | null
           verification_status?: string | null
@@ -2573,7 +2579,6 @@ export type Database = {
           ethnicity: string | null
           family_card_url: string | null
           first_name: string | null
-          foto_selfie_url: string | null
           full_name: string | null
           gender: string | null
           graduation_year: string | null
@@ -2598,7 +2603,6 @@ export type Database = {
           npwp_file_url: string | null
           npwp_number: string | null
           phone: string | null
-          photo_url: string | null
           position: string | null
           position_id: string | null
           postal_code: string | null
@@ -2611,9 +2615,6 @@ export type Database = {
           status: string | null
           updated_at: string | null
           upload_ijasah: string | null
-          upload_kk_url: string | null
-          upload_ktp_url: string | null
-          upload_skck_url: string | null
           user_id: string | null
           "users.entity": string | null
           verification_notes: string | null
@@ -2650,7 +2651,6 @@ export type Database = {
           ethnicity?: string | null
           family_card_url?: string | null
           first_name?: string | null
-          foto_selfie_url?: string | null
           full_name?: string | null
           gender?: string | null
           graduation_year?: string | null
@@ -2675,7 +2675,6 @@ export type Database = {
           npwp_file_url?: string | null
           npwp_number?: string | null
           phone?: string | null
-          photo_url?: string | null
           position?: string | null
           position_id?: string | null
           postal_code?: string | null
@@ -2688,9 +2687,6 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           upload_ijasah?: string | null
-          upload_kk_url?: string | null
-          upload_ktp_url?: string | null
-          upload_skck_url?: string | null
           user_id?: string | null
           "users.entity"?: string | null
           verification_notes?: string | null
@@ -2727,7 +2723,6 @@ export type Database = {
           ethnicity?: string | null
           family_card_url?: string | null
           first_name?: string | null
-          foto_selfie_url?: string | null
           full_name?: string | null
           gender?: string | null
           graduation_year?: string | null
@@ -2752,7 +2747,6 @@ export type Database = {
           npwp_file_url?: string | null
           npwp_number?: string | null
           phone?: string | null
-          photo_url?: string | null
           position?: string | null
           position_id?: string | null
           postal_code?: string | null
@@ -2765,9 +2759,6 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           upload_ijasah?: string | null
-          upload_kk_url?: string | null
-          upload_ktp_url?: string | null
-          upload_skck_url?: string | null
           user_id?: string | null
           "users.entity"?: string | null
           verification_notes?: string | null

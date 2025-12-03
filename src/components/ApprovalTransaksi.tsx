@@ -52,6 +52,8 @@ interface PendingTransaction {
   coa_payable_code?: string;
   account_number?: string;
   notes?: string;
+  bukti?: string;
+  rejection_reason?: string;
 }
 
 interface ApprovalTransaksiProps {
@@ -220,7 +222,6 @@ export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransa
         onApprovalComplete();
       }
     } catch (error: any) {
-      console.error("Error approving transaction:", error);
       toast({
         title: "❌ Error",
         description: error.message || "Gagal menyetujui transaksi",
@@ -473,7 +474,6 @@ export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransa
         onApprovalComplete();
       }
     } catch (error: any) {
-      console.error("Error rejecting transaction:", error);
       toast({
         title: "❌ Error",
         description: error.message || "Gagal menolak transaksi",
@@ -551,6 +551,7 @@ export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransa
                         <TableHead>Akun</TableHead>
                         <TableHead>Keterangan</TableHead>
                         <TableHead className="text-right">Nominal</TableHead>
+                        <TableHead className="text-center">Bukti</TableHead>
                         <TableHead className="text-center">Status</TableHead>
                         <TableHead className="text-center">Detail</TableHead>
                         <TableHead className="text-center">Aksi</TableHead>
@@ -632,6 +633,20 @@ export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransa
                                 transaction.amount ||
                                 transaction.nominal ||
                                 0,
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {transaction.bukti ? (
+                              <a
+                                href={transaction.bukti}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline text-sm"
+                              >
+                                Lihat
+                              </a>
+                            ) : (
+                              <span className="text-gray-400 text-sm">-</span>
                             )}
                           </TableCell>
                           <TableCell className="text-center">

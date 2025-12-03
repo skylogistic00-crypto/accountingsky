@@ -6,10 +6,8 @@ import AddStockItemModal from "./AddStockItemModal";
 import BorrowerForm from "./BorrowerForm";
 import JournalPreviewModal from "./JournalPreviewModal";
 import ApprovalTransaksi from "./ApprovalTransaksi";
-import OCRScanButton from "./OCRScanButton";
-import BarcodeScanButton from "./BarcodeScanButton";
+import OCRScanner from "./OCRScanner";
 import { generateJournal } from "./journalRules";
-import { parseOCR, type ParsedOCRData } from "@/utils/ocrParser";
 import {
   Card,
   CardContent,
@@ -69,6 +67,8 @@ import {
   ScanLine,
   Upload,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Table,
@@ -91,16 +91,16 @@ function TransactionReport() {
 
   const loadTransactions = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error: supabaseError } = await supabase
         .from("journal_entries")
         .select("*")
         .order("tanggal", { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (supabaseError) throw supabaseError;
       setTransactions(data || []);
-    } catch (error) {
-      console.error("Error loading transactions:", error);
+    } catch (err) {
+      console.error("Error loading transactions:", err);
     } finally {
       setLoading(false);
     }
@@ -302,12 +302,15 @@ export default function TransaksiKeuanganForm() {
   // Transactions list state
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [userMappings, setUserMappings] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterJenis, setFilterJenis] = useState("");
   const [filterSource, setFilterSource] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const [nominal, setNominal] = useState("");
   const [quantity, setQuantity] = useState("1");
@@ -354,24 +357,6 @@ export default function TransaksiKeuanganForm() {
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [openEmployeeCombobox, setOpenEmployeeCombobox] = useState(false);
   const [searchEmployee, setSearchEmployee] = useState("");
-
-  // OCR Scanner Modal state
-  const [showOCRModal, setShowOCRModal] = useState(false);
-  const [ocrFile, setOcrFile] = useState<File | null>(null);
-  const [ocrFilePreview, setOcrFilePreview] = useState<string | null>(null);
-  const [ocrLoading, setOcrLoading] = useState(false);
-  const [ocrExtractedText, setOcrExtractedText] = useState("");
-  const [ocrParsedData, setOcrParsedData] = useState<ParsedOCRData | null>(null);
-  const ocrFileInputRef = useRef<HTMLInputElement>(null);
-  
-  // OCR Applied Data state - untuk menampilkan breakdown setelah OCR digunakan
-  const [ocrAppliedData, setOcrAppliedData] = useState<{
-    imagePreview: string | null;
-    extractedText: string;
-    parsedData: ParsedOCRData | null;
-    appliedFields: { field: string; value: string }[];
-    items: { name: string; qty: number; price: number }[];
-  } | null>(null);
 
   // Cart state - load from localStorage on mount
   const [cart, setCart] = useState<any[]>(() => {
@@ -429,6 +414,13 @@ export default function TransaksiKeuanganForm() {
     [],
   );
 
+  // OCR-related state
+  const [ocrFile, setOcrFile] = useState<File | null>(null);
+  const [ocrFilePreview, setOcrFilePreview] = useState<string | null>(null);
+  const [ocrExtractedText, setOcrExtractedText] = useState("");
+  const [ocrParsedData, setOcrParsedData] = useState<any>(null);
+  const [ocrAppliedData, setOcrAppliedData] = useState<any>(null);
+
   const { toast } = useToast();
 
   // Save cart to localStorage whenever it changes
@@ -482,235 +474,16 @@ export default function TransaksiKeuanganForm() {
     };
   }, []);
 
-  // OCR Scanner Functions
-  const handleOCRFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0]) return;
-    const f = e.target.files[0];
-    setOcrFile(f);
-    if (f.type.startsWith("image/")) {
-      setOcrFilePreview(URL.createObjectURL(f));
-    } else {
-      setOcrFilePreview(null);
-    }
-    // Reset previous results
-    setOcrExtractedText("");
-    setOcrParsedData(null);
-  };
-
-  const handleProcessOCR = async () => {
-    if (!ocrFile) {
-      toast({
-        title: "Error",
-        description: "Harap pilih file terlebih dahulu.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setOcrLoading(true);
-
-      // Convert to Base64
-      const base64Content = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = (reader.result as string).split(",")[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(ocrFile);
-      });
-
-      // Call Supabase Edge Function
-      const { data: raw, error: visionError } = await supabase.functions.invoke(
-        "supabase-functions-vision-google-ocr",
-        {
-          body: { file_base64: base64Content },
-        }
-      );
-
-      if (visionError) throw visionError;
-
-      // Parse raw JSON
-      let visionData;
-      try {
-        visionData = typeof raw === "string" ? JSON.parse(raw) : raw;
-      } catch (err) {
-        console.error("JSON PARSE FAILED:", err);
-        throw new Error("Vision API returned invalid JSON.");
-      }
-
-      // Extract text
-      let fullText = "";
-      const resp = visionData?.responses?.[0];
-      if (resp?.textAnnotations?.length > 0) {
-        fullText = resp.textAnnotations[0].description;
-      } else if (resp?.fullTextAnnotation?.text) {
-        fullText = resp.fullTextAnnotation.text;
-      }
-
-      setOcrExtractedText(fullText);
-
-      // Parse with receipt parser
-      const parsed = parseOCR(fullText, "RECEIPT");
-      setOcrParsedData(parsed);
-
-      toast({
-        title: "OCR Berhasil",
-        description: "Data berhasil diekstrak dari gambar",
-      });
-    } catch (error) {
-      console.error("OCR Error:", error);
-      toast({
-        title: "OCR Error",
-        description: error instanceof Error ? error.message : "Gagal memproses OCR",
-        variant: "destructive",
-      });
-    } finally {
-      setOcrLoading(false);
-    }
-  };
-
-  const handleUseOCRResult = () => {
-    console.log("=== handleUseOCRResult called ===");
-    console.log("ocrParsedData:", ocrParsedData);
-    console.log("ocrExtractedText:", ocrExtractedText);
-    
-    const appliedFields: { field: string; value: string }[] = [];
-    const extractedItems: { name: string; qty: number; price: number }[] = [];
-    
-    // Map OCR data to form fields
-    if (ocrParsedData?.nama) {
-      setDescription(ocrParsedData.nama);
-      appliedFields.push({ field: "Deskripsi", value: ocrParsedData.nama });
-    }
-    
-    // Try multiple patterns to extract nominal from text
-    const patterns = [
-      /(?:total|jumlah|amount|bayar|grand\s*total)[:\s]*(?:rp\.?|idr)?\s*([\d.,]+)/i,
-      /(?:harga\s*jual)[:\s]*([\d.,]+)/i,
-      /(?:tunai|cash)[:\s]*(?:rp\.?|idr)?\s*([\d.,]+)/i,
-      /(?:rp\.?|idr)\s*([\d.,]+)/i,
-      /(\d{1,3}(?:[.,]\d{3})+)/g,
-    ];
-    
-    let extractedNominal = "";
-    for (const pattern of patterns) {
-      const match = ocrExtractedText.match(pattern);
-      if (match) {
-        const numStr = match[1] || match[0];
-        const cleanNum = numStr.replace(/[.,]/g, "");
-        if (!extractedNominal || parseInt(cleanNum) > parseInt(extractedNominal)) {
-          extractedNominal = cleanNum;
-        }
-      }
-    }
-    
-    // Also try to find "HARGA JUAL:" pattern specifically from the receipt
-    const hargaJualMatch = ocrExtractedText.match(/HARGA\s*JUAL[:\s]*([\d.,]+)/i);
-    if (hargaJualMatch) {
-      extractedNominal = hargaJualMatch[1].replace(/[.,]/g, "");
-    }
-    
-    if (extractedNominal) {
-      setNominal(extractedNominal);
-      appliedFields.push({ field: "Nominal", value: `Rp ${parseInt(extractedNominal).toLocaleString("id-ID")}` });
-    }
-    
-    // Try to extract description from receipt items
-    if (!ocrParsedData?.nama) {
-      const productPatterns = [
-        /VOUCHER\s+([A-Z\s]+):/i,
-        /([A-Z][A-Z\s]+):\s*\(\d+\)/i,
-      ];
-      
-      for (const pattern of productPatterns) {
-        const match = ocrExtractedText.match(pattern);
-        if (match) {
-          const productName = match[1].trim();
-          setDescription(`Pembelian: ${productName}`);
-          appliedFields.push({ field: "Deskripsi", value: `Pembelian: ${productName}` });
-          break;
-        }
-      }
-    }
-    
-    // Extract items from receipt text
-    const itemPatterns = [
-      /([A-Z][A-Z\s]+):\s*\((\d+)\)\s*@\s*([\d.,]+)/gi,
-      /VOUCHER\s+([A-Z\s]+):\s*\((\d+)\)\s*@\s*([\d.,]+)/gi,
-    ];
-    
-    for (const pattern of itemPatterns) {
-      let itemMatch;
-      while ((itemMatch = pattern.exec(ocrExtractedText)) !== null) {
-        const itemName = itemMatch[1].trim();
-        const qty = parseInt(itemMatch[2]) || 1;
-        const price = parseInt(itemMatch[3].replace(/[.,]/g, "")) || 0;
-        extractedItems.push({ name: itemName, qty, price });
-      }
-    }
-    
-    // If no items found, try simpler pattern
-    if (extractedItems.length === 0) {
-      const simpleItemMatch = ocrExtractedText.match(/([A-Z][A-Z\s]+ORANGE|[A-Z][A-Z\s]+SQUASH)/gi);
-      if (simpleItemMatch) {
-        simpleItemMatch.forEach(item => {
-          extractedItems.push({ name: item.trim(), qty: 1, price: parseInt(extractedNominal) || 0 });
-        });
-      }
-    }
-    
-    // Save OCR applied data for display
-    const ocrData = {
-      imagePreview: ocrFilePreview,
-      extractedText: ocrExtractedText,
-      parsedData: ocrParsedData,
-      appliedFields,
-      items: extractedItems,
-    };
-    
-    setOcrAppliedData(ocrData);
-    
-    // Also set the OCR file as bukti file if available
-    if (ocrFile) {
-      setBuktiFile(ocrFile);
-    }
-    
-    console.log("OCR Data Saved to State:", ocrData);
-    console.log("Applied fields:", appliedFields);
-    console.log("Extracted items:", extractedItems);
-    
-    if (appliedFields.length > 0) {
-      toast({
-        title: "Data OCR Diterapkan",
-        description: appliedFields.map(f => `${f.field}: ${f.value}`).join(", "),
-      });
-    } else {
-      toast({
-        title: "Tidak ada data yang bisa diekstrak",
-        description: "Silakan isi form secara manual",
-        variant: "destructive",
-      });
-    }
-    
-    // Close modal and reset OCR modal state (but keep applied data)
-    setShowOCRModal(false);
-    setOcrFile(null);
-    setOcrExtractedText("");
-    setOcrParsedData(null);
-  };
-
   // Load employees from users table
   const loadEmployees = async () => {
-    const { data, error } = await supabase
+    const { data, error: supabaseError } = await supabase
       .from("users")
       .select("id, full_name, email, entity")
       .eq("entity", "Karyawan")
       .order("full_name", { ascending: true });
 
-    if (error) {
-      console.error("Error loading employees:", error);
+    if (supabaseError) {
+      console.error("Error loading employees:", supabaseError);
     } else {
       setEmployees(data || []);
     }
@@ -718,13 +491,13 @@ export default function TransaksiKeuanganForm() {
 
   // Load COA accounts for kategori pengeluaran
   const loadCOAAccounts = async () => {
-    const { data, error } = await supabase
+    const { data, error: supabaseError } = await supabase
       .from("chart_of_accounts")
       .select("*")
       .order("account_name", { ascending: true });
 
-    if (error) {
-      console.error("Error loading COA accounts:", error);
+    if (supabaseError) {
+      console.error("Error loading COA accounts:", supabaseError);
     } else {
       setCoaAccounts(data || []);
     }
@@ -896,21 +669,21 @@ export default function TransaksiKeuanganForm() {
       }
 
       // Fetch categories from database that match allowed list
-      const { data, error } = await supabase
+      const { data, error: supabaseError } = await supabase
         .from("coa_category_mapping")
         .select("service_category")
         .in("service_category", allowedCategories)
         .eq("is_active", true);
 
-      if (error) throw error;
+      if (supabaseError) throw supabaseError;
 
       const uniqueCategories = Array.from(
         new Set(data?.map((item) => item.service_category).filter(Boolean)),
       ) as string[];
 
       setAvailableCategories(uniqueCategories);
-    } catch (error) {
-      console.error("Error loading categories:", error);
+    } catch (err) {
+      console.error("Error loading categories:", err);
       setAvailableCategories([]);
     }
   };
@@ -1077,7 +850,7 @@ export default function TransaksiKeuanganForm() {
 
     setLoadingStock(true);
     try {
-      const { data, error } = await supabase
+      const { data, error: supabaseError } = await supabase
         .from("stock")
         .select(
           `
@@ -1089,7 +862,7 @@ export default function TransaksiKeuanganForm() {
         .eq("description", description)
         .maybeSingle();
 
-      if (error) throw error;
+      if (supabaseError) throw supabaseError;
 
       setStockInfo(data);
 
@@ -1097,8 +870,8 @@ export default function TransaksiKeuanganForm() {
       if (data?.harga_jual) {
         setHargaJual(data.harga_jual.toString());
       }
-    } catch (error) {
-      console.error("Error fetching stock info:", error);
+    } catch (err) {
+      console.error("Error fetching stock info:", err);
       setStockInfo(null);
     } finally {
       setLoadingStock(false);
@@ -1112,8 +885,8 @@ export default function TransaksiKeuanganForm() {
 
   const loadSuppliers = async (): Promise<void> => {
     try {
-      const { data, error } = await supabase.from("suppliers").select("*");
-      if (error) throw error;
+      const { data, error: supabaseError } = await supabase.from("suppliers").select("*");
+      if (supabaseError) throw supabaseError;
       console.log("Suppliers loaded:", data);
       setSuppliers(data || []);
     } catch (err) {
@@ -1124,8 +897,8 @@ export default function TransaksiKeuanganForm() {
 
   const loadCustomers = async (): Promise<void> => {
     try {
-      const { data, error } = await supabase.from("customers").select("*");
-      if (error) throw error;
+      const { data, error: supabaseError } = await supabase.from("customers").select("*");
+      if (supabaseError) throw supabaseError;
       console.log("Customers loaded:", data);
       console.log("Total customers:", data?.length || 0);
       if (data && data.length > 0) {
@@ -1140,8 +913,8 @@ export default function TransaksiKeuanganForm() {
 
   const loadConsignees = async (): Promise<void> => {
     try {
-      const { data, error } = await supabase.from("consignees").select("*");
-      if (error) throw error;
+      const { data, error: supabaseError } = await supabase.from("consignees").select("*");
+      if (supabaseError) throw supabaseError;
       console.log("Consignees loaded:", data);
       setConsignees(data || []);
     } catch (err) {
@@ -1152,12 +925,12 @@ export default function TransaksiKeuanganForm() {
 
   const loadBanks = async (): Promise<void> => {
     try {
-      const { data, error } = await supabase
+      const { data, error: supabaseError } = await supabase
         .from("chart_of_accounts")
         .select("*")
         .ilike("account_name", "%bank - %")
         .order("account_code");
-      if (error) throw error;
+      if (supabaseError) throw supabaseError;
       console.log("Banks loaded:", data);
       setBanks(data || []);
     } catch (err) {
@@ -1168,12 +941,12 @@ export default function TransaksiKeuanganForm() {
 
   const loadKasAccounts = async (): Promise<void> => {
     try {
-      const { data, error } = await supabase
+      const { data, error: supabaseError } = await supabase
         .from("chart_of_accounts")
         .select("*")
         .ilike("account_name", "%kas - %")
         .order("account_code");
-      if (error) throw error;
+      if (supabaseError) throw supabaseError;
       console.log("Kas accounts loaded:", data);
       setKasAccounts(data || []);
     } catch (err) {
@@ -1184,8 +957,8 @@ export default function TransaksiKeuanganForm() {
 
   const loadBorrowers = async (): Promise<void> => {
     try {
-      const { data, error } = await supabase.from("borrowers").select("*");
-      if (error) throw error;
+      const { data, error: supabaseError } = await supabase.from("borrowers").select("*");
+      if (supabaseError) throw supabaseError;
       setBorrowers(data || []);
     } catch (err) {
       setBorrowers([]);
@@ -1389,6 +1162,28 @@ export default function TransaksiKeuanganForm() {
       setTransactions(allTransactions);
       console.log("Total transactions loaded:", allTransactions.length);
 
+      // Load user mappings for created_by and approved_by
+      const userIds = new Set<string>();
+      allTransactions.forEach((t) => {
+        if (t.created_by) userIds.add(t.created_by);
+        if (t.approved_by) userIds.add(t.approved_by);
+      });
+
+      if (userIds.size > 0) {
+        const { data: usersData } = await supabase
+          .from("users")
+          .select("id, full_name, email")
+          .in("id", Array.from(userIds));
+
+        if (usersData) {
+          const mappings: Record<string, string> = {};
+          usersData.forEach((user) => {
+            mappings[user.id] = user.full_name || user.email || user.id;
+          });
+          setUserMappings(mappings);
+        }
+      }
+
       if (allTransactions.length === 0) {
         toast({
           title: "ℹ️ Tidak Ada Data",
@@ -1425,7 +1220,7 @@ export default function TransaksiKeuanganForm() {
         .delete()
         .eq("id", transaction.id);
 
-      if (error) throw error;
+      if (supabaseError) throw supabaseError;
 
       toast({
         title: "✅ Berhasil",
@@ -1556,13 +1351,13 @@ export default function TransaksiKeuanganForm() {
     try {
       // Special handling for "Kas & Bank" category
       if (category === "Kas & Bank") {
-        const { data, error } = await supabase
+        const { data, error: supabaseError } = await supabase
           .from("chart_of_accounts")
           .select("*")
           .ilike("account_name", "%kas - %")
           .order("account_code");
 
-        if (error) throw error;
+        if (supabaseError) throw supabaseError;
 
         // Use account names as service types for Kas & Bank
         const kasAccounts = data?.map((acc) => acc.account_name) || [];
@@ -1570,13 +1365,13 @@ export default function TransaksiKeuanganForm() {
         console.log("Kas accounts loaded:", kasAccounts);
       } else {
         // Normal flow for other categories
-        const { data, error } = await supabase
+        const { data, error: supabaseError } = await supabase
           .from("coa_category_mapping")
           .select("service_type")
           .eq("service_category", category)
           .eq("is_active", true);
 
-        if (error) throw error;
+        if (supabaseError) throw supabaseError;
 
         const uniqueTypes = Array.from(
           new Set(data?.map((item) => item.service_type).filter(Boolean)),
@@ -1584,8 +1379,8 @@ export default function TransaksiKeuanganForm() {
 
         setServiceTypes(uniqueTypes);
       }
-    } catch (error) {
-      console.error("Error loading service types:", error);
+    } catch (err) {
+      console.error("Error loading service types:", err);
     }
   };
 
@@ -1700,8 +1495,8 @@ export default function TransaksiKeuanganForm() {
           setCoa([coaData]);
         }
       }
-    } catch (error) {
-      console.error("Error auto-filling COA:", error);
+    } catch (err) {
+      console.error("Error auto-filling COA:", err);
       // If no mapping found, load all COA
       loadCOA();
     }
@@ -1784,10 +1579,10 @@ export default function TransaksiKeuanganForm() {
       setPreviewTanggal(journalData.tanggal);
       setPreviewIsCashRelated(result.is_cash_related);
       setPreviewOpen(true);
-    } catch (error: any) {
+    } catch (err: any) {
       toast({
         title: "❌ Error",
-        description: error.details ? error.details.join(", ") : error.message,
+        description: err.details ? err.details.join(", ") : err.message,
         variant: "destructive",
       });
     }
@@ -1964,12 +1759,12 @@ export default function TransaksiKeuanganForm() {
     // Upsert if needed
     if (toUpsert.length > 0) {
       try {
-        const { error } = await supabase
+        const { error: supabaseError } = await supabase
           .from("chart_of_accounts")
           .upsert(toUpsert, { onConflict: "account_code" });
 
-        if (error) {
-          console.error("Error upserting placeholder COA:", error);
+        if (supabaseError) {
+          console.error("Error upserting placeholder COA:", supabaseError);
         }
 
         return {
@@ -1977,8 +1772,8 @@ export default function TransaksiKeuanganForm() {
           debitAccount: resultDebit,
           creditAccount: resultCredit,
         };
-      } catch (error) {
-        console.error("Error in fallbackAndUpsertCOA:", error);
+      } catch (err) {
+        console.error("Error in fallbackAndUpsertCOA:", err);
       }
     }
 
@@ -2049,10 +1844,10 @@ export default function TransaksiKeuanganForm() {
       query = query.eq(key, filter[key]);
     });
 
-    const { data, error } = await query.maybeSingle();
+    const { data, error: supabaseError } = await query.maybeSingle();
 
-    if (error) {
-      console.error("Error loading COA:", error);
+    if (supabaseError) {
+      console.error("Error loading COA:", supabaseError);
       return null;
     }
 
@@ -2126,9 +1921,9 @@ export default function TransaksiKeuanganForm() {
         is_cash_related: mappingRule.extras.is_cash_related,
         hpp_entry: hppEntry,
       };
-    } catch (error) {
-      console.error("Error in runFinancialEngine:", error);
-      throw error;
+    } catch (err) {
+      console.error("Error in runFinancialEngine:", err);
+      throw err;
     }
   };
 
@@ -2210,10 +2005,10 @@ export default function TransaksiKeuanganForm() {
       setPreviewTanggal(journalData.tanggal);
       setPreviewIsCashRelated(result.is_cash_related);
       setPreviewOpen(true);
-    } catch (error: any) {
+    } catch (err: any) {
       toast({
         title: "❌ Error",
-        description: error.details ? error.details.join(", ") : error.message,
+        description: err.details ? err.details.join(", ") : err.message,
         variant: "destructive",
       });
     }
@@ -2395,6 +2190,7 @@ export default function TransaksiKeuanganForm() {
       case "Penerimaan Kas":
       case "Pinjaman Masuk": {
         // Insert to cash_and_bank_receipts
+        const { data: { user } } = await supabase.auth.getUser();
         const { error } = await supabase
           .from("cash_and_bank_receipts")
           .insert({
@@ -2413,6 +2209,7 @@ export default function TransaksiKeuanganForm() {
             approval_status: "approved",
             bukti: uploadedBuktiUrl || null,
             ocr_data: ocrDataPayload,
+            created_by: user?.id || null,
           });
 
         if (error) throw new Error(`Cash Receipt: ${error.message}`);
@@ -2478,7 +2275,7 @@ export default function TransaksiKeuanganForm() {
       const mainCreditLine = previewLines.find((l) => l.dc === "C");
 
       if (mainDebitLine && mainCreditLine) {
-        const { data, error } = await supabase.from("journal_entries").insert({
+        const { data, error: supabaseError } = await supabase.from("journal_entries").insert({
           journal_ref: journalRef,
           debit_account: mainDebitLine.account_code,
           credit_account: mainCreditLine.account_code,
@@ -2490,9 +2287,9 @@ export default function TransaksiKeuanganForm() {
           jenis_transaksi: jenisTransaksi,
         });
 
-        if (error) {
-          console.error("Journal Entry Error:", error);
-          throw new Error(`Journal Entry: ${error.message}`);
+        if (supabaseError) {
+          console.error("Journal Entry Error:", supabaseError);
+          throw new Error(`Journal Entry: ${supabaseError.message}`);
         }
         console.log("Journal Entry saved:", data);
       }
@@ -2502,7 +2299,7 @@ export default function TransaksiKeuanganForm() {
         const hppDebitLine = previewLines[2]; // HPP debit
         const hppCreditLine = previewLines[3]; // Inventory credit
 
-        const { data, error } = await supabase.from("journal_entries").insert({
+        const { data, error: supabaseError } = await supabase.from("journal_entries").insert({
           journal_ref: journalRef,
           debit_account: hppDebitLine.account_code,
           credit_account: hppCreditLine.account_code,
@@ -2514,9 +2311,9 @@ export default function TransaksiKeuanganForm() {
           jenis_transaksi: jenisTransaksi,
         });
 
-        if (error) {
-          console.error("HPP Entry Error:", error);
-          throw new Error(`HPP Entry: ${error.message}`);
+        if (supabaseError) {
+          console.error("HPP Entry Error:", supabaseError);
+          throw new Error(`HPP Entry: ${supabaseError.message}`);
         }
         console.log("HPP Entry saved:", data);
       }
@@ -2531,7 +2328,7 @@ export default function TransaksiKeuanganForm() {
       const fileToUpload = buktiFile || ocrFile;
       console.log("📁 DEBUG - fileToUpload:", fileToUpload);
 
-      if (fileToUpload) {
+      if (fileToUpload && fileToUpload.name) {
         console.log("🔍 DEBUG - Starting file upload...", {
           name: fileToUpload.name,
           size: fileToUpload.size,
@@ -2574,7 +2371,7 @@ export default function TransaksiKeuanganForm() {
           // Generate document number
           const docNumber = `${jenisTransaksi === "Penerimaan Kas" ? "PKM" : "PKK"}-${Date.now()}`;
 
-          const { data, error } = await supabase.from("kas_transaksi").insert({
+          const { data, error: supabaseError } = await supabase.from("kas_transaksi").insert({
             tanggal: previewTanggal,
             document_number: docNumber,
             payment_type: jenisTransaksi, // "Penerimaan Kas" or "Pengeluaran Kas"
@@ -2614,7 +2411,7 @@ export default function TransaksiKeuanganForm() {
 
       // Always refresh transactions list to show new data
       await loadTransactions();
-    } catch (error: any) {
+    } catch (err: any) {
       toast({
         title: "❌ Error",
         description: error.message || "Gagal menyimpan transaksi",
@@ -2818,7 +2615,7 @@ export default function TransaksiKeuanganForm() {
         let uploadedBuktiUrl = "";
         console.log("🔍 DEBUG Checkout - item.buktiFile:", item.buktiFile);
 
-        if (item.buktiFile) {
+        if (item.buktiFile && item.buktiFile.name) {
           console.log("🔍 DEBUG Checkout - Starting file upload...", {
             name: item.buktiFile.name,
             size: item.buktiFile.size,
@@ -3008,6 +2805,10 @@ export default function TransaksiKeuanganForm() {
 
         // Step 6c: If Penerimaan Kas, save to cash_and_bank_receipts table
         if (item.jenisTransaksi === "Penerimaan Kas") {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+
           const debitLine = journalData.lines.find((l) => l.dc === "D");
           const creditLine = journalData.lines.find((l) => l.dc === "C");
 
@@ -3041,6 +2842,7 @@ export default function TransaksiKeuanganForm() {
                 items: ocrAppliedData.items,
                 appliedFields: ocrAppliedData.appliedFields,
               } : null,
+              created_by: user?.id || null,
             });
 
           if (cashReceiptError) {
@@ -3597,11 +3399,11 @@ export default function TransaksiKeuanganForm() {
 
       // Reload transactions to show new data
       await loadTransactions();
-    } catch (error: any) {
-      console.error("Checkout Error:", error);
+    } catch (err: any) {
+      console.error("Checkout Error:", err);
       toast({
         title: "❌ Error",
-        description: error.message || "Gagal menyimpan transaksi",
+        description: err.message || "Gagal menyimpan transaksi",
         variant: "destructive",
       });
     } finally {
@@ -3612,54 +3414,60 @@ export default function TransaksiKeuanganForm() {
   // Calculate summary data from approved transactions only
   const summaryData = {
     totalTransactions: transactions.length,
-    totalPenerimaan: transactions
+    totalPenerimaanKas: transactions
       .filter((t) => {
-        // Only count approved transactions
+        // Only count approved transactions from cash_receipts
         if (t.approval_status !== "approved") return false;
-
-        // Income from Penjualan Jasa
-        if (t.source === "sales_transactions" && t.transaction_type === "Jasa")
-          return true;
-        // Income from Penjualan Barang
-        if (
-          t.source === "sales_transactions" &&
-          t.transaction_type === "Barang"
-        )
-          return true;
-        // Income from Penerimaan Cash & Bank
         if (t.source === "cash_receipts") return true;
-
         return false;
       })
       .reduce((sum, t) => sum + parseFloat(t.nominal || 0), 0),
-    totalPengeluaran: transactions
+    totalPengeluaranKas: transactions
       .filter((t) => {
-        // Only count approved transactions
+        // Only count approved transactions from cash_disbursement
         if (t.approval_status !== "approved") return false;
-
-        // Expenses from kas_transaksi
-        if (
-          t.source === "kas_transaksi" &&
-          t.payment_type === "Pengeluaran Kas"
-        )
-          return true;
-        // Expenses from purchases
-        if (t.source === "purchase_transactions") return true;
-        // Expenses from internal usage
-        if (t.source === "internal_usage") return true;
-        // Expenses from expenses table
-        if (t.source === "expenses") return true;
-        // Expenses from cash_disbursement (approved only)
         if (t.source === "cash_disbursement") return true;
         return false;
       })
       .reduce((sum, t) => sum + parseFloat(t.nominal || 0), 0),
+    totalPembelianBarang: transactions
+      .filter((t) => {
+        // Only count approved transactions from purchase_transactions with transaction_type = Barang
+        if (t.approval_status !== "approved") return false;
+        if (t.source === "purchase_transactions" && t.transaction_type === "Barang") return true;
+        return false;
+      })
+      .reduce((sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0), 0),
+    totalPenjualanBarang: transactions
+      .filter((t) => {
+        // Only count approved transactions from sales_transactions with transaction_type = Barang
+        if (t.approval_status !== "approved") return false;
+        if (t.source === "sales_transactions" && t.transaction_type === "Barang") return true;
+        return false;
+      })
+      .reduce((sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0), 0),
+    totalPembelianJasa: transactions
+      .filter((t) => {
+        // Only count approved transactions from purchase_transactions with transaction_type = Jasa
+        if (t.approval_status !== "approved") return false;
+        if (t.source === "purchase_transactions" && t.transaction_type === "Jasa") return true;
+        return false;
+      })
+      .reduce((sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0), 0),
+    totalPenjualanJasa: transactions
+      .filter((t) => {
+        // Only count approved transactions from sales_transactions with transaction_type = Jasa
+        if (t.approval_status !== "approved") return false;
+        if (t.source === "sales_transactions" && t.transaction_type === "Jasa") return true;
+        return false;
+      })
+      .reduce((sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0), 0),
     waitingApproval: transactions.filter(
       (t) => t.approval_status === "waiting_approval",
     ).length,
   };
 
-  const netAmount = summaryData.totalPenerimaan - summaryData.totalPengeluaran;
+  const netAmount = (summaryData.totalPenerimaanKas + summaryData.totalPenjualanBarang + summaryData.totalPenjualanJasa) - (summaryData.totalPengeluaranKas + summaryData.totalPembelianBarang + summaryData.totalPembelianJasa);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -3699,35 +3507,6 @@ export default function TransaksiKeuanganForm() {
           <div className="flex gap-2">
             {showForm && (
               <>
-                <OCRScanButton
-                  onImageUploaded={(url, filePath) => {
-                    toast({
-                      title: "Gambar berhasil diupload",
-                      description: `File: ${filePath}`,
-                    });
-                  }}
-                />
-                <BarcodeScanButton
-                  onBarcodeScanned={(code, format) => {
-                    toast({
-                      title: "Barcode berhasil discan",
-                      description: `Format: ${format}`,
-                    });
-                  }}
-                  onAutofill={(data) => {
-                    if (data.is_qris && data.qris_nominal) {
-                      setNominal(data.qris_nominal.toString());
-                      if (data.qris_merchant) {
-                        setDescription(`Pembayaran QRIS - ${data.qris_merchant}`);
-                      }
-                    } else if (data.product_name) {
-                      setDescription(data.product_name);
-                      if (data.supplier) {
-                        setSupplier(data.supplier);
-                      }
-                    }
-                  }}
-                />
                 <Button
                   variant="outline"
                   onClick={() => setShowCart(!showCart)}
@@ -3774,162 +3553,299 @@ export default function TransaksiKeuanganForm() {
         {showReport && !showForm && (
           <div className="space-y-6">
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <Card
-                className="border-none shadow-lg bg-blue-400/90 text-white hover:shadow-xl transition-shadow cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => {
-                  setFilterJenis("");
-                  setFilterStatus("");
-                  setFilterSource("");
-                  setSearchQuery("");
-                  setFilterDateFrom("");
-                  setFilterDateTo("");
-                }}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardDescription className="text-white/90">
-                      Total Transaksi
-                    </CardDescription>
-                    <Receipt className="h-8 w-8 text-white/80" />
-                  </div>
-                  <CardTitle className="text-4xl font-bold">
-                    {summaryData.totalTransactions}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-white/90">
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    Total transaksi kas
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="space-y-3">
+              {/* Row 1: Total Transaksi, Net, Waiting Approval */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Card
+                  className="border-none shadow-md bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+                  onClick={() => {
+                    setFilterJenis("");
+                    setFilterStatus("");
+                    setFilterSource("");
+                    setSearchQuery("");
+                    setFilterDateFrom("");
+                    setFilterDateTo("");
+                  }}
+                >
+                  <CardHeader className="pb-2 pt-3">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-white/90 text-xs font-medium">
+                        Total Transaksi
+                      </CardDescription>
+                      <Receipt className="h-5 w-5 text-white/80" />
+                    </div>
+                    <CardTitle className="text-2xl font-bold">
+                      {summaryData.totalTransactions}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <div className="flex items-center text-xs text-white/90">
+                      <DollarSign className="mr-1 h-3 w-3" />
+                      Total transaksi kas
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card
-                className="border-none shadow-lg bg-emerald-400/90 text-white hover:shadow-xl transition-shadow cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => {
-                  setFilterJenis("Penerimaan Kas");
-                  setFilterStatus("");
-                }}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardDescription className="text-white/90">
-                      Total Penerimaan
-                    </CardDescription>
-                    <TrendingUp className="h-8 w-8 text-white/80" />
-                  </div>
-                  <CardTitle className="text-3xl font-bold">
-                    {
-                      formatCurrency(summaryData.totalPenerimaan)
-                        .replace("Rp", "")
-                        .trim()
-                        .split(",")[0]
-                    }
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-white/90">
-                    <TrendingUp className="mr-2 h-4 w-4" />
-                    Kas masuk
-                  </div>
-                </CardContent>
-              </Card>
+                <Card
+                  className={`border-none shadow-md text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01] ${
+                    netAmount >= 0 
+                      ? "bg-gradient-to-br from-purple-500 to-purple-600" 
+                      : "bg-gradient-to-br from-red-500 to-red-600"
+                  }`}
+                  onClick={() => {
+                    setFilterJenis("");
+                    setFilterStatus("");
+                    setFilterSource("");
+                    setSearchQuery("");
+                    setFilterDateFrom("");
+                    setFilterDateTo("");
+                  }}
+                >
+                  <CardHeader className="pb-2 pt-3">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-white/90 text-xs font-medium">
+                        Net / Saldo Bersih
+                      </CardDescription>
+                      <DollarSign className="h-5 w-5 text-white/80" />
+                    </div>
+                    <CardTitle className="text-xl font-bold">
+                      {
+                        formatCurrency(netAmount)
+                          .replace("Rp", "")
+                          .trim()
+                          .split(",")[0]
+                      }
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <div className="flex items-center text-xs text-white/90">
+                      <DollarSign className="mr-1 h-3 w-3" />
+                      {netAmount >= 0 ? "Surplus" : "Defisit"}
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card
-                className="border-none shadow-lg bg-pink-400/90 text-white hover:shadow-xl transition-shadow cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => {
-                  setFilterJenis("Pengeluaran Kas");
-                  setFilterStatus("");
-                }}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardDescription className="text-white/90">
-                      Total Pengeluaran
-                    </CardDescription>
-                    <TrendingDown className="h-8 w-8 text-white/80" />
-                  </div>
-                  <CardTitle className="text-3xl font-bold">
-                    {
-                      formatCurrency(summaryData.totalPengeluaran)
-                        .replace("Rp", "")
-                        .trim()
-                        .split(",")[0]
-                    }
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-white/90">
-                    <TrendingDown className="mr-2 h-4 w-4" />
-                    Kas keluar
-                  </div>
-                </CardContent>
-              </Card>
+                <Card
+                  className="border-none shadow-md bg-gradient-to-br from-amber-500 to-amber-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+                  onClick={() => {
+                    setFilterStatus("waiting_approval");
+                    setFilterJenis("");
+                  }}
+                >
+                  <CardHeader className="pb-2 pt-3">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-white/90 text-xs font-medium">
+                        Waiting Approval
+                      </CardDescription>
+                      <Clock className="h-5 w-5 text-white/80" />
+                    </div>
+                    <CardTitle className="text-2xl font-bold">
+                      {summaryData.waitingApproval}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <div className="flex items-center text-xs text-white/90">
+                      <Clock className="mr-1 h-3 w-3" />
+                      Menunggu persetujuan
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-              <Card
-                className={`border-none shadow-lg text-white hover:shadow-xl transition-shadow cursor-pointer hover:scale-105 transition-transform ${
-                  netAmount >= 0 ? "bg-purple-400/90" : "bg-red-400/90"
-                }`}
-                onClick={() => {
-                  setFilterJenis("");
-                  setFilterStatus("");
-                  setFilterSource("");
-                  setSearchQuery("");
-                  setFilterDateFrom("");
-                  setFilterDateTo("");
-                }}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardDescription className="text-white/90">
-                      Net
-                    </CardDescription>
-                    <DollarSign className="h-8 w-8 text-white/80" />
-                  </div>
-                  <CardTitle className="text-3xl font-bold">
-                    {
-                      formatCurrency(netAmount)
-                        .replace("Rp", "")
-                        .trim()
-                        .split(",")[0]
-                    }
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-white/90">
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    Saldo bersih
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Row 2: Income Cards (Penerimaan) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Card
+                  className="border-none shadow-md bg-gradient-to-br from-emerald-500 to-emerald-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+                  onClick={() => {
+                    setFilterJenis("Penerimaan Kas");
+                    setFilterStatus("");
+                  }}
+                >
+                  <CardHeader className="pb-2 pt-3">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-white/90 text-xs font-medium">
+                        Penerimaan Kas
+                      </CardDescription>
+                      <TrendingUp className="h-5 w-5 text-white/80" />
+                    </div>
+                    <CardTitle className="text-xl font-bold">
+                      {
+                        formatCurrency(summaryData.totalPenerimaanKas)
+                          .replace("Rp", "")
+                          .trim()
+                          .split(",")[0]
+                      }
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <div className="flex items-center text-xs text-white/90">
+                      <TrendingUp className="mr-1 h-3 w-3" />
+                      Kas masuk
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card
-                className="border-none shadow-lg bg-amber-400/90 text-white hover:shadow-xl transition-shadow cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => {
-                  setFilterStatus("waiting_approval");
-                  setFilterJenis("");
-                }}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardDescription className="text-white/90">
-                      Waiting Approval
-                    </CardDescription>
-                    <Clock className="h-8 w-8 text-white/80" />
-                  </div>
-                  <CardTitle className="text-4xl font-bold">
-                    {summaryData.waitingApproval}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-white/90">
-                    <Clock className="mr-2 h-4 w-4" />
-                    Menunggu persetujuan
-                  </div>
-                </CardContent>
-              </Card>
+                <Card
+                  className="border-none shadow-md bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+                  onClick={() => {
+                    setFilterJenis("Penjualan Barang");
+                    setFilterStatus("");
+                  }}
+                >
+                  <CardHeader className="pb-2 pt-3">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-white/90 text-xs font-medium">
+                        Penjualan Barang
+                      </CardDescription>
+                      <TrendingUp className="h-5 w-5 text-white/80" />
+                    </div>
+                    <CardTitle className="text-xl font-bold">
+                      {
+                        formatCurrency(summaryData.totalPenjualanBarang)
+                          .replace("Rp", "")
+                          .trim()
+                          .split(",")[0]
+                      }
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <div className="flex items-center text-xs text-white/90">
+                      <TrendingUp className="mr-1 h-3 w-3" />
+                      Penjualan barang
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  className="border-none shadow-md bg-gradient-to-br from-teal-500 to-teal-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+                  onClick={() => {
+                    setFilterJenis("Penjualan Jasa");
+                    setFilterStatus("");
+                  }}
+                >
+                  <CardHeader className="pb-2 pt-3">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-white/90 text-xs font-medium">
+                        Penjualan Jasa
+                      </CardDescription>
+                      <TrendingUp className="h-5 w-5 text-white/80" />
+                    </div>
+                    <CardTitle className="text-xl font-bold">
+                      {
+                        formatCurrency(summaryData.totalPenjualanJasa)
+                          .replace("Rp", "")
+                          .trim()
+                          .split(",")[0]
+                      }
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <div className="flex items-center text-xs text-white/90">
+                      <TrendingUp className="mr-1 h-3 w-3" />
+                      Penjualan jasa
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Row 3: Expense Cards (Pengeluaran) - Grouped Together */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Card
+                  className="border-none shadow-md bg-gradient-to-br from-pink-500 to-pink-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+                  onClick={() => {
+                    setFilterJenis("Pengeluaran Kas");
+                    setFilterStatus("");
+                  }}
+                >
+                  <CardHeader className="pb-2 pt-3">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-white/90 text-xs font-medium">
+                        Pengeluaran Kas
+                      </CardDescription>
+                      <TrendingDown className="h-5 w-5 text-white/80" />
+                    </div>
+                    <CardTitle className="text-xl font-bold">
+                      {
+                        formatCurrency(summaryData.totalPengeluaranKas)
+                          .replace("Rp", "")
+                          .trim()
+                          .split(",")[0]
+                      }
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <div className="flex items-center text-xs text-white/90">
+                      <TrendingDown className="mr-1 h-3 w-3" />
+                      Kas keluar
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  className="border-none shadow-md bg-gradient-to-br from-rose-500 to-rose-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+                  onClick={() => {
+                    setFilterJenis("Pembelian Barang");
+                    setFilterStatus("");
+                  }}
+                >
+                  <CardHeader className="pb-2 pt-3">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-white/90 text-xs font-medium">
+                        Pembelian Barang
+                      </CardDescription>
+                      <TrendingDown className="h-5 w-5 text-white/80" />
+                    </div>
+                    <CardTitle className="text-xl font-bold">
+                      {
+                        formatCurrency(summaryData.totalPembelianBarang)
+                          .replace("Rp", "")
+                          .trim()
+                          .split(",")[0]
+                      }
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <div className="flex items-center text-xs text-white/90">
+                      <TrendingDown className="mr-1 h-3 w-3" />
+                      Pembelian barang
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  className="border-none shadow-md bg-gradient-to-br from-orange-500 to-orange-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+                  onClick={() => {
+                    setFilterJenis("Pembelian Jasa");
+                    setFilterStatus("");
+                  }}
+                >
+                  <CardHeader className="pb-2 pt-3">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-white/90 text-xs font-medium">
+                        Pembelian Jasa
+                      </CardDescription>
+                      <TrendingDown className="h-5 w-5 text-white/80" />
+                    </div>
+                    <CardTitle className="text-xl font-bold">
+                      {
+                        formatCurrency(summaryData.totalPembelianJasa)
+                          .replace("Rp", "")
+                          .trim()
+                          .split(",")[0]
+                      }
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <div className="flex items-center text-xs text-white/90">
+                      <TrendingDown className="mr-1 h-3 w-3" />
+                      Pembelian jasa
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
+
+
 
             {/* Filters and Table */}
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
@@ -4111,6 +4027,7 @@ export default function TransaksiKeuanganForm() {
                   <TableHeader>
                     <TableRow className="bg-slate-50 hover:bg-slate-50">
                       <TableHead className="font-semibold w-16">No</TableHead>
+                      <TableHead className="font-semibold">Input By</TableHead>
                       <TableHead className="font-semibold">Tanggal</TableHead>
                       <TableHead className="font-semibold">
                         No. Dokumen
@@ -4139,7 +4056,7 @@ export default function TransaksiKeuanganForm() {
                     {loadingTransactions ? (
                       <TableRow>
                         <TableCell
-                          colSpan={12}
+                          colSpan={13}
                           className="text-center text-gray-500 py-8"
                         >
                           Memuat data...
@@ -4148,7 +4065,7 @@ export default function TransaksiKeuanganForm() {
                     ) : transactions.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={12}
+                          colSpan={13}
                           className="text-center text-gray-500 py-8"
                         >
                           Belum ada transaksi. Klik "Tambah Transaksi" untuk
@@ -4203,6 +4120,8 @@ export default function TransaksiKeuanganForm() {
                           if (!searchQuery) return true;
                           const query = searchQuery.toLowerCase();
                           return (
+                            t.no_dokumen?.toLowerCase().includes(query) ||
+                            t.document_number?.toLowerCase().includes(query) ||
                             t.payment_type?.toLowerCase().includes(query) ||
                             t.jenis?.toLowerCase().includes(query) ||
                             t.account_name?.toLowerCase().includes(query) ||
@@ -4213,11 +4132,11 @@ export default function TransaksiKeuanganForm() {
                             t.supplier_name?.toLowerCase().includes(query) ||
                             t.customer_name?.toLowerCase().includes(query) ||
                             t.lender_name?.toLowerCase().includes(query) ||
-                            t.document_number?.toLowerCase().includes(query) ||
                             t.loan_number?.toLowerCase().includes(query) ||
                             t.source?.toLowerCase().includes(query)
                           );
                         })
+                        .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                         .map((transaction, index) => {
                           // Determine display values based on source
                           let displayJenis =
@@ -4271,7 +4190,10 @@ export default function TransaksiKeuanganForm() {
                               className="hover:bg-slate-50"
                             >
                               <TableCell className="text-center font-medium text-gray-600">
-                                {index + 1}
+                                {(currentPage - 1) * itemsPerPage + index + 1}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {userMappings[transaction.created_by] || transaction.created_by || "-"}
                               </TableCell>
                               <TableCell>
                                 {new Date(
@@ -4509,6 +4431,45 @@ export default function TransaksiKeuanganForm() {
                                         </div>
                                       )}
 
+                                      {/* Employee Information Section */}
+                                      <div className="border-t pt-4">
+                                        <p className="text-sm font-semibold text-gray-700 mb-3">
+                                          Informasi Karyawan
+                                        </p>
+                                        <div className="grid grid-cols-1 gap-3">
+                                          {transaction.created_by && (
+                                            <div className="flex items-start gap-2">
+                                              <span className="text-sm text-gray-600 min-w-[180px]">
+                                                Karyawan yang Menginput:
+                                              </span>
+                                              <span className="text-sm font-medium">
+                                                {userMappings[transaction.created_by] || transaction.created_by}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {transaction.approved_by && (
+                                            <div className="flex items-start gap-2">
+                                              <span className="text-sm text-gray-600 min-w-[180px]">
+                                                Karyawan yang Meng-approve:
+                                              </span>
+                                              <span className="text-sm font-medium">
+                                                {userMappings[transaction.approved_by] || transaction.approved_by}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {transaction.payee_name && (
+                                            <div className="flex items-start gap-2">
+                                              <span className="text-sm text-gray-600 min-w-[180px]">
+                                                Karyawan yang Menerima (Payee):
+                                              </span>
+                                              <span className="text-sm font-medium">
+                                                {transaction.payee_name}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+
                                       {/* Upload Bukti */}
                                       {transaction.bukti && (
                                         <div className="border-t pt-4">
@@ -4602,82 +4563,18 @@ export default function TransaksiKeuanganForm() {
                                         </div>
                                       )}
 
-                                      {/* OCR Scan Result if available */}
-                                      {transaction.ocr_data ? (
+
+                                      {/* Rejection Reason if status is rejected */}
+                                      {transaction.approval_status === "rejected" && transaction.rejection_reason && (
                                         <div className="border-t pt-4">
-                                          <p className="text-sm font-semibold text-gray-600 mb-2">
-                                            📋 Hasil Scan OCR
+                                          <p className="text-sm font-semibold text-red-600 mb-2">
+                                            Alasan Di Reject:
                                           </p>
-                                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 space-y-3 border border-blue-200">
-                                            {/* Applied Fields */}
-                                            {transaction.ocr_data.appliedFields && transaction.ocr_data.appliedFields.length > 0 && (
-                                              <div>
-                                                <p className="text-xs font-semibold text-blue-700 mb-2">Data yang Diekstrak:</p>
-                                                <div className="bg-white rounded-lg p-3 border shadow-sm space-y-2">
-                                                  {transaction.ocr_data.appliedFields.map((field: any, idx: number) => (
-                                                    <div key={idx} className="flex justify-between items-center py-1 border-b last:border-0">
-                                                      <span className="text-sm text-slate-600">{field.field}</span>
-                                                      <span className="text-sm font-medium text-slate-800">{field.value}</span>
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              </div>
-                                            )}
-                                            
-                                            {/* Items List */}
-                                            {transaction.ocr_data.items && transaction.ocr_data.items.length > 0 && (
-                                              <div>
-                                                <p className="text-xs font-semibold text-blue-700 mb-2">Daftar Item:</p>
-                                                <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-                                                  <table className="w-full text-sm">
-                                                    <thead className="bg-slate-100">
-                                                      <tr>
-                                                        <th className="text-left p-2 font-medium text-slate-700">Nama Item</th>
-                                                        <th className="text-center p-2 font-medium text-slate-700">Qty</th>
-                                                        <th className="text-right p-2 font-medium text-slate-700">Harga</th>
-                                                      </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                      {transaction.ocr_data.items.map((item: any, idx: number) => (
-                                                        <tr key={idx} className="border-t">
-                                                          <td className="p-2 text-slate-800">{item.name}</td>
-                                                          <td className="p-2 text-center text-slate-600">{item.qty}</td>
-                                                          <td className="p-2 text-right text-slate-800">
-                                                            Rp {item.price?.toLocaleString("id-ID")}
-                                                          </td>
-                                                        </tr>
-                                                      ))}
-                                                    </tbody>
-                                                  </table>
-                                                </div>
-                                              </div>
-                                            )}
-                                            
-                                            {/* Raw Text Preview (Collapsible) */}
-                                            {transaction.ocr_data.extractedText && (
-                                              <details className="text-sm">
-                                                <summary className="cursor-pointer text-blue-600 hover:text-blue-800 font-medium">
-                                                  📄 Lihat Teks Mentah OCR
-                                                </summary>
-                                                <div className="mt-2 p-3 bg-white rounded-lg border text-xs font-mono whitespace-pre-wrap max-h-40 overflow-y-auto text-slate-600">
-                                                  {transaction.ocr_data.extractedText}
-                                                </div>
-                                              </details>
-                                            )}
-                                            
-                                            {/* No data message */}
-                                            {(!transaction.ocr_data.appliedFields || transaction.ocr_data.appliedFields.length === 0) && 
-                                             (!transaction.ocr_data.items || transaction.ocr_data.items.length === 0) && 
-                                             !transaction.ocr_data.extractedText && (
-                                              <p className="text-sm text-slate-500 italic">Tidak ada data OCR yang tersimpan</p>
-                                            )}
+                                          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                            <p className="text-sm text-red-800">
+                                              {transaction.rejection_reason}
+                                            </p>
                                           </div>
-                                        </div>
-                                      ) : (
-                                        <div className="border-t pt-4">
-                                          <p className="text-sm text-slate-500 italic">
-                                            💡 Transaksi ini tidak menggunakan OCR scan
-                                          </p>
                                         </div>
                                       )}
                                     </div>
@@ -4869,7 +4766,7 @@ export default function TransaksiKeuanganForm() {
                     {/* Total Penerimaan Kas */}
                     <TableRow>
                       <TableCell
-                        colSpan={10}
+                        colSpan={11}
                         className="text-right font-bold text-lg"
                       >
                         Total Penerimaan Kas:
@@ -4918,6 +4815,12 @@ export default function TransaksiKeuanganForm() {
                                 if (searchQuery) {
                                   const query = searchQuery.toLowerCase();
                                   const matchesSearch =
+                                    t.no_dokumen
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.document_number
+                                      ?.toLowerCase()
+                                      .includes(query) ||
                                     t.payment_type
                                       ?.toLowerCase()
                                       .includes(query) ||
@@ -4942,9 +4845,6 @@ export default function TransaksiKeuanganForm() {
                                       ?.toLowerCase()
                                       .includes(query) ||
                                     t.lender_name
-                                      ?.toLowerCase()
-                                      .includes(query) ||
-                                    t.document_number
                                       ?.toLowerCase()
                                       .includes(query) ||
                                     t.loan_number
@@ -4993,7 +4893,7 @@ export default function TransaksiKeuanganForm() {
                     {/* Total Pengeluaran Kas */}
                     <TableRow>
                       <TableCell
-                        colSpan={10}
+                        colSpan={11}
                         className="text-right font-bold text-lg"
                       >
                         Total Pengeluaran Kas:
@@ -5042,6 +4942,12 @@ export default function TransaksiKeuanganForm() {
                                 if (searchQuery) {
                                   const query = searchQuery.toLowerCase();
                                   const matchesSearch =
+                                    t.no_dokumen
+                                      ?.toLowerCase()
+                                      .includes(query) ||
+                                    t.document_number
+                                      ?.toLowerCase()
+                                      .includes(query) ||
                                     t.payment_type
                                       ?.toLowerCase()
                                       .includes(query) ||
@@ -5066,9 +4972,6 @@ export default function TransaksiKeuanganForm() {
                                       ?.toLowerCase()
                                       .includes(query) ||
                                     t.lender_name
-                                      ?.toLowerCase()
-                                      .includes(query) ||
-                                    t.document_number
                                       ?.toLowerCase()
                                       .includes(query) ||
                                     t.loan_number
@@ -5119,7 +5022,7 @@ export default function TransaksiKeuanganForm() {
                     {/* Total Net */}
                     <TableRow className="bg-slate-200">
                       <TableCell
-                        colSpan={10}
+                        colSpan={11}
                         className="text-right font-bold text-xl"
                       >
                         Total Net:
@@ -5274,6 +5177,189 @@ export default function TransaksiKeuanganForm() {
                     </TableRow>
                   </tfoot>
                 </Table>
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between px-4 py-3 border-t">
+                <div className="text-sm text-gray-700">
+                  Menampilkan{" "}
+                  <span className="font-medium">
+                    {Math.min((currentPage - 1) * itemsPerPage + 1, transactions.filter((t) => {
+                      if (filterDateFrom || filterDateTo) {
+                        const transactionDate = new Date(t.tanggal);
+                        if (filterDateFrom) {
+                          const fromDate = new Date(filterDateFrom);
+                          if (transactionDate < fromDate) return false;
+                        }
+                        if (filterDateTo) {
+                          const toDate = new Date(filterDateTo);
+                          toDate.setHours(23, 59, 59, 999);
+                          if (transactionDate > toDate) return false;
+                        }
+                      }
+                      if (filterJenis) {
+                        const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
+                        if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
+                      }
+                      if (filterSource && t.source !== filterSource) return false;
+                      if (filterStatus && t.approval_status !== filterStatus) return false;
+                      if (!searchQuery) return true;
+                      const query = searchQuery.toLowerCase();
+                      return (
+                        t.payment_type?.toLowerCase().includes(query) ||
+                        t.jenis?.toLowerCase().includes(query) ||
+                        t.account_name?.toLowerCase().includes(query) ||
+                        t.keterangan?.toLowerCase().includes(query) ||
+                        t.description?.toLowerCase().includes(query) ||
+                        t.notes?.toLowerCase().includes(query) ||
+                        t.item_name?.toLowerCase().includes(query) ||
+                        t.supplier_name?.toLowerCase().includes(query) ||
+                        t.customer_name?.toLowerCase().includes(query) ||
+                        t.lender_name?.toLowerCase().includes(query) ||
+                        t.document_number?.toLowerCase().includes(query) ||
+                        t.loan_number?.toLowerCase().includes(query) ||
+                        t.source?.toLowerCase().includes(query)
+                      );
+                    }).length)}
+                  </span>{" "}
+                  sampai{" "}
+                  <span className="font-medium">
+                    {Math.min(currentPage * itemsPerPage, transactions.filter((t) => {
+                      if (filterDateFrom || filterDateTo) {
+                        const transactionDate = new Date(t.tanggal);
+                        if (filterDateFrom) {
+                          const fromDate = new Date(filterDateFrom);
+                          if (transactionDate < fromDate) return false;
+                        }
+                        if (filterDateTo) {
+                          const toDate = new Date(filterDateTo);
+                          toDate.setHours(23, 59, 59, 999);
+                          if (transactionDate > toDate) return false;
+                        }
+                      }
+                      if (filterJenis) {
+                        const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
+                        if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
+                      }
+                      if (filterSource && t.source !== filterSource) return false;
+                      if (filterStatus && t.approval_status !== filterStatus) return false;
+                      if (!searchQuery) return true;
+                      const query = searchQuery.toLowerCase();
+                      return (
+                        t.payment_type?.toLowerCase().includes(query) ||
+                        t.jenis?.toLowerCase().includes(query) ||
+                        t.account_name?.toLowerCase().includes(query) ||
+                        t.keterangan?.toLowerCase().includes(query) ||
+                        t.description?.toLowerCase().includes(query) ||
+                        t.notes?.toLowerCase().includes(query) ||
+                        t.item_name?.toLowerCase().includes(query) ||
+                        t.supplier_name?.toLowerCase().includes(query) ||
+                        t.customer_name?.toLowerCase().includes(query) ||
+                        t.lender_name?.toLowerCase().includes(query) ||
+                        t.document_number?.toLowerCase().includes(query) ||
+                        t.loan_number?.toLowerCase().includes(query) ||
+                        t.source?.toLowerCase().includes(query)
+                      );
+                    }).length)}
+                  </span>{" "}
+                  dari{" "}
+                  <span className="font-medium">
+                    {transactions.filter((t) => {
+                      if (filterDateFrom || filterDateTo) {
+                        const transactionDate = new Date(t.tanggal);
+                        if (filterDateFrom) {
+                          const fromDate = new Date(filterDateFrom);
+                          if (transactionDate < fromDate) return false;
+                        }
+                        if (filterDateTo) {
+                          const toDate = new Date(filterDateTo);
+                          toDate.setHours(23, 59, 59, 999);
+                          if (transactionDate > toDate) return false;
+                        }
+                      }
+                      if (filterJenis) {
+                        const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
+                        if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
+                      }
+                      if (filterSource && t.source !== filterSource) return false;
+                      if (filterStatus && t.approval_status !== filterStatus) return false;
+                      if (!searchQuery) return true;
+                      const query = searchQuery.toLowerCase();
+                      return (
+                        t.payment_type?.toLowerCase().includes(query) ||
+                        t.jenis?.toLowerCase().includes(query) ||
+                        t.account_name?.toLowerCase().includes(query) ||
+                        t.keterangan?.toLowerCase().includes(query) ||
+                        t.description?.toLowerCase().includes(query) ||
+                        t.notes?.toLowerCase().includes(query) ||
+                        t.item_name?.toLowerCase().includes(query) ||
+                        t.supplier_name?.toLowerCase().includes(query) ||
+                        t.customer_name?.toLowerCase().includes(query) ||
+                        t.lender_name?.toLowerCase().includes(query) ||
+                        t.document_number?.toLowerCase().includes(query) ||
+                        t.loan_number?.toLowerCase().includes(query) ||
+                        t.source?.toLowerCase().includes(query)
+                      );
+                    }).length}
+                  </span>{" "}
+                  transaksi
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Sebelumnya
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage * itemsPerPage >= transactions.filter((t) => {
+                      if (filterDateFrom || filterDateTo) {
+                        const transactionDate = new Date(t.tanggal);
+                        if (filterDateFrom) {
+                          const fromDate = new Date(filterDateFrom);
+                          if (transactionDate < fromDate) return false;
+                        }
+                        if (filterDateTo) {
+                          const toDate = new Date(filterDateTo);
+                          toDate.setHours(23, 59, 59, 999);
+                          if (transactionDate > toDate) return false;
+                        }
+                      }
+                      if (filterJenis) {
+                        const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
+                        if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
+                      }
+                      if (filterSource && t.source !== filterSource) return false;
+                      if (filterStatus && t.approval_status !== filterStatus) return false;
+                      if (!searchQuery) return true;
+                      const query = searchQuery.toLowerCase();
+                      return (
+                        t.payment_type?.toLowerCase().includes(query) ||
+                        t.jenis?.toLowerCase().includes(query) ||
+                        t.account_name?.toLowerCase().includes(query) ||
+                        t.keterangan?.toLowerCase().includes(query) ||
+                        t.description?.toLowerCase().includes(query) ||
+                        t.notes?.toLowerCase().includes(query) ||
+                        t.item_name?.toLowerCase().includes(query) ||
+                        t.supplier_name?.toLowerCase().includes(query) ||
+                        t.customer_name?.toLowerCase().includes(query) ||
+                        t.lender_name?.toLowerCase().includes(query) ||
+                        t.document_number?.toLowerCase().includes(query) ||
+                        t.loan_number?.toLowerCase().includes(query) ||
+                        t.source?.toLowerCase().includes(query)
+                      );
+                    }).length}
+                  >
+                    Selanjutnya
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -7386,6 +7472,48 @@ export default function TransaksiKeuanganForm() {
                 </div>
               )}
 
+              {/* OCR SCANNER SECTION */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                  📷 Scan Receipt dengan OCR
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Upload gambar receipt untuk mengisi data transaksi secara otomatis
+                </p>
+                <OCRScanner
+                  onResult={(data) => {
+                    if (data.nominal) {
+                      setNominal(data.nominal.toString());
+                    }
+                    if (data.tanggal) {
+                      setTanggal(data.tanggal);
+                    }
+                    if (data.deskripsi) {
+                      setDescription(data.deskripsi);
+                    }
+                    
+                    // Store OCR data for database
+                    setOcrAppliedData({
+                      extractedText: data.extractedText || "",
+                      items: data.items || [],
+                      appliedFields: {
+                        nominal: data.nominal,
+                        tanggal: data.tanggal,
+                        deskripsi: data.deskripsi,
+                      },
+                    });
+                    
+                    toast({
+                      title: "✅ Data OCR Diterapkan",
+                      description: `Nominal: Rp ${data.nominal.toLocaleString("id-ID")}, Tanggal: ${data.tanggal}`,
+                    });
+                  }}
+                  buttonText="📷 Upload & Scan Receipt"
+                  buttonVariant="default"
+                  showPreview={true}
+                />
+              </div>
+
               {/* NOMINAL + DATE */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -7456,130 +7584,7 @@ export default function TransaksiKeuanganForm() {
                 />
               </div>
 
-              {/* SCAN OCR BUKTI */}
-              <div className="space-y-2">
-                <Label>Scan OCR Bukti</Label>
-                <OCRScanButton
-                  onImageUploaded={(url, filePath) => {
-                    toast({
-                      title: "Gambar berhasil diupload",
-                      description: "Sedang memproses OCR...",
-                    });
-                  }}
-                  onTextExtracted={(text) => {
-                    console.log("📄 OCR Text extracted:", text);
-                    const parsed = parseOCR(text);
-                    if (parsed) {
-                      setOcrAppliedData(parsed);
-                      if (parsed.nominal) setNominal(parsed.nominal.toString());
-                      if (parsed.tanggal) setTanggal(parsed.tanggal);
-                      if (parsed.description) setDescription(parsed.description);
-                      toast({
-                        title: "✅ OCR Berhasil",
-                        description: "Data telah diisi otomatis",
-                      });
-                    }
-                  }}
-                  bucketName="documents"
-                  folderPath="transaksi-bukti"
-                />
-                {buktiFile && (
-                  <p className="text-sm text-slate-600">
-                    File terpilih: {buktiFile.name}
-                  </p>
-                )}
-              </div>
 
-              {/* OCR BREAKDOWN SECTION */}
-              {ocrAppliedData && (
-                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-blue-800 flex items-center gap-2">
-                      📋 Hasil Scan OCR
-                    </h3>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setOcrAppliedData(null)}
-                      className="text-slate-500 hover:text-red-500"
-                    >
-                      ✕ Tutup
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Image Preview */}
-                    {ocrAppliedData.imagePreview && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">Gambar Receipt</Label>
-                        <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-                          <img
-                            src={ocrAppliedData.imagePreview}
-                            alt="Receipt OCR"
-                            className="w-full h-auto max-h-64 object-contain"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Applied Fields */}
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium text-slate-700">Data yang Diekstrak</Label>
-                      <div className="bg-white rounded-lg p-3 border shadow-sm space-y-2">
-                        {ocrAppliedData.appliedFields.map((field, idx) => (
-                          <div key={idx} className="flex justify-between items-center py-1 border-b last:border-0">
-                            <span className="text-sm text-slate-600">{field.field}</span>
-                            <span className="text-sm font-medium text-slate-800">{field.value}</span>
-                          </div>
-                        ))}
-                        {ocrAppliedData.appliedFields.length === 0 && (
-                          <p className="text-sm text-slate-500 italic">Tidak ada data yang diekstrak</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Items List */}
-                  {ocrAppliedData.items.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <Label className="text-sm font-medium text-slate-700">Daftar Item</Label>
-                      <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead className="bg-slate-100">
-                            <tr>
-                              <th className="text-left p-2 font-medium text-slate-700">Nama Item</th>
-                              <th className="text-center p-2 font-medium text-slate-700">Qty</th>
-                              <th className="text-right p-2 font-medium text-slate-700">Harga</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {ocrAppliedData.items.map((item, idx) => (
-                              <tr key={idx} className="border-t">
-                                <td className="p-2 text-slate-800">{item.name}</td>
-                                <td className="p-2 text-center text-slate-600">{item.qty}</td>
-                                <td className="p-2 text-right text-slate-800">
-                                  Rp {item.price.toLocaleString("id-ID")}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Raw Text Preview (Collapsible) */}
-                  <details className="mt-4">
-                    <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800 font-medium">
-                      📄 Lihat Teks Mentah OCR
-                    </summary>
-                    <div className="mt-2 p-3 bg-white rounded-lg border text-xs font-mono whitespace-pre-wrap max-h-40 overflow-y-auto text-slate-600">
-                      {ocrAppliedData.extractedText || "Tidak ada teks"}
-                    </div>
-                  </details>
-                </div>
-              )}
 
               {/* UPLOAD BUKTI FOTO */}
               <div className="space-y-2 mt-6">
@@ -7593,7 +7598,7 @@ export default function TransaksiKeuanganForm() {
                     accept="image/*,.pdf"
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
-                      if (!file) return;
+                      if (!file || !file.name) return;
 
                       setBuktiFile(file);
                       
@@ -7619,7 +7624,7 @@ export default function TransaksiKeuanganForm() {
                           title: "✅ Bukti berhasil diupload",
                           description: "File bukti transaksi telah tersimpan",
                         });
-                      } catch (error: any) {
+                      } catch (err: any) {
                         console.error('Upload error:', error);
                         toast({
                           title: "❌ Upload gagal",
@@ -8018,134 +8023,6 @@ export default function TransaksiKeuanganForm() {
         onConfirm={handleConfirmSave}
         isLoading={isConfirming}
       />
-
-      {/* OCR Scanner Modal */}
-      <Dialog open={showOCRModal} onOpenChange={setShowOCRModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ScanLine className="h-5 w-5" />
-              Scan OCR - Upload Receipt
-            </DialogTitle>
-            <DialogDescription>
-              Upload gambar receipt untuk ekstrak data otomatis
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* File Upload */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              {ocrFilePreview ? (
-                <div className="space-y-4">
-                  <img
-                    src={ocrFilePreview}
-                    alt="Preview"
-                    className="max-h-48 mx-auto rounded-lg"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => ocrFileInputRef.current?.click()}
-                  >
-                    Ganti Gambar
-                  </Button>
-                </div>
-              ) : (
-                <div
-                  className="cursor-pointer"
-                  onClick={() => ocrFileInputRef.current?.click()}
-                >
-                  <Upload className="h-12 w-12 mx-auto text-gray-400" />
-                  <p className="mt-2 text-sm text-gray-500">
-                    Klik untuk upload gambar receipt
-                  </p>
-                </div>
-              )}
-              <input
-                ref={ocrFileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleOCRFileChange}
-              />
-            </div>
-
-            {/* Process Button */}
-            {ocrFile && !ocrParsedData && (
-              <Button
-                onClick={handleProcessOCR}
-                disabled={ocrLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-              >
-                {ocrLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Memproses OCR...
-                  </>
-                ) : (
-                  <>
-                    <ScanLine className="h-4 w-4 mr-2" />
-                    Proses OCR
-                  </>
-                )}
-              </Button>
-            )}
-
-            {/* Extracted Text */}
-            {ocrExtractedText && (
-              <div className="space-y-2">
-                <Label>Teks yang Diekstrak:</Label>
-                <div className="bg-gray-50 p-3 rounded-lg max-h-40 overflow-y-auto">
-                  <pre className="text-xs whitespace-pre-wrap">{ocrExtractedText}</pre>
-                </div>
-              </div>
-            )}
-
-            {/* Parsed Data Preview */}
-            {ocrParsedData && (
-              <div className="space-y-2">
-                <Label>Data yang Terdeteksi:</Label>
-                <div className="bg-green-50 p-3 rounded-lg space-y-1">
-                  {ocrParsedData.nama && (
-                    <p className="text-sm"><strong>Nama/Merchant:</strong> {ocrParsedData.nama}</p>
-                  )}
-                  {ocrParsedData.alamat && (
-                    <p className="text-sm"><strong>Alamat:</strong> {ocrParsedData.alamat}</p>
-                  )}
-                  {ocrParsedData.npwp && (
-                    <p className="text-sm"><strong>NPWP:</strong> {ocrParsedData.npwp}</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-4 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowOCRModal(false);
-                  setOcrFile(null);
-                  setOcrFilePreview(null);
-                  setOcrExtractedText("");
-                  setOcrParsedData(null);
-                }}
-                disabled={ocrLoading}
-              >
-                Batal
-              </Button>
-              {ocrParsedData && (
-                <Button
-                  onClick={handleUseOCRResult}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Gunakan Hasil OCR
-                </Button>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Approval Transaksi Section */}
 

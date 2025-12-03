@@ -95,7 +95,7 @@ export default function OCRScanButton({
           });
 
           const { data: ocrData, error: ocrError } = await supabase.functions.invoke(
-            "vision-google-ocr",
+            "supabase-functions-vision-google-ocr",
             {
               body: {
                 file_base64: base64Content,

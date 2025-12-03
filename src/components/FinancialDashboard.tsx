@@ -45,9 +45,7 @@ export default function FinancialDashboard() {
 
   // Month and year filters
   const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(
-    currentDate.getMonth() + 1,
-  );
+  const [selectedMonth, setSelectedMonth] = useState(0); // 0 = Semua
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
 
   useEffect(() => {
@@ -58,9 +56,19 @@ export default function FinancialDashboard() {
     setLoading(true);
 
     try {
-      const startDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
-      const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
-      const endDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      let startDate: string;
+      let endDate: string;
+
+      if (selectedMonth === 0) {
+        // Semua bulan - ambil data untuk seluruh tahun
+        startDate = `${selectedYear}-01-01`;
+        endDate = `${selectedYear}-12-31`;
+      } else {
+        // Bulan tertentu
+        startDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+        const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+        endDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      }
 
       // Fetch Penjualan Barang
       const { data: salesBarang } = await supabase
@@ -68,7 +76,8 @@ export default function FinancialDashboard() {
         .select("nominal")
         .gte("tanggal", startDate)
         .lte("tanggal", endDate)
-        .eq("jenis_transaksi", "Penjualan Barang");
+        .eq("jenis_transaksi", "Penjualan Barang")
+        .neq("approval_status", "rejected");
 
       // Fetch Penjualan Jasa
       const { data: salesJasa } = await supabase
@@ -76,14 +85,16 @@ export default function FinancialDashboard() {
         .select("nominal")
         .gte("tanggal", startDate)
         .lte("tanggal", endDate)
-        .eq("jenis_transaksi", "Penjualan Jasa");
+        .eq("jenis_transaksi", "Penjualan Jasa")
+        .neq("approval_status", "rejected");
 
       // Fetch Penerimaan Kas & Bank
       const { data: receipts } = await supabase
         .from("cash_and_bank_receipts")
         .select("nominal")
         .gte("tanggal", startDate)
-        .lte("tanggal", endDate);
+        .lte("tanggal", endDate)
+        .neq("approval_status", "rejected");
 
       // Fetch Pembelian Barang
       const { data: purchaseBarang } = await supabase
@@ -91,7 +102,8 @@ export default function FinancialDashboard() {
         .select("nominal")
         .gte("tanggal", startDate)
         .lte("tanggal", endDate)
-        .eq("jenis_transaksi", "Pembelian Barang");
+        .eq("jenis_transaksi", "Pembelian Barang")
+        .neq("approval_status", "rejected");
 
       // Fetch Pembelian Jasa
       const { data: purchaseJasa } = await supabase
@@ -99,14 +111,16 @@ export default function FinancialDashboard() {
         .select("nominal")
         .gte("tanggal", startDate)
         .lte("tanggal", endDate)
-        .eq("jenis_transaksi", "Pembelian Jasa");
+        .eq("jenis_transaksi", "Pembelian Jasa")
+        .neq("approval_status", "rejected");
 
       // Fetch Pengeluaran Kas
       const { data: disbursements } = await supabase
         .from("cash_disbursement")
         .select("amount")
         .gte("transaction_date", startDate)
-        .lte("transaction_date", endDate);
+        .lte("transaction_date", endDate)
+        .neq("approval_status", "rejected");
 
       // Calculate totals
       const totalPenjualanBarang = (salesBarang || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
@@ -221,6 +235,7 @@ export default function FinancialDashboard() {
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
+              <option value={0}>Semua</option>
               <option value={1}>Januari</option>
               <option value={2}>Februari</option>
               <option value={3}>Maret</option>
@@ -304,7 +319,7 @@ export default function FinancialDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-700">
-                    {formatRupiah(summary.totalExpense)}
+                    - {formatRupiah(summary.totalExpense)}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     Klik untuk detail
@@ -346,6 +361,7 @@ export default function FinancialDashboard() {
                         : "text-orange-700"
                     }`}
                   >
+                    {summary.netProfit < 0 ? "- " : ""}
                     {formatRupiah(Math.abs(summary.netProfit))}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
