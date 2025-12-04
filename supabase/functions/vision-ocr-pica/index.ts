@@ -71,23 +71,23 @@ serve(async (req) => {
     const publicUrl = publicUrlData.publicUrl;
     console.log("Public URL:", publicUrl);
 
-    const PICA_SECRET_KEY = Deno.env.get("PICA_SECRET_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPEN_AI_KEY");
     
-    if (!PICA_SECRET_KEY) {
-      console.error("PICA_SECRET_KEY is missing");
-      return new Response(JSON.stringify({ error: "Missing Pica credentials" }), {
+    if (!OPENAI_API_KEY) {
+      console.error("OPEN_AI_KEY is missing");
+      return new Response(JSON.stringify({ error: "Missing OpenAI API key" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log("Calling Pica Vision OCR API...");
+    console.log("Calling OpenAI Vision API directly...");
 
-    const picaResponse = await fetch("https://api.openai.pica.ai/v1/chat/completions", {
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${PICA_SECRET_KEY}`,
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
@@ -108,24 +108,25 @@ serve(async (req) => {
             ],
           },
         ],
+        max_tokens: 4000,
       }),
     });
 
-    if (!picaResponse.ok) {
-      const errorText = await picaResponse.text();
-      console.error("Pica API error:", errorText);
-      return new Response(JSON.stringify({ error: "Pica API request failed: " + errorText }), {
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error("OpenAI API error:", errorText);
+      return new Response(JSON.stringify({ error: "OpenAI API request failed: " + errorText }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const picaJson = await picaResponse.json();
-    console.log("Pica response received:", JSON.stringify(picaJson).substring(0, 200));
+    const openaiJson = await openaiResponse.json();
+    console.log("OpenAI response received:", JSON.stringify(openaiJson).substring(0, 200));
 
     let ocrResult;
     try {
-      const content = picaJson.choices?.[0]?.message?.content;
+      const content = openaiJson.choices?.[0]?.message?.content;
       if (!content) {
         throw new Error("No content in response");
       }
@@ -143,7 +144,7 @@ serve(async (req) => {
     } catch (e) {
       console.error("Failed to parse OCR JSON:", e);
       ocrResult = { 
-        text: picaJson.choices?.[0]?.message?.content || "", 
+        text: openaiJson.choices?.[0]?.message?.content || "", 
         data: {} 
       };
     }

@@ -3082,6 +3082,7 @@ export type Database = {
           merchant: string | null
           ocr_data: Json | null
           ocr_date: string | null
+          ocr_id: string | null
           ocr_merchant: string | null
           ocr_raw: Json | null
           ocr_raw_json: Json | null
@@ -3105,6 +3106,7 @@ export type Database = {
           merchant?: string | null
           ocr_data?: Json | null
           ocr_date?: string | null
+          ocr_id?: string | null
           ocr_merchant?: string | null
           ocr_raw?: Json | null
           ocr_raw_json?: Json | null
@@ -3128,6 +3130,7 @@ export type Database = {
           merchant?: string | null
           ocr_data?: Json | null
           ocr_date?: string | null
+          ocr_id?: string | null
           ocr_merchant?: string | null
           ocr_raw?: Json | null
           ocr_raw_json?: Json | null
@@ -3137,7 +3140,15 @@ export type Database = {
           total?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "finance_transactions_ocr_id_fkey"
+            columns: ["ocr_id"]
+            isOneToOne: false
+            referencedRelation: "ocr_results"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       finance_transactions_line_items: {
         Row: {
@@ -3448,6 +3459,60 @@ export type Database = {
           unit?: string | null
           updated_at?: string | null
           vat_rate?: number | null
+        }
+        Relationships: []
+      }
+      ijazah_results: {
+        Row: {
+          created_at: string | null
+          id: string
+          jenjang: string | null
+          jurusan: string | null
+          nama: string | null
+          nama_sekolah: string | null
+          nomor_ijazah: string | null
+          nomor_peserta_ujian: string | null
+          processed_at: string | null
+          raw_text: string | null
+          tahun_lulus: string | null
+          tanggal_lahir: string | null
+          tanggal_lulus: string | null
+          tempat_lahir: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          jenjang?: string | null
+          jurusan?: string | null
+          nama?: string | null
+          nama_sekolah?: string | null
+          nomor_ijazah?: string | null
+          nomor_peserta_ujian?: string | null
+          processed_at?: string | null
+          raw_text?: string | null
+          tahun_lulus?: string | null
+          tanggal_lahir?: string | null
+          tanggal_lulus?: string | null
+          tempat_lahir?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          jenjang?: string | null
+          jurusan?: string | null
+          nama?: string | null
+          nama_sekolah?: string | null
+          nomor_ijazah?: string | null
+          nomor_peserta_ujian?: string | null
+          processed_at?: string | null
+          raw_text?: string | null
+          tahun_lulus?: string | null
+          tanggal_lahir?: string | null
+          tanggal_lulus?: string | null
+          tempat_lahir?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -4093,6 +4158,135 @@ export type Database = {
           tax_percentage?: number | null
           tax_type?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      kk_results: {
+        Row: {
+          alamat: string | null
+          anggota_keluarga: Json | null
+          created_at: string | null
+          id: string
+          kabupaten_kota: string | null
+          kecamatan: string | null
+          kelurahan_desa: string | null
+          kode_pos: string | null
+          nama_kepala_keluarga: string | null
+          nomor_kk: string | null
+          processed_at: string | null
+          provinsi: string | null
+          raw_text: string | null
+          rt_rw: string | null
+          user_id: string | null
+        }
+        Insert: {
+          alamat?: string | null
+          anggota_keluarga?: Json | null
+          created_at?: string | null
+          id?: string
+          kabupaten_kota?: string | null
+          kecamatan?: string | null
+          kelurahan_desa?: string | null
+          kode_pos?: string | null
+          nama_kepala_keluarga?: string | null
+          nomor_kk?: string | null
+          processed_at?: string | null
+          provinsi?: string | null
+          raw_text?: string | null
+          rt_rw?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          alamat?: string | null
+          anggota_keluarga?: Json | null
+          created_at?: string | null
+          id?: string
+          kabupaten_kota?: string | null
+          kecamatan?: string | null
+          kelurahan_desa?: string | null
+          kode_pos?: string | null
+          nama_kepala_keluarga?: string | null
+          nomor_kk?: string | null
+          processed_at?: string | null
+          provinsi?: string | null
+          raw_text?: string | null
+          rt_rw?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ktp_results: {
+        Row: {
+          agama: string | null
+          alamat: string | null
+          berlaku_hingga: string | null
+          created_at: string | null
+          golongan_darah: string | null
+          id: string
+          jenis_kelamin: string | null
+          kabupaten_kota: string | null
+          kecamatan: string | null
+          kelurahan_desa: string | null
+          kewarganegaraan: string | null
+          nama: string | null
+          nik: string | null
+          pekerjaan: string | null
+          processed_at: string | null
+          provinsi: string | null
+          raw_text: string | null
+          rt_rw: string | null
+          status_perkawinan: string | null
+          tanggal_lahir: string | null
+          tempat_lahir: string | null
+          user_id: string | null
+        }
+        Insert: {
+          agama?: string | null
+          alamat?: string | null
+          berlaku_hingga?: string | null
+          created_at?: string | null
+          golongan_darah?: string | null
+          id?: string
+          jenis_kelamin?: string | null
+          kabupaten_kota?: string | null
+          kecamatan?: string | null
+          kelurahan_desa?: string | null
+          kewarganegaraan?: string | null
+          nama?: string | null
+          nik?: string | null
+          pekerjaan?: string | null
+          processed_at?: string | null
+          provinsi?: string | null
+          raw_text?: string | null
+          rt_rw?: string | null
+          status_perkawinan?: string | null
+          tanggal_lahir?: string | null
+          tempat_lahir?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          agama?: string | null
+          alamat?: string | null
+          berlaku_hingga?: string | null
+          created_at?: string | null
+          golongan_darah?: string | null
+          id?: string
+          jenis_kelamin?: string | null
+          kabupaten_kota?: string | null
+          kecamatan?: string | null
+          kelurahan_desa?: string | null
+          kewarganegaraan?: string | null
+          nama?: string | null
+          nik?: string | null
+          pekerjaan?: string | null
+          processed_at?: string | null
+          provinsi?: string | null
+          raw_text?: string | null
+          rt_rw?: string | null
+          status_perkawinan?: string | null
+          tanggal_lahir?: string | null
+          tempat_lahir?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -4785,48 +4979,135 @@ export type Database = {
         }
         Relationships: []
       }
+      npwp_results: {
+        Row: {
+          alamat: string | null
+          created_at: string | null
+          id: string
+          kabupaten_kota: string | null
+          kecamatan: string | null
+          kelurahan_desa: string | null
+          kode_pos: string | null
+          nama: string | null
+          nik: string | null
+          npwp: string | null
+          processed_at: string | null
+          provinsi: string | null
+          raw_text: string | null
+          user_id: string | null
+        }
+        Insert: {
+          alamat?: string | null
+          created_at?: string | null
+          id?: string
+          kabupaten_kota?: string | null
+          kecamatan?: string | null
+          kelurahan_desa?: string | null
+          kode_pos?: string | null
+          nama?: string | null
+          nik?: string | null
+          npwp?: string | null
+          processed_at?: string | null
+          provinsi?: string | null
+          raw_text?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          alamat?: string | null
+          created_at?: string | null
+          id?: string
+          kabupaten_kota?: string | null
+          kecamatan?: string | null
+          kelurahan_desa?: string | null
+          kode_pos?: string | null
+          nama?: string | null
+          nik?: string | null
+          npwp?: string | null
+          processed_at?: string | null
+          provinsi?: string | null
+          raw_text?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ocr_results: {
         Row: {
+          autofill_status: string | null
           confidence: string | null
           created_at: string | null
           created_by: string | null
+          deskripsi: string | null
           extracted_data: Json | null
           extracted_text: string | null
           file_name: string | null
+          file_path: string | null
           file_url: string | null
           id: string
           image_url: string | null
+          invoice: string | null
+          json_data: Json | null
+          nama_karyawan: string | null
+          nominal: number | null
+          nomor_nota: string | null
+          ocr_data: string | null
           raw_text: string | null
+          supplier: string | null
+          tanggal: string | null
+          toko: string | null
           updated_at: string | null
           user_id: string | null
           "users.entity": string | null
         }
         Insert: {
+          autofill_status?: string | null
           confidence?: string | null
           created_at?: string | null
           created_by?: string | null
+          deskripsi?: string | null
           extracted_data?: Json | null
           extracted_text?: string | null
           file_name?: string | null
+          file_path?: string | null
           file_url?: string | null
           id?: string
           image_url?: string | null
+          invoice?: string | null
+          json_data?: Json | null
+          nama_karyawan?: string | null
+          nominal?: number | null
+          nomor_nota?: string | null
+          ocr_data?: string | null
           raw_text?: string | null
+          supplier?: string | null
+          tanggal?: string | null
+          toko?: string | null
           updated_at?: string | null
           user_id?: string | null
           "users.entity"?: string | null
         }
         Update: {
+          autofill_status?: string | null
           confidence?: string | null
           created_at?: string | null
           created_by?: string | null
+          deskripsi?: string | null
           extracted_data?: Json | null
           extracted_text?: string | null
           file_name?: string | null
+          file_path?: string | null
           file_url?: string | null
           id?: string
           image_url?: string | null
+          invoice?: string | null
+          json_data?: Json | null
+          nama_karyawan?: string | null
+          nominal?: number | null
+          nomor_nota?: string | null
+          ocr_data?: string | null
           raw_text?: string | null
+          supplier?: string | null
+          tanggal?: string | null
+          toko?: string | null
           updated_at?: string | null
           user_id?: string | null
           "users.entity"?: string | null
@@ -5366,6 +5647,7 @@ export type Database = {
           coa_payable_code: string | null
           coa_tax_code: string | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           id: string
           item_id: string | null
@@ -5401,6 +5683,7 @@ export type Database = {
           coa_payable_code?: string | null
           coa_tax_code?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           id?: string
           item_id?: string | null
@@ -5436,6 +5719,7 @@ export type Database = {
           coa_payable_code?: string | null
           coa_tax_code?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           id?: string
           item_id?: string | null
@@ -6221,6 +6505,63 @@ export type Database = {
           },
         ]
       }
+      sim_results: {
+        Row: {
+          alamat: string | null
+          berlaku_hingga: string | null
+          created_at: string | null
+          golongan_darah: string | null
+          id: string
+          jenis_kelamin: string | null
+          jenis_sim: string | null
+          nama: string | null
+          nomor_sim: string | null
+          pekerjaan: string | null
+          processed_at: string | null
+          raw_text: string | null
+          tanggal_lahir: string | null
+          tanggal_terbit: string | null
+          tempat_lahir: string | null
+          user_id: string | null
+        }
+        Insert: {
+          alamat?: string | null
+          berlaku_hingga?: string | null
+          created_at?: string | null
+          golongan_darah?: string | null
+          id?: string
+          jenis_kelamin?: string | null
+          jenis_sim?: string | null
+          nama?: string | null
+          nomor_sim?: string | null
+          pekerjaan?: string | null
+          processed_at?: string | null
+          raw_text?: string | null
+          tanggal_lahir?: string | null
+          tanggal_terbit?: string | null
+          tempat_lahir?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          alamat?: string | null
+          berlaku_hingga?: string | null
+          created_at?: string | null
+          golongan_darah?: string | null
+          id?: string
+          jenis_kelamin?: string | null
+          jenis_sim?: string | null
+          nama?: string | null
+          nomor_sim?: string | null
+          pekerjaan?: string | null
+          processed_at?: string | null
+          raw_text?: string | null
+          tanggal_lahir?: string | null
+          tanggal_terbit?: string | null
+          tempat_lahir?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       sql_audit_logs: {
         Row: {
           created_at: string | null
@@ -6248,6 +6589,72 @@ export type Database = {
           query?: string
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      stnk_results: {
+        Row: {
+          alamat_pemilik: string | null
+          bahan_bakar: string | null
+          berlaku_hingga: string | null
+          created_at: string | null
+          id: string
+          jenis: string | null
+          merk: string | null
+          model: string | null
+          nama_pemilik: string | null
+          nomor_mesin: string | null
+          nomor_polisi: string | null
+          nomor_rangka: string | null
+          nomor_registrasi: string | null
+          processed_at: string | null
+          raw_text: string | null
+          tahun_pembuatan: string | null
+          tipe: string | null
+          user_id: string | null
+          warna: string | null
+        }
+        Insert: {
+          alamat_pemilik?: string | null
+          bahan_bakar?: string | null
+          berlaku_hingga?: string | null
+          created_at?: string | null
+          id?: string
+          jenis?: string | null
+          merk?: string | null
+          model?: string | null
+          nama_pemilik?: string | null
+          nomor_mesin?: string | null
+          nomor_polisi?: string | null
+          nomor_rangka?: string | null
+          nomor_registrasi?: string | null
+          processed_at?: string | null
+          raw_text?: string | null
+          tahun_pembuatan?: string | null
+          tipe?: string | null
+          user_id?: string | null
+          warna?: string | null
+        }
+        Update: {
+          alamat_pemilik?: string | null
+          bahan_bakar?: string | null
+          berlaku_hingga?: string | null
+          created_at?: string | null
+          id?: string
+          jenis?: string | null
+          merk?: string | null
+          model?: string | null
+          nama_pemilik?: string | null
+          nomor_mesin?: string | null
+          nomor_polisi?: string | null
+          nomor_rangka?: string | null
+          nomor_registrasi?: string | null
+          processed_at?: string | null
+          raw_text?: string | null
+          tahun_pembuatan?: string | null
+          tipe?: string | null
+          user_id?: string | null
+          warna?: string | null
         }
         Relationships: []
       }
@@ -7377,13 +7784,17 @@ export type Database = {
       users: {
         Row: {
           address: string | null
+          agama: string | null
+          anggota_keluarga: Json | null
           avatar_url: string | null
           bank_account_holder: string | null
+          berlaku_hingga: string | null
           birth_place: string | null
           city: string | null
           contact_person: string | null
           country: string | null
           created_at: string | null
+          debug_notes: Json | null
           department: string | null
           education: string | null
           email: string
@@ -7394,8 +7805,15 @@ export type Database = {
           first_name: string | null
           full_name: string | null
           gender: string | null
+          golongan_darah: string | null
           id: string
           is_active: boolean | null
+          jenis_kelamin: string | null
+          kabupaten_kota: string | null
+          kecamatan: string | null
+          kelurahan_desa: string | null
+          kewarganegaraan: string | null
+          kode_pos: string | null
           ktp_address: string | null
           ktp_document_url: string | null
           ktp_number: number | null
@@ -7403,29 +7821,44 @@ export type Database = {
           last_name: string | null
           license_expiry_date: string | null
           license_number: string | null
+          nama: string | null
+          nama_kepala_keluarga: string | null
+          nik: string | null
+          nomor_kk: string | null
+          pekerjaan: string | null
           phone: string | null
           pkp_status: string | null
+          provinsi: string | null
           religion: string | null
           role: string
           role_id: number | null
           role_name: string | null
+          rt_rw: string | null
           selfie_url: string | null
           sim_url: string | null
           skck_url: string | null
           status: Database["public"]["Enums"]["user_status"]
+          status_perkawinan: string | null
           supplier_name: string | null
+          tanggal_dikeluarkan: string | null
+          tanggal_lahir: string | null
+          tempat_lahir: string | null
           updated_at: string | null
           upload_ijasah: string | null
         }
         Insert: {
           address?: string | null
+          agama?: string | null
+          anggota_keluarga?: Json | null
           avatar_url?: string | null
           bank_account_holder?: string | null
+          berlaku_hingga?: string | null
           birth_place?: string | null
           city?: string | null
           contact_person?: string | null
           country?: string | null
           created_at?: string | null
+          debug_notes?: Json | null
           department?: string | null
           education?: string | null
           email: string
@@ -7436,8 +7869,15 @@ export type Database = {
           first_name?: string | null
           full_name?: string | null
           gender?: string | null
+          golongan_darah?: string | null
           id: string
           is_active?: boolean | null
+          jenis_kelamin?: string | null
+          kabupaten_kota?: string | null
+          kecamatan?: string | null
+          kelurahan_desa?: string | null
+          kewarganegaraan?: string | null
+          kode_pos?: string | null
           ktp_address?: string | null
           ktp_document_url?: string | null
           ktp_number?: number | null
@@ -7445,29 +7885,44 @@ export type Database = {
           last_name?: string | null
           license_expiry_date?: string | null
           license_number?: string | null
+          nama?: string | null
+          nama_kepala_keluarga?: string | null
+          nik?: string | null
+          nomor_kk?: string | null
+          pekerjaan?: string | null
           phone?: string | null
           pkp_status?: string | null
+          provinsi?: string | null
           religion?: string | null
           role?: string
           role_id?: number | null
           role_name?: string | null
+          rt_rw?: string | null
           selfie_url?: string | null
           sim_url?: string | null
           skck_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          status_perkawinan?: string | null
           supplier_name?: string | null
+          tanggal_dikeluarkan?: string | null
+          tanggal_lahir?: string | null
+          tempat_lahir?: string | null
           updated_at?: string | null
           upload_ijasah?: string | null
         }
         Update: {
           address?: string | null
+          agama?: string | null
+          anggota_keluarga?: Json | null
           avatar_url?: string | null
           bank_account_holder?: string | null
+          berlaku_hingga?: string | null
           birth_place?: string | null
           city?: string | null
           contact_person?: string | null
           country?: string | null
           created_at?: string | null
+          debug_notes?: Json | null
           department?: string | null
           education?: string | null
           email?: string
@@ -7478,8 +7933,15 @@ export type Database = {
           first_name?: string | null
           full_name?: string | null
           gender?: string | null
+          golongan_darah?: string | null
           id?: string
           is_active?: boolean | null
+          jenis_kelamin?: string | null
+          kabupaten_kota?: string | null
+          kecamatan?: string | null
+          kelurahan_desa?: string | null
+          kewarganegaraan?: string | null
+          kode_pos?: string | null
           ktp_address?: string | null
           ktp_document_url?: string | null
           ktp_number?: number | null
@@ -7487,17 +7949,28 @@ export type Database = {
           last_name?: string | null
           license_expiry_date?: string | null
           license_number?: string | null
+          nama?: string | null
+          nama_kepala_keluarga?: string | null
+          nik?: string | null
+          nomor_kk?: string | null
+          pekerjaan?: string | null
           phone?: string | null
           pkp_status?: string | null
+          provinsi?: string | null
           religion?: string | null
           role?: string
           role_id?: number | null
           role_name?: string | null
+          rt_rw?: string | null
           selfie_url?: string | null
           sim_url?: string | null
           skck_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          status_perkawinan?: string | null
           supplier_name?: string | null
+          tanggal_dikeluarkan?: string | null
+          tanggal_lahir?: string | null
+          tempat_lahir?: string | null
           updated_at?: string | null
           upload_ijasah?: string | null
         }
@@ -7696,6 +8169,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vehicle_tax_results: {
+        Row: {
+          alamat: string | null
+          berlaku_hingga: string | null
+          created_at: string | null
+          denda_pkb: number | null
+          id: string
+          merk: string | null
+          nama_pemilik: string | null
+          nomor_mesin: string | null
+          nomor_polisi: string | null
+          nomor_rangka: string | null
+          pokok_pkb: number | null
+          processed_at: string | null
+          raw_text: string | null
+          swdkllj: number | null
+          tahun: string | null
+          tanggal_bayar: string | null
+          tipe: string | null
+          total_pajak: number | null
+          user_id: string | null
+          warna: string | null
+        }
+        Insert: {
+          alamat?: string | null
+          berlaku_hingga?: string | null
+          created_at?: string | null
+          denda_pkb?: number | null
+          id?: string
+          merk?: string | null
+          nama_pemilik?: string | null
+          nomor_mesin?: string | null
+          nomor_polisi?: string | null
+          nomor_rangka?: string | null
+          pokok_pkb?: number | null
+          processed_at?: string | null
+          raw_text?: string | null
+          swdkllj?: number | null
+          tahun?: string | null
+          tanggal_bayar?: string | null
+          tipe?: string | null
+          total_pajak?: number | null
+          user_id?: string | null
+          warna?: string | null
+        }
+        Update: {
+          alamat?: string | null
+          berlaku_hingga?: string | null
+          created_at?: string | null
+          denda_pkb?: number | null
+          id?: string
+          merk?: string | null
+          nama_pemilik?: string | null
+          nomor_mesin?: string | null
+          nomor_polisi?: string | null
+          nomor_rangka?: string | null
+          pokok_pkb?: number | null
+          processed_at?: string | null
+          raw_text?: string | null
+          swdkllj?: number | null
+          tahun?: string | null
+          tanggal_bayar?: string | null
+          tipe?: string | null
+          total_pajak?: number | null
+          user_id?: string | null
+          warna?: string | null
+        }
+        Relationships: []
       }
       vehicles: {
         Row: {

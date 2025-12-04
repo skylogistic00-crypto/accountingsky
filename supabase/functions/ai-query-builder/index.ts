@@ -76,8 +76,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    const PICA_SECRET = Deno.env.get("PICA_SECRET_KEY");
-    const PICA_OPENAI_KEY = Deno.env.get("PICA_OPENAI_CONNECTION_KEY");
     const OPENAI_KEY = Deno.env.get("OPEN_AI_KEY");
 
     // If direct_query is provided, execute it directly
@@ -164,38 +162,8 @@ User request: ${prompt}`;
 
     let sqlQuery = "";
 
-    // Try Pica Passthrough first, fallback to direct OpenAI
-    if (PICA_SECRET && PICA_OPENAI_KEY) {
-      const picaResponse = await fetch(
-        "https://api.picaos.com/v1/passthrough/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-pica-secret": PICA_SECRET,
-            "x-pica-connection-key": PICA_OPENAI_KEY,
-            "x-pica-action-id": "conn_mod_def::GDzgH4tQCbA::kJ8mPI-0SmO6UV04cpjyZw",
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: prompt },
-            ],
-            max_tokens: 500,
-            temperature: 0.1,
-          }),
-        }
-      );
-
-      if (picaResponse.ok) {
-        const picaData = await picaResponse.json();
-        sqlQuery = picaData.choices?.[0]?.message?.content?.trim() || "";
-      }
-    }
-
-    // Fallback to direct OpenAI
-    if (!sqlQuery && OPENAI_KEY) {
+    // Use direct OpenAI API
+    if (OPENAI_KEY) {
       const openaiResponse = await fetch(
         "https://api.openai.com/v1/chat/completions",
         {

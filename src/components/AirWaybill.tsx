@@ -255,10 +255,11 @@ export default function AirWaybill() {
       resetForm();
       setIsDialogOpen(false);
       fetchItems();
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Gagal menyimpan data";
       toast({
         title: "Error",
-        description: error.message || "Gagal menyimpan data",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -329,10 +330,11 @@ export default function AirWaybill() {
 
       toast({ title: "Success", description: "Air Waybill berhasil dihapus" });
       fetchItems();
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Gagal menghapus data";
       toast({
         title: "Error",
-        description: error.message || "Gagal menghapus data",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

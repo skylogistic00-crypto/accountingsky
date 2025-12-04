@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import AddItemModal from "./AddItemModal";
 import AddBrandModal from "./AddBrandModal";
 import AddStockItemModal from "./AddStockItemModal";
@@ -207,6 +208,7 @@ function TransactionReport() {
  */
 
 export default function TransaksiKeuanganForm() {
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [showReport, setShowReport] = useState(true);
 
@@ -1116,10 +1118,12 @@ export default function TransaksiKeuanganForm() {
         }),
         ...(purchaseData || []).map((t) => ({
           ...t,
-          source: "PURCHASE TRANSACTIONS",
+          source: "purchase_transactions",
           tanggal: t.transaction_date,
           jenis: "Pembelian",
           nominal: t.total_amount,
+          created_by: t.created_by,
+          approved_by: t.approved_by,
         })),
         ...(salesData || []).map((t) => ({
           ...t,
@@ -1151,6 +1155,8 @@ export default function TransaksiKeuanganForm() {
             keterangan: t.description || t.notes,
             payment_type: t.type,
             document_number: t.document_number,
+            created_by: t.created_by,
+            approved_by: t.approved_by,
           })),
       ];
 
@@ -1949,11 +1955,27 @@ export default function TransaksiKeuanganForm() {
     const sumber = (form.sumberPenerimaan || "").trim(); // e.g. 'Pinjaman Bank'
     const kategoriPengeluaranValue = (form.kategoriPengeluaran || "").trim();
 
+    // Normalize date format to YYYY-MM-DD
+    let normalizedDate = form.tanggal;
+    if (normalizedDate && typeof normalizedDate === 'string') {
+      // Check if date is in DD/MM/YYYY or DD-MM-YYYY format
+      const ddmmyyyyMatch = normalizedDate.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (ddmmyyyyMatch) {
+        const [, day, month, year] = ddmmyyyyMatch;
+        normalizedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+      // Check if date is in invalid format like "1/9-10"
+      else if (normalizedDate.includes('/') || normalizedDate.match(/^\d{1,2}[-\/]\d{1,2}$/)) {
+        // Invalid date format - use today's date as fallback
+        normalizedDate = new Date().toISOString().split('T')[0];
+      }
+    }
+
     return {
       jenisTransaksi: jenis,
       paymentType: payment,
       nominal: nominalValue,
-      tanggal: form.tanggal,
+      tanggal: normalizedDate,
       deskripsi: form.deskripsi || "",
       sumberPenerimaan: sumber,
       kategoriPengeluaran: kategoriPengeluaranValue,
@@ -2083,6 +2105,7 @@ export default function TransaksiKeuanganForm() {
           approval_status: "approved",
           bukti: uploadedBuktiUrl || null,
           ocr_data: ocrDataPayload,
+          ocr_id: ocrAppliedData?.ocrId || null,
         });
 
         if (error) throw new Error(`Sales Transaction: ${error.message}`);
@@ -2125,6 +2148,7 @@ export default function TransaksiKeuanganForm() {
           approval_status: "approved",
           bukti: uploadedBuktiUrl || null,
           ocr_data: ocrDataPayload,
+          ocr_id: ocrAppliedData?.ocrId || null,
         });
 
         if (error) throw new Error(`Sales Transaction: ${error.message}`);
@@ -2150,6 +2174,9 @@ export default function TransaksiKeuanganForm() {
           journal_ref: journalRef,
           bukti: uploadedBuktiUrl || null,
           ocr_data: ocrDataPayload,
+          ocr_id: ocrAppliedData?.ocrId || null,
+          created_by: user?.id,
+          approved_by: null,
         });
 
         if (error)
@@ -2159,30 +2186,30 @@ export default function TransaksiKeuanganForm() {
       }
 
       case "Pembelian Jasa": {
-        // Insert to cash_disbursement
-        const expenseLine = previewLines.find((l) => l.dc === "D");
-        const cashLine = previewLines.find((l) => l.dc === "C");
-
-        const { error } = await supabase.from("cash_disbursement").insert({
+        // Insert to purchase_transactions with transaction_type = "Jasa"
+        // created_by will be auto-filled by database trigger
+        const { error } = await supabase.from("purchase_transactions").insert({
           transaction_date: previewTanggal,
-          payee_name: supplier || "Pembelian Jasa",
-          description: previewMemo,
-          category: kategori,
-          amount: nominal,
-          payment_method: paymentType === "cash" ? "Tunai" : "Transfer Bank",
-          coa_expense_code: expenseLine?.account_code || "6-1100",
-          coa_cash_code: cashLine?.account_code || "1-1100",
+          supplier_name: supplier || "",
+          item_name: itemName || "Jasa",
           description: description,
+          quantity: 1,
+          unit_price: nominal,
+          total_amount: nominal,
+          payment_method: paymentType === "cash" ? "Tunai" : "Hutang",
+          coa_inventory_code: mainDebitLine?.account_code || "",
+          coa_cash_code: mainCreditLine?.account_code || "",
           notes: description,
-          created_by: user?.id,
-          approval_status: "waiting_approval",
+          journal_ref: journalRef,
           bukti: uploadedBuktiUrl || null,
           ocr_data: ocrDataPayload,
+          ocr_id: ocrAppliedData?.ocrId || null,
+          transaction_type: "Jasa",
         });
 
         if (error)
-          throw new Error(`Cash Disbursement: ${error.message}`);
-        console.log("ROUTER: Cash disbursement (Pembelian Jasa) saved");
+          throw new Error(`Purchase Transaction (Jasa): ${error.message}`);
+        console.log("ROUTER: Purchase transaction (Jasa) saved");
         break;
       }
 
@@ -2209,6 +2236,7 @@ export default function TransaksiKeuanganForm() {
             approval_status: "approved",
             bukti: uploadedBuktiUrl || null,
             ocr_data: ocrDataPayload,
+            ocr_id: ocrAppliedData?.ocrId || null,
             created_by: user?.id || null,
           });
 
@@ -2243,6 +2271,7 @@ export default function TransaksiKeuanganForm() {
           approval_status: "waiting_approval",
           bukti: uploadedBuktiUrl || null,
           ocr_data: ocrDataPayload,
+          ocr_id: ocrAppliedData?.ocrId || null,
         });
 
         if (error)
@@ -3261,6 +3290,8 @@ export default function TransaksiKeuanganForm() {
               items: ocrAppliedData.items,
               appliedFields: ocrAppliedData.appliedFields,
             } : null,
+            created_by: user?.id,
+            approved_by: null,
           };
 
           console.log("📦 Purchase Transaction Data:", purchaseData);
@@ -3316,6 +3347,8 @@ export default function TransaksiKeuanganForm() {
               items: ocrAppliedData.items,
               appliedFields: ocrAppliedData.appliedFields,
             } : null,
+            created_by: user?.id,
+            approved_by: null,
           };
 
           console.log("📦 Purchase Transaction Data (Jasa):", purchaseData);
@@ -3711,7 +3744,7 @@ export default function TransaksiKeuanganForm() {
                   <CardContent className="pb-3">
                     <div className="flex items-center text-xs text-white/90">
                       <TrendingUp className="mr-1 h-3 w-3" />
-                      Penjualan barang
+                      Total nominal
                     </div>
                   </CardContent>
                 </Card>
@@ -3742,7 +3775,7 @@ export default function TransaksiKeuanganForm() {
                   <CardContent className="pb-3">
                     <div className="flex items-center text-xs text-white/90">
                       <TrendingUp className="mr-1 h-3 w-3" />
-                      Penjualan jasa
+                      Total nominal
                     </div>
                   </CardContent>
                 </Card>
@@ -3807,7 +3840,7 @@ export default function TransaksiKeuanganForm() {
                   <CardContent className="pb-3">
                     <div className="flex items-center text-xs text-white/90">
                       <TrendingDown className="mr-1 h-3 w-3" />
-                      Pembelian barang
+                      Total nominal
                     </div>
                   </CardContent>
                 </Card>
@@ -3838,7 +3871,7 @@ export default function TransaksiKeuanganForm() {
                   <CardContent className="pb-3">
                     <div className="flex items-center text-xs text-white/90">
                       <TrendingDown className="mr-1 h-3 w-3" />
-                      Pembelian jasa
+                      Total nominal
                     </div>
                   </CardContent>
                 </Card>
@@ -3924,17 +3957,13 @@ export default function TransaksiKeuanganForm() {
                         value={filterJenis}
                         onChange={(e) => setFilterJenis(e.target.value)}
                       >
-                        <option value="">Semua Jenis</option>
-                        <option value="Penerimaan Kas">Penerimaan Kas</option>
-                        <option value="Pengeluaran Kas">Pengeluaran Kas</option>
-                        <option value="Penjualan">Penjualan</option>
-                        <option value="Penjualan Jasa">Penjualan Jasa</option>
-                        <option value="Pembelian">Pembelian</option>
-                        <option value="Pembelian Jasa">Pembelian Jasa</option>
-                        <option value="Pinjaman">Pinjaman</option>
-                        <option value="Pemakaian Internal">
-                          Pemakaian Internal
-                        </option>
+                        <option value="">Semua Jenis Transaksi</option>
+                        <option value="cash_and_bank_receipts">Penerimaan Kas & Bank</option>
+                        <option value="cash_disbursement">Pengeluaran Kas</option>
+                        <option value="sales_barang">Penjualan Barang</option>
+                        <option value="sales_jasa">Penjualan Jasa</option>
+                        <option value="purchase_barang">Pembelian Barang</option>
+                        <option value="purchase_jasa">Pembelian Jasa</option>
                       </select>
                     </div>
 
@@ -4091,18 +4120,20 @@ export default function TransaksiKeuanganForm() {
 
                           // Jenis filter
                           if (filterJenis) {
-                            const jenis =
-                              t.payment_type ||
-                              t.jenis ||
-                              t.transaction_type ||
-                              t.expense_type ||
-                              "";
-                            if (
-                              !jenis
-                                .toLowerCase()
-                                .includes(filterJenis.toLowerCase())
-                            )
-                              return false;
+                            // Handle specific filter values
+                            if (filterJenis === "cash_and_bank_receipts") {
+                              if (t.source !== "cash_receipts") return false;
+                            } else if (filterJenis === "cash_disbursement") {
+                              if (t.source !== "cash_disbursement") return false;
+                            } else if (filterJenis === "sales_barang") {
+                              if (t.source !== "sales_transactions" || t.transaction_type !== "Barang") return false;
+                            } else if (filterJenis === "sales_jasa") {
+                              if (t.source !== "sales_transactions" || t.transaction_type !== "Jasa") return false;
+                            } else if (filterJenis === "purchase_barang") {
+                              if (t.source !== "PURCHASE TRANSACTIONS" || t.transaction_type !== "Barang") return false;
+                            } else if (filterJenis === "purchase_jasa") {
+                              if (t.source !== "PURCHASE TRANSACTIONS" || t.transaction_type !== "Jasa") return false;
+                            }
                           }
 
                           // Source filter
@@ -4145,6 +4176,13 @@ export default function TransaksiKeuanganForm() {
                             transaction.transaction_type ||
                             transaction.expense_type ||
                             "-";
+
+                          // Handle Pembelian/Penjualan with transaction_type
+                          if (transaction.jenis === "Pembelian" && transaction.transaction_type) {
+                            displayJenis = `Pembelian ${transaction.transaction_type}`;
+                          } else if (transaction.jenis === "Penjualan" && transaction.transaction_type) {
+                            displayJenis = `Penjualan ${transaction.transaction_type}`;
+                          }
 
                           // Add service category/type for Pengeluaran Kas if available
                           if (
@@ -5050,18 +5088,20 @@ export default function TransaksiKeuanganForm() {
                                     }
                                   }
                                   if (filterJenis) {
-                                    const jenis =
-                                      t.payment_type ||
-                                      t.jenis ||
-                                      t.transaction_type ||
-                                      t.expense_type ||
-                                      "";
-                                    if (
-                                      !jenis
-                                        .toLowerCase()
-                                        .includes(filterJenis.toLowerCase())
-                                    )
-                                      return false;
+                                    // Handle specific filter values
+                                    if (filterJenis === "cash_and_bank_receipts") {
+                                      if (t.source !== "cash_receipts") return false;
+                                    } else if (filterJenis === "cash_disbursement") {
+                                      if (t.source !== "cash_disbursement") return false;
+                                    } else if (filterJenis === "sales_barang") {
+                                      if (t.source !== "sales_transactions" || t.transaction_type !== "Barang") return false;
+                                    } else if (filterJenis === "sales_jasa") {
+                                      if (t.source !== "sales_transactions" || t.transaction_type !== "Jasa") return false;
+                                    } else if (filterJenis === "purchase_barang") {
+                                      if (t.source !== "PURCHASE TRANSACTIONS" || t.transaction_type !== "Barang") return false;
+                                    } else if (filterJenis === "purchase_jasa") {
+                                      if (t.source !== "PURCHASE TRANSACTIONS" || t.transaction_type !== "Jasa") return false;
+                                    }
                                   }
                                   if (filterSource) {
                                     if (t.source !== filterSource) return false;
@@ -7492,7 +7532,15 @@ export default function TransaksiKeuanganForm() {
                       setDescription(data.deskripsi);
                     }
                     
-                    // Store OCR data for database
+                    // Auto-fill upload bukti with image file
+                    if (data.imageFile) {
+                      setBuktiFile(data.imageFile);
+                      // Create preview URL for the image
+                      const previewUrl = URL.createObjectURL(data.imageFile);
+                      setBuktiUrl(previewUrl);
+                    }
+                    
+                    // Store OCR data for database (including ocr_id)
                     setOcrAppliedData({
                       extractedText: data.extractedText || "",
                       items: data.items || [],
@@ -7501,11 +7549,14 @@ export default function TransaksiKeuanganForm() {
                         tanggal: data.tanggal,
                         deskripsi: data.deskripsi,
                       },
+                      ocrId: data.ocrId, // Store OCR result ID for linking
+                      nomorNota: data.nomorNota,
+                      toko: data.toko,
                     });
                     
                     toast({
-                      title: "✅ Data OCR Diterapkan",
-                      description: `Nominal: Rp ${data.nominal.toLocaleString("id-ID")}, Tanggal: ${data.tanggal}`,
+                      title: "✅ OCR berhasil diproses",
+                      description: `Data transaksi telah terisi otomatis. Silakan periksa kembali sebelum menyimpan.`,
                     });
                   }}
                   buttonText="📷 Upload & Scan Receipt"
@@ -7567,7 +7618,15 @@ export default function TransaksiKeuanganForm() {
                     id="tanggal"
                     type="date"
                     value={tanggal}
-                    onChange={(e) => setTanggal(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Validate date format before setting
+                      if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                        setTanggal(value);
+                      } else if (!value) {
+                        setTanggal('');
+                      }
+                    }}
                   />
                 </div>
               </div>

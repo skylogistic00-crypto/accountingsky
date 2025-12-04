@@ -6,15 +6,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const PICA_SECRET_KEY = Deno.env.get("PICA_SECRET_KEY");
-    const PICA_OPENAI_CONNECTION_KEY = Deno.env.get("PICA_OPENAI_CONNECTION_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPEN_AI_KEY");
 
-    if (!PICA_SECRET_KEY || !PICA_OPENAI_CONNECTION_KEY) {
+    if (!OPENAI_API_KEY) {
       return new Response(
         JSON.stringify({
           connected: false,
-          error: "Missing PICA credentials",
-          message: "PICA_SECRET_KEY atau PICA_OPENAI_CONNECTION_KEY belum dikonfigurasi"
+          error: "Missing OpenAI API key",
+          message: "OPEN_AI_KEY belum dikonfigurasi"
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -23,15 +22,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    const url = new URL("https://api.picaos.com/v1/passthrough/v1/batches");
-    url.searchParams.append("limit", "1");
-
-    const response = await fetch(url.toString(), {
+    // Test OpenAI connection with a simple models list request
+    const response = await fetch("https://api.openai.com/v1/models", {
       method: "GET",
       headers: {
-        "x-pica-secret": PICA_SECRET_KEY,
-        "x-pica-connection-key": PICA_OPENAI_CONNECTION_KEY,
-        "x-pica-action-id": "conn_mod_def::GDzgHyUm4yE::y5O23tXfQVe37XUK7aViNA"
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
       }
     });
 
@@ -43,7 +38,7 @@ Deno.serve(async (req) => {
         JSON.stringify({
           connected: false,
           error: `Connection failed: ${response.status}`,
-          message: "Koneksi ke OpenAI gagal. Periksa konfigurasi PICA.",
+          message: "Koneksi ke OpenAI gagal. Periksa konfigurasi OPEN_AI_KEY.",
           details: errorText
         }),
         {
@@ -59,8 +54,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         connected: true,
         message: "✅ Koneksi ke OpenAI berhasil!",
-        batchCount: data.data?.length || 0,
-        hasMore: data.has_more || false
+        modelsCount: data.data?.length || 0
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

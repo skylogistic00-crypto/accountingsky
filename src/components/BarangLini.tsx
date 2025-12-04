@@ -212,11 +212,12 @@ export default function BarangLini() {
       setSelectedDate("");
       setSelectedStockItems([]);
       fetchLini1Items();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error adding items:", error);
+      const errorMessage = error instanceof Error ? error.message : "Gagal menambahkan barang";
       toast({
         title: "Error",
-        description: error.message || "Gagal menambahkan barang",
+        description: errorMessage,
         variant: "destructive",
       });
     }

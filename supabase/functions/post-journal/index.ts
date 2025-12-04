@@ -1,8 +1,5 @@
 import { corsHeaders } from "@shared/cors.ts";
-
-const PICA_SECRET = Deno.env.get("PICA_SECRET_KEY")!;
-const PICA_CONNECTION_KEY = Deno.env.get("PICA_SUPABASE_CONNECTION_KEY")!;
-const SUPABASE_PROJECT_REF = Deno.env.get("SUPABASE_PROJECT_ID")!;
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,42 +17,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Call Supabase RPC via Pica passthrough
-    const url = `https://api.picaos.com/v1/passthrough/projects/${SUPABASE_PROJECT_REF}/functions/rpc`;
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
-    const rpcBody = {
-      function: "post_cash_disbursement_to_journal",
-      parameters: {
-        p_disbursement_id: disbursement_id
-      }
-    };
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "x-pica-secret": PICA_SECRET,
-        "x-pica-connection-key": PICA_CONNECTION_KEY,
-        "x-pica-action-id": "conn_mod_def::GC40T84CyNM::ee8XBvT6TRua_1upUL_H5Q",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(rpcBody)
+    // Call Supabase RPC directly
+    const { data, error } = await supabase.rpc('post_cash_disbursement_to_journal', {
+      p_disbursement_id: disbursement_id
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("RPC Error:", data);
+    if (error) {
+      console.error("RPC Error:", error);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: data.error?.message || data.message || "Failed to post journal" 
+          error: error.message || "Failed to post journal" 
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: response.status }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
 
     // Check RPC result
-    const result = data.result || data;
+    const result = data || {};
     if (result && !result.success) {
       return new Response(
         JSON.stringify({ success: false, error: result.error }),

@@ -1,8 +1,7 @@
 import { corsHeaders } from "@shared/cors.ts";
 
-const PICA_SECRET = Deno.env.get("PICA_SECRET_KEY")!;
-const PICA_CONNECTION_KEY = Deno.env.get("PICA_SUPABASE_CONNECTION_KEY")!;
-const SUPABASE_PROJECT_REF = Deno.env.get("SUPABASE_PROJECT_ID")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -294,30 +293,22 @@ Deno.serve(async (req) => {
       }
     };
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "x-pica-secret": PICA_SECRET,
-        "x-pica-connection-key": PICA_CONNECTION_KEY,
-        "x-pica-action-id": "conn_mod_def::GC40T84CyNM::ee8XBvT6TRua_1upUL_H5Q",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    const response = await supabase.functions.invoke('signup-multi-entity', {
+      body: body
     });
 
-    if (response.status === 201) {
-      const data = await response.json();
+    if (response.data) {
       return new Response(
-        JSON.stringify({ success: true, data }),
+        JSON.stringify({ success: true, data: response.data }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 201 }
       );
     } else {
-      const errorText = await response.text();
       return new Response(
         JSON.stringify({ 
           success: false, 
-          status: response.status, 
-          error: errorText 
+          error: response.error?.message || "Failed to deploy function" 
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: response.status }
       );

@@ -1,5 +1,6 @@
 export type DocumentType =
   | "KTP"
+  | "KK"
   | "NPWP"
   | "SIM"
   | "INVOICE"
@@ -295,9 +296,155 @@ function parseCashDisbursement(text: string): ParsedOCRData {
   };
 }
 
+function parseKK(text: string): ParsedOCRData {
+  const upper = text.toUpperCase();
+  const lines = text.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+  
+  console.log("=== PARSE KK DEBUG ===");
+  console.log("Lines:", lines);
+
+  // Nomor KK (16 digits)
+  const kkMatch = upper.match(/\b(\d{16})\b/);
+  const nomor_kk = kkMatch ? kkMatch[1] : "";
+
+  // Nama Kepala Keluarga
+  let namaKepalaKeluarga = "";
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("KEPALA") && lineUpper.includes("KELUARGA")) {
+      if (i + 1 < lines.length) {
+        namaKepalaKeluarga = lines[i + 1].trim();
+      }
+      break;
+    }
+  }
+
+  // Alamat
+  let alamat = "";
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("ALAMAT") && !lineUpper.includes("EMAIL")) {
+      const parts = line.split(/ALAMAT\s*:?\s*/i);
+      if (parts.length > 1 && parts[1].trim().length > 2) {
+        alamat = parts[1].trim();
+      } else if (i + 1 < lines.length) {
+        alamat = lines[i + 1].trim();
+      }
+      break;
+    }
+  }
+
+  // RT/RW
+  let rtRw = "";
+  const rtMatch = upper.match(/RT\s*\/?\s*RW\s*:?\s*(\d{1,3}\s*\/\s*\d{1,3})/);
+  if (rtMatch) {
+    rtRw = rtMatch[1].replace(/\s+/g, "");
+  } else {
+    const rtMatch2 = upper.match(/(\d{1,3})\s*\/\s*(\d{1,3})/);
+    if (rtMatch2) rtRw = `${rtMatch2[1]}/${rtMatch2[2]}`;
+  }
+
+  // Kelurahan/Desa
+  let kelurahanDesa = "";
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("KELURAHAN") || lineUpper.includes("DESA")) {
+      const parts = line.split(/(?:KELURAHAN|DESA)\s*:?\s*/i);
+      if (parts.length > 1 && parts[1].trim().length > 2) {
+        kelurahanDesa = parts[1].trim();
+      } else if (i + 1 < lines.length) {
+        kelurahanDesa = lines[i + 1].trim();
+      }
+      break;
+    }
+  }
+
+  // Kecamatan
+  let kecamatan = "";
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("KECAMATAN")) {
+      const parts = line.split(/KECAMATAN\s*:?\s*/i);
+      if (parts.length > 1 && parts[1].trim().length > 2) {
+        kecamatan = parts[1].trim();
+      } else if (i + 1 < lines.length) {
+        kecamatan = lines[i + 1].trim();
+      }
+      break;
+    }
+  }
+
+  // Kabupaten/Kota
+  let kabupatenKota = "";
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("KABUPATEN") || lineUpper.includes("KOTA")) {
+      const parts = line.split(/(?:KABUPATEN|KOTA)\s*:?\s*/i);
+      if (parts.length > 1 && parts[1].trim().length > 2) {
+        kabupatenKota = parts[1].trim();
+      } else if (i + 1 < lines.length) {
+        kabupatenKota = lines[i + 1].trim();
+      }
+      break;
+    }
+  }
+
+  // Provinsi
+  let provinsi = "";
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineUpper = line.toUpperCase();
+    if (lineUpper.includes("PROVINSI")) {
+      const parts = line.split(/PROVINSI\s*:?\s*/i);
+      if (parts.length > 1 && parts[1].trim().length > 2) {
+        provinsi = parts[1].trim();
+      } else if (i + 1 < lines.length) {
+        provinsi = lines[i + 1].trim();
+      }
+      break;
+    }
+  }
+
+  // Kode Pos
+  let kodePos = "";
+  const kodePosMatch = upper.match(/KODE\s*POS\s*:?\s*(\d{5})/);
+  if (kodePosMatch) kodePos = kodePosMatch[1];
+
+  console.log("Parsed KK Data:", {
+    nomor_kk,
+    namaKepalaKeluarga,
+    alamat,
+    rtRw,
+    kelurahanDesa,
+    kecamatan,
+    kabupatenKota,
+    provinsi,
+    kodePos
+  });
+
+  return {
+    type: "KK",
+    nomor_kk,
+    nama_kepala_keluarga: namaKepalaKeluarga,
+    alamat,
+    rt_rw: rtRw,
+    kelurahan_desa: kelurahanDesa,
+    kecamatan,
+    kabupaten_kota: kabupatenKota,
+    provinsi,
+    kode_pos: kodePos,
+  };
+}
+
 export function parseOCR(text: string, type: DocumentType): ParsedOCRData {
   switch (type) {
     case "KTP": return parseKTP(text);
+    case "KK": return parseKK(text);
     case "NPWP": return parseNPWP(text);
     case "SIM": return parseSIM(text);
     case "INVOICE": return parseInvoice(text);

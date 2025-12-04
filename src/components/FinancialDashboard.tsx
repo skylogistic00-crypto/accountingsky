@@ -71,69 +71,93 @@ export default function FinancialDashboard() {
       }
 
       // Fetch Penjualan Barang
-      const { data: salesBarang } = await supabase
+      const { data: salesBarang, error: errorSalesBarang } = await supabase
         .from("sales_transactions")
-        .select("nominal")
-        .gte("tanggal", startDate)
-        .lte("tanggal", endDate)
-        .eq("jenis_transaksi", "Penjualan Barang")
-        .neq("approval_status", "rejected");
+        .select("total_amount")
+        .gte("transaction_date", startDate)
+        .lte("transaction_date", endDate)
+        .eq("transaction_type", "Barang")
+        .eq("approval_status", "approved");
+
+      console.log("📊 Sales Barang:", { startDate, endDate, data: salesBarang, error: errorSalesBarang });
 
       // Fetch Penjualan Jasa
-      const { data: salesJasa } = await supabase
+      const { data: salesJasa, error: errorSalesJasa } = await supabase
         .from("sales_transactions")
-        .select("nominal")
-        .gte("tanggal", startDate)
-        .lte("tanggal", endDate)
-        .eq("jenis_transaksi", "Penjualan Jasa")
-        .neq("approval_status", "rejected");
+        .select("total_amount")
+        .gte("transaction_date", startDate)
+        .lte("transaction_date", endDate)
+        .eq("transaction_type", "Jasa")
+        .eq("approval_status", "approved");
+
+      console.log("📊 Sales Jasa:", { data: salesJasa, error: errorSalesJasa });
 
       // Fetch Penerimaan Kas & Bank
-      const { data: receipts } = await supabase
+      const { data: receipts, error: errorReceipts } = await supabase
         .from("cash_and_bank_receipts")
-        .select("nominal")
-        .gte("tanggal", startDate)
-        .lte("tanggal", endDate)
-        .neq("approval_status", "rejected");
+        .select("amount")
+        .gte("transaction_date", startDate)
+        .lte("transaction_date", endDate)
+        .eq("approval_status", "approved");
+
+      console.log("📊 Receipts:", { data: receipts, error: errorReceipts });
 
       // Fetch Pembelian Barang
-      const { data: purchaseBarang } = await supabase
+      const { data: purchaseBarang, error: errorPurchaseBarang } = await supabase
         .from("purchase_transactions")
-        .select("nominal")
-        .gte("tanggal", startDate)
-        .lte("tanggal", endDate)
-        .eq("jenis_transaksi", "Pembelian Barang")
-        .neq("approval_status", "rejected");
+        .select("total_amount")
+        .gte("transaction_date", startDate)
+        .lte("transaction_date", endDate)
+        .eq("transaction_type", "Barang")
+        .eq("approval_status", "approved");
+
+      console.log("📊 Purchase Barang:", { data: purchaseBarang, error: errorPurchaseBarang });
 
       // Fetch Pembelian Jasa
-      const { data: purchaseJasa } = await supabase
+      const { data: purchaseJasa, error: errorPurchaseJasa } = await supabase
         .from("purchase_transactions")
-        .select("nominal")
-        .gte("tanggal", startDate)
-        .lte("tanggal", endDate)
-        .eq("jenis_transaksi", "Pembelian Jasa")
-        .neq("approval_status", "rejected");
+        .select("total_amount")
+        .gte("transaction_date", startDate)
+        .lte("transaction_date", endDate)
+        .eq("transaction_type", "Jasa")
+        .eq("approval_status", "approved");
+
+      console.log("📊 Purchase Jasa:", { data: purchaseJasa, error: errorPurchaseJasa });
 
       // Fetch Pengeluaran Kas
-      const { data: disbursements } = await supabase
+      const { data: disbursements, error: errorDisbursements } = await supabase
         .from("cash_disbursement")
         .select("amount")
         .gte("transaction_date", startDate)
         .lte("transaction_date", endDate)
-        .neq("approval_status", "rejected");
+        .eq("approval_status", "approved");
+
+      console.log("📊 Disbursements:", { data: disbursements, error: errorDisbursements });
 
       // Calculate totals
-      const totalPenjualanBarang = (salesBarang || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
-      const totalPenjualanJasa = (salesJasa || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
-      const totalPenerimaanKas = (receipts || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
+      const totalPenjualanBarang = (salesBarang || []).reduce((sum, t) => sum + (t.total_amount || 0), 0);
+      const totalPenjualanJasa = (salesJasa || []).reduce((sum, t) => sum + (t.total_amount || 0), 0);
+      const totalPenerimaanKas = (receipts || []).reduce((sum, t) => sum + (t.amount || 0), 0);
       
-      const totalPembelianBarang = (purchaseBarang || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
-      const totalPembelianJasa = (purchaseJasa || []).reduce((sum, t) => sum + (t.nominal || 0), 0);
+      const totalPembelianBarang = (purchaseBarang || []).reduce((sum, t) => sum + (t.total_amount || 0), 0);
+      const totalPembelianJasa = (purchaseJasa || []).reduce((sum, t) => sum + (t.total_amount || 0), 0);
       const totalPengeluaranKas = (disbursements || []).reduce((sum, t) => sum + (t.amount || 0), 0);
 
       const totalRevenue = totalPenjualanBarang + totalPenjualanJasa + totalPenerimaanKas;
       const totalExpense = totalPembelianBarang + totalPembelianJasa + totalPengeluaranKas;
       const netProfit = totalRevenue - totalExpense;
+
+      console.log("💰 Summary:", {
+        totalPenjualanBarang,
+        totalPenjualanJasa,
+        totalPenerimaanKas,
+        totalRevenue,
+        totalPembelianBarang,
+        totalPembelianJasa,
+        totalPengeluaranKas,
+        totalExpense,
+        netProfit
+      });
 
       // Fetch total assets (unchanged)
       const { data: assetsData } = await supabase
@@ -287,7 +311,7 @@ export default function FinancialDashboard() {
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">
-                    Total Pendapatan Bulan Ini
+                    Total Revenue Bulan Ini
                   </CardTitle>
                   <TrendingUp className="h-5 w-5 text-green-600" />
                 </CardHeader>
@@ -313,7 +337,7 @@ export default function FinancialDashboard() {
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">
-                    Total Beban Bulan Ini
+                    Total Expense Bulan Ini
                   </CardTitle>
                   <TrendingDown className="h-5 w-5 text-red-600" />
                 </CardHeader>
@@ -343,7 +367,7 @@ export default function FinancialDashboard() {
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">
-                    Laba Bersih Bulan Ini
+                    Profit Bersih Bulan Ini
                   </CardTitle>
                   <DollarSign
                     className={`h-5 w-5 ${
@@ -509,7 +533,16 @@ export default function FinancialDashboard() {
             </div>
 
             {/* Monthly Finance Chart */}
-            <MonthlyFinanceChart />
+            <Card className="bg-white shadow-md rounded-2xl border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">
+                  📈 Tren Keuangan (Line Chart)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MonthlyFinanceChart />
+              </CardContent>
+            </Card>
           </>
         )}
       </div>

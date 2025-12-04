@@ -24,12 +24,56 @@ import { supabase } from "@/lib/supabase";
 import SupplierForm from "@/components/SupplierForm";
 import ConsigneeForm from "@/components/ConsigneeForm";
 import ShipperForm from "@/components/ShipperForm";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Scan, Upload, CheckCircle2 } from "lucide-react";
 
 interface AuthFormContentProps {
   onSuccess?: () => void;
   isDialog?: boolean;
 }
+
+/**
+ * SMART MERGE UTILITY
+ * Merges newData into oldData without overwriting existing non-empty values in oldData.
+ * 
+ * Rules:
+ * 1. Jangan timpa field yang sudah terisi
+ * 2. Jangan isi field dengan data kosong
+ * 3. Tambahkan field baru atau isi field kosong
+ * 4. CRITICAL: Jangan pernah mengosongkan nilai yang sudah berhasil diisi dari OCR sebelumnya
+ * 
+ * @param oldData - The original data object.
+ * @param newData - The new data object to merge.
+ * @returns A new object with merged data.
+ */
+const smartMerge = (oldData: Record<string, any>, newData: Record<string, any>): Record<string, any> => {
+  const merged = { ...oldData };
+  Object.keys(newData).forEach((key) => {
+    const newValue = newData[key];
+
+    // Skip if newValue is empty/null/undefined
+    if (newValue === undefined || newValue === null || newValue === "") {
+      console.log(`⊗ smartMerge: ${key} skipped (new value is empty)`);
+      return;
+    }
+
+    // CRITICAL: Do not overwrite if oldData has a non-empty value
+    // This ensures we never clear values that were successfully filled by previous OCR
+    if (
+      oldData[key] !== undefined &&
+      oldData[key] !== null &&
+      oldData[key] !== ""
+    ) {
+      console.log(`⊗ smartMerge: ${key} skipped (existing value: ${oldData[key]})`);
+      return;
+    }
+
+    // Add new value or fill empty field
+    merged[key] = newValue;
+    console.log(`✔ smartMerge: ${key} = ${newValue}`);
+  });
+
+  return merged;
+};
 
 // Exported component for use in Header dialog
 export function AuthFormContent({
@@ -43,6 +87,9 @@ export function AuthFormContent({
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<any>(null);
+  const [ocrScanning, setOcrScanning] = useState(false);
+  const [ocrResults, setOcrResults] = useState<Record<string, any>>({});
+  const [dynamicFields, setDynamicFields] = useState<any[]>([]);
 
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({
@@ -55,12 +102,21 @@ export function AuthFormContent({
     password: "",
     ktpAddress: "",
     ktpNumber: "",
+    ktpName: "", // Name from KTP
     religion: "",
     ethnicity: "",
     education: "",
     phoneNumber: "",
     licenseNumber: "",
     licenseExpiryDate: "",
+    // KK (Kartu Keluarga) fields
+    familyCardNumber: "",
+    kelurahanDesa: "",
+    kabupatenKota: "",
+    kecamatan: "",
+    provinsi: "",
+    kodePos: "",
+    rtRw: "",
     // Vehicle fields for Driver Mitra
     vehicleBrand: "",
     vehicleModel: "",
@@ -125,6 +181,460 @@ export function AuthFormContent({
       .join(" ");
   };
 
+  // OCR Scan Handler
+  const handleOcrScan = async (documentType: string, file: File) => {
+    setOcrScanning(true);
+    try {
+      // Validate supported file types
+      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+      if (!supportedTypes.includes(file.type)) {
+        toast({
+          title: "Format Tidak Didukung",
+          description: "Hanya file gambar (JPEG, PNG, WEBP) dan PDF yang didukung untuk OCR.",
+          variant: "destructive",
+        });
+        setOcrScanning(false);
+        return;
+      }
+
+      // Upload file to storage via Edge Function
+      const fileExt = file.name.split(".").pop();
+      const fileName = `ocr_${Date.now()}.${fileExt}`;
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileName', fileName);
+
+      // Call Edge Function with proper headers
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-upload-ocr-file`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.error || `Upload failed: ${response.status}`);
+      }
+
+      const uploadResult = await response.json();
+
+      if (!uploadResult?.success) {
+        throw new Error(uploadResult?.error || "Upload failed");
+      }
+
+      const signedUrl = uploadResult.signedUrl;
+
+      // Call Hybrid OCR Processor with file type
+      const { data: ocrData, error: ocrError } = await supabase.functions.invoke(
+        "supabase-functions-hybrid-ocr-processor",
+        {
+          body: { 
+            image_url: signedUrl,
+            file_type: file.type,
+            document_type_hint: documentType 
+          },
+        }
+      );
+
+      if (ocrError) {
+        console.error("OCR Error:", ocrError);
+        throw ocrError;
+      }
+
+      console.log("Hybrid OCR Result:", ocrData);
+
+      if (!ocrData || !ocrData.success) {
+        throw new Error(ocrData?.error || "OCR processing failed");
+      }
+
+      const { ocr_engine, jenis_dokumen, data: structuredData, raw_text, clean_text } = ocrData;
+      
+      console.log(`OCR Engine Used: ${ocr_engine}`);
+      console.log(`Document Type: ${jenis_dokumen}`);
+      console.log(`Clean Text Length: ${clean_text?.length || 0}`);
+      
+      if (!structuredData) {
+        throw new Error("No structured data returned from OCR");
+      }
+
+      // ========================================
+      // A. SMART OCR MERGE ENGINE
+      // ========================================
+      console.log("=== ACTIVATING SMART OCR MERGE ENGINE ===");
+      console.log("Full OCR Extracted Data:", structuredData);
+      
+      // Determine document type for namespace
+      const docTypeMap: Record<string, string> = {
+        "KTP": "ktp",
+        "KK": "kk",
+        "IJAZAH": "ijazah",
+        "SKCK": "skck",
+        "CV": "cv"
+      };
+      const docTypeForMerge = docTypeMap[jenis_dokumen] || null;
+      
+      console.log("Document type for merge:", docTypeForMerge);
+      console.log("Existing signUpData before merge:", signUpData);
+      
+      // Skip keys - technical fields that should not be processed
+      const skipKeys = [
+        "jenis_dokumen", "raw_text", "clean_text", "ocr_engine", 
+        "id", "created_at", "updated_at", "debug_notes"
+      ];
+      
+      // Filter out skip keys from OCR data
+      const cleanedOcrData: Record<string, any> = {};
+      Object.entries(structuredData).forEach(([key, value]) => {
+        if (!skipKeys.includes(key)) {
+          cleanedOcrData[key] = value;
+        }
+      });
+      
+      console.log("Cleaned OCR data (without skip keys):", cleanedOcrData);
+      
+      // Build complete update object for signUpData using SMART MERGE
+      const updatedSignUpData: Record<string, any> = { ...signUpData };
+      const newDynamicFields: any[] = [];
+      const existingFormFields = Object.keys(signUpData);
+      
+      // ========================================
+      // NAMESPACE STORAGE: Store document-specific data in details[document_type]
+      // ========================================
+      // Initialize details object if not exists
+      if (!updatedSignUpData.details) {
+        updatedSignUpData.details = {};
+      }
+      
+      // Store full OCR data in namespace based on document type
+      if (docTypeForMerge) {
+        // Initialize namespace if not exists
+        if (!updatedSignUpData.details[docTypeForMerge]) {
+          updatedSignUpData.details[docTypeForMerge] = {};
+        }
+        
+        // Store all cleaned OCR data in the namespace
+        Object.entries(cleanedOcrData).forEach(([key, value]) => {
+          if (value !== null && value !== undefined && value !== "") {
+            // Only add if not already exists in namespace
+            if (!updatedSignUpData.details[docTypeForMerge][key] ||
+                updatedSignUpData.details[docTypeForMerge][key] === "" ||
+                updatedSignUpData.details[docTypeForMerge][key] === null) {
+              updatedSignUpData.details[docTypeForMerge][key] = value;
+              console.log(`✔ NAMESPACE [${docTypeForMerge}]: ${key} = ${value}`);
+            } else {
+              console.log(`⊗ NAMESPACE [${docTypeForMerge}]: ${key} already exists, skipping`);
+            }
+          }
+        });
+        
+        console.log(`✔ Document data stored in details.${docTypeForMerge}`);
+      }
+      
+      // Special handling for KK documents with anggota_keluarga
+      if (jenis_dokumen === "KK" && structuredData.anggota_keluarga && Array.isArray(structuredData.anggota_keluarga)) {
+        console.log("Processing KK with anggota_keluarga:", structuredData.anggota_keluarga.length, "members");
+        
+        // SMART MERGE: Only add anggota_keluarga if not already exists
+        if (!updatedSignUpData["anggota_keluarga"] || 
+            updatedSignUpData["anggota_keluarga"] === null || 
+            updatedSignUpData["anggota_keluarga"] === undefined) {
+          updatedSignUpData["anggota_keluarga"] = structuredData.anggota_keluarga;
+          console.log("✔ SMART MERGE: anggota_keluarga added");
+        } else {
+          console.log("⊗ SMART MERGE: anggota_keluarga already exists, skipping");
+        }
+        
+        // Add anggota_keluarga as a dynamic field (will be displayed as JSON)
+        newDynamicFields.push({
+          name: "anggota_keluarga",
+          label: "Anggota Keluarga",
+          type: "json",
+          required: false,
+          value: structuredData.anggota_keluarga
+        });
+        
+        // ========================================
+        // SMART MERGE: Add KK header fields
+        // ========================================
+        const kkHeaderFields = [
+          "nomor_kk", "nama_kepala_keluarga", "rt_rw", "kelurahan_desa",
+          "kecamatan", "kabupaten_kota", "provinsi", "kode_pos", "tanggal_dikeluarkan"
+        ];
+        
+        kkHeaderFields.forEach(field => {
+          if (structuredData[field] && 
+              structuredData[field] !== null && 
+              structuredData[field] !== undefined && 
+              structuredData[field] !== "") {
+            // SMART MERGE: Only add if field is empty or doesn't exist
+            if (!updatedSignUpData[field] || 
+                updatedSignUpData[field] === "" || 
+                updatedSignUpData[field] === null || 
+                updatedSignUpData[field] === undefined) {
+              updatedSignUpData[field] = structuredData[field];
+              console.log(`✔ SMART MERGE [KK header]: ${field} = ${structuredData[field]}`);
+              
+              // Add to dynamic fields for display
+              newDynamicFields.push({
+                name: field,
+                label: field.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+                type: "text",
+                required: false,
+                value: structuredData[field]
+              });
+            } else {
+              console.log(`⊗ SMART MERGE [KK header]: ${field} already exists, skipping`);
+            }
+          }
+        });
+        
+        // Extract first family member (kepala keluarga) data for main form
+        const kepalaKeluarga = structuredData.anggota_keluarga.find(
+          (a: any) => a.status_hubungan_keluarga?.toUpperCase() === "KEPALA KELUARGA"
+        ) || structuredData.anggota_keluarga[0];
+        
+        if (kepalaKeluarga) {
+          // SMART MERGE: Map kepala keluarga fields to main form
+          const kepalaKeluargaFields = [
+            { source: "nama", target: "nama" },
+            { source: "nik", target: "nik" },
+            { source: "tempat_lahir", target: "tempat_lahir" },
+            { source: "tanggal_lahir", target: "tanggal_lahir" },
+            { source: "jenis_kelamin", target: "jenis_kelamin" },
+            { source: "agama", target: "agama" },
+            { source: "pekerjaan", target: "pekerjaan" },
+            { source: "jenis_pekerjaan", target: "pekerjaan" },
+            { source: "status_perkawinan", target: "status_perkawinan" },
+            { source: "kewarganegaraan", target: "kewarganegaraan" },
+            { source: "nama_ayah", target: "nama_ayah" },
+            { source: "nama_ibu", target: "nama_ibu" }
+          ];
+          
+          kepalaKeluargaFields.forEach(({ source, target }) => {
+            if (kepalaKeluarga[source] && 
+                kepalaKeluarga[source] !== null && 
+                kepalaKeluarga[source] !== undefined && 
+                kepalaKeluarga[source] !== "") {
+              // SMART MERGE: Only add if target field is empty or doesn't exist
+              if (!updatedSignUpData[target] || 
+                  updatedSignUpData[target] === "" || 
+                  updatedSignUpData[target] === null || 
+                  updatedSignUpData[target] === undefined) {
+                updatedSignUpData[target] = kepalaKeluarga[source];
+                console.log(`✔ SMART MERGE [kepala keluarga]: ${target} = ${kepalaKeluarga[source]}`);
+              } else {
+                console.log(`⊗ SMART MERGE [kepala keluarga]: ${target} already exists, skipping`);
+              }
+            }
+          });
+          
+          console.log("Extracted kepala keluarga data:", kepalaKeluarga.nama);
+        }
+      }
+      
+      // Process ALL keys from structuredData with SMART MERGE logic
+      // Skip KK header fields if already processed above
+      const kkHeaderFieldsToSkip = jenis_dokumen === "KK" ? [
+        "nomor_kk", "nama_kepala_keluarga", "rt_rw", "kelurahan_desa",
+        "kecamatan", "kabupaten_kota", "provinsi", "kode_pos", "tanggal_dikeluarkan"
+      ] : [];
+      
+      Object.entries(cleanedOcrData).forEach(([key, value]) => {
+        // Skip anggota_keluarga (already processed above) and KK header fields
+        if (key === "anggota_keluarga" || kkHeaderFieldsToSkip.includes(key)) return;
+
+        const normalizedKey = key.replace(/[^a-zA-Z0-9_]/g, "");
+        
+        // SMART MERGE: Only add if value is not empty AND field is empty or doesn't exist
+        if (value !== null && value !== undefined && value !== "") {
+          if (!updatedSignUpData[normalizedKey] || 
+              updatedSignUpData[normalizedKey] === "" || 
+              updatedSignUpData[normalizedKey] === null || 
+              updatedSignUpData[normalizedKey] === undefined) {
+            updatedSignUpData[normalizedKey] = value;
+            console.log(`✔ SMART MERGE: ${normalizedKey} = ${value}`);
+          } else {
+            console.log(`⊗ SMART MERGE: ${normalizedKey} already exists, skipping`);
+          }
+        }
+        
+        // If field doesn't exist in form, add to dynamic fields
+        if (!existingFormFields.includes(normalizedKey) && value !== null && value !== undefined && value !== "") {
+          newDynamicFields.push({
+            name: normalizedKey,
+            label: normalizedKey.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+            type: "text",
+            required: false,
+            value: value
+          });
+        }
+      });
+      
+      // Single state update with all fields using SMART MERGE
+      // CRITICAL: Use smartMerge to prevent overwriting existing data
+      setSignUpData(prev => smartMerge(prev, updatedSignUpData));
+      
+      console.log("Dynamic fields to render:", newDynamicFields);
+      
+      // ========================================
+      // SMART MERGE FOR DYNAMIC FIELDS
+      // ========================================
+      // Merge newDynamicFields with existing dynamicFields
+      // Rule: Jangan pernah mengosongkan nilai yang sudah berhasil diisi dari OCR sebelumnya
+      setDynamicFields(prev => {
+        const mergedFields = [...prev];
+        
+        newDynamicFields.forEach(newField => {
+          const existingFieldIndex = mergedFields.findIndex(f => f.name === newField.name);
+          
+          if (existingFieldIndex === -1) {
+            // Field baru, tambahkan
+            mergedFields.push(newField);
+            console.log(`✔ DYNAMIC FIELD ADDED: ${newField.name} = ${newField.value}`);
+          } else {
+            // Field sudah ada, cek apakah perlu update
+            const existingField = mergedFields[existingFieldIndex];
+            
+            // Jangan timpa jika field lama sudah terisi dan tidak kosong
+            if (existingField.value !== null && 
+                existingField.value !== undefined && 
+                existingField.value !== "") {
+              console.log(`⊗ DYNAMIC FIELD PRESERVED: ${newField.name} (existing value: ${existingField.value})`);
+            } else if (newField.value !== null && 
+                       newField.value !== undefined && 
+                       newField.value !== "") {
+              // Field lama kosong, isi dengan nilai baru
+              mergedFields[existingFieldIndex] = newField;
+              console.log(`✔ DYNAMIC FIELD FILLED: ${newField.name} = ${newField.value}`);
+            }
+          }
+        });
+        
+        console.log("Total dynamic fields after merge:", mergedFields.length);
+        return mergedFields;
+      });
+
+      // ========================================
+      // C. AUTO-CREATE DATABASE COLUMNS
+      // ========================================
+      const { data: fieldsData, error: fieldsError } = await supabase.functions.invoke(
+        "supabase-functions-auto-create-user-fields",
+        {
+          body: {
+            structured_data: structuredData,
+            document_type: jenis_dokumen,
+          },
+        }
+      );
+
+      if (fieldsError) {
+        console.error("Auto-create fields error:", fieldsError);
+        toast({
+          title: "Peringatan",
+          description: `Gagal membuat kolom otomatis: ${fieldsError.message}`,
+          variant: "destructive",
+        });
+      }
+
+      console.log("Auto-created fields:", fieldsData);
+
+      // Update dynamicFields from Edge Function response if available
+      if (fieldsData?.success && fieldsData?.auto_fields_created?.length > 0) {
+        // SMART MERGE: Merge auto_fields_created with existing dynamicFields
+        // Rule: Jangan pernah mengosongkan nilai yang sudah berhasil diisi dari OCR sebelumnya
+        setDynamicFields(prev => {
+          const mergedFields = [...prev];
+          
+          fieldsData.auto_fields_created.forEach((newField: any) => {
+            const existingFieldIndex = mergedFields.findIndex(f => f.name === newField.name);
+            
+            if (existingFieldIndex === -1) {
+              // Field baru dari Edge Function, tambahkan
+              mergedFields.push(newField);
+              console.log(`✔ EDGE FUNCTION FIELD ADDED: ${newField.name} = ${newField.value}`);
+            } else {
+              // Field sudah ada, cek apakah perlu update
+              const existingField = mergedFields[existingFieldIndex];
+              
+              // Jangan timpa jika field lama sudah terisi dan tidak kosong
+              if (existingField.value !== null && 
+                  existingField.value !== undefined && 
+                  existingField.value !== "") {
+                console.log(`⊗ EDGE FUNCTION FIELD PRESERVED: ${newField.name} (existing value: ${existingField.value})`);
+              } else if (newField.value !== null && 
+                         newField.value !== undefined && 
+                         newField.value !== "") {
+                // Field lama kosong, isi dengan nilai baru
+                mergedFields[existingFieldIndex] = newField;
+                console.log(`✔ EDGE FUNCTION FIELD FILLED: ${newField.name} = ${newField.value}`);
+              }
+            }
+          });
+          
+          console.log("Total dynamic fields after Edge Function merge:", mergedFields.length);
+          return mergedFields;
+        });
+        
+        console.log("Updated dynamicFields from Edge Function with SMART MERGE");
+        
+        if (fieldsData.supabase_columns_created?.length > 0) {
+          toast({
+            title: "Kolom Baru Dibuat",
+            description: `${fieldsData.supabase_columns_created.length} kolom baru ditambahkan ke database`,
+          });
+        }
+      } else if (!fieldsData?.success) {
+        toast({
+          title: "Peringatan",
+          description: `Gagal membuat kolom otomatis: ${fieldsData?.error || "Unknown error"}`,
+          variant: "destructive",
+        });
+      }
+
+      // Save document results to appropriate table
+      const { data: saveData, error: saveError } = await supabase.functions.invoke(
+        "supabase-functions-save-document-results",
+        {
+          body: {
+            document_type: jenis_dokumen,
+            structured_data: structuredData,
+            raw_text: raw_text,
+            user_id: null,
+          },
+        }
+      );
+
+      if (saveError) {
+        console.error("Save document error:", saveError);
+      }
+
+      // Show success message
+      toast({
+        title: "OCR Berhasil",
+        description: `${Object.keys(structuredData).length} field berhasil diekstrak dari ${jenis_dokumen}`,
+      });
+
+      setOcrResults({ ...ocrResults, [documentType]: structuredData });
+    } catch (error) {
+      console.error("OCR Error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Gagal memproses dokumen";
+      toast({
+        title: "OCR Gagal",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      setOcrResults((prev) => ({
+        ...prev,
+        [documentType]: { success: false, error: error instanceof Error ? error.message : "Unknown error" },
+      }));
+    } finally {
+      setOcrScanning(false);
+    }
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -132,10 +642,11 @@ export function AuthFormContent({
       await signIn(signInData.email, signInData.password);
       toast({ title: "Success", description: "Signed in successfully" });
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Sign in failed";
       toast({
         title: "Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -232,8 +743,6 @@ export function AuthFormContent({
       ) {
         // Employee/Driver details
         Object.assign(details, {
-          first_name: signUpData.firstName,
-          last_name: signUpData.lastName,
           ktp_address: signUpData.ktpAddress,
           ktp_number: signUpData.ktpNumber,
           religion: signUpData.religion,
@@ -369,8 +878,52 @@ export function AuthFormContent({
         }
       }
 
-      // Determine fullName - use contact_person for entity roles if fullName is empty
-      const fullName = signUpData.fullName || entityFormData.contact_person || entityFormData.entity_name || "";
+      // Determine fullName from OCR data or entity form
+      // Priority: OCR extracted name > contact_person > entity_name
+      const fullName = signUpData.ktpName || entityFormData.contact_person || entityFormData.entity_name || "";
+
+      // ========================================
+      // D. INCLUDE ALL DYNAMIC FIELDS IN DETAILS
+      // ========================================
+      // Add all dynamic fields from OCR to details object
+      dynamicFields.forEach((field) => {
+        const fieldValue = signUpData[field.name as keyof typeof signUpData];
+        if (fieldValue !== undefined && fieldValue !== null && fieldValue !== "") {
+          details[field.name] = fieldValue;
+          console.log(`✔ Including dynamic field in sign-up: ${field.name} = ${fieldValue}`);
+        }
+      });
+
+      // Also include any other fields from signUpData that aren't already in details
+      // Skip keys that are file objects (File instances)
+      const fileFieldKeys = [
+        "ktpDocument", "selfiePhoto", "familyCard", "simDocument", "skckDocument",
+        "uploadIjasah", "stnkDocument", "vehiclePhoto"
+      ];
+      
+      Object.entries(signUpData).forEach(([key, value]) => {
+        if (
+          value !== null &&
+          value !== undefined &&
+          value !== "" &&
+          !details[key] &&
+          !fileFieldKeys.includes(key) && // Skip file fields
+          !(value instanceof File) // Skip File objects
+        ) {
+          // Allow arrays and objects (like anggota_keluarga)
+          details[key] = value;
+          console.log(`✔ Including additional field in sign-up: ${key} = ${typeof value === "object" ? JSON.stringify(value).substring(0, 100) : value}`);
+        }
+      });
+
+      console.log("Final details object for sign-up:", details);
+      console.log("=== CRITICAL: Checking KTP/KK fields in details ===");
+      console.log("details.nik:", details.nik);
+      console.log("details.nama:", details.nama);
+      console.log("details.nomor_kk:", details.nomor_kk);
+      console.log("details.nama_kepala_keluarga:", details.nama_kepala_keluarga);
+      console.log("details.anggota_keluarga:", details.anggota_keluarga ? "EXISTS" : "NOT FOUND");
+      console.log("=== END CRITICAL CHECK ===");
 
       await signUp(
         signUpData.email,
@@ -378,7 +931,7 @@ export function AuthFormContent({
         fullName,
         entityType,
         signUpData.phoneNumber || entityFormData.phone_number,
-        details, // <---- semua field ada di sini termasuk upload_ijasah URL
+        details, // <---- ALL fields including dynamic OCR fields
         fileUrls,
         selectedRole?.role_name || signUpData.roleName || null,
         selectedRole?.role_id || null,
@@ -386,8 +939,8 @@ export function AuthFormContent({
         // <- hanya dikirim jika ingin masuk tabel USERS
         signUpData.ktpNumber,
         signUpData.ktpAddress,
-        signUpData.firstName,
-        signUpData.lastName,
+        null, // first_name - removed, will be derived from OCR
+        null, // last_name - removed, will be derived from OCR
         signUpData.religion,
         signUpData.ethnicity,
         signUpData.licenseNumber,
@@ -402,10 +955,12 @@ export function AuthFormContent({
           "Account created! Please check your email for verification.",
       });
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Sign up error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create account";
       toast({
         title: "Error",
-        description: error.message || "Failed to create account",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -531,6 +1086,219 @@ export function AuthFormContent({
                 </SelectContent>
               </Select>
             </div>
+
+            {/* OCR Document Scanner */}
+            {signUpData.roleName && !showEntityForm && (
+              <div className="space-y-3 bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Scan className="w-5 h-5 text-green-600" />
+                  <h3 className="text-sm font-semibold text-slate-700">
+                    Scan Dokumen (Opsional)
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-600 mb-3">
+                  Scan dokumen untuk mengisi data secara otomatis
+                </p>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {/* KTP Scanner */}
+                  <div className="space-y-1">
+                    <Label htmlFor="ocr-ktp" className="text-xs cursor-pointer">
+                      <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                        <span className="flex items-center gap-1">
+                          <Upload className="w-3 h-3" />
+                          <span>KTP</span>
+                        </span>
+                        {ocrResults.ktp?.success && (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        )}
+                      </div>
+                    </Label>
+                    <Input
+                      id="ocr-ktp"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleOcrScan("ktp", file);
+                      }}
+                      disabled={ocrScanning}
+                    />
+                  </div>
+
+                  {/* KK Scanner */}
+                  <div className="space-y-1">
+                    <Label htmlFor="ocr-kk" className="text-xs cursor-pointer">
+                      <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                        <span className="flex items-center gap-1">
+                          <Upload className="w-3 h-3" />
+                          <span>KK</span>
+                        </span>
+                        {ocrResults.kk?.success && (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        )}
+                      </div>
+                    </Label>
+                    <Input
+                      id="ocr-kk"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleOcrScan("kk", file);
+                      }}
+                      disabled={ocrScanning}
+                    />
+                  </div>
+
+                  {/* Ijazah Scanner */}
+                  <div className="space-y-1">
+                    <Label htmlFor="ocr-ijazah" className="text-xs cursor-pointer">
+                      <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                        <span className="flex items-center gap-1">
+                          <Upload className="w-3 h-3" />
+                          <span>Ijazah</span>
+                        </span>
+                        {ocrResults.ijazah?.success && (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        )}
+                      </div>
+                    </Label>
+                    <Input
+                      id="ocr-ijazah"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleOcrScan("ijazah", file);
+                      }}
+                      disabled={ocrScanning}
+                    />
+                  </div>
+
+                  {/* SIM Scanner */}
+                  {(signUpData.roleEntity === "driver_perusahaan" || 
+                    signUpData.roleEntity === "driver_mitra") && (
+                    <div className="space-y-1">
+                      <Label htmlFor="ocr-sim" className="text-xs cursor-pointer">
+                        <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                          <span className="flex items-center gap-1">
+                            <Upload className="w-3 h-3" />
+                            <span>SIM</span>
+                          </span>
+                          {ocrResults.sim?.success && (
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          )}
+                        </div>
+                      </Label>
+                      <Input
+                        id="ocr-sim"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleOcrScan("sim", file);
+                        }}
+                        disabled={ocrScanning}
+                      />
+                    </div>
+                  )}
+
+                  {/* STNK Scanner */}
+                  {signUpData.roleEntity === "driver_mitra" && (
+                    <div className="space-y-1">
+                      <Label htmlFor="ocr-stnk" className="text-xs cursor-pointer">
+                        <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                          <span className="flex items-center gap-1">
+                            <Upload className="w-3 h-3" />
+                            <span>STNK</span>
+                          </span>
+                          {ocrResults.stnk?.success && (
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          )}
+                        </div>
+                      </Label>
+                      <Input
+                        id="ocr-stnk"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleOcrScan("stnk", file);
+                        }}
+                        disabled={ocrScanning}
+                      />
+                    </div>
+                  )}
+
+                  {/* SKCK Scanner */}
+                  <div className="space-y-1">
+                    <Label htmlFor="ocr-skck" className="text-xs cursor-pointer">
+                      <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                        <span className="flex items-center gap-1">
+                          <Upload className="w-3 h-3" />
+                          <span>SKCK</span>
+                        </span>
+                        {ocrResults.skck?.success && (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        )}
+                      </div>
+                    </Label>
+                    <Input
+                      id="ocr-skck"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleOcrScan("skck", file);
+                      }}
+                      disabled={ocrScanning}
+                    />
+                  </div>
+
+                  {/* CV Scanner */}
+                  <div className="space-y-1">
+                    <Label htmlFor="ocr-cv" className="text-xs cursor-pointer">
+                      <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                        <span className="flex items-center gap-1">
+                          <Upload className="w-3 h-3" />
+                          <span>CV</span>
+                        </span>
+                        {ocrResults.cv?.success && (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        )}
+                      </div>
+                    </Label>
+                    <Input
+                      id="ocr-cv"
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleOcrScan("cv", file);
+                      }}
+                      disabled={ocrScanning}
+                    />
+                  </div>
+                </div>
+
+                {ocrScanning && (
+                  <div className="text-center py-2">
+                    <div className="inline-flex items-center gap-2 text-sm text-green-600">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                      <span>Memproses dokumen...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Show entity-specific inline form if supplier, consignee, or shipper is selected */}
             {showEntityForm && (
@@ -813,74 +1581,9 @@ export function AuthFormContent({
               </div>
             )}
 
-            {/* Personal Information - Only show if NOT supplier/consignee/shipper */}
+            {/* Account Credentials */}
             {!showEntityForm && (
               <>
-                <div className="space-y-3 bg-white p-3 rounded-lg border border-slate-200">
-                  <h3 className="text-sm font-medium text-slate-700 border-b pb-2">
-                    Personal Information
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-firstname" className="text-sm">
-                        First Name *
-                      </Label>
-                      <Input
-                        id="signup-firstname"
-                        type="text"
-                        placeholder="John"
-                        value={signUpData.firstName}
-                        onChange={(e) =>
-                          setSignUpData({
-                            ...signUpData,
-                            firstName: e.target.value,
-                          })
-                        }
-                        required
-                        className="bg-slate-50"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-lastname" className="text-sm">
-                        Last Name *
-                      </Label>
-                      <Input
-                        id="signup-lastname"
-                        type="text"
-                        placeholder="Doe"
-                        value={signUpData.lastName}
-                        onChange={(e) =>
-                          setSignUpData({
-                            ...signUpData,
-                            lastName: e.target.value,
-                          })
-                        }
-                        required
-                        className="bg-slate-50"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-fullname" className="text-sm">
-                      Full Name *
-                    </Label>
-                    <Input
-                      id="signup-fullname"
-                      type="text"
-                      placeholder="John Doe"
-                      value={signUpData.fullName}
-                      onChange={(e) =>
-                        setSignUpData({
-                          ...signUpData,
-                          fullName: e.target.value,
-                        })
-                      }
-                      required
-                      className="bg-slate-50"
-                    />
-                  </div>
-                </div>
-
                 {/* Account Credentials */}
                 <div className="space-y-3 bg-white p-3 rounded-lg border border-slate-200">
                   <h3 className="text-sm font-medium text-slate-700 border-b pb-2">
@@ -937,104 +1640,89 @@ export function AuthFormContent({
                   </div>
                 </div>
 
-                {/* Identity Information */}
-                <div className="space-y-3 bg-white p-3 rounded-lg border border-slate-200">
-                  <h3 className="text-sm font-medium text-slate-700 border-b pb-2">
-                    Identity Information
-                  </h3>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-ktp-address" className="text-sm">
-                      KTP Address
-                    </Label>
-                    <Input
-                      id="signup-ktp-address"
-                      type="text"
-                      placeholder="Jl. Example No. 123"
-                      value={signUpData.ktpAddress}
-                      onChange={(e) =>
-                        setSignUpData({
-                          ...signUpData,
-                          ktpAddress: e.target.value,
-                        })
-                      }
-                      className="bg-slate-50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-ktp-number" className="text-sm">
-                      KTP Number
-                    </Label>
-                    <Input
-                      id="signup-ktp-number"
-                      type="text"
-                      placeholder="1234567890123456"
-                      value={signUpData.ktpNumber}
-                      onChange={(e) =>
-                        setSignUpData({
-                          ...signUpData,
-                          ktpNumber: e.target.value,
-                        })
-                      }
-                      className="bg-slate-50"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-religion" className="text-sm">
-                        Religion
-                      </Label>
-                      <Input
-                        id="signup-religion"
-                        type="text"
-                        placeholder="Islam"
-                        value={signUpData.religion}
-                        onChange={(e) =>
-                          setSignUpData({
-                            ...signUpData,
-                            religion: e.target.value,
-                          })
-                        }
-                        className="bg-slate-50"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-ethnicity" className="text-sm">
-                        Ethnicity
-                      </Label>
-                      <Input
-                        id="signup-ethnicity"
-                        type="text"
-                        placeholder="Jawa"
-                        value={signUpData.ethnicity}
-                        onChange={(e) =>
-                          setSignUpData({
-                            ...signUpData,
-                            ethnicity: e.target.value,
-                          })
-                        }
-                        className="bg-slate-50"
-                      />
+                {/* OCR Scan Summary - Shows all completed scans */}
+                {Object.keys(ocrResults).some(key => ocrResults[key]?.success) && (
+                  <div className="space-y-2 bg-green-50 p-3 rounded-lg border border-green-200">
+                    <h3 className="text-sm font-medium text-green-700 border-b border-green-200 pb-2 flex items-center gap-2">
+                      <CheckCircle2 size={16} />
+                      Dokumen Berhasil Di-Scan
+                    </h3>
+                    <div className="space-y-1 text-xs">
+                      {ocrResults.ktp?.success && (
+                        <div className="flex items-center gap-2 text-green-700">
+                          <CheckCircle2 size={14} />
+                          <span className="font-medium">KTP:</span>
+                          <span>{signUpData.ktpNumber || 'Data tersimpan'}</span>
+                        </div>
+                      )}
+                      {ocrResults.kk?.success && (
+                        <div className="flex items-center gap-2 text-green-700">
+                          <CheckCircle2 size={14} />
+                          <span className="font-medium">Kartu Keluarga:</span>
+                          <span>{signUpData.familyCardNumber || 'Data tersimpan'}</span>
+                        </div>
+                      )}
+                      {ocrResults.ijazah?.success && (
+                        <div className="flex items-center gap-2 text-green-700">
+                          <CheckCircle2 size={14} />
+                          <span className="font-medium">Ijazah:</span>
+                          <span>Data tersimpan</span>
+                        </div>
+                      )}
+                      {ocrResults.sim?.success && (
+                        <div className="flex items-center gap-2 text-green-700">
+                          <CheckCircle2 size={14} />
+                          <span className="font-medium">SIM:</span>
+                          <span>{signUpData.licenseNumber || 'Data tersimpan'}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-education" className="text-sm">
-                      Education
-                    </Label>
-                    <Input
-                      id="signup-education"
-                      type="text"
-                      placeholder="S1"
-                      value={signUpData.education}
-                      onChange={(e) =>
-                        setSignUpData({
-                          ...signUpData,
-                          education: e.target.value,
-                        })
-                      }
-                      className="bg-slate-50"
-                    />
+                )}
+
+                {/* Dynamic OCR Fields */}
+                {dynamicFields.length > 0 && (
+                  <div className="space-y-3 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <h3 className="text-sm font-medium text-blue-700 border-b border-blue-200 pb-2 flex items-center gap-2">
+                      <CheckCircle2 size={16} />
+                      Data Dokumen (Auto-Extracted) - {dynamicFields.length} fields
+                    </h3>
+                    <p className="text-xs text-blue-600 mb-2">
+                      ✓ Semua field dapat diedit. Data akan tersimpan sampai Submit.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {dynamicFields.map((field) => (
+                        <div key={field.name} className={`space-y-2 ${field.type === 'json' || field.type === 'jsonb' ? 'col-span-2' : ''}`}>
+                          <Label htmlFor={`dynamic-${field.name}`} className="text-sm flex items-center gap-1">
+                            {field.label}
+                            <span className="text-xs text-blue-500">(editable)</span>
+                          </Label>
+                          {field.type === 'json' || field.type === 'jsonb' ? (
+                            <div className="bg-white border border-blue-200 rounded-md p-2 max-h-40 overflow-auto">
+                              <pre className="text-xs text-slate-600 whitespace-pre-wrap">
+                                {JSON.stringify(signUpData[field.name as keyof typeof signUpData] ?? field.value, null, 2)}
+                              </pre>
+                            </div>
+                          ) : (
+                            <Input
+                              id={`dynamic-${field.name}`}
+                              type={field.type || "text"}
+                              placeholder={field.label || field.name}
+                              value={signUpData[field.name as keyof typeof signUpData] ?? field.value ?? ''}
+                              onChange={(e) =>
+                                setSignUpData({
+                                  ...signUpData,
+                                  [field.name]: e.target.value,
+                                })
+                              }
+                              className="bg-white border-blue-200"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Contact Information */}
                 <div className="space-y-3 bg-white p-3 rounded-lg border border-slate-200">
@@ -1489,6 +2177,219 @@ export function AuthFormContent({
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* OCR Document Scanner - Desktop */}
+                {signUpData.roleName && !showEntityForm && (
+                  <div className="space-y-4 bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Scan className="w-5 h-5 text-green-600" />
+                      <h3 className="text-sm font-semibold text-slate-700">
+                        Scan Dokumen (Opsional)
+                      </h3>
+                    </div>
+                    <p className="text-xs text-slate-600 mb-3">
+                      Scan dokumen untuk mengisi data secara otomatis
+                    </p>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* KTP Scanner */}
+                      <div className="space-y-1">
+                        <Label htmlFor="ocr-ktp-desktop" className="text-xs cursor-pointer">
+                          <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                            <span className="flex items-center gap-2">
+                              <Upload className="w-4 h-4" />
+                              <span>KTP</span>
+                            </span>
+                            {ocrResults.ktp?.success && (
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            )}
+                          </div>
+                        </Label>
+                        <Input
+                          id="ocr-ktp-desktop"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleOcrScan("ktp", file);
+                          }}
+                          disabled={ocrScanning}
+                        />
+                      </div>
+
+                      {/* KK Scanner */}
+                      <div className="space-y-1">
+                        <Label htmlFor="ocr-kk-desktop" className="text-xs cursor-pointer">
+                          <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                            <span className="flex items-center gap-2">
+                              <Upload className="w-4 h-4" />
+                              <span>KK</span>
+                            </span>
+                            {ocrResults.kk?.success && (
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            )}
+                          </div>
+                        </Label>
+                        <Input
+                          id="ocr-kk-desktop"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleOcrScan("kk", file);
+                          }}
+                          disabled={ocrScanning}
+                        />
+                      </div>
+
+                      {/* Ijazah Scanner */}
+                      <div className="space-y-1">
+                        <Label htmlFor="ocr-ijazah-desktop" className="text-xs cursor-pointer">
+                          <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                            <span className="flex items-center gap-2">
+                              <Upload className="w-4 h-4" />
+                              <span>Ijazah</span>
+                            </span>
+                            {ocrResults.ijazah?.success && (
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            )}
+                          </div>
+                        </Label>
+                        <Input
+                          id="ocr-ijazah-desktop"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleOcrScan("ijazah", file);
+                          }}
+                          disabled={ocrScanning}
+                        />
+                      </div>
+
+                      {/* SIM Scanner */}
+                      {(signUpData.roleEntity === "driver_perusahaan" || 
+                        signUpData.roleEntity === "driver_mitra") && (
+                        <div className="space-y-1">
+                          <Label htmlFor="ocr-sim-desktop" className="text-xs cursor-pointer">
+                            <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                              <span className="flex items-center gap-2">
+                                <Upload className="w-4 h-4" />
+                                <span>SIM</span>
+                              </span>
+                              {ocrResults.sim?.success && (
+                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                              )}
+                            </div>
+                          </Label>
+                          <Input
+                            id="ocr-sim-desktop"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleOcrScan("sim", file);
+                            }}
+                            disabled={ocrScanning}
+                          />
+                        </div>
+                      )}
+
+                      {/* STNK Scanner */}
+                      {signUpData.roleEntity === "driver_mitra" && (
+                        <div className="space-y-1">
+                          <Label htmlFor="ocr-stnk-desktop" className="text-xs cursor-pointer">
+                            <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                              <span className="flex items-center gap-2">
+                                <Upload className="w-4 h-4" />
+                                <span>STNK</span>
+                              </span>
+                              {ocrResults.stnk?.success && (
+                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                              )}
+                            </div>
+                          </Label>
+                          <Input
+                            id="ocr-stnk-desktop"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleOcrScan("stnk", file);
+                            }}
+                            disabled={ocrScanning}
+                          />
+                        </div>
+                      )}
+
+                      {/* SKCK Scanner */}
+                      <div className="space-y-1">
+                        <Label htmlFor="ocr-skck-desktop" className="text-xs cursor-pointer">
+                          <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                            <span className="flex items-center gap-2">
+                              <Upload className="w-4 h-4" />
+                              <span>SKCK</span>
+                            </span>
+                            {ocrResults.skck?.success && (
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            )}
+                          </div>
+                        </Label>
+                        <Input
+                          id="ocr-skck-desktop"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleOcrScan("skck", file);
+                          }}
+                          disabled={ocrScanning}
+                        />
+                      </div>
+
+                      {/* CV Scanner */}
+                      <div className="space-y-1">
+                        <Label htmlFor="ocr-cv-desktop" className="text-xs cursor-pointer">
+                          <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
+                            <span className="flex items-center gap-2">
+                              <Upload className="w-4 h-4" />
+                              <span>CV</span>
+                            </span>
+                            {ocrResults.cv?.success && (
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            )}
+                          </div>
+                        </Label>
+                        <Input
+                          id="ocr-cv-desktop"
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleOcrScan("cv", file);
+                          }}
+                          disabled={ocrScanning}
+                        />
+                      </div>
+                    </div>
+
+                    {ocrScanning && (
+                      <div className="text-center py-2">
+                        <div className="inline-flex items-center gap-2 text-sm text-green-600">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                          <span>Memproses dokumen...</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Show entity-specific inline form if supplier, consignee, or shipper is selected */}
                 {showEntityForm && (
@@ -2861,108 +3762,89 @@ export function AuthFormContent({
                       </div>
                     </div>
 
-                    {/* KTP & Personal Details Section */}
-                    <div className="space-y-4 bg-white p-4 rounded-lg border border-slate-200">
-                      <h3 className="text-sm font-semibold text-slate-700 border-b pb-2">
-                        Identity Information
-                      </h3>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-ktp-address" className="text-sm">
-                          KTP Address
-                        </Label>
-                        <Input
-                          id="signup-ktp-address"
-                          type="text"
-                          placeholder="Jl. Example No. 123"
-                          value={signUpData.ktpAddress}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              ktpAddress: e.target.value,
-                            })
-                          }
-                          className="bg-slate-50"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-ktp-number" className="text-sm">
-                          KTP Number
-                        </Label>
-                        <Input
-                          id="signup-ktp-number"
-                          type="text"
-                          placeholder="1234567890123456"
-                          value={signUpData.ktpNumber}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              ktpNumber: e.target.value,
-                            })
-                          }
-                          className="bg-slate-50"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="signup-religion" className="text-sm">
-                            Religion
-                          </Label>
-                          <Input
-                            id="signup-religion"
-                            type="text"
-                            placeholder="Islam"
-                            value={signUpData.religion}
-                            onChange={(e) =>
-                              setSignUpData({
-                                ...signUpData,
-                                religion: e.target.value,
-                              })
-                            }
-                            className="bg-slate-50"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="signup-ethnicity" className="text-sm">
-                            Ethnicity
-                          </Label>
-                          <Input
-                            id="signup-ethnicity"
-                            type="text"
-                            placeholder="Jawa"
-                            value={signUpData.ethnicity}
-                            onChange={(e) =>
-                              setSignUpData({
-                                ...signUpData,
-                                ethnicity: e.target.value,
-                              })
-                            }
-                            className="bg-slate-50"
-                          />
+                    {/* OCR Scan Summary - Desktop - Shows all completed scans */}
+                    {Object.keys(ocrResults).some(key => ocrResults[key]?.success) && (
+                      <div className="space-y-3 bg-green-50 p-4 rounded-lg border border-green-200">
+                        <h3 className="text-sm font-semibold text-green-700 border-b border-green-200 pb-2 flex items-center gap-2">
+                          <CheckCircle2 size={16} />
+                          Dokumen Berhasil Di-Scan
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          {ocrResults.ktp?.success && (
+                            <div className="flex items-center gap-2 text-green-700">
+                              <CheckCircle2 size={16} />
+                              <span className="font-medium">KTP:</span>
+                              <span>{signUpData.ktpNumber || 'Data tersimpan'}</span>
+                            </div>
+                          )}
+                          {ocrResults.kk?.success && (
+                            <div className="flex items-center gap-2 text-green-700">
+                              <CheckCircle2 size={16} />
+                              <span className="font-medium">Kartu Keluarga:</span>
+                              <span>{signUpData.familyCardNumber || 'Data tersimpan'}</span>
+                            </div>
+                          )}
+                          {ocrResults.ijazah?.success && (
+                            <div className="flex items-center gap-2 text-green-700">
+                              <CheckCircle2 size={16} />
+                              <span className="font-medium">Ijazah:</span>
+                              <span>Data tersimpan</span>
+                            </div>
+                          )}
+                          {ocrResults.sim?.success && (
+                            <div className="flex items-center gap-2 text-green-700">
+                              <CheckCircle2 size={16} />
+                              <span className="font-medium">SIM:</span>
+                              <span>{signUpData.licenseNumber || 'Data tersimpan'}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
+                    )}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-education" className="text-sm">
-                          Education
-                        </Label>
-                        <Input
-                          id="signup-education"
-                          type="text"
-                          placeholder="S1"
-                          value={signUpData.education}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              education: e.target.value,
-                            })
-                          }
-                          className="bg-slate-50"
-                        />
+                    {/* Dynamic OCR Fields - Desktop */}
+                    {dynamicFields.length > 0 && (
+                      <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <h3 className="text-sm font-semibold text-blue-700 border-b border-blue-200 pb-2 flex items-center gap-2">
+                          <CheckCircle2 size={16} />
+                          Data Dokumen (Auto-Extracted) - {dynamicFields.length} fields
+                        </h3>
+                        <p className="text-xs text-blue-600 mb-2">
+                          ✓ Semua field dapat diedit. Data akan tersimpan sampai Submit.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {dynamicFields.map((field) => (
+                            <div key={field.name} className={`space-y-2 ${field.type === 'json' || field.type === 'jsonb' ? 'col-span-2' : ''}`}>
+                              <Label htmlFor={`dynamic-desktop-${field.name}`} className="text-sm flex items-center gap-1">
+                                {field.label}
+                                <span className="text-xs text-blue-500">(editable)</span>
+                              </Label>
+                              {field.type === 'json' || field.type === 'jsonb' ? (
+                                <div className="bg-white border border-blue-200 rounded-md p-2 max-h-48 overflow-auto">
+                                  <pre className="text-xs text-slate-600 whitespace-pre-wrap">
+                                    {JSON.stringify(signUpData[field.name as keyof typeof signUpData] ?? field.value, null, 2)}
+                                  </pre>
+                                </div>
+                              ) : (
+                                <Input
+                                  id={`dynamic-desktop-${field.name}`}
+                                  type={field.type || "text"}
+                                  placeholder={field.label || field.name}
+                                  value={signUpData[field.name as keyof typeof signUpData] ?? field.value ?? ''}
+                                  onChange={(e) =>
+                                    setSignUpData({
+                                      ...signUpData,
+                                      [field.name]: e.target.value,
+                                    })
+                                  }
+                                  className="bg-white border-blue-200"
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Contact Section */}
                     <div className="space-y-4 bg-white p-4 rounded-lg border border-slate-200">

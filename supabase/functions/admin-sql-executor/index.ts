@@ -8,10 +8,8 @@ const CORS = {
   "Content-Type": "application/json"
 };
 
-const SUPABASE_PROJECT_REF = Deno.env.get("SUPABASE_PROJECT_ID")!;
-const PICA_SECRET_KEY = Deno.env.get("PICA_SECRET_KEY")!;
-const PICA_SUPABASE_CONNECTION_KEY = Deno.env.get("PICA_SUPABASE_CONNECTION_KEY")!;
-const ACTION_ID = "conn_mod_def::GC40SckOddE::NFFu2-49QLyGsPBdfweitg";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 interface AuditLog {
   user_id: string;
@@ -119,23 +117,25 @@ serve(async (req) => {
       }), { status: 400, headers: CORS });
     }
 
-    // Execute query via Pica Passthrough
-    console.log("Executing query via Pica...");
-    const response = await fetch(
-      `https://api.picaos.com/v1/passthrough/v1/projects/${SUPABASE_PROJECT_REF}/database/query`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-pica-secret": PICA_SECRET_KEY,
-          "x-pica-connection-key": PICA_SUPABASE_CONNECTION_KEY,
-          "x-pica-action-id": ACTION_ID,
-        },
-        body: JSON.stringify({ query }),
-      }
-    );
+    // Execute query via Supabase RPC
+    console.log("Executing query via Supabase...");
+    const { data, error } = await supabase.rpc('execute_sql', { query_text: query });
 
-    if (response.status === 201) {
+    if (error) {
+      await logAudit(supabase, {
+        user_id: userId,
+        query,
+        status: "error",
+        error: error.message,
+        executed_at: new Date().toISOString()
+      });
+
+      return new Response(JSON.stringify({
+        error: `Query execution failed: ${error.message}`
+      }), { status: 400, headers: CORS });
+    }
+
+    if (data) {
       await logAudit(supabase, {
         user_id: userId,
         query,
@@ -145,35 +145,21 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({
         success: true,
-        message: "Query executed successfully"
+        message: "Query executed successfully",
+        data: data
       }), { status: 200, headers: CORS });
-    } else if (response.status === 403) {
-      await logAudit(supabase, {
-        user_id: userId,
-        query,
-        status: "forbidden",
-        error: "Forbidden by Supabase API",
-        executed_at: new Date().toISOString()
-      });
-
-      return new Response(JSON.stringify({
-        error: "Forbidden by Supabase API"
-      }), { status: 403, headers: CORS });
     } else {
-      const errorText = await response.text();
-      console.error("SQL execution error:", errorText);
-
       await logAudit(supabase, {
         user_id: userId,
         query,
         status: "error",
-        error: errorText,
+        error: "No data returned",
         executed_at: new Date().toISOString()
       });
 
       return new Response(JSON.stringify({
         error: "SQL execution error",
-        details: errorText
+        details: "No data returned"
       }), { status: 500, headers: CORS });
     }
 

@@ -72,6 +72,13 @@ export default function Navigation() {
       roles: ["super_admin"],
     },
     {
+      path: "/check-ocr-data",
+      label: "Check OCR Data",
+      icon: Users,
+      color: "purple",
+      roles: ["super_admin"],
+    },
+    {
       path: "/hrd-dashboard",
       label: "HRD Management",
       icon: Briefcase,

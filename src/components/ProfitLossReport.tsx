@@ -150,10 +150,11 @@ export default function ProfitLossReport() {
         title: "✅ Laporan diperbarui",
         description: `Data laporan berhasil dimuat (${data?.length || 0} baris)`,
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Gagal memuat data laporan";
       toast({
         title: "Error",
-        description: error.message || "Gagal memuat data laporan",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

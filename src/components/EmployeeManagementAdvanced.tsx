@@ -1138,6 +1138,8 @@ export default function EmployeeManagementAdvanced({
                           <SelectItem value="SD">SD</SelectItem>
                           <SelectItem value="SMP">SMP</SelectItem>
                           <SelectItem value="SMA/SMK">SMA/SMK</SelectItem>
+                          <SelectItem value="D1">D1</SelectItem>
+                          <SelectItem value="D2">D2</SelectItem>
                           <SelectItem value="D3">D3</SelectItem>
                           <SelectItem value="S1">S1</SelectItem>
                           <SelectItem value="S2">S2</SelectItem>

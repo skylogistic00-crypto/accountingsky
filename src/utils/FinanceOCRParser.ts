@@ -8,6 +8,29 @@ export interface BreakdownItem {
 }
 
 /**
+ * Extract receipt/invoice number from OCR text
+ * Looks for patterns like: No: 123456, Invoice: ABC123, etc.
+ */
+export function extractReceiptNumber(text: string): string | null {
+  // Pattern for receipt/invoice numbers (6-20 digits or alphanumeric codes)
+  const patterns = [
+    /(?:NO\.?|NOTA|INVOICE|RECEIPT|STRUK|FAKTUR)[:\s#]*([A-Z0-9\-\/]{6,20})/i,
+    /(?:NO\.?\s*TRANSAKSI|TRANSACTION\s*NO)[:\s#]*([A-Z0-9\-\/]{6,20})/i,
+    /(?:REF|REFERENCE)[:\s#]*([A-Z0-9\-\/]{6,20})/i,
+    /\b([0-9]{6,20})\b/, // Fallback: any 6-20 digit number
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      return match[1] || match[0];
+    }
+  }
+
+  return null;
+}
+
+/**
  * Extract merchant name from OCR text
  * Looks for first two consecutive words starting with uppercase letters
  */

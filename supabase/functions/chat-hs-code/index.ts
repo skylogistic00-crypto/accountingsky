@@ -18,11 +18,10 @@ serve(async (req) => {
       throw new Error('Messages array is required');
     }
 
-    const PICA_SECRET_KEY = Deno.env.get('PICA_SECRET_KEY');
-    const PICA_OPENAI_CONNECTION_KEY = Deno.env.get('PICA_OPENAI_CONNECTION_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPEN_AI_KEY');
     
-    if (!PICA_SECRET_KEY || !PICA_OPENAI_CONNECTION_KEY) {
-      throw new Error('Pica credentials not configured');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OpenAI API key not configured');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -50,13 +49,11 @@ Format respons:
 Gunakan bahasa Indonesia yang jelas dan profesional.`
     };
 
-    const response = await fetch('https://api.picaos.com/v1/passthrough/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-pica-secret': PICA_SECRET_KEY,
-        'x-pica-connection-key': PICA_OPENAI_CONNECTION_KEY,
-        'x-pica-action-id': 'conn_mod_def::GDzgi1QfvM4::4OjsWvZhRxmAVuLAuWgfVA',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
         model: 'gpt-4',
@@ -68,7 +65,7 @@ Gunakan bahasa Indonesia yang jelas dan profesional.`
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Pica API error: ${error}`);
+      throw new Error(`OpenAI API error: ${error}`);
     }
 
     const data = await response.json();

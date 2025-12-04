@@ -1,4 +1,5 @@
 import { corsHeaders } from "@shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -9,13 +10,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const PICA_SECRET_KEY = Deno.env.get('PICA_SECRET_KEY');
-    const PICA_SUPABASE_CONNECTION_KEY = Deno.env.get('PICA_SUPABASE_CONNECTION_KEY');
-    const SUPABASE_PROJECT_ID = Deno.env.get('SUPABASE_PROJECT_ID') || 'gfmokpjnnnbnjlqxhoux';
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!PICA_SECRET_KEY || !PICA_SUPABASE_CONNECTION_KEY || !SUPABASE_PROJECT_ID) {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
       throw new Error('Missing required environment variables');
     }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS ocr_results (
@@ -45,28 +47,13 @@ Deno.serve(async (req) => {
       CREATE INDEX IF NOT EXISTS idx_ocr_results_created_at ON ocr_results(created_at DESC);
     `;
 
-    const response = await fetch(
-      `https://api.picaos.com/v1/passthrough/v1/projects/${SUPABASE_PROJECT_ID}/database/query`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-pica-secret': PICA_SECRET_KEY,
-          'x-pica-connection-key': PICA_SUPABASE_CONNECTION_KEY,
-          'x-pica-action-id': 'conn_mod_def::GC40SckOddE::NFFu2-49QLyGsPBdfweitg'
-        },
-        body: JSON.stringify({
-          query: createTableQuery
-        })
-      }
-    );
+    const { data, error } = await supabase.rpc('execute_sql', { query_text: createTableQuery });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to create table: ${response.status} ${errorText}`);
+    if (error) {
+      throw new Error(`Failed to create table: ${error.message}`);
     }
 
-    const result = await response.json();
+    const result = data;
 
     return new Response(
       JSON.stringify({ 

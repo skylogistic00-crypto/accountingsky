@@ -38,7 +38,7 @@ import {
   ScanLine,
   X,
 } from "lucide-react";
-import { parseOCRText, BreakdownItem } from "@/utils/FinanceOCRParser";
+import { parseOCRText, BreakdownItem, extractReceiptNumber } from "@/utils/FinanceOCRParser";
 import {
   Dialog,
   DialogContent,
@@ -105,6 +105,7 @@ export default function FinanceTransactionsPage({
   const [showOCRModal, setShowOCRModal] = useState(false);
   const [ocrFile, setOcrFile] = useState<File | null>(null);
   const [ocrFilePreview, setOcrFilePreview] = useState<string | null>(null);
+  const [ocrId, setOcrId] = useState<string | null>(null);
   const ocrFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load transaction data when in edit mode
@@ -222,23 +223,27 @@ export default function FinanceTransactionsPage({
 
     setIsProcessingOCR(true);
     try {
-      // Convert file to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64Data = result.split(",")[1];
-          resolve(base64Data);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(selectedFile);
-      });
+      // 1. Upload file to Supabase Storage bucket "ocr-receipts"
+      const fileName = `${Date.now()}_${selectedFile.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("ocr-receipts")
+        .upload(fileName, selectedFile);
 
-      // Call OCR edge function
+      if (uploadError) throw uploadError;
+
+      // 2. Generate signed URL (1 hour expiration)
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("ocr-receipts")
+        .createSignedUrl(fileName, 3600);
+
+      if (urlError) throw urlError;
+      const signedUrl = urlData.signedUrl;
+
+      // 3. Call OCR edge function with signed URL
       const { data: raw, error } = await supabase.functions.invoke(
         "supabase-functions-vision-google-ocr",
         {
-          body: { file_base64: base64 },
+          body: { signedUrl },
         },
       );
 
@@ -270,17 +275,53 @@ export default function FinanceTransactionsPage({
       const parsed = parseOCR(fullText, documentType);
       setParsedOCRData(parsed);
 
-      // Parse OCR text for finance data
+      // 4. Parse OCR text for finance data
       const financeParsed = parseOCRText(fullText);
+
+      // Extract nominal, tanggal, nomor_nota, toko
+      const nominal = financeParsed.total || null;
+      const tanggal = financeParsed.date || null;
+      const nomor_nota = extractReceiptNumber(fullText);
+      const toko = financeParsed.merchant || null;
+
+      // 5. Save OCR results to ocr_results table
+      const { data: ocrData, error: ocrError } = await supabase
+        .from("ocr_results")
+        .insert([
+          {
+            image_url: signedUrl,
+            extracted_text: fullText,
+            nominal,
+            tanggal,
+            nomor_nota,
+            toko,
+            autofill_status: "completed",
+          },
+        ])
+        .select()
+        .single();
+
+      if (ocrError) {
+        console.error("Error saving OCR result:", ocrError);
+      } else if (ocrData) {
+        // Store OCR ID for linking to transaction
+        setOcrId(ocrData.id);
+      }
+
+      // 6. Autofill form fields
+      const deskripsi = toko && nomor_nota
+        ? `Transaksi dari ${toko} nomor ${nomor_nota}. Ekstrak OCR: ${fullText.substring(0, 200)}...`
+        : `Ekstrak OCR: ${fullText.substring(0, 200)}...`;
 
       setFormData((prev) => ({
         ...prev,
-        merchant: financeParsed.merchant || prev.merchant,
+        merchant: toko || prev.merchant,
         category: financeParsed.category || prev.category,
-        date_trans: financeParsed.date || prev.date_trans,
-        amount: financeParsed.total || prev.amount,
+        date_trans: tanggal || prev.date_trans,
+        amount: nominal || prev.amount,
         ppn: financeParsed.ppn || prev.ppn,
-        total: (financeParsed.total || 0) + (financeParsed.ppn || 0),
+        total: (nominal || 0) + (financeParsed.ppn || 0),
+        description: deskripsi,
       }));
 
       if (financeParsed.breakdown.length > 0) {
@@ -288,8 +329,8 @@ export default function FinanceTransactionsPage({
       }
 
       toast({
-        title: "OCR Processed",
-        description: "Text extracted and fields auto-filled",
+        title: "OCR berhasil diproses",
+        description: "Data transaksi telah terisi otomatis. Silakan periksa kembali sebelum menyimpan.",
       });
     } catch (error) {
       console.error("OCR Error:", error);
@@ -566,6 +607,7 @@ export default function FinanceTransactionsPage({
             file_url: fileUrl,
             status: "pending",
             created_by: user?.id,
+            ocr_id: ocrId, // Link to OCR result
           })
           .select()
           .single();

@@ -54,6 +54,8 @@ import FinanceTransactionDetail from "@/components/FinanceTransactionDetail";
 import ChatAI from "@/pages/ChatAI";
 import FloatingChatAI from "@/components/FloatingChatAI";
 import GoogleOCRScanner from "@/components/GoogleOCRScanner";
+import OCRExtractor from "@/pages/OCRExtractor";
+import CheckUserOCRData from "@/components/CheckUserOCRData";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -171,6 +173,18 @@ function AppRoutesContent() {
               <Header />
               <Navigation />
               <UserManagement />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/check-ocr-data"
+        element={
+          <ProtectedRoute allowedRoles={["super_admin"]}>
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <CheckUserOCRData />
             </div>
           </ProtectedRoute>
         }
@@ -852,6 +866,7 @@ function AppRoutesContent() {
       <Route path="/test-openai" element={<TestOpenAIConnection />} />
 
       <Route path="/chat-ai" element={<ChatAI />} />
+      <Route path="/ocr-extractor" element={<OCRExtractor />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

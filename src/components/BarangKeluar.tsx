@@ -304,10 +304,11 @@ export default function BarangKeluar() {
 
       resetForm();
       setIsDialogOpen(false);
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Gagal menyimpan data";
       toast({
         title: "Error",
-        description: error.message || "Gagal menyimpan data",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -355,10 +356,11 @@ export default function BarangKeluar() {
         title: "Success",
         description: "Data barang keluar berhasil dihapus",
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Gagal menghapus data";
       toast({
         title: "Error",
-        description: "Gagal menghapus data",
+        description: errorMessage,
         variant: "destructive",
       });
     }

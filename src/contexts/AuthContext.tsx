@@ -45,8 +45,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
+    // Mark as initialized immediately so context is available
+    setInitialized(true);
+    
     const isEmailConfirmRoute =
       window.location.pathname.startsWith("/auth/confirm");
 
@@ -233,7 +237,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     );
 
-    if (error) throw error;
+    if (error) {
+      console.error("Sign up edge function error:", error);
+      throw new Error(error.message || "Failed to create account");
+    }
+    
+    // Check if data contains error from edge function
+    if (data && data.error) {
+      console.error("Sign up error from edge function:", data.error);
+      throw new Error(data.error + (data.details ? `: ${data.details}` : ""));
+    }
+    
     return data;
   };
 
@@ -246,7 +260,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{ user, userRole, userProfile, loading, signIn, signUp, signOut }}
     >
-      {children}
+      {initialized ? children : (
+        <div className="min-h-screen flex items-center justify-center text-gray-600">
+          <div className="text-lg">Initializing...</div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }

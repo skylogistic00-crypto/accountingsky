@@ -209,25 +209,34 @@ Deno.serve(async (req) => {
     // 5. Extract financial data for autofill
     const autofillData = extractFinancialData(extractedText);
 
-    // 6. Save to ocr_results table with autofill data
+    // 6. Prepare data for insertion (filter out personal information fields)
+    const dataToInsert: any = {
+      file_url: signedUrl,
+      file_path: fileName,
+      extracted_text: extractedText,
+      json_data: visionData,
+      ocr_data: visionData,
+      nominal: autofillData.nominal,
+      tanggal: autofillData.tanggal,
+      supplier: autofillData.supplier,
+      invoice: autofillData.invoice,
+      nama_karyawan: autofillData.nama_karyawan,
+      deskripsi: autofillData.deskripsi,
+      autofill_status: 'completed',
+    };
+
+    // Filter out personal information fields (first_name, last_name, full_name, nama)
+    const fieldsToExclude = ['first_name', 'last_name', 'full_name', 'nama'];
+    
+    // Remove excluded fields from dataToInsert if they exist
+    fieldsToExclude.forEach(field => {
+      delete dataToInsert[field];
+    });
+
+    // Save to ocr_results table with filtered data
     const { data: dbData, error: dbError } = await supabase
       .from("ocr_results")
-      .insert([
-        {
-          file_url: signedUrl,
-          file_path: fileName,
-          extracted_text: extractedText,
-          json_data: visionData,
-          ocr_data: visionData,
-          nominal: autofillData.nominal,
-          tanggal: autofillData.tanggal,
-          supplier: autofillData.supplier,
-          invoice: autofillData.invoice,
-          nama_karyawan: autofillData.nama_karyawan,
-          deskripsi: autofillData.deskripsi,
-          autofill_status: 'completed',
-        },
-      ])
+      .insert([dataToInsert])
       .select()
       .single();
 

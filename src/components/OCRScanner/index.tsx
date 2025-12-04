@@ -10,6 +10,11 @@ interface OCRResult {
   tanggal: string; // YYYY-MM-DD
   deskripsi: string;
   extractedText?: string;
+  imageUrl?: string;
+  imageFile?: File;
+  nomorNota?: string;
+  toko?: string;
+  ocrId?: string;
 }
 
 interface OCRScannerProps {
@@ -28,6 +33,7 @@ const OCRScanner: React.FC<OCRScannerProps> = ({
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [extractedData, setExtractedData] = useState<OCRResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -77,25 +83,10 @@ const OCRScanner: React.FC<OCRScannerProps> = ({
 
     setLoading(true);
     try {
-      // 1. Check/create bucket first
-      const { data: bucketCheck, error: bucketError } = await supabase.functions.invoke(
-        "supabase-functions-check-storage-bucket",
-        {
-          body: { bucketName: "ocr_uploads" },
-        }
-      );
-
-      if (bucketError) {
-        console.error("Bucket check error:", bucketError);
-        throw new Error(`Bucket check failed: ${bucketError.message}`);
-      }
-
-      console.log("Bucket check result:", bucketCheck);
-
-      // 2. Upload file to Supabase Storage
-      const fileName = `scan_${Date.now()}.jpg`;
+      // 1. Upload file to Supabase Storage bucket "ocr-receipts"
+      const fileName = `receipt_${Date.now()}_${file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("ocr_uploads")
+        .from("ocr-receipts")
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) {
@@ -103,60 +94,98 @@ const OCRScanner: React.FC<OCRScannerProps> = ({
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
-      console.log("File uploaded:", uploadData.path);
+      console.log("File uploaded to ocr-receipts:", uploadData.path);
 
-      // 3. Create signed URL (valid for 300 seconds)
+      // 2. Generate signed URL (valid for 1 hour = 3600 seconds)
       const { data: signedData, error: signedError } = await supabase.storage
-        .from("ocr_uploads")
-        .createSignedUrl(uploadData.path, 300);
+        .from("ocr-receipts")
+        .createSignedUrl(uploadData.path, 3600);
 
       if (signedError) {
         console.error("Signed URL error:", signedError);
         throw new Error(`Failed to create signed URL: ${signedError.message}`);
       }
 
-      console.log("Signed URL created:", signedData.signedUrl);
+      console.log("Signed URL created (1 hour expiry):", signedData.signedUrl);
 
-      // 3. Call edge function with signed URL
+      // 3. Call Edge Function "supabase-functions-vision-google-ocr" with signed URL
       const { data, error: ocrError } = await supabase.functions.invoke(
         "supabase-functions-vision-google-ocr",
         {
-          headers: {
-            "Content-Type": "application/json",
+          body: {
+            image_url: signedData.signedUrl,
           },
-          body: JSON.stringify({
-            signedUrl: signedData.signedUrl,
-          }),
         }
       );
 
       if (ocrError) {
         console.error("OCR Error:", ocrError);
-        throw ocrError;
+        throw new Error(`OCR gagal: ${ocrError.message || "Silakan upload ulang gambar"}`);
       }
 
-      if (!data || typeof data !== "object") {
-        throw new Error("Invalid response from OCR service");
+      if (!data || !data.success) {
+        throw new Error("OCR gagal memproses gambar. Silakan upload ulang.");
       }
 
       console.log("OCR Result:", data);
 
-      // 4. Parse the response and autofill form
+      // 4. Extract parsed data from response
+      const ocrText = data.text || "";
+      const nominal = data.nominal || 0;
+      const tanggal = data.tanggal || new Date().toISOString().split("T")[0];
+      const nomorNota = data.nomor_nota || null;
+      const toko = data.toko || null;
+
+      // 5. Save OCR results to "ocr_results" table
+      const { data: ocrData, error: ocrSaveError } = await supabase
+        .from("ocr_results")
+        .insert([
+          {
+            image_url: signedData.signedUrl,
+            extracted_text: ocrText,
+            nominal: nominal || null,
+            tanggal: tanggal || null,
+            nomor_nota: nomorNota,
+            toko: toko,
+          },
+        ])
+        .select()
+        .single();
+
+      if (ocrSaveError) {
+        console.error("OCR save error:", ocrSaveError);
+        throw new Error(`Failed to save OCR results: ${ocrSaveError.message}`);
+      }
+
+      console.log("OCR results saved to database:", ocrData);
+
+      // 5. Build deskripsi with OCR summary
+      const deskripsi = `Transaksi dari ${toko || "-"}, nota ${nomorNota || "-"}. Ekstrak OCR: ${ocrText.substring(0, 150)}${ocrText.length > 150 ? "..." : ""}`;
+
+      // 6. Prepare result for autofill
       const result: OCRResult = {
-        nominal: data.autofill?.nominal || data.nominal || 0,
-        tanggal: data.autofill?.tanggal || data.tanggal || "",
-        deskripsi: data.autofill?.deskripsi || data.deskripsi || "",
-        extractedText: data.extracted_text || data.extractedText || "",
+        nominal: nominal,
+        tanggal: tanggal,
+        deskripsi: deskripsi,
+        extractedText: ocrText,
+        imageUrl: signedData.signedUrl,
+        imageFile: file,
+        nomorNota: nomorNota || undefined,
+        toko: toko || undefined,
+        ocrId: ocrData.id,
       };
 
       toast({
-        title: "✅ OCR Success",
-        description: "Data extracted successfully",
+        title: "✅ OCR berhasil diproses",
+        description: "Data transaksi telah terisi otomatis. Silakan periksa kembali sebelum menyimpan.",
       });
+
+      // Store extracted data for display
+      setExtractedData(result);
 
       onResult(result);
 
-      // Reset state
+      // Reset file state but keep extracted data visible
       setFile(null);
       setPreview(null);
       if (fileInputRef.current) {
@@ -165,8 +194,8 @@ const OCRScanner: React.FC<OCRScannerProps> = ({
     } catch (err: any) {
       console.error("OCR Error:", err);
       toast({
-        title: "OCR Error",
-        description: err.message || "Failed to process OCR",
+        title: "❌ OCR Gagal",
+        description: err.message || "Gagal memproses OCR. Silakan upload ulang gambar.",
         variant: "destructive",
       });
     } finally {
@@ -230,6 +259,82 @@ const OCRScanner: React.FC<OCRScannerProps> = ({
               {file.name} ({(file.size / 1024).toFixed(2)} KB)
             </p>
           )}
+        </div>
+      )}
+
+      {/* Display Extracted Data */}
+      {extractedData && (
+        <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+          <div className="flex items-center justify-between mb-3">
+            <Label className="text-sm font-semibold text-green-800">
+              ✅ Data Hasil Ekstrak OCR:
+            </Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setExtractedData(null)}
+              className="h-6 px-2 text-xs"
+            >
+              ✕
+            </Button>
+          </div>
+          
+          <div className="space-y-2 text-sm">
+            {extractedData.toko && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Toko:</span>
+                <span className="font-semibold text-green-700">
+                  {extractedData.toko}
+                </span>
+              </div>
+            )}
+            
+            {extractedData.nomorNota && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Nomor Nota:</span>
+                <span className="font-semibold text-green-700">
+                  {extractedData.nomorNota}
+                </span>
+              </div>
+            )}
+            
+            {extractedData.nominal > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Nominal:</span>
+                <span className="font-semibold text-green-700">
+                  Rp {extractedData.nominal.toLocaleString("id-ID")}
+                </span>
+              </div>
+            )}
+            
+            {extractedData.tanggal && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Tanggal:</span>
+                <span className="font-semibold text-green-700">
+                  {extractedData.tanggal}
+                </span>
+              </div>
+            )}
+            
+            {extractedData.deskripsi && (
+              <div className="mt-2">
+                <span className="text-gray-600 block mb-1">Deskripsi:</span>
+                <p className="text-xs text-gray-700 bg-white p-2 rounded border border-green-200 max-h-20 overflow-y-auto">
+                  {extractedData.deskripsi}
+                </p>
+              </div>
+            )}
+            
+            {extractedData.extractedText && (
+              <div className="mt-2">
+                <span className="text-gray-600 block mb-1">Teks OCR Lengkap:</span>
+                <pre className="text-xs text-gray-700 bg-white p-3 rounded border border-green-200 max-h-40 overflow-auto font-mono whitespace-pre-wrap">
+                  {extractedData.extractedText}
+                </pre>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

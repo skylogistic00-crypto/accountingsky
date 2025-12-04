@@ -6,11 +6,38 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_KEY")!;
-const googleVisionApiKey = Deno.env.get("GOOGLE_VISION_API_KEY") || Deno.env.get("VITE_GOOGLE_VISION_API_KEY");
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+function convertDateToISO(dateStr: string): string | null {
+  // Strict date parsing - only accept valid date formats with 4-digit year
+  // dd/mm/yyyy or dd-mm-yyyy
+  const ddmmyyyyMatch = dateStr.match(/\b([0-3]?\d)[\/-]([0-1]?\d)[\/-](\d{4})\b/);
+  if (ddmmyyyyMatch) {
+    const [, day, month, year] = ddmmyyyyMatch;
+    const d = parseInt(day);
+    const m = parseInt(month);
+    const y = parseInt(year);
+    
+    // Validate date ranges
+    if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 1900 && y <= 2100) {
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+  }
+  
+  // yyyy-mm-dd or yyyy/mm/dd
+  const yyyymmddMatch = dateStr.match(/\b(\d{4})[\/-]([0-1]?\d)[\/-]([0-3]?\d)\b/);
+  if (yyyymmddMatch) {
+    const [, year, month, day] = yyyymmddMatch;
+    const d = parseInt(day);
+    const m = parseInt(month);
+    const y = parseInt(year);
+    
+    // Validate date ranges
+    if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 1900 && y <= 2100) {
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+  }
+  
+  return null;
+}
 
 interface AutofillData {
   nominal: number | null;
@@ -49,38 +76,67 @@ function extractFinancialData(text: string): AutofillData {
     deskripsi: null,
   };
 
-  // Extract nominal (currency amounts)
-  const nominalPatterns = [
-    /(?:Rp\.?|IDR)\s*([\d.,]+)/gi,
-    /(?:Total|Jumlah|Amount|Grand Total|Sub Total)[:\s]*([\d.,]+)/gi,
-    /([\d.,]+)\s*(?:Rupiah|IDR)/gi,
-  ];
+  // Extract nominal (currency amounts) - Find the HIGHEST value
+  // Priority 1: Look for HARGA JUAL (selling price)
+  const hargaJualMatch = text.match(/HARGA\s+JUAL[:\s]*([\d.,]+)/i);
+  if (hargaJualMatch) {
+    const numStr = hargaJualMatch[1].replace(/[^\d]/g, '');
+    const num = parseFloat(numStr);
+    if (!isNaN(num) && num > 0) {
+      result.nominal = num;
+    }
+  }
   
-  for (const pattern of nominalPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      const numStr = match[0].replace(/[^\d]/g, '');
-      const num = parseFloat(numStr);
-      if (!isNaN(num) && num > 0) {
-        result.nominal = num;
-        break;
+  // If no HARGA JUAL found, extract all numbers and find the highest
+  if (!result.nominal) {
+    const nominalPatterns = [
+      /(?:Rp\.?|IDR)\s*([\d.,]+)/gi,
+      /(?:Total|Jumlah|Amount|Grand Total|Sub Total)[:\s]*([\d.,]+)/gi,
+      /([\d.,]+)\s*(?:Rupiah|IDR)/gi,
+      // Generic number pattern with thousand separators
+      /\b([\d]{1,3}(?:[.,][\d]{3})+)\b/g,
+    ];
+    
+    let allNominals: number[] = [];
+    for (const pattern of nominalPatterns) {
+      const matches = text.matchAll(pattern);
+      for (const match of matches) {
+        const numStr = match[1] ? match[1].replace(/[^\d]/g, '') : match[0].replace(/[^\d]/g, '');
+        const num = parseFloat(numStr);
+        if (!isNaN(num) && num > 0) {
+          allNominals.push(num);
+        }
       }
+    }
+    
+    // Set the highest nominal value
+    if (allNominals.length > 0) {
+      result.nominal = Math.max(...allNominals);
     }
   }
 
-  // Extract date (tanggal)
+  // Extract date (tanggal) - STRICT PARSING ONLY
+  // Only accept dates with 4-digit year to avoid false positives like "1/9-10"
   const datePatterns = [
-    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/g,
-    /(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{2,4})/gi,
-    /(?:Tanggal|Date|Tgl)[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/gi,
+    // dd/mm/yyyy or dd-mm-yyyy (with 4-digit year)
+    /\b([0-3]?\d)[\/\-]([0-1]?\d)[\/\-](\d{4})\b/g,
+    // yyyy-mm-dd or yyyy/mm/dd (with 4-digit year)
+    /\b(\d{4})[\/\-]([0-1]?\d)[\/\-]([0-3]?\d)\b/g,
+    // Date with month name and 4-digit year
+    /\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})\b/gi,
   ];
   
   for (const pattern of datePatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      result.tanggal = match[0].replace(/(?:Tanggal|Date|Tgl)[:\s]*/gi, '').trim();
-      break;
+    const matches = text.matchAll(pattern);
+    for (const match of matches) {
+      const dateStr = match[0].trim();
+      const converted = convertDateToISO(dateStr);
+      if (converted) {
+        result.tanggal = converted;
+        break;
+      }
     }
+    if (result.tanggal) break;
   }
 
   // Extract supplier
@@ -197,7 +253,8 @@ function extractKTPData(text: string): KTPData {
   // Look for pattern: CITY_NAME, DD-MM-YYYY
   const ttlMatch = text.match(/([A-Z\s]+),\s*(\d{2}[-\/]\d{2}[-\/]\d{4})/i);
   if (ttlMatch) {
-    result.tempat_tgl_lahir = `${ttlMatch[1].trim()}, ${ttlMatch[2]}`;
+    const dateISO = convertDateToISO(ttlMatch[2]);
+    result.tempat_tgl_lahir = `${ttlMatch[1].trim()}, ${dateISO}`;
   }
 
   // Extract Jenis Kelamin
@@ -319,7 +376,7 @@ function extractKTPData(text: string): KTPData {
   } else {
     const berlakuMatch = text.match(/(?:BERLAKU HINGGA)[:\s]*(\d{2}-\d{2}-\d{4})/i);
     if (berlakuMatch) {
-      result.berlaku_hingga = berlakuMatch[1];
+      result.berlaku_hingga = convertDateToISO(berlakuMatch[1]);
     }
   }
 
@@ -329,10 +386,31 @@ function extractKTPData(text: string): KTPData {
 Deno.serve(async (req) => {
   // Handle CORS preflight - MUST return immediately with 200 OK
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS_HEADERS });
+    return new Response("ok", { headers: CORS_HEADERS, status: 200 });
   }
 
   try {
+    // Initialize Supabase client inside the handler
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const googleVisionApiKey = Deno.env.get("GOOGLE_VISION_API_KEY") || Deno.env.get("VITE_GOOGLE_VISION_API_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase credentials");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Supabase credentials not configured",
+        }),
+        {
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+          status: 500,
+        }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     // Log all available env vars for debugging (without values)
     console.log("Available env vars:", Object.keys(Deno.env.toObject()));
     console.log("GOOGLE_VISION_API_KEY present:", !!googleVisionApiKey);
@@ -354,16 +432,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse request body
+    // Parse request body with proper error handling
+    const rawBody = await req.text();
+    console.log("Raw request body length:", rawBody.length);
+    
+    if (!rawBody || rawBody.trim() === "") {
+      console.error("Empty request body received");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Empty request body. Please provide file_base64 or signedUrl.",
+        }),
+        {
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
+    }
+
     let requestBody;
     try {
-      requestBody = await req.json();
+      requestBody = JSON.parse(rawBody);
     } catch (parseErr) {
       console.error("Failed to parse request body:", parseErr);
+      console.error("Raw body preview:", rawBody.substring(0, 100));
       return new Response(
         JSON.stringify({
           success: false,
           error: "Invalid JSON in request body",
+          details: parseErr.message,
         }),
         {
           headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
@@ -372,13 +469,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { file_base64, signedUrl } = requestBody;
+    const { file_base64, signedUrl, image_url } = requestBody;
+    
+    // Support both signedUrl and image_url parameter names
+    const imageUrl = signedUrl || image_url;
 
-    if (!file_base64 && !signedUrl) {
+    if (!file_base64 && !imageUrl) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "No file_base64 or signedUrl provided",
+          error: "No file_base64, signedUrl, or image_url provided",
         }),
         {
           headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
@@ -387,7 +487,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("Received request:", file_base64 ? `file_base64 length: ${file_base64.length}` : `signedUrl: ${signedUrl}`);
+    console.log("Received request:", file_base64 ? `file_base64 length: ${file_base64.length}` : `imageUrl: ${imageUrl}`);
 
     // Try direct base64 approach first (works for images and PDFs)
     let visionData: any;
@@ -398,12 +498,12 @@ Deno.serve(async (req) => {
     try {
       let imageContent: string;
       
-      if (signedUrl) {
+      if (imageUrl) {
         // Fetch image from signed URL and convert to base64
-        console.log("Fetching image from signed URL...");
-        const imageResponse = await fetch(signedUrl);
+        console.log("Fetching image from URL...");
+        const imageResponse = await fetch(imageUrl);
         if (!imageResponse.ok) {
-          throw new Error(`Failed to fetch image from signed URL: ${imageResponse.status}`);
+          throw new Error(`Failed to fetch image from URL: ${imageResponse.status}`);
         }
         const imageBuffer = await imageResponse.arrayBuffer();
         const uint8Array = new Uint8Array(imageBuffer);
@@ -539,25 +639,54 @@ Deno.serve(async (req) => {
       ktpData = extractKTPData(extractedText);
     }
 
-    // 6. Save to ocr_results table with autofill data
+    // Parse toko (store name) from common Indonesian stores
+    const tokoList = [
+      "Indomaret",
+      "Alfamart",
+      "Hypermart",
+      "Circle K",
+      "Giant",
+      "Carrefour",
+      "Transmart",
+      "Lotte Mart",
+      "Ranch Market",
+      "Superindo",
+    ];
+    const toko = tokoList.find((store) => new RegExp(store, "i").test(extractedText)) || null;
+
+    // 6. Prepare data for insertion (filter out personal information fields)
+    const dataToInsert: any = {
+      file_url: fileUrl,
+      file_path: fileName,
+      extracted_text: extractedText,
+      json_data: visionData,
+      ocr_data: visionData,
+      nominal: autofillData.nominal,
+      tanggal: autofillData.tanggal,
+      supplier: autofillData.supplier,
+      nomor_nota: autofillData.invoice,
+      toko: toko,
+      nama_karyawan: autofillData.nama_karyawan,
+      deskripsi: autofillData.deskripsi,
+      autofill_status: 'completed',
+    };
+
+    // Filter out personal information fields (first_name, last_name, full_name, nama)
+    const fieldsToExclude = ['first_name', 'last_name', 'full_name', 'nama'];
+    
+    // If KTP data exists, filter out personal fields
+    if (ktpData) {
+      const filteredKTPData = { ...ktpData };
+      fieldsToExclude.forEach(field => {
+        delete filteredKTPData[field as keyof KTPData];
+      });
+      dataToInsert.extracted_data = filteredKTPData;
+    }
+
+    // Save to ocr_results table with filtered data
     const { data: dbData, error: dbError } = await supabase
       .from("ocr_results")
-      .insert([
-        {
-          file_url: fileUrl,
-          file_path: fileName,
-          extracted_text: extractedText,
-          json_data: visionData,
-          ocr_data: visionData,
-          nominal: autofillData.nominal,
-          tanggal: autofillData.tanggal,
-          supplier: autofillData.supplier,
-          invoice: autofillData.invoice,
-          nama_karyawan: autofillData.nama_karyawan,
-          deskripsi: autofillData.deskripsi,
-          autofill_status: 'completed',
-        },
-      ])
+      .insert([dataToInsert])
       .select()
       .single();
 
@@ -569,9 +698,13 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        text: extractedText,
+        nominal: autofillData.nominal || 0,
+        tanggal: autofillData.tanggal || new Date().toISOString().split("T")[0],
+        nomor_nota: autofillData.invoice || null,
+        toko: toko || null,
         file_url: fileUrl,
         file_path: fileName,
-        extracted_text: extractedText,
         autofill: autofillData,
         ktp_data: ktpData,
         document_type: isKTP ? "KTP" : "FINANCIAL",

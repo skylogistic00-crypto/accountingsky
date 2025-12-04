@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -7,30 +8,19 @@ const CORS = {
   "Content-Type": "application/json"
 };
 
-const PICA_SECRET = Deno.env.get("PICA_SECRET_KEY")!;
-const PICA_CONNECTION_KEY = Deno.env.get("PICA_SUPABASE_CONNECTION_KEY")!;
-const PROJECT_REF = Deno.env.get("SUPABASE_PROJECT_ID")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 async function runSqlQuery(sqlQuery: string) {
-  const endpoint = `https://api.picaos.com/v1/passthrough/v1/projects/${PROJECT_REF}/database/query`;
+  const { data, error } = await supabase.rpc('execute_sql', { query_text: sqlQuery });
   
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-pica-secret": PICA_SECRET,
-      "x-pica-connection-key": PICA_CONNECTION_KEY,
-      "x-pica-action-id": "conn_mod_def::GC40SckOddE::NFFu2-49QLyGsPBdfweitg",
-    },
-    body: JSON.stringify({ query: sqlQuery }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`SQL query failed: ${response.status} - ${errorText}`);
+  if (error) {
+    throw new Error(`SQL query failed: ${error.message}`);
   }
 
-  return await response.json();
+  return data;
 }
 
 serve(async (req) => {

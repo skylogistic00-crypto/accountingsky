@@ -8,10 +8,20 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
-    console.log("REQUEST BODY:", body);
-    console.log("DETAILS OBJECT:", body.details);
-    console.log("FILE_URLS OBJECT:", body.file_urls);
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    
+    console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
+    console.log("DETAILS OBJECT:", JSON.stringify(body.details, null, 2));
+    console.log("FILE_URLS OBJECT:", JSON.stringify(body.file_urls, null, 2));
 
     // destructure and accept role fields coming from UI
     const { 
@@ -26,8 +36,6 @@ Deno.serve(async (req) => {
       role_id,
       ktp_number,
       ktp_address,
-      first_name,
-      last_name,
       religion,
       ethnicity,
       license_number,
@@ -36,8 +44,20 @@ Deno.serve(async (req) => {
       upload_ijasah
     } = body;
 
-    // Validate required fields
-    const requiredFields = ["email", "password", "full_name", "entity_type"];
+    // ========================================
+    // DEBUG: Log received details object
+    // ========================================
+    console.log("=== RECEIVED DETAILS FROM FRONTEND ===");
+    console.log("Details keys:", Object.keys(details || {}));
+    console.log("Details has anggota_keluarga:", details?.anggota_keluarga ? "YES" : "NO");
+    console.log("Details has nik:", details?.nik ? "YES" : "NO");
+    console.log("Details has nomor_kk:", details?.nomor_kk ? "YES" : "NO");
+    console.log("Details has nama:", details?.nama ? "YES" : "NO");
+    console.log("Full details:", JSON.stringify(details, null, 2).substring(0, 1000));
+    console.log("=== END RECEIVED DETAILS ===");
+
+    // Validate required fields - full_name is optional now (can be derived from OCR or email)
+    const requiredFields = ["email", "password", "entity_type"];
     const validation = validateRequiredFields(body, requiredFields);
     if (!validation.valid) {
       return new Response(
@@ -45,6 +65,40 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
+    
+    // Derive full_name if not provided - use email prefix as fallback
+    let derivedFullName = full_name || "";
+    
+    // Try to get from details
+    if (!derivedFullName && details) {
+      derivedFullName = details.contact_person || details.entity_name || "";
+    }
+    
+    // If still empty, derive from email
+    if (!derivedFullName && email) {
+      try {
+        const emailPrefix = email.split("@")[0] || "User";
+        // Replace dots, underscores, hyphens with spaces and capitalize each word
+        const words = emailPrefix.replace(/[._-]/g, " ").split(" ");
+        derivedFullName = words
+          .map((word: string) => {
+            if (!word) return "";
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+          })
+          .filter((w: string) => w.length > 0)
+          .join(" ");
+      } catch (e) {
+        console.error("Error deriving name from email:", e);
+        derivedFullName = "User";
+      }
+    }
+    
+    // Final fallback
+    if (!derivedFullName) {
+      derivedFullName = "User";
+    }
+    
+    console.log("Derived full name:", derivedFullName);
 
     // Validate email
     if (!validateEmail(email)) {
@@ -96,7 +150,7 @@ Deno.serve(async (req) => {
     const resolvedRoleId = role_id || null;
     const resolvedRoleName = role_name || role;
 
-    console.log("Normalized entity:", normalizedEntityType, "resolved role:", role, "role_id:", resolvedRoleId, "role_name:", resolvedRoleName);
+    console.log("Normalized entity:", normalizedEntityType, "resolved role:", role, "role_id:", resolvedRoleId, "role_name:", resolvedRoleName, "derivedFullName:", derivedFullName);
 
     // Create auth user with email verification
     const redirectTo = "https://acc.skykargo.co.id/email-redirect/index.html";
@@ -106,7 +160,7 @@ Deno.serve(async (req) => {
       options: {
         emailRedirectTo: redirectTo,
         data: {
-          full_name,
+          full_name: derivedFullName,
           entity_type: normalizedEntityType,
           role,
           role_id: resolvedRoleId
@@ -138,12 +192,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    const userId = authUser.user.id;
+    console.log("Auth user created with ID:", userId);
+
+    // Wait for auth.users to be fully committed - increased delay to 3 seconds
+    console.log("Waiting for auth.users to commit...");
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log("Wait complete, proceeding with profile creation");
+
     // Prepare users table data
     // Use original entity from role selection (e.g., "Karyawan") not normalized
     const usersData: Record<string, any> = {
-      id: authUser.user.id,
+      id: userId,
       email,
-      full_name,
+      full_name: derivedFullName,
       role,
       role_id: resolvedRoleId,
       role_name: resolvedRoleName,
@@ -153,6 +215,61 @@ Deno.serve(async (req) => {
       is_active: false,
       created_at: new Date().toISOString()
     };
+
+    // ========================================
+    // CRITICAL: ADD ALL OCR EXTRACTED FIELDS FROM DETAILS TO USERS TABLE
+    // ========================================
+    console.log("=== ADDING OCR FIELDS FROM DETAILS TO USERS TABLE ===");
+    
+    // Define allowed OCR fields that exist in users table
+    const allowedOCRFields = [
+      // KTP Fields
+      "nik", "nama", "tempat_lahir", "tanggal_lahir", "jenis_kelamin",
+      "agama", "status_perkawinan", "pekerjaan", "kewarganegaraan",
+      "berlaku_hingga", "golongan_darah",
+      // KK Fields
+      "nomor_kk", "nama_kepala_keluarga", "rt_rw", "kelurahan_desa",
+      "kecamatan", "kabupaten_kota", "provinsi", "kode_pos",
+      "tanggal_dikeluarkan", "anggota_keluarga",
+      // Debug notes
+      "debug_notes",
+      // Additional fields
+      "ktp_number", "ktp_address", "religion", "ethnicity", "education",
+      "license_number", "license_expiry_date",
+      // Document URLs
+      "upload_ijasah", "ktp_document_url", "selfie_url", "family_card_url",
+      "sim_url", "skck_url",
+      // Address fields
+      "address", "city", "country"
+    ];
+    
+    // Add allowed fields from details to usersData
+    if (details && typeof details === "object") {
+      Object.entries(details).forEach(([key, value]) => {
+        // Only add if key is in allowedOCRFields and not already in usersData
+        if (allowedOCRFields.includes(key) && usersData[key] === undefined && value !== undefined && value !== null) {
+          // Handle date fields - convert to proper format
+          if (["tanggal_lahir", "tanggal_dikeluarkan", "license_expiry_date"].includes(key)) {
+            // If it's a valid date string, keep it; otherwise set to null
+            if (value && typeof value === "string" && value.trim() !== "") {
+              usersData[key] = value;
+            }
+          } else {
+            usersData[key] = value;
+          }
+          console.log(`✔ Added OCR field to users: ${key} = ${typeof value === "object" ? JSON.stringify(value).substring(0, 50) : value}`);
+        }
+      });
+    }
+    
+    console.log("=== END OCR FIELDS ADDITION ===");
+    
+    // Log final usersData before insert
+    console.log("=== FINAL USERS DATA BEFORE INSERT ===");
+    console.log("Total fields:", Object.keys(usersData).length);
+    console.log("Fields:", Object.keys(usersData).join(", "));
+    console.log("Sample data:", JSON.stringify(usersData, null, 2).substring(0, 500));
+    console.log("=== END FINAL USERS DATA ===");
 
     // Add employee/karyawan specific fields to users table
     // Check for karyawan, driver_perusahaan, driver_mitra, employee, or driver
@@ -194,8 +311,6 @@ Deno.serve(async (req) => {
       usersData["skck_url"] = skckUrl;
       usersData.ktp_number = ktp_number || details.ktp_number || null;
       usersData.ktp_address = ktp_address || details.ktp_address || null;
-      usersData.first_name = first_name || details.first_name || null;
-      usersData.last_name = last_name || details.last_name || null;
       usersData.religion = religion || details.religion || null;
       usersData.ethnicity = ethnicity || details.ethnicity || null;
       usersData.education = education || details.education || null;
@@ -205,8 +320,8 @@ Deno.serve(async (req) => {
 
     // For suppliers, add supplier-specific fields to users table
     if (normalizedEntityType === "supplier") {
-      usersData.supplier_name = details.entity_name || full_name;
-      usersData.contact_person = details.contact_person || full_name;
+      usersData.supplier_name = details.entity_name || derivedFullName;
+      usersData.contact_person = details.contact_person || derivedFullName;
       usersData.city = details.city;
       usersData.country = details.country;
       usersData.address = details.address;
@@ -214,25 +329,59 @@ Deno.serve(async (req) => {
       usersData.bank_account_holder = details.bank_account_holder;
     }
 
-    // Upsert into users table (handles duplicate key errors)
+    // Upsert into users table with retry mechanism for foreign key constraint
     console.log("=== USERS DATA TO UPSERT ===");
     console.log(JSON.stringify(usersData, null, 2));
     console.log("=== END USERS DATA ===");
     
-    const { error: userError } = await supabase
-      .from("users")
-      .upsert(usersData, { onConflict: "id" });
+    let userError = null;
+    let retryCount = 0;
+    const maxRetries = 5;
+    
+    while (retryCount < maxRetries) {
+      const { error } = await supabase
+        .from("users")
+        .upsert(usersData, { onConflict: "id" });
+      
+      if (!error) {
+        userError = null;
+        console.log("User profile created successfully on attempt", retryCount + 1);
+        break;
+      }
+      
+      // Check if it's a foreign key constraint error
+      if (error.code === "23503" && error.message?.includes("users_id_fkey")) {
+        retryCount++;
+        console.log(`Foreign key constraint error, retry ${retryCount}/${maxRetries}...`);
+        // Wait longer between retries - exponential backoff
+        const waitTime = 2000 * retryCount;
+        console.log(`Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else {
+        // Different error, don't retry
+        userError = error;
+        break;
+      }
+    }
+    
+    // If still failing after retries, set the error
+    if (retryCount >= maxRetries) {
+      userError = { code: "23503", message: "Foreign key constraint error after max retries" };
+    }
 
     if (userError) {
-      console.error("User upsert error:", userError);
+      console.error("User upsert error after retries:", userError);
+      console.error("Error code:", userError.code);
+      console.error("Error message:", userError.message);
+      console.error("Error details:", JSON.stringify(userError, null, 2));
       // Rollback: delete auth user
       try {
-        await supabase.auth.admin.deleteUser(authUser.user.id);
+        await supabase.auth.admin.deleteUser(userId);
       } catch (delErr) {
         console.error("Rollback delete user error:", delErr);
       }
       return new Response(
-        JSON.stringify({ error: "Failed to create user profile" }),
+        JSON.stringify({ error: "Failed to create user profile", details: userError.message }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
@@ -269,9 +418,9 @@ Deno.serve(async (req) => {
     try {
       if (normalizedEntity === "supplier") {
         const { error } = await supabase.from("suppliers").insert({
-          user_id: authUser.user.id,
-          supplier_name: details.entity_name || full_name,
-          contact_person: details.contact_person || full_name,
+          user_id: userId,
+          supplier_name: details.entity_name || derivedFullName,
+          contact_person: details.contact_person || derivedFullName,
           email,
           phone_number: phone || "",
           ...entityData,
@@ -279,9 +428,9 @@ Deno.serve(async (req) => {
         entityError = error;
       } else if (normalizedEntity === "customer") {
         const { error } = await supabase.from("customers").insert({
-          user_id: authUser.user.id,
-          customer_name: details.entity_name || full_name,
-          contact_person: details.contact_person || full_name,
+          user_id: userId,
+          customer_name: details.entity_name || derivedFullName,
+          contact_person: details.contact_person || derivedFullName,
           email,
           phone_number: phone || "",
           ...entityData,
@@ -292,9 +441,9 @@ Deno.serve(async (req) => {
         const { full_name: _, ...cleanEntityData } = entityData as any;
         
         const { error } = await supabase.from("consignees").insert({
-          user_id: authUser.user.id,
-          consignee_name: details.entity_name || full_name,
-          contact_person: details.contact_person || full_name,
+          user_id: userId,
+          consignee_name: details.entity_name || derivedFullName,
+          contact_person: details.contact_person || derivedFullName,
           email,
           phone_number: phone || "",
           ...cleanEntityData,
@@ -302,9 +451,9 @@ Deno.serve(async (req) => {
         entityError = error;
       } else if (normalizedEntity === "shipper") {
         const { error } = await supabase.from("shippers").insert({
-          user_id: authUser.user.id,
-          shipper_name: details.entity_name || full_name,
-          contact_person: details.contact_person || full_name,
+          user_id: userId,
+          shipper_name: details.entity_name || derivedFullName,
+          contact_person: details.contact_person || derivedFullName,
           email,
           phone_number: phone || "",
           ...entityData,
@@ -320,8 +469,8 @@ Deno.serve(async (req) => {
         const empSkckUrl = details.skck_url || file_urls.skck_url || null;
         
         const { error } = await supabase.from("employees").insert({
-          user_id: authUser.user.id,
-          full_name,
+          user_id: userId,
+          full_name: derivedFullName,
           email,
           phone,
           ktp_document_url: empKtpDocUrl,
@@ -332,8 +481,6 @@ Deno.serve(async (req) => {
           skck_url: empSkckUrl,
           ktp_number: ktp_number || details.ktp_number || null,
           ktp_address: ktp_address || details.ktp_address || null,
-          first_name: first_name || details.first_name || null,
-          last_name: last_name || details.last_name || null,
           religion: religion || details.religion || null,
           ethnicity: ethnicity || details.ethnicity || null,
           education: education || details.education || null,
@@ -354,8 +501,8 @@ Deno.serve(async (req) => {
         const drvVehiclePhoto = details.vehicle_photo || file_urls.upload_vehicle_photo_url || null;
         
         const { error } = await supabase.from("drivers").insert({
-          user_id: authUser.user.id,
-          full_name,
+          user_id: userId,
+          full_name: derivedFullName,
           email,
           phone,
           driver_type: driverType,
@@ -398,15 +545,19 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        user_id: authUser.user.id,
+        user_id: userId,
         message: "User created successfully. Please check your email for verification.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 201 }
     );
   } catch (error) {
     console.error("Signup error:", error);
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Unknown error",
+        details: error instanceof Error ? error.stack : String(error)
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

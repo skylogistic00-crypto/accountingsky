@@ -1,9 +1,10 @@
 import { corsHeaders } from "@shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const PICA_SECRET_KEY = Deno.env.get("PICA_SECRET_KEY");
-const PICA_SUPABASE_CONNECTION_KEY = Deno.env.get("PICA_SUPABASE_CONNECTION_KEY");
-const SUPABASE_PROJECT_REF = Deno.env.get("SUPABASE_PROJECT_ID");
-const ACTION_ID = "conn_mod_def::GC40SckOddE::NFFu2-49QLyGsPBdfweitg";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 interface ProductResult {
   id: string;
@@ -17,25 +18,13 @@ interface ProductResult {
 }
 
 async function runSQLQuery(query: string): Promise<any> {
-  const url = `https://api.picaos.com/v1/passthrough/v1/projects/${SUPABASE_PROJECT_REF}/database/query`;
+  const { data, error } = await supabase.rpc('execute_sql', { query_text: query });
   
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "x-pica-secret": PICA_SECRET_KEY!,
-      "x-pica-connection-key": PICA_SUPABASE_CONNECTION_KEY!,
-      "x-pica-action-id": ACTION_ID,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ query }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`SQL query failed: ${errorText}`);
+  if (error) {
+    throw new Error(`SQL query failed: ${error.message}`);
   }
 
-  return response.json();
+  return data;
 }
 
 Deno.serve(async (req) => {
@@ -44,9 +33,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (!PICA_SECRET_KEY || !PICA_SUPABASE_CONNECTION_KEY || !SUPABASE_PROJECT_REF) {
-      throw new Error("Missing required environment variables");
-    }
 
     const { barcode } = await req.json();
 

@@ -110,11 +110,12 @@ export default function BalanceSheetReport() {
         title: "✅ Laporan diperbarui",
         description: `Data neraca periode ${periodStart} - ${periodEnd} berhasil dimuat`,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("❌ Error loading balance sheet:", error);
+      const errorMessage = error instanceof Error ? error.message : "Gagal memuat data laporan";
       toast({
         title: "Error",
-        description: error.message || "Gagal memuat data laporan",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

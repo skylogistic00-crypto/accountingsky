@@ -22,7 +22,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting OCR processing via Pica");
+    console.log("Starting OCR processing via OpenAI");
     
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -44,13 +44,12 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-    const PICA_SECRET_KEY = Deno.env.get("PICA_SECRET_KEY");
-    const PICA_OPENAI_CONNECTION_KEY = Deno.env.get("PICA_OPENAI_CONNECTION_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPEN_AI_KEY");
     
-    if (!PICA_SECRET_KEY || !PICA_OPENAI_CONNECTION_KEY) {
-      console.error("Pica credentials are missing");
+    if (!OPENAI_API_KEY) {
+      console.error("OpenAI API key is missing");
       return new Response(
-        JSON.stringify({ error: "Missing Pica credentials" }),
+        JSON.stringify({ error: "Missing OpenAI API key" }),
         { status: 500, headers: jsonHeaders }
       );
     }
@@ -73,19 +72,17 @@ serve(async (req) => {
       imageUrl = `data:${file.type};base64,${base64}`;
     }
 
-    console.log("Calling Pica API for OCR...");
+    console.log("Calling OpenAI API directly for OCR...");
 
     const prompt = "Extract all text and data from this document. Return the extracted information in a structured JSON format with a 'data' field containing the extracted content.";
 
-    const picaResponse = await fetch(
-      "https://api.picaos.com/v1/passthrough/chat/completions",
+    const openaiResponse = await fetch(
+      "https://api.openai.com/v1/chat/completions",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-pica-secret": PICA_SECRET_KEY,
-          "x-pica-connection-key": PICA_OPENAI_CONNECTION_KEY,
-          "x-pica-action-id": "conn_mod_def::GDzgi1QfvM4::4OjsWvZhRxmAVuLAuWgfVA",
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
           model: "gpt-4o",
@@ -112,23 +109,23 @@ serve(async (req) => {
       }
     );
 
-    if (!picaResponse.ok) {
-      const errorText = await picaResponse.text();
-      throw new Error(`Pica API error: ${picaResponse.statusText} - ${errorText}`);
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      throw new Error(`OpenAI API error: ${openaiResponse.statusText} - ${errorText}`);
     }
 
-    const picaData = await picaResponse.json();
-    console.log("Pica response received:", JSON.stringify(picaData).substring(0, 200));
+    const openaiData = await openaiResponse.json();
+    console.log("OpenAI response received:", JSON.stringify(openaiData).substring(0, 200));
     
     let extractedContent = "";
-    if (picaData.choices && picaData.choices.length > 0 && picaData.choices[0].message) {
-      extractedContent = picaData.choices[0].message.content || "";
+    if (openaiData.choices && openaiData.choices.length > 0 && openaiData.choices[0].message) {
+      extractedContent = openaiData.choices[0].message.content || "";
     } else {
-      throw new Error("Invalid Pica response structure");
+      throw new Error("Invalid OpenAI response structure");
     }
     
     if (!extractedContent) {
-      throw new Error("No content extracted from Pica response");
+      throw new Error("No content extracted from OpenAI response");
     }
     
     let result;
