@@ -261,7 +261,9 @@ Deno.serve(async (req) => {
         
         // NPWP Fields
         npwp: "text",
+        nomor_npwp: "text",
         tanggal_daftar: "date",
+        tanggal_terdaftar: "date",
         kpp: "text",
         status_wp: "text",
         
@@ -269,7 +271,9 @@ Deno.serve(async (req) => {
         nomor_sim: "text",
         berlaku: "date",
         kategori_sim: "text",
+        golongan_sim: "text",
         tempat_pembuatan: "text",
+        tinggi_badan: "text",
         
         // STNK Fields
         nomor_polisi: "text",
@@ -279,12 +283,16 @@ Deno.serve(async (req) => {
         merk: "text",
         tipe: "text",
         jenis: "text",
+        model: "text",
         tahun_pembuatan: "text",
         warna: "text",
+        bahan_bakar: "text",
+        isi_silinder: "text",
+        masa_berlaku: "date",
         berlaku_pajak: "date",
         berlaku_stnk: "date",
         
-        // Ijazah Fields
+        // Ijazah Fields (Complete)
         nomor_ijazah: "text",
         tempat_tanggal_lahir: "text",
         tahun_lulus: "text",
@@ -292,8 +300,19 @@ Deno.serve(async (req) => {
         kepala_sekolah: "text",
         jurusan: "text",
         tanggal_terbit: "date",
+        jenjang: "text",
+        tanggal_lulus: "date",
+        nomor_peserta_ujian: "text",
+        nisn: "text",
+        program_studi: "text",
+        fakultas: "text",
+        gelar: "text",
+        ipk: "text",
+        akreditasi: "text",
+        nomor_seri_ijazah: "text",
         
-        // Tax Fields
+        // PAJAK KENDARAAN Fields
+        pkb_pokok: "number",
         pokok_pkb: "number",
         swdkllj: "number",
         denda_pkb: "number",
@@ -302,6 +321,7 @@ Deno.serve(async (req) => {
         tanggal_bayar: "date",
         
         // AWB Fields
+        awb_number: "text",
         mawb_number: "text",
         hawb_number: "text",
         shipper_name: "text",
@@ -309,15 +329,62 @@ Deno.serve(async (req) => {
         consignee_name: "text",
         consignee_address: "text",
         notify_party: "text",
+        origin: "text",
+        destination: "text",
         origin_airport: "text",
         destination_airport: "text",
         flight_number: "text",
+        flight_date: "date",
         pieces: "number",
+        weight: "number",
         gross_weight: "number",
         chargeable_weight: "number",
+        description: "text",
         goods_description: "text",
+        declared_value: "number",
         freight_charges: "number",
         additional_notes: "text",
+        
+        // INVOICE Fields
+        nomor_invoice: "text",
+        tanggal_invoice: "date",
+        nama_penjual: "text",
+        alamat_penjual: "text",
+        npwp_penjual: "text",
+        nama_pembeli: "text",
+        alamat_pembeli: "text",
+        npwp_pembeli: "text",
+        items: "jsonb",
+        subtotal: "number",
+        ppn: "number",
+        total: "number",
+        tanggal_jatuh_tempo: "date",
+        
+        // CV Fields
+        email: "text",
+        telepon: "text",
+        pendidikan: "jsonb",
+        pengalaman_kerja: "jsonb",
+        keahlian: "jsonb",
+        bahasa: "jsonb",
+        sertifikasi: "jsonb",
+        
+        // BPJS Fields
+        nomor_bpjs: "text",
+        kelas: "text",
+        faskes_tingkat_1: "text",
+        tanggal_berlaku: "date",
+        
+        // AKTA LAHIR Fields
+        nomor_akta: "text",
+        nama_ayah: "text",
+        nama_ibu: "text",
+        tempat_terbit: "text",
+        
+        // SURAT KETERANGAN Fields
+        nomor_surat: "text",
+        perihal: "text",
+        instansi: "text",
       };
 
       // Skip keys - technical fields that should not be created as columns

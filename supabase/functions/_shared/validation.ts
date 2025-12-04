@@ -11,7 +11,11 @@ export const validatePassword = (password: string): { valid: boolean; error?: st
 };
 
 export const validateRequiredFields = (data: Record<string, any>, fields: string[]): { valid: boolean; missing?: string[] } => {
-  const missing = fields.filter(field => !data[field]);
+  const missing = fields.filter(field => {
+    const value = data[field];
+    // Check for null, undefined, or empty string
+    return value === null || value === undefined || value === "" || (typeof value === "string" && value.trim() === "");
+  });
   if (missing.length > 0) {
     return { valid: false, missing };
   }

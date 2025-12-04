@@ -2,13 +2,62 @@ import { corsHeaders } from "@shared/cors.ts";
 import { createSupabaseClient } from "@shared/supabase-client.ts";
 import { validateEmail, validatePassword, validateRequiredFields } from "@shared/validation.ts";
 
+// ========================================
+// UDFM ULTRA: Safe value extraction helpers
+// ========================================
+const safeString = (value: any, fallback = ""): string => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return fallback;
+};
+
+const safeObject = (value: any, fallback = {}): Record<string, any> => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "object" && !Array.isArray(value)) return value;
+  return fallback;
+};
+
+const safeAny = (value: any, fallback: any = null): any => {
+  if (value === undefined) return fallback;
+  return value;
+};
+
+// ========================================
+// UDFM ULTRA: Smart merge for dynamic fields
+// ========================================
+const smartMergeFields = (
+  target: Record<string, any>,
+  source: Record<string, any>,
+  allowedFields: string[]
+): void => {
+  if (!source || typeof source !== "object") return;
+  
+  for (const key of Object.keys(source)) {
+    try {
+      const value = source[key];
+      // Skip if value is null, undefined, or empty string
+      if (value === null || value === undefined || value === "") continue;
+      // Skip if already set in target
+      if (target[key] !== undefined && target[key] !== null && target[key] !== "") continue;
+      // Only add if in allowed fields list
+      if (allowedFields.includes(key)) {
+        target[key] = value;
+      }
+    } catch (e) {
+      console.error(`Error merging field ${key}:`, e);
+    }
+  }
+};
+
 Deno.serve(async (req) => {
+  // CRITICAL: Handle CORS preflight request FIRST with proper 204 status
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders, status: 200 });
+    return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
   try {
-    let body;
+    let body: Record<string, any>;
     try {
       body = await req.json();
     } catch (parseError) {
@@ -19,52 +68,74 @@ Deno.serve(async (req) => {
       );
     }
     
-    console.log("REQUEST BODY:", JSON.stringify(body, null, 2));
-    console.log("DETAILS OBJECT:", JSON.stringify(body.details, null, 2));
-    console.log("FILE_URLS OBJECT:", JSON.stringify(body.file_urls, null, 2));
-
-    // destructure and accept role fields coming from UI
-    const { 
-      email, 
-      password, 
-      full_name, 
-      entity_type, 
-      phone, 
-      details = {}, 
-      file_urls = {}, 
-      role_name, 
-      role_id,
-      ktp_number,
-      ktp_address,
-      religion,
-      ethnicity,
-      license_number,
-      license_expiry_date,
-      education,
-      upload_ijasah
-    } = body;
+    // ========================================
+    // UDFM ULTRA: Safe body parsing with fallbacks
+    // ========================================
+    console.log("=== SIGNUP-MULTI-ENTITY v225 (UDFM ULTRA) ===");
+    console.log("REQUEST BODY KEYS:", Object.keys(body || {}));
+    console.log("REQUEST BODY (truncated):", JSON.stringify(body || {}).substring(0, 500));
+    console.log("EMAIL VALUE:", body?.email ? `"${body.email}"` : "MISSING/EMPTY");
+    console.log("PASSWORD VALUE:", body?.password ? `"${body.password.substring(0, 3)}***"` : "MISSING/EMPTY");
+    console.log("ENTITY_TYPE VALUE:", body?.entity_type ? `"${body.entity_type}"` : "MISSING/EMPTY");
+    
+    // Safe extraction with fallbacks
+    const email = safeString(body?.email);
+    const password = safeString(body?.password);
+    const full_name = safeString(body?.full_name);
+    const entity_type = safeString(body?.entity_type, "customer");
+    const phone = safeString(body?.phone);
+    const details = safeObject(body?.details, {});
+    const file_urls = safeObject(body?.file_urls, {});
+    const role_name = safeString(body?.role_name);
+    const role_id = safeAny(body?.role_id);
+    const ktp_number = safeString(body?.ktp_number);
+    const ktp_address = safeString(body?.ktp_address);
+    const religion = safeString(body?.religion);
+    const ethnicity = safeString(body?.ethnicity);
+    const license_number = safeString(body?.license_number);
+    const license_expiry_date = safeString(body?.license_expiry_date);
+    const education = safeString(body?.education);
+    const upload_ijasah = safeString(body?.upload_ijasah);
+    const first_name = safeString(body?.first_name);
+    const last_name = safeString(body?.last_name);
+    
+    console.log("DETAILS OBJECT KEYS:", Object.keys(details));
+    console.log("FILE_URLS OBJECT KEYS:", Object.keys(file_urls));
 
     // ========================================
-    // DEBUG: Log received details object
+    // DEBUG: Log received details object (safe)
     // ========================================
     console.log("=== RECEIVED DETAILS FROM FRONTEND ===");
-    console.log("Details keys:", Object.keys(details || {}));
+    console.log("Details keys:", Object.keys(details));
     console.log("Details has anggota_keluarga:", details?.anggota_keluarga ? "YES" : "NO");
     console.log("Details has nik:", details?.nik ? "YES" : "NO");
     console.log("Details has nomor_kk:", details?.nomor_kk ? "YES" : "NO");
     console.log("Details has nama:", details?.nama ? "YES" : "NO");
-    console.log("Full details:", JSON.stringify(details, null, 2).substring(0, 1000));
+    try {
+      console.log("Full details (truncated):", JSON.stringify(details, null, 2).substring(0, 1000));
+    } catch (e) {
+      console.log("Could not stringify details:", e);
+    }
     console.log("=== END RECEIVED DETAILS ===");
 
     // Validate required fields - full_name is optional now (can be derived from OCR or email)
-    const requiredFields = ["email", "password", "entity_type"];
-    const validation = validateRequiredFields(body, requiredFields);
+    const requiredFields = ["email", "password"];
+    const bodyForValidation = { email, password };
+    console.log("VALIDATION INPUT - email:", email ? `"${email}"` : "EMPTY");
+    console.log("VALIDATION INPUT - password:", password ? `"${password.substring(0, 3)}***"` : "EMPTY");
+    const validation = validateRequiredFields(bodyForValidation, requiredFields);
+    console.log("VALIDATION RESULT:", JSON.stringify(validation));
     if (!validation.valid) {
+      console.error("Validation failed:", validation.missing);
       return new Response(
         JSON.stringify({ error: `Missing required fields: ${validation.missing?.join(", ")}` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
+    
+    // Validate entity_type separately with fallback
+    const finalEntityType = entity_type || "customer";
+    console.log("Using entity_type:", finalEntityType);
     
     // Derive full_name if not provided - use email prefix as fallback
     let derivedFullName = full_name || "";
@@ -101,26 +172,33 @@ Deno.serve(async (req) => {
     console.log("Derived full name:", derivedFullName);
 
     // Validate email
+    console.log("EMAIL VALIDATION - checking:", email);
     if (!validateEmail(email)) {
+      console.error("Email validation failed for:", email);
       return new Response(
         JSON.stringify({ error: "Invalid email format" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
+    console.log("EMAIL VALIDATION - passed");
 
     // Validate password
+    console.log("PASSWORD VALIDATION - checking length:", password?.length);
     const passwordValidation = validatePassword(password);
+    console.log("PASSWORD VALIDATION RESULT:", JSON.stringify(passwordValidation));
     if (!passwordValidation.valid) {
+      console.error("Password validation failed:", passwordValidation.error);
       return new Response(
         JSON.stringify({ error: passwordValidation.error }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
+    console.log("PASSWORD VALIDATION - passed");
 
     const supabase = createSupabaseClient();
 
     // Keep original entity_type for display (e.g., "Karyawan")
-    const originalEntityType = entity_type || "customer";
+    const originalEntityType = finalEntityType;
     
     // Normalize entity type for table mapping only
     let normalizedEntityType = originalEntityType
@@ -206,6 +284,8 @@ Deno.serve(async (req) => {
       id: userId,
       email,
       full_name: derivedFullName,
+      first_name: first_name || null,
+      last_name: last_name || null,
       role,
       role_id: resolvedRoleId,
       role_name: resolvedRoleName,
@@ -222,53 +302,104 @@ Deno.serve(async (req) => {
     console.log("=== ADDING OCR FIELDS FROM DETAILS TO USERS TABLE ===");
     
     // Define allowed OCR fields that exist in users table
+    // UDFM ULTRA: Support ALL document types
     const allowedOCRFields = [
       // KTP Fields
       "nik", "nama", "tempat_lahir", "tanggal_lahir", "jenis_kelamin",
       "agama", "status_perkawinan", "pekerjaan", "kewarganegaraan",
-      "berlaku_hingga", "golongan_darah",
+      "berlaku_hingga", "golongan_darah", "alamat",
       // KK Fields
       "nomor_kk", "nama_kepala_keluarga", "rt_rw", "kelurahan_desa",
       "kecamatan", "kabupaten_kota", "provinsi", "kode_pos",
       "tanggal_dikeluarkan", "anggota_keluarga",
+      // IJAZAH Fields (Complete)
+      "nomor_ijazah", "nama_sekolah", "jenjang", "jurusan", 
+      "tahun_lulus", "tanggal_lulus", "nomor_peserta_ujian", "nisn",
+      "program_studi", "fakultas", "gelar", "ipk", "akreditasi",
+      "nomor_seri_ijazah", "kepala_sekolah", "tanggal_terbit",
+      // NPWP Fields
+      "nomor_npwp", "tanggal_terdaftar", "kpp", "status_wp",
+      // SIM Fields
+      "nomor_sim", "golongan_sim", "tinggi_badan",
+      // STNK Fields
+      "nomor_polisi", "nama_pemilik", "nomor_rangka", "nomor_mesin",
+      "merk", "tipe", "model", "tahun_pembuatan", "warna",
+      "bahan_bakar", "isi_silinder", "masa_berlaku",
+      // PAJAK KENDARAAN Fields
+      "pkb_pokok", "swdkllj", "denda_pkb", "denda_swdkllj",
+      "total_bayar", "tanggal_bayar",
+      // AWB Fields
+      "awb_number", "shipper_name", "shipper_address",
+      "consignee_name", "consignee_address", "origin", "destination",
+      "flight_number", "flight_date", "pieces", "weight",
+      "description", "declared_value",
+      // INVOICE Fields
+      "nomor_invoice", "tanggal_invoice", "nama_penjual", "alamat_penjual",
+      "npwp_penjual", "nama_pembeli", "alamat_pembeli", "npwp_pembeli",
+      "items", "subtotal", "ppn", "total", "tanggal_jatuh_tempo",
+      // CV Fields
+      "email", "telepon", "pendidikan", "pengalaman_kerja",
+      "keahlian", "bahasa", "sertifikasi",
+      // BPJS Fields
+      "nomor_bpjs", "kelas", "faskes_tingkat_1", "tanggal_berlaku",
+      // AKTA LAHIR Fields
+      "nomor_akta", "nama_ayah", "nama_ibu", "tempat_terbit",
+      // SURAT KETERANGAN Fields
+      "nomor_surat", "perihal", "instansi",
       // Debug notes
       "debug_notes",
       // Additional fields
       "ktp_number", "ktp_address", "religion", "ethnicity", "education",
-      "license_number", "license_expiry_date",
+      "license_number", "license_expiry_date", "first_name", "last_name",
       // Document URLs
       "upload_ijasah", "ktp_document_url", "selfie_url", "family_card_url",
       "sim_url", "skck_url",
       // Address fields
-      "address", "city", "country"
+      "address", "city", "country",
+      // Document details namespace
+      "details"
     ];
     
-    // Add allowed fields from details to usersData
+    // Add allowed fields from details to usersData with safe handling
     if (details && typeof details === "object") {
-      Object.entries(details).forEach(([key, value]) => {
-        // Only add if key is in allowedOCRFields and not already in usersData
-        if (allowedOCRFields.includes(key) && usersData[key] === undefined && value !== undefined && value !== null) {
-          // Handle date fields - convert to proper format
-          if (["tanggal_lahir", "tanggal_dikeluarkan", "license_expiry_date"].includes(key)) {
-            // If it's a valid date string, keep it; otherwise set to null
-            if (value && typeof value === "string" && value.trim() !== "") {
-              usersData[key] = value;
+      try {
+        const detailEntries = Object.entries(details);
+        for (const [key, value] of detailEntries) {
+          try {
+            // Only add if key is in allowedOCRFields and not already in usersData
+            if (allowedOCRFields.includes(key) && usersData[key] === undefined && value !== undefined && value !== null) {
+              // Handle date fields - convert to proper format
+              if (["tanggal_lahir", "tanggal_dikeluarkan", "license_expiry_date"].includes(key)) {
+                // If it's a valid date string, keep it; otherwise set to null
+                if (value && typeof value === "string" && value.trim() !== "") {
+                  usersData[key] = value;
+                }
+              } else {
+                usersData[key] = value;
+              }
+              const displayValue = typeof value === "object" ? JSON.stringify(value).substring(0, 50) : String(value).substring(0, 50);
+              console.log(`✔ Added OCR field to users: ${key} = ${displayValue}`);
             }
-          } else {
-            usersData[key] = value;
+          } catch (fieldError) {
+            console.error(`Error processing field ${key}:`, fieldError);
           }
-          console.log(`✔ Added OCR field to users: ${key} = ${typeof value === "object" ? JSON.stringify(value).substring(0, 50) : value}`);
         }
-      });
+      } catch (detailsError) {
+        console.error("Error processing details object:", detailsError);
+      }
     }
     
     console.log("=== END OCR FIELDS ADDITION ===");
     
-    // Log final usersData before insert
+    // Log final usersData before insert (safe)
     console.log("=== FINAL USERS DATA BEFORE INSERT ===");
     console.log("Total fields:", Object.keys(usersData).length);
     console.log("Fields:", Object.keys(usersData).join(", "));
-    console.log("Sample data:", JSON.stringify(usersData, null, 2).substring(0, 500));
+    try {
+      console.log("Sample data (truncated):", JSON.stringify(usersData, null, 2).substring(0, 500));
+    } catch (e) {
+      console.log("Could not stringify usersData:", e);
+    }
     console.log("=== END FINAL USERS DATA ===");
 
     // Add employee/karyawan specific fields to users table
@@ -276,23 +407,23 @@ Deno.serve(async (req) => {
     const isEmployeeType = ["employee", "driver", "karyawan", "driver_perusahaan", "driver_mitra"].includes(normalizedEntityType);
     
     if (isEmployeeType) {
-      // Get upload_ijasah URL - file already uploaded from frontend
-      const ijasahUrl = upload_ijasah || details.upload_ijasah || file_urls.upload_ijasah_url || null;
+      // Get upload_ijasah URL - file already uploaded from frontend (safe extraction)
+      const ijasahUrl = safeString(upload_ijasah) || safeString(details?.upload_ijasah) || safeString(file_urls?.upload_ijasah_url) || null;
       
       // Get ktp_document_url - file already uploaded from frontend
-      const ktpDocUrl = details.ktp_document_url || file_urls.ktp_document_url || null;
+      const ktpDocUrl = safeString(details?.ktp_document_url) || safeString(file_urls?.ktp_document_url) || null;
       
       // Get selfie_url - file already uploaded from frontend
-      const selfieUrl = details.selfie_url || file_urls.selfie_url || null;
+      const selfieUrl = safeString(details?.selfie_url) || safeString(file_urls?.selfie_url) || null;
       
       // Get family_card_url - file already uploaded from frontend
-      const familyCardUrl = details.family_card_url || file_urls.family_card_url || null;
+      const familyCardUrl = safeString(details?.family_card_url) || safeString(file_urls?.family_card_url) || null;
       
       // Get sim_url - file already uploaded from frontend
-      const simUrl = details.sim_url || file_urls.sim_url || null;
+      const simUrl = safeString(details?.sim_url) || safeString(file_urls?.sim_url) || null;
       
       // Get skck_url - file already uploaded from frontend
-      const skckUrl = details.skck_url || file_urls.skck_url || null;
+      const skckUrl = safeString(details?.skck_url) || safeString(file_urls?.skck_url) || null;
       
       console.log("=== DOCUMENT URLS DEBUG ===");
       console.log("upload_ijasah:", ijasahUrl);
@@ -309,29 +440,33 @@ Deno.serve(async (req) => {
       usersData["family_card_url"] = familyCardUrl;
       usersData["sim_url"] = simUrl;
       usersData["skck_url"] = skckUrl;
-      usersData.ktp_number = ktp_number || details.ktp_number || null;
-      usersData.ktp_address = ktp_address || details.ktp_address || null;
-      usersData.religion = religion || details.religion || null;
-      usersData.ethnicity = ethnicity || details.ethnicity || null;
-      usersData.education = education || details.education || null;
-      usersData.license_number = license_number || details.license_number || null;
-      usersData.license_expiry_date = license_expiry_date || details.license_expiry_date || null;
+      usersData.ktp_number = safeString(ktp_number) || safeString(details?.ktp_number) || null;
+      usersData.ktp_address = safeString(ktp_address) || safeString(details?.ktp_address) || null;
+      usersData.religion = safeString(religion) || safeString(details?.religion) || null;
+      usersData.ethnicity = safeString(ethnicity) || safeString(details?.ethnicity) || null;
+      usersData.education = safeString(education) || safeString(details?.education) || null;
+      usersData.license_number = safeString(license_number) || safeString(details?.license_number) || null;
+      usersData.license_expiry_date = safeString(license_expiry_date) || safeString(details?.license_expiry_date) || null;
     }
 
-    // For suppliers, add supplier-specific fields to users table
+    // For suppliers, add supplier-specific fields to users table (safe extraction)
     if (normalizedEntityType === "supplier") {
-      usersData.supplier_name = details.entity_name || derivedFullName;
-      usersData.contact_person = details.contact_person || derivedFullName;
-      usersData.city = details.city;
-      usersData.country = details.country;
-      usersData.address = details.address;
-      usersData.pkp_status = details.is_pkp;
-      usersData.bank_account_holder = details.bank_account_holder;
+      usersData.supplier_name = safeString(details?.entity_name) || derivedFullName;
+      usersData.contact_person = safeString(details?.contact_person) || derivedFullName;
+      usersData.city = safeString(details?.city);
+      usersData.country = safeString(details?.country);
+      usersData.address = safeString(details?.address);
+      usersData.pkp_status = safeAny(details?.is_pkp);
+      usersData.bank_account_holder = safeString(details?.bank_account_holder);
     }
 
     // Upsert into users table with retry mechanism for foreign key constraint
     console.log("=== USERS DATA TO UPSERT ===");
-    console.log(JSON.stringify(usersData, null, 2));
+    try {
+      console.log(JSON.stringify(usersData, null, 2));
+    } catch (e) {
+      console.log("Could not stringify usersData for logging:", e);
+    }
     console.log("=== END USERS DATA ===");
     
     let userError = null;
@@ -412,15 +547,17 @@ Deno.serve(async (req) => {
       return filtered;
     };
     
-    // Merge details and file_urls into entity data
-    const entityData = filterEntityData({ ...details, ...file_urls }, normalizedEntity);
+    // Merge details and file_urls into entity data (safe)
+    const safeDetails = safeObject(details, {});
+    const safeFileUrls = safeObject(file_urls, {});
+    const entityData = filterEntityData({ ...safeDetails, ...safeFileUrls }, normalizedEntity);
     
     try {
       if (normalizedEntity === "supplier") {
         const { error } = await supabase.from("suppliers").insert({
           user_id: userId,
-          supplier_name: details.entity_name || derivedFullName,
-          contact_person: details.contact_person || derivedFullName,
+          supplier_name: safeString(details?.entity_name) || derivedFullName,
+          contact_person: safeString(details?.contact_person) || derivedFullName,
           email,
           phone_number: phone || "",
           ...entityData,
@@ -429,8 +566,8 @@ Deno.serve(async (req) => {
       } else if (normalizedEntity === "customer") {
         const { error } = await supabase.from("customers").insert({
           user_id: userId,
-          customer_name: details.entity_name || derivedFullName,
-          contact_person: details.contact_person || derivedFullName,
+          customer_name: safeString(details?.entity_name) || derivedFullName,
+          contact_person: safeString(details?.contact_person) || derivedFullName,
           email,
           phone_number: phone || "",
           ...entityData,
@@ -442,8 +579,8 @@ Deno.serve(async (req) => {
         
         const { error } = await supabase.from("consignees").insert({
           user_id: userId,
-          consignee_name: details.entity_name || derivedFullName,
-          contact_person: details.contact_person || derivedFullName,
+          consignee_name: safeString(details?.entity_name) || derivedFullName,
+          contact_person: safeString(details?.contact_person) || derivedFullName,
           email,
           phone_number: phone || "",
           ...cleanEntityData,
@@ -452,21 +589,21 @@ Deno.serve(async (req) => {
       } else if (normalizedEntity === "shipper") {
         const { error } = await supabase.from("shippers").insert({
           user_id: userId,
-          shipper_name: details.entity_name || derivedFullName,
-          contact_person: details.contact_person || derivedFullName,
+          shipper_name: safeString(details?.entity_name) || derivedFullName,
+          contact_person: safeString(details?.contact_person) || derivedFullName,
           email,
           phone_number: phone || "",
           ...entityData,
         });
         entityError = error;
       } else if (normalizedEntity === "employee") {
-        // Get document URLs for employees table
-        const empKtpDocUrl = details.ktp_document_url || file_urls.ktp_document_url || null;
-        const empSelfieUrl = details.selfie_url || file_urls.selfie_url || null;
-        const empIjasahUrl = upload_ijasah || details.upload_ijasah || file_urls.upload_ijasah_url || null;
-        const empFamilyCardUrl = details.family_card_url || file_urls.family_card_url || null;
-        const empSimUrl = details.sim_url || file_urls.sim_url || null;
-        const empSkckUrl = details.skck_url || file_urls.skck_url || null;
+        // Get document URLs for employees table (safe extraction)
+        const empKtpDocUrl = safeString(details?.ktp_document_url) || safeString(file_urls?.ktp_document_url) || null;
+        const empSelfieUrl = safeString(details?.selfie_url) || safeString(file_urls?.selfie_url) || null;
+        const empIjasahUrl = safeString(upload_ijasah) || safeString(details?.upload_ijasah) || safeString(file_urls?.upload_ijasah_url) || null;
+        const empFamilyCardUrl = safeString(details?.family_card_url) || safeString(file_urls?.family_card_url) || null;
+        const empSimUrl = safeString(details?.sim_url) || safeString(file_urls?.sim_url) || null;
+        const empSkckUrl = safeString(details?.skck_url) || safeString(file_urls?.skck_url) || null;
         
         const { error } = await supabase.from("employees").insert({
           user_id: userId,
@@ -479,11 +616,11 @@ Deno.serve(async (req) => {
           family_card_url: empFamilyCardUrl,
           sim_url: empSimUrl,
           skck_url: empSkckUrl,
-          ktp_number: ktp_number || details.ktp_number || null,
-          ktp_address: ktp_address || details.ktp_address || null,
-          religion: religion || details.religion || null,
-          ethnicity: ethnicity || details.ethnicity || null,
-          education: education || details.education || null,
+          ktp_number: safeString(ktp_number) || safeString(details?.ktp_number) || null,
+          ktp_address: safeString(ktp_address) || safeString(details?.ktp_address) || null,
+          religion: safeString(religion) || safeString(details?.religion) || null,
+          ethnicity: safeString(ethnicity) || safeString(details?.ethnicity) || null,
+          education: safeString(education) || safeString(details?.education) || null,
           ...entityData,
         });
         entityError = error;
@@ -491,14 +628,14 @@ Deno.serve(async (req) => {
         const driverType = normalizedEntity === "driver_perusahaan" ? "perusahaan" : 
                           normalizedEntity === "driver_mitra" ? "mitra" : "general";
         
-        // Get all driver-specific fields from details and file_urls
-        const drvKtpDocUrl = details.ktp_document_url || file_urls.ktp_document_url || null;
-        const drvSelfieUrl = details.selfie_url || file_urls.selfie_url || null;
-        const drvSimUrl = details.sim_url || file_urls.sim_url || null;
-        const drvSkckUrl = details.skck_url || file_urls.skck_url || null;
-        const drvFamilyCardUrl = details.family_card_url || file_urls.family_card_url || null;
-        const drvStnkUrl = details.upload_stnk_url || file_urls.upload_stnk_url || null;
-        const drvVehiclePhoto = details.vehicle_photo || file_urls.upload_vehicle_photo_url || null;
+        // Get all driver-specific fields from details and file_urls (safe extraction)
+        const drvKtpDocUrl = safeString(details?.ktp_document_url) || safeString(file_urls?.ktp_document_url) || null;
+        const drvSelfieUrl = safeString(details?.selfie_url) || safeString(file_urls?.selfie_url) || null;
+        const drvSimUrl = safeString(details?.sim_url) || safeString(file_urls?.sim_url) || null;
+        const drvSkckUrl = safeString(details?.skck_url) || safeString(file_urls?.skck_url) || null;
+        const drvFamilyCardUrl = safeString(details?.family_card_url) || safeString(file_urls?.family_card_url) || null;
+        const drvStnkUrl = safeString(details?.upload_stnk_url) || safeString(file_urls?.upload_stnk_url) || null;
+        const drvVehiclePhoto = safeString(details?.vehicle_photo) || safeString(file_urls?.upload_vehicle_photo_url) || null;
         
         const { error } = await supabase.from("drivers").insert({
           user_id: userId,
@@ -507,19 +644,19 @@ Deno.serve(async (req) => {
           phone,
           driver_type: driverType,
           // KTP and personal info
-          ktp_number: ktp_number || details.ktp_number || null,
-          ktp_address: ktp_address || details.ktp_address || null,
-          religion: religion || details.religion || null,
-          ethnicity: ethnicity || details.ethnicity || null,
+          ktp_number: safeString(ktp_number) || safeString(details?.ktp_number) || null,
+          ktp_address: safeString(ktp_address) || safeString(details?.ktp_address) || null,
+          religion: safeString(religion) || safeString(details?.religion) || null,
+          ethnicity: safeString(ethnicity) || safeString(details?.ethnicity) || null,
           // License info
-          license_number: license_number || details.license_number || null,
-          license_expiry: license_expiry_date || details.license_expiry || details.license_expiry_date || null,
+          license_number: safeString(license_number) || safeString(details?.license_number) || null,
+          license_expiry: safeString(license_expiry_date) || safeString(details?.license_expiry) || safeString(details?.license_expiry_date) || null,
           // Vehicle info (for driver_mitra)
-          vehicle_brand: details.vehicle_brand || null,
-          vehicle_model: details.vehicle_model || null,
-          plate_number: details.plate_number || null,
-          vehicle_year: details.vehicle_year || null,
-          vehicle_color: details.vehicle_color || null,
+          vehicle_brand: safeString(details?.vehicle_brand) || null,
+          vehicle_model: safeString(details?.vehicle_model) || null,
+          plate_number: safeString(details?.plate_number) || null,
+          vehicle_year: safeString(details?.vehicle_year) || null,
+          vehicle_color: safeString(details?.vehicle_color) || null,
           // Document URLs
           ktp_document_url: drvKtpDocUrl,
           selfie_url: drvSelfieUrl,

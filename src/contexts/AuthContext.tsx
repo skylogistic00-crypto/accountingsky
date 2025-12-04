@@ -26,6 +26,8 @@ interface AuthContextType {
     roleEntity?: string,
     ktp_number?: string,
     ktp_address?: string,
+    first_name?: string,
+    last_name?: string,
     religion?: string,
     ethnicity?: string,
     license_number?: string,
@@ -272,7 +274,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    // Return a safe default during initial render to prevent crashes
+    console.warn("useAuth called outside AuthProvider - returning safe defaults");
+    return {
+      user: null,
+      userProfile: null,
+      userRole: null,
+      loading: true,
+      signIn: async () => { throw new Error("AuthProvider not initialized"); },
+      signUp: async () => { throw new Error("AuthProvider not initialized"); },
+      signOut: async () => { throw new Error("AuthProvider not initialized"); },
+    } as AuthContextType;
   }
   return context;
 }

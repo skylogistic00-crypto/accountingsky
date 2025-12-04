@@ -1,8 +1,48 @@
 # SMART OCR MERGE ENGINE - Quick Guide
 
-## ✅ Status: AKTIF
+## ✅ Status: AKTIF (UDFM v3)
 
-SMART OCR MERGE ENGINE sudah diaktifkan di halaman Sign Up.
+SMART OCR MERGE ENGINE sudah diaktifkan di halaman Sign Up dengan fitur:
+- Smart Merge dengan Meta Protection
+- Namespace Storage per Document Type
+- Workflow Routing berdasarkan dokumen
+- Auto-create Supabase Columns
+
+---
+
+## 🔄 Workflow Routing (NEW!)
+
+### Dokumen → Workflow Suggestions
+
+| Scan | Workflow | Icon |
+|------|----------|------|
+| INVOICE | Buat transaksi pembelian / jurnal | 📄 |
+| STNK / PAJAK_KENDARAAN | Tambah kendaraan ke master asset | 🚗 |
+| KTP + KK | Buat master data karyawan/customer | 👤 |
+| KTP saja | Buat master data customer | 👤 |
+| AWB | Buat data shipment / tracking | 📦 |
+| IJAZAH + CV | Buat profil kandidat | 📋 |
+| IJAZAH saja | Tambah data pendidikan | 🎓 |
+| NPWP | Tambah data pajak | 📊 |
+| SIM | Tambah data SIM ke driver | 🪪 |
+| BPJS | Tambah data BPJS | 🏥 |
+
+---
+
+## 🏷️ Source Badges (NEW!)
+
+| Badge | Color | Meaning |
+|-------|-------|---------|
+| [KTP] | Green | Data dari KTP |
+| [KK] | Orange | Data dari KK |
+| [IJAZAH] | Blue | Data dari Ijazah |
+| [STNK] | Red | Data dari STNK |
+| [SIM] | Yellow | Data dari SIM |
+| [NPWP] | Indigo | Data dari NPWP |
+| [AWB] | Cyan | Data dari AWB |
+| [U] | Purple | User Edited (PROTECTED) |
+
+---
 
 ## 🎯 Cara Kerja
 
@@ -53,10 +93,19 @@ Setiap dokumen disimpan dalam namespace terpisah:
   "nik": "1234567890123456",    // ✔ Tidak ditimpa
   "nomor_kk": "9876543210123456", // ✔ Tidak ditimpa
   "nomor_ijazah": "IJZ-123456", // ✔ Ditambahkan
+  "nama_sekolah": "SMA Negeri 1", // ✔ Ditambahkan
+  "jurusan": "IPA",             // ✔ Ditambahkan
+  "tahun_lulus": "2020",        // ✔ Ditambahkan
   "details": {
     "ktp": { ... },             // ✔ Tetap ada
     "kk": { ... },              // ✔ Tetap ada
-    "ijazah": { "nomor_ijazah": "IJZ-123456", ... }  // ✔ Ditambahkan
+    "ijazah": { 
+      "nomor_ijazah": "IJZ-123456",
+      "nama_sekolah": "SMA Negeri 1",
+      "jurusan": "IPA",
+      "tahun_lulus": "2020",
+      ...
+    }  // ✔ Ditambahkan
   }
 }
 ```
@@ -65,6 +114,22 @@ Setiap dokumen disimpan dalam namespace terpisah:
 - Semua field ditampilkan di UI
 - Semua field dapat diedit
 - Data tidak hilang sampai Submit
+
+## 📄 IJAZAH Fields yang Diekstrak
+
+| Field | Deskripsi |
+|-------|-----------|
+| nomor_ijazah | Nomor ijazah/sertifikat |
+| nama | Nama lengkap pemilik ijazah |
+| tempat_lahir | Tempat lahir |
+| tanggal_lahir | Tanggal lahir (yyyy-MM-dd) |
+| nama_sekolah | Nama sekolah/institusi |
+| jenjang | Jenjang pendidikan (SD/SMP/SMA/SMK/D3/S1/S2/S3) |
+| jurusan | Jurusan/program studi |
+| tahun_lulus | Tahun kelulusan |
+| tanggal_lulus | Tanggal kelulusan (yyyy-MM-dd) |
+| nomor_peserta_ujian | Nomor peserta ujian |
+| nisn | Nomor Induk Siswa Nasional |
 
 ## 📋 Contoh Penggunaan
 

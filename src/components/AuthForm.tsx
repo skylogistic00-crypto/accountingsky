@@ -90,6 +90,25 @@ export function AuthFormContent({
   const [ocrScanning, setOcrScanning] = useState(false);
   const [ocrResults, setOcrResults] = useState<Record<string, any>>({});
   const [dynamicFields, setDynamicFields] = useState<any[]>([]);
+  
+  // Metadata tracking for smart merge protection
+  const [signUpMeta, setSignUpMeta] = useState<Record<string, {
+    source: "user" | "ocr";
+    document_type: string;
+    confidence: number;
+    last_updated_at: string;
+  }>>({});
+  
+  // Workflow suggestions based on scanned documents
+  const [workflowSuggestions, setWorkflowSuggestions] = useState<{
+    type: string;
+    label: string;
+    document_types_required: string[];
+    icon?: string;
+  }[]>([]);
+  
+  // Track scanned document types
+  const [scannedDocTypes, setScannedDocTypes] = useState<Set<string>>(new Set());
 
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({
@@ -442,9 +461,69 @@ export function AuthFormContent({
         "kecamatan", "kabupaten_kota", "provinsi", "kode_pos", "tanggal_dikeluarkan"
       ] : [];
       
+      // ========================================
+      // UDFM ULTRA: UNIVERSAL DOCUMENT FIELD MAPPER
+      // Supports ALL document types with namespace storage
+      // ========================================
+      
+      // Store document data under namespace: signUpData.details.[document_type]
+      if (!updatedSignUpData.details) {
+        updatedSignUpData.details = {};
+      }
+      
+      // Map document type to namespace key
+      const namespaceKey = jenis_dokumen.toLowerCase().replace(/_/g, "_");
+      updatedSignUpData.details[namespaceKey] = structuredData;
+      console.log(`✔ UDFM ULTRA: Data stored in signUpData.details.${namespaceKey}`);
+      
+      // Process ALL fields from structuredData with SMART MERGE
+      // CRITICAL: Jangan menghapus data dari dokumen sebelumnya
+      Object.entries(structuredData).forEach(([sourceKey, value]) => {
+        // Skip array fields (like anggota_keluarga, items, pendidikan, etc.)
+        if (Array.isArray(value)) {
+          console.log(`⊗ UDFM ULTRA: Skipping array field ${sourceKey}`);
+          return;
+        }
+        
+        if (value !== null && value !== undefined && value !== "") {
+          const targetKey = sourceKey.replace(/[^a-zA-Z0-9_]/g, "");
+          
+          // SMART MERGE: Only add if target field is empty or doesn't exist
+          // CRITICAL: Jangan menimpa data yang sudah benar (user edit / OCR confidence tinggi)
+          if (!updatedSignUpData[targetKey] || 
+              updatedSignUpData[targetKey] === "" || 
+              updatedSignUpData[targetKey] === null || 
+              updatedSignUpData[targetKey] === undefined) {
+            updatedSignUpData[targetKey] = value;
+            console.log(`✔ SMART MERGE [${jenis_dokumen}]: ${targetKey} = ${value}`);
+          } else {
+            console.log(`⊗ SMART MERGE [${jenis_dokumen}]: ${targetKey} already exists, skipping`);
+          }
+          
+          // WAJIB: Semua field hasil OCR harus dimasukkan ke dynamicFields
+          // walaupun tidak ada di form awal
+          const existingDynamicField = newDynamicFields.find(f => f.name === targetKey);
+          if (!existingDynamicField && !existingFormFields.includes(targetKey)) {
+            newDynamicFields.push({
+              name: targetKey,
+              label: targetKey.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+              type: targetKey.includes("tanggal") || targetKey.includes("date") ? "date" : "text",
+              required: false,
+              value: value
+            });
+            console.log(`✔ DYNAMIC FIELD [${jenis_dokumen}]: ${targetKey} added to dynamicFields`);
+          }
+        }
+      });
+      
+      console.log(`UDFM ULTRA: ${jenis_dokumen} data processed successfully - all fields added to dynamicFields`);
+      
+      // Skip fields that were already processed above
+      const processedFieldsToSkip = Object.keys(structuredData).filter(k => !Array.isArray(structuredData[k]));
+      
       Object.entries(cleanedOcrData).forEach(([key, value]) => {
-        // Skip anggota_keluarga (already processed above) and KK header fields
-        if (key === "anggota_keluarga" || kkHeaderFieldsToSkip.includes(key)) return;
+        // Skip anggota_keluarga (already processed above), KK header fields, and already processed fields
+        if (key === "anggota_keluarga" || kkHeaderFieldsToSkip.includes(key) || processedFieldsToSkip.includes(key)) return;
 
         const normalizedKey = key.replace(/[^a-zA-Z0-9_]/g, "");
         
@@ -476,6 +555,145 @@ export function AuthFormContent({
       // Single state update with all fields using SMART MERGE
       // CRITICAL: Use smartMerge to prevent overwriting existing data
       setSignUpData(prev => smartMerge(prev, updatedSignUpData));
+      
+      // ========================================
+      // UPDATE METADATA FOR SMART MERGE PROTECTION
+      // ========================================
+      setSignUpMeta(prev => {
+        const updatedMeta = { ...prev };
+        
+        // Add metadata for all new OCR fields
+        Object.keys(cleanedOcrData).forEach(key => {
+          const value = cleanedOcrData[key];
+          if (value !== null && value !== undefined && value !== "") {
+            // Only update meta if field doesn't exist or is from OCR (not user-edited)
+            if (!updatedMeta[key] || updatedMeta[key].source !== "user") {
+              updatedMeta[key] = {
+                source: "ocr",
+                document_type: docTypeForMerge || jenis_dokumen,
+                confidence: 0.85,
+                last_updated_at: new Date().toISOString()
+              };
+            }
+          }
+        });
+        
+        return updatedMeta;
+      });
+      
+      // ========================================
+      // WORKFLOW ROUTING (UDFM v3)
+      // ========================================
+      // Update scanned document types and generate workflow suggestions
+      const currentDocType = docTypeForMerge || jenis_dokumen;
+      if (currentDocType) {
+        setScannedDocTypes(prev => {
+          const updated = new Set(prev);
+          updated.add(currentDocType);
+          
+          // Generate workflow suggestions based on scanned documents
+          const suggestions: typeof workflowSuggestions = [];
+          
+          // INVOICE workflow
+          if (updated.has("INVOICE")) {
+            suggestions.push({
+              type: "create_purchase_transaction",
+              label: "Buat transaksi pembelian / jurnal akuntansi dari invoice ini",
+              document_types_required: ["INVOICE"],
+              icon: "📄"
+            });
+          }
+          
+          // STNK / PAJAK_KENDARAAN workflow
+          if (updated.has("STNK") || updated.has("PAJAK_KENDARAAN")) {
+            suggestions.push({
+              type: "create_vehicle_asset",
+              label: "Tambah kendaraan ke master asset / jadwalkan pengingat pajak",
+              document_types_required: ["STNK", "PAJAK_KENDARAAN"],
+              icon: "🚗"
+            });
+          }
+          
+          // KTP + KK workflow
+          if (updated.has("KTP") && updated.has("KK")) {
+            suggestions.push({
+              type: "create_employee_master",
+              label: "Buat master data karyawan/customer baru",
+              document_types_required: ["KTP", "KK"],
+              icon: "👤"
+            });
+          } else if (updated.has("KTP")) {
+            suggestions.push({
+              type: "create_customer_master",
+              label: "Buat master data customer dari KTP",
+              document_types_required: ["KTP"],
+              icon: "👤"
+            });
+          }
+          
+          // AWB workflow
+          if (updated.has("AWB")) {
+            suggestions.push({
+              type: "create_shipment",
+              label: "Buat data shipment / tracking order",
+              document_types_required: ["AWB"],
+              icon: "📦"
+            });
+          }
+          
+          // IJAZAH + CV workflow
+          if (updated.has("IJAZAH") && updated.has("CV")) {
+            suggestions.push({
+              type: "create_candidate_profile",
+              label: "Buat profil kandidat / karyawan",
+              document_types_required: ["IJAZAH", "CV"],
+              icon: "📋"
+            });
+          } else if (updated.has("IJAZAH")) {
+            suggestions.push({
+              type: "add_education_data",
+              label: "Tambah data pendidikan ke profil",
+              document_types_required: ["IJAZAH"],
+              icon: "🎓"
+            });
+          }
+          
+          // NPWP workflow
+          if (updated.has("NPWP")) {
+            suggestions.push({
+              type: "add_tax_data",
+              label: "Tambah data pajak ke profil",
+              document_types_required: ["NPWP"],
+              icon: "📊"
+            });
+          }
+          
+          // SIM workflow
+          if (updated.has("SIM")) {
+            suggestions.push({
+              type: "add_driver_license",
+              label: "Tambah data SIM ke profil driver",
+              document_types_required: ["SIM"],
+              icon: "🪪"
+            });
+          }
+          
+          // BPJS workflow
+          if (updated.has("BPJS")) {
+            suggestions.push({
+              type: "add_insurance_data",
+              label: "Tambah data BPJS ke profil karyawan",
+              document_types_required: ["BPJS"],
+              icon: "🏥"
+            });
+          }
+          
+          setWorkflowSuggestions(suggestions);
+          console.log("✔ Workflow suggestions updated:", suggestions);
+          
+          return updated;
+        });
+      }
       
       console.log("Dynamic fields to render:", newDynamicFields);
       
@@ -693,6 +911,46 @@ export function AuthFormContent({
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Frontend validation before sending to Edge Function
+    if (!signUpData.email || signUpData.email.trim() === "") {
+      toast({
+        title: "Error",
+        description: "Email is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!signUpData.password || signUpData.password.trim() === "") {
+      toast({
+        title: "Error",
+        description: "Password is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (signUpData.password.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(signUpData.email.trim())) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     try {
       // Prepare details object based on entity type
@@ -1691,33 +1949,99 @@ export function AuthFormContent({
                       ✓ Semua field dapat diedit. Data akan tersimpan sampai Submit.
                     </p>
                     <div className="grid grid-cols-2 gap-3">
-                      {dynamicFields.map((field) => (
-                        <div key={field.name} className={`space-y-2 ${field.type === 'json' || field.type === 'jsonb' ? 'col-span-2' : ''}`}>
-                          <Label htmlFor={`dynamic-${field.name}`} className="text-sm flex items-center gap-1">
-                            {field.label}
-                            <span className="text-xs text-blue-500">(editable)</span>
-                          </Label>
-                          {field.type === 'json' || field.type === 'jsonb' ? (
-                            <div className="bg-white border border-blue-200 rounded-md p-2 max-h-40 overflow-auto">
-                              <pre className="text-xs text-slate-600 whitespace-pre-wrap">
-                                {JSON.stringify(signUpData[field.name as keyof typeof signUpData] ?? field.value, null, 2)}
-                              </pre>
-                            </div>
-                          ) : (
-                            <Input
-                              id={`dynamic-${field.name}`}
-                              type={field.type || "text"}
-                              placeholder={field.label || field.name}
-                              value={signUpData[field.name as keyof typeof signUpData] ?? field.value ?? ''}
-                              onChange={(e) =>
-                                setSignUpData({
-                                  ...signUpData,
-                                  [field.name]: e.target.value,
-                                })
-                              }
-                              className="bg-white border-blue-200"
-                            />
-                          )}
+                      {dynamicFields.map((field) => {
+                        const meta = signUpMeta[field.name];
+                        const isUserEdited = meta?.source === "user";
+                        const docType = meta?.document_type || "";
+                        
+                        return (
+                          <div key={field.name} className={`space-y-2 ${field.type === 'json' || field.type === 'jsonb' ? 'col-span-2' : ''}`}>
+                            <Label htmlFor={`dynamic-${field.name}`} className="text-sm flex items-center gap-1 flex-wrap">
+                              {field.label}
+                              {/* Source Badge */}
+                              {isUserEdited ? (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">[U]</span>
+                              ) : docType ? (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                  docType === 'KTP' ? 'bg-green-100 text-green-700' :
+                                  docType === 'KK' ? 'bg-orange-100 text-orange-700' :
+                                  docType === 'IJAZAH' ? 'bg-blue-100 text-blue-700' :
+                                  docType === 'STNK' ? 'bg-red-100 text-red-700' :
+                                  docType === 'SIM' ? 'bg-yellow-100 text-yellow-700' :
+                                  docType === 'NPWP' ? 'bg-indigo-100 text-indigo-700' :
+                                  docType === 'AWB' ? 'bg-cyan-100 text-cyan-700' :
+                                  'bg-slate-100 text-slate-700'
+                                }`}>[{docType}]</span>
+                              ) : (
+                                <span className="text-xs text-blue-500">(editable)</span>
+                              )}
+                            </Label>
+                            {field.type === 'json' || field.type === 'jsonb' ? (
+                              <div className="bg-white border border-blue-200 rounded-md p-2 max-h-40 overflow-auto">
+                                <pre className="text-xs text-slate-600 whitespace-pre-wrap">
+                                  {JSON.stringify(signUpData[field.name as keyof typeof signUpData] ?? field.value, null, 2)}
+                                </pre>
+                              </div>
+                            ) : (
+                              <Input
+                                id={`dynamic-${field.name}`}
+                                type={field.type || "text"}
+                                placeholder={field.label || field.name}
+                                value={signUpData[field.name as keyof typeof signUpData] ?? field.value ?? ''}
+                                onChange={(e) => {
+                                  setSignUpData({
+                                    ...signUpData,
+                                    [field.name]: e.target.value,
+                                  });
+                                  // Mark as user-edited when user changes the value
+                                  setSignUpMeta(prev => ({
+                                    ...prev,
+                                    [field.name]: {
+                                      source: "user",
+                                      document_type: prev[field.name]?.document_type || "",
+                                      confidence: 1.0,
+                                      last_updated_at: new Date().toISOString()
+                                    }
+                                  }));
+                                }}
+                                className={`bg-white ${isUserEdited ? 'border-purple-300' : 'border-blue-200'}`}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Workflow Suggestions */}
+                {workflowSuggestions.length > 0 && (
+                  <div className="space-y-3 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    <h3 className="text-sm font-medium text-amber-700 border-b border-amber-200 pb-2 flex items-center gap-2">
+                      <span>💡</span>
+                      Workflow Suggestions ({workflowSuggestions.length})
+                    </h3>
+                    <p className="text-xs text-amber-600 mb-2">
+                      Berdasarkan dokumen yang sudah di-scan, Anda dapat melakukan:
+                    </p>
+                    <div className="space-y-2">
+                      {workflowSuggestions.map((suggestion, idx) => (
+                        <div 
+                          key={idx}
+                          className="flex items-center gap-2 p-2 bg-white rounded border border-amber-200 hover:bg-amber-100 cursor-pointer transition-colors"
+                          onClick={() => {
+                            console.log("Workflow triggered:", suggestion.type);
+                            // TODO: Implement workflow routing
+                          }}
+                        >
+                          <span className="text-lg">{suggestion.icon || "📋"}</span>
+                          <div className="flex-1">
+                            <p className="text-sm text-slate-700">{suggestion.label}</p>
+                            <p className="text-xs text-slate-500">
+                              Dokumen: {suggestion.document_types_required.join(" + ")}
+                            </p>
+                          </div>
+                          <span className="text-amber-500">→</span>
                         </div>
                       ))}
                     </div>
@@ -3813,33 +4137,99 @@ export function AuthFormContent({
                           ✓ Semua field dapat diedit. Data akan tersimpan sampai Submit.
                         </p>
                         <div className="grid grid-cols-2 gap-3">
-                          {dynamicFields.map((field) => (
-                            <div key={field.name} className={`space-y-2 ${field.type === 'json' || field.type === 'jsonb' ? 'col-span-2' : ''}`}>
-                              <Label htmlFor={`dynamic-desktop-${field.name}`} className="text-sm flex items-center gap-1">
-                                {field.label}
-                                <span className="text-xs text-blue-500">(editable)</span>
-                              </Label>
-                              {field.type === 'json' || field.type === 'jsonb' ? (
-                                <div className="bg-white border border-blue-200 rounded-md p-2 max-h-48 overflow-auto">
-                                  <pre className="text-xs text-slate-600 whitespace-pre-wrap">
-                                    {JSON.stringify(signUpData[field.name as keyof typeof signUpData] ?? field.value, null, 2)}
-                                  </pre>
-                                </div>
-                              ) : (
-                                <Input
-                                  id={`dynamic-desktop-${field.name}`}
-                                  type={field.type || "text"}
-                                  placeholder={field.label || field.name}
-                                  value={signUpData[field.name as keyof typeof signUpData] ?? field.value ?? ''}
-                                  onChange={(e) =>
-                                    setSignUpData({
-                                      ...signUpData,
-                                      [field.name]: e.target.value,
-                                    })
-                                  }
-                                  className="bg-white border-blue-200"
-                                />
-                              )}
+                          {dynamicFields.map((field) => {
+                            const meta = signUpMeta[field.name];
+                            const isUserEdited = meta?.source === "user";
+                            const docType = meta?.document_type || "";
+                            
+                            return (
+                              <div key={field.name} className={`space-y-2 ${field.type === 'json' || field.type === 'jsonb' ? 'col-span-2' : ''}`}>
+                                <Label htmlFor={`dynamic-desktop-${field.name}`} className="text-sm flex items-center gap-1 flex-wrap">
+                                  {field.label}
+                                  {/* Source Badge */}
+                                  {isUserEdited ? (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">[U]</span>
+                                  ) : docType ? (
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                      docType === 'KTP' ? 'bg-green-100 text-green-700' :
+                                      docType === 'KK' ? 'bg-orange-100 text-orange-700' :
+                                      docType === 'IJAZAH' ? 'bg-blue-100 text-blue-700' :
+                                      docType === 'STNK' ? 'bg-red-100 text-red-700' :
+                                      docType === 'SIM' ? 'bg-yellow-100 text-yellow-700' :
+                                      docType === 'NPWP' ? 'bg-indigo-100 text-indigo-700' :
+                                      docType === 'AWB' ? 'bg-cyan-100 text-cyan-700' :
+                                      'bg-slate-100 text-slate-700'
+                                    }`}>[{docType}]</span>
+                                  ) : (
+                                    <span className="text-xs text-blue-500">(editable)</span>
+                                  )}
+                                </Label>
+                                {field.type === 'json' || field.type === 'jsonb' ? (
+                                  <div className="bg-white border border-blue-200 rounded-md p-2 max-h-48 overflow-auto">
+                                    <pre className="text-xs text-slate-600 whitespace-pre-wrap">
+                                      {JSON.stringify(signUpData[field.name as keyof typeof signUpData] ?? field.value, null, 2)}
+                                    </pre>
+                                  </div>
+                                ) : (
+                                  <Input
+                                    id={`dynamic-desktop-${field.name}`}
+                                    type={field.type || "text"}
+                                    placeholder={field.label || field.name}
+                                    value={signUpData[field.name as keyof typeof signUpData] ?? field.value ?? ''}
+                                    onChange={(e) => {
+                                      setSignUpData({
+                                        ...signUpData,
+                                        [field.name]: e.target.value,
+                                      });
+                                      // Mark as user-edited when user changes the value
+                                      setSignUpMeta(prev => ({
+                                        ...prev,
+                                        [field.name]: {
+                                          source: "user",
+                                          document_type: prev[field.name]?.document_type || "",
+                                          confidence: 1.0,
+                                          last_updated_at: new Date().toISOString()
+                                        }
+                                      }));
+                                    }}
+                                    className={`bg-white ${isUserEdited ? 'border-purple-300' : 'border-blue-200'}`}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Workflow Suggestions - Desktop */}
+                    {workflowSuggestions.length > 0 && (
+                      <div className="space-y-4 bg-amber-50 p-4 rounded-lg border border-amber-200">
+                        <h3 className="text-sm font-semibold text-amber-700 border-b border-amber-200 pb-2 flex items-center gap-2">
+                          <span>💡</span>
+                          Workflow Suggestions ({workflowSuggestions.length})
+                        </h3>
+                        <p className="text-xs text-amber-600 mb-2">
+                          Berdasarkan dokumen yang sudah di-scan, Anda dapat melakukan:
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {workflowSuggestions.map((suggestion, idx) => (
+                            <div 
+                              key={idx}
+                              className="flex items-center gap-3 p-3 bg-white rounded-lg border border-amber-200 hover:bg-amber-100 cursor-pointer transition-colors"
+                              onClick={() => {
+                                console.log("Workflow triggered:", suggestion.type);
+                                // TODO: Implement workflow routing
+                              }}
+                            >
+                              <span className="text-2xl">{suggestion.icon || "📋"}</span>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-slate-700">{suggestion.label}</p>
+                                <p className="text-xs text-slate-500">
+                                  Dokumen: {suggestion.document_types_required.join(" + ")}
+                                </p>
+                              </div>
+                              <span className="text-amber-500 text-lg">→</span>
                             </div>
                           ))}
                         </div>

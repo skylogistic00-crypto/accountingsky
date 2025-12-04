@@ -2,8 +2,12 @@ import { corsHeaders } from "@shared/cors.ts";
 import { createSupabaseAnonClient } from "@shared/supabase-client.ts";
 
 Deno.serve(async (req) => {
+  // CRITICAL: Handle CORS preflight request FIRST
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders, status: 200 });
+    return new Response(null, { 
+      headers: corsHeaders, 
+      status: 204 
+    });
   }
 
   try {
@@ -138,7 +142,13 @@ Deno.serve(async (req) => {
     console.error('Profile error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        }, 
+        status: 500 
+      }
     );
   }
 });

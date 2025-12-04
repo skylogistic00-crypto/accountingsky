@@ -7785,35 +7785,67 @@ export type Database = {
         Row: {
           address: string | null
           agama: string | null
+          akreditasi: string | null
+          alamat: string | null
+          alamat_pembeli: string | null
+          alamat_penjual: string | null
           anggota_keluarga: Json | null
           avatar_url: string | null
+          awb_number: string | null
+          bahan_bakar: string | null
+          bahasa: Json | null
           bank_account_holder: string | null
           berlaku_hingga: string | null
           birth_place: string | null
           city: string | null
+          consignee_address: string | null
+          consignee_name: string | null
           contact_person: string | null
           country: string | null
           created_at: string | null
           debug_notes: Json | null
+          declared_value: number | null
+          denda_pkb: number | null
+          denda_swdkllj: number | null
           department: string | null
+          description: string | null
+          destination: string | null
+          details: Json | null
           education: string | null
           email: string
           entity: string | null
           entity_type: string | null
           ethnicity: string | null
+          fakultas: string | null
           family_card_url: string | null
+          faskes_tingkat_1: string | null
+          field_meta: Json | null
           first_name: string | null
+          flight_date: string | null
+          flight_number: string | null
           full_name: string | null
+          gelar: string | null
           gender: string | null
           golongan_darah: string | null
+          golongan_sim: string | null
           id: string
+          instansi: string | null
+          ipk: string | null
           is_active: boolean | null
+          isi_silinder: string | null
+          items: Json | null
           jenis_kelamin: string | null
+          jenjang: string | null
+          jurusan: string | null
           kabupaten_kota: string | null
+          keahlian: Json | null
           kecamatan: string | null
+          kelas: string | null
           kelurahan_desa: string | null
+          kepala_sekolah: string | null
           kewarganegaraan: string | null
           kode_pos: string | null
+          kpp: string | null
           ktp_address: string | null
           ktp_document_url: string | null
           ktp_number: number | null
@@ -7821,13 +7853,45 @@ export type Database = {
           last_name: string | null
           license_expiry_date: string | null
           license_number: string | null
+          masa_berlaku: string | null
+          merk: string | null
+          model: string | null
           nama: string | null
+          nama_ayah: string | null
+          nama_ibu: string | null
           nama_kepala_keluarga: string | null
+          nama_pembeli: string | null
+          nama_pemilik: string | null
+          nama_penjual: string | null
+          nama_sekolah: string | null
           nik: string | null
+          nisn: string | null
+          nomor_akta: string | null
+          nomor_bpjs: string | null
+          nomor_ijazah: string | null
+          nomor_invoice: string | null
           nomor_kk: string | null
+          nomor_mesin: string | null
+          nomor_npwp: string | null
+          nomor_peserta_ujian: string | null
+          nomor_polisi: string | null
+          nomor_rangka: string | null
+          nomor_seri_ijazah: string | null
+          nomor_sim: string | null
+          nomor_surat: string | null
+          npwp_pembeli: string | null
+          npwp_penjual: string | null
+          origin: string | null
           pekerjaan: string | null
+          pendidikan: Json | null
+          pengalaman_kerja: Json | null
+          perihal: string | null
           phone: string | null
+          pieces: number | null
+          pkb_pokok: number | null
           pkp_status: string | null
+          ppn: number | null
+          program_studi: string | null
           provinsi: string | null
           religion: string | null
           role: string
@@ -7835,49 +7899,103 @@ export type Database = {
           role_name: string | null
           rt_rw: string | null
           selfie_url: string | null
+          sertifikasi: Json | null
+          shipper_address: string | null
+          shipper_name: string | null
           sim_url: string | null
           skck_url: string | null
           status: Database["public"]["Enums"]["user_status"]
           status_perkawinan: string | null
+          status_wp: string | null
+          subtotal: number | null
           supplier_name: string | null
+          swdkllj: number | null
+          tahun_lulus: string | null
+          tahun_pembuatan: string | null
+          tanggal_bayar: string | null
+          tanggal_berlaku: string | null
           tanggal_dikeluarkan: string | null
+          tanggal_invoice: string | null
+          tanggal_jatuh_tempo: string | null
           tanggal_lahir: string | null
+          tanggal_lulus: string | null
+          tanggal_terbit: string | null
+          tanggal_terdaftar: string | null
           tempat_lahir: string | null
+          tempat_terbit: string | null
+          tinggi_badan: string | null
+          tipe: string | null
+          total: number | null
+          total_bayar: number | null
           updated_at: string | null
           upload_ijasah: string | null
+          warna: string | null
+          weight: number | null
         }
         Insert: {
           address?: string | null
           agama?: string | null
+          akreditasi?: string | null
+          alamat?: string | null
+          alamat_pembeli?: string | null
+          alamat_penjual?: string | null
           anggota_keluarga?: Json | null
           avatar_url?: string | null
+          awb_number?: string | null
+          bahan_bakar?: string | null
+          bahasa?: Json | null
           bank_account_holder?: string | null
           berlaku_hingga?: string | null
           birth_place?: string | null
           city?: string | null
+          consignee_address?: string | null
+          consignee_name?: string | null
           contact_person?: string | null
           country?: string | null
           created_at?: string | null
           debug_notes?: Json | null
+          declared_value?: number | null
+          denda_pkb?: number | null
+          denda_swdkllj?: number | null
           department?: string | null
+          description?: string | null
+          destination?: string | null
+          details?: Json | null
           education?: string | null
           email: string
           entity?: string | null
           entity_type?: string | null
           ethnicity?: string | null
+          fakultas?: string | null
           family_card_url?: string | null
+          faskes_tingkat_1?: string | null
+          field_meta?: Json | null
           first_name?: string | null
+          flight_date?: string | null
+          flight_number?: string | null
           full_name?: string | null
+          gelar?: string | null
           gender?: string | null
           golongan_darah?: string | null
+          golongan_sim?: string | null
           id: string
+          instansi?: string | null
+          ipk?: string | null
           is_active?: boolean | null
+          isi_silinder?: string | null
+          items?: Json | null
           jenis_kelamin?: string | null
+          jenjang?: string | null
+          jurusan?: string | null
           kabupaten_kota?: string | null
+          keahlian?: Json | null
           kecamatan?: string | null
+          kelas?: string | null
           kelurahan_desa?: string | null
+          kepala_sekolah?: string | null
           kewarganegaraan?: string | null
           kode_pos?: string | null
+          kpp?: string | null
           ktp_address?: string | null
           ktp_document_url?: string | null
           ktp_number?: number | null
@@ -7885,13 +8003,45 @@ export type Database = {
           last_name?: string | null
           license_expiry_date?: string | null
           license_number?: string | null
+          masa_berlaku?: string | null
+          merk?: string | null
+          model?: string | null
           nama?: string | null
+          nama_ayah?: string | null
+          nama_ibu?: string | null
           nama_kepala_keluarga?: string | null
+          nama_pembeli?: string | null
+          nama_pemilik?: string | null
+          nama_penjual?: string | null
+          nama_sekolah?: string | null
           nik?: string | null
+          nisn?: string | null
+          nomor_akta?: string | null
+          nomor_bpjs?: string | null
+          nomor_ijazah?: string | null
+          nomor_invoice?: string | null
           nomor_kk?: string | null
+          nomor_mesin?: string | null
+          nomor_npwp?: string | null
+          nomor_peserta_ujian?: string | null
+          nomor_polisi?: string | null
+          nomor_rangka?: string | null
+          nomor_seri_ijazah?: string | null
+          nomor_sim?: string | null
+          nomor_surat?: string | null
+          npwp_pembeli?: string | null
+          npwp_penjual?: string | null
+          origin?: string | null
           pekerjaan?: string | null
+          pendidikan?: Json | null
+          pengalaman_kerja?: Json | null
+          perihal?: string | null
           phone?: string | null
+          pieces?: number | null
+          pkb_pokok?: number | null
           pkp_status?: string | null
+          ppn?: number | null
+          program_studi?: string | null
           provinsi?: string | null
           religion?: string | null
           role?: string
@@ -7899,49 +8049,103 @@ export type Database = {
           role_name?: string | null
           rt_rw?: string | null
           selfie_url?: string | null
+          sertifikasi?: Json | null
+          shipper_address?: string | null
+          shipper_name?: string | null
           sim_url?: string | null
           skck_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
           status_perkawinan?: string | null
+          status_wp?: string | null
+          subtotal?: number | null
           supplier_name?: string | null
+          swdkllj?: number | null
+          tahun_lulus?: string | null
+          tahun_pembuatan?: string | null
+          tanggal_bayar?: string | null
+          tanggal_berlaku?: string | null
           tanggal_dikeluarkan?: string | null
+          tanggal_invoice?: string | null
+          tanggal_jatuh_tempo?: string | null
           tanggal_lahir?: string | null
+          tanggal_lulus?: string | null
+          tanggal_terbit?: string | null
+          tanggal_terdaftar?: string | null
           tempat_lahir?: string | null
+          tempat_terbit?: string | null
+          tinggi_badan?: string | null
+          tipe?: string | null
+          total?: number | null
+          total_bayar?: number | null
           updated_at?: string | null
           upload_ijasah?: string | null
+          warna?: string | null
+          weight?: number | null
         }
         Update: {
           address?: string | null
           agama?: string | null
+          akreditasi?: string | null
+          alamat?: string | null
+          alamat_pembeli?: string | null
+          alamat_penjual?: string | null
           anggota_keluarga?: Json | null
           avatar_url?: string | null
+          awb_number?: string | null
+          bahan_bakar?: string | null
+          bahasa?: Json | null
           bank_account_holder?: string | null
           berlaku_hingga?: string | null
           birth_place?: string | null
           city?: string | null
+          consignee_address?: string | null
+          consignee_name?: string | null
           contact_person?: string | null
           country?: string | null
           created_at?: string | null
           debug_notes?: Json | null
+          declared_value?: number | null
+          denda_pkb?: number | null
+          denda_swdkllj?: number | null
           department?: string | null
+          description?: string | null
+          destination?: string | null
+          details?: Json | null
           education?: string | null
           email?: string
           entity?: string | null
           entity_type?: string | null
           ethnicity?: string | null
+          fakultas?: string | null
           family_card_url?: string | null
+          faskes_tingkat_1?: string | null
+          field_meta?: Json | null
           first_name?: string | null
+          flight_date?: string | null
+          flight_number?: string | null
           full_name?: string | null
+          gelar?: string | null
           gender?: string | null
           golongan_darah?: string | null
+          golongan_sim?: string | null
           id?: string
+          instansi?: string | null
+          ipk?: string | null
           is_active?: boolean | null
+          isi_silinder?: string | null
+          items?: Json | null
           jenis_kelamin?: string | null
+          jenjang?: string | null
+          jurusan?: string | null
           kabupaten_kota?: string | null
+          keahlian?: Json | null
           kecamatan?: string | null
+          kelas?: string | null
           kelurahan_desa?: string | null
+          kepala_sekolah?: string | null
           kewarganegaraan?: string | null
           kode_pos?: string | null
+          kpp?: string | null
           ktp_address?: string | null
           ktp_document_url?: string | null
           ktp_number?: number | null
@@ -7949,13 +8153,45 @@ export type Database = {
           last_name?: string | null
           license_expiry_date?: string | null
           license_number?: string | null
+          masa_berlaku?: string | null
+          merk?: string | null
+          model?: string | null
           nama?: string | null
+          nama_ayah?: string | null
+          nama_ibu?: string | null
           nama_kepala_keluarga?: string | null
+          nama_pembeli?: string | null
+          nama_pemilik?: string | null
+          nama_penjual?: string | null
+          nama_sekolah?: string | null
           nik?: string | null
+          nisn?: string | null
+          nomor_akta?: string | null
+          nomor_bpjs?: string | null
+          nomor_ijazah?: string | null
+          nomor_invoice?: string | null
           nomor_kk?: string | null
+          nomor_mesin?: string | null
+          nomor_npwp?: string | null
+          nomor_peserta_ujian?: string | null
+          nomor_polisi?: string | null
+          nomor_rangka?: string | null
+          nomor_seri_ijazah?: string | null
+          nomor_sim?: string | null
+          nomor_surat?: string | null
+          npwp_pembeli?: string | null
+          npwp_penjual?: string | null
+          origin?: string | null
           pekerjaan?: string | null
+          pendidikan?: Json | null
+          pengalaman_kerja?: Json | null
+          perihal?: string | null
           phone?: string | null
+          pieces?: number | null
+          pkb_pokok?: number | null
           pkp_status?: string | null
+          ppn?: number | null
+          program_studi?: string | null
           provinsi?: string | null
           religion?: string | null
           role?: string
@@ -7963,16 +8199,38 @@ export type Database = {
           role_name?: string | null
           rt_rw?: string | null
           selfie_url?: string | null
+          sertifikasi?: Json | null
+          shipper_address?: string | null
+          shipper_name?: string | null
           sim_url?: string | null
           skck_url?: string | null
           status?: Database["public"]["Enums"]["user_status"]
           status_perkawinan?: string | null
+          status_wp?: string | null
+          subtotal?: number | null
           supplier_name?: string | null
+          swdkllj?: number | null
+          tahun_lulus?: string | null
+          tahun_pembuatan?: string | null
+          tanggal_bayar?: string | null
+          tanggal_berlaku?: string | null
           tanggal_dikeluarkan?: string | null
+          tanggal_invoice?: string | null
+          tanggal_jatuh_tempo?: string | null
           tanggal_lahir?: string | null
+          tanggal_lulus?: string | null
+          tanggal_terbit?: string | null
+          tanggal_terdaftar?: string | null
           tempat_lahir?: string | null
+          tempat_terbit?: string | null
+          tinggi_badan?: string | null
+          tipe?: string | null
+          total?: number | null
+          total_bayar?: number | null
           updated_at?: string | null
           upload_ijasah?: string | null
+          warna?: string | null
+          weight?: number | null
         }
         Relationships: [
           {
