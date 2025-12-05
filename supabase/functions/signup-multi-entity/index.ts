@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     } catch (parseError) {
       console.error("JSON parse error:", parseError);
       return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body" }),
+        JSON.stringify({ error: "Invalid JSON in request body", code: "PARSE_ERROR" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -127,8 +127,17 @@ Deno.serve(async (req) => {
     console.log("VALIDATION RESULT:", JSON.stringify(validation));
     if (!validation.valid) {
       console.error("Validation failed:", validation.missing);
+      const errorMessage = `Missing required fields: ${validation.missing?.join(", ")}`;
+      console.error("Returning 400 error:", errorMessage);
       return new Response(
-        JSON.stringify({ error: `Missing required fields: ${validation.missing?.join(", ")}` }),
+        JSON.stringify({ 
+          error: errorMessage,
+          code: "MISSING_FIELDS",
+          details: {
+            missing: validation.missing,
+            received: { email: email ? "present" : "missing", password: password ? "present" : "missing" }
+          }
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -176,7 +185,11 @@ Deno.serve(async (req) => {
     if (!validateEmail(email)) {
       console.error("Email validation failed for:", email);
       return new Response(
-        JSON.stringify({ error: "Invalid email format" }),
+        JSON.stringify({ 
+          error: "Invalid email format",
+          code: "INVALID_EMAIL",
+          details: { email: email || "empty" }
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -189,7 +202,11 @@ Deno.serve(async (req) => {
     if (!passwordValidation.valid) {
       console.error("Password validation failed:", passwordValidation.error);
       return new Response(
-        JSON.stringify({ error: passwordValidation.error }),
+        JSON.stringify({ 
+          error: passwordValidation.error,
+          code: "INVALID_PASSWORD",
+          details: { passwordLength: password?.length || 0 }
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -257,7 +274,7 @@ Deno.serve(async (req) => {
         );
       }
       return new Response(
-        JSON.stringify({ error: authError.message }),
+        JSON.stringify({ error: authError.message, code: "AUTH_ERROR" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }

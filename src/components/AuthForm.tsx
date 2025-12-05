@@ -2048,181 +2048,121 @@ export function AuthFormContent({
                   </div>
                 )}
 
-                {/* Contact Information */}
-                <div className="space-y-3 bg-white p-3 rounded-lg border border-slate-200">
-                  <h3 className="text-sm font-medium text-slate-700 border-b pb-2">
-                    Contact Information
-                  </h3>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-phone" className="text-sm">
-                      Phone Number
-                    </Label>
-                    <Input
-                      id="signup-phone"
-                      type="tel"
-                      placeholder="+62 812 3456 7890"
-                      value={signUpData.phoneNumber}
-                      onChange={(e) =>
-                        setSignUpData({
-                          ...signUpData,
-                          phoneNumber: e.target.value,
-                        })
-                      }
-                      className="bg-slate-50"
-                    />
+              {/* Vehicle Information - Only for Driver Mitra */}
+              {signUpData.roleEntity === "driver_mitra" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <h4 className="text-sm font-semibold text-gray-700 border-b pb-2 mb-4">
+                      Informasi Kendaraan
+                    </h4>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-license-number" className="text-sm">
-                      License Number
+                    <Label
+                      htmlFor="signup-vehicle-brand"
+                      className="text-sm"
+                    >
+                      Merk Kendaraan *
                     </Label>
                     <Input
-                      id="signup-license-number"
+                      id="signup-vehicle-brand"
                       type="text"
-                      placeholder="1234567890"
-                      value={signUpData.licenseNumber}
+                      placeholder="Misal: Toyota"
+                      value={signUpData.vehicleBrand}
                       onChange={(e) =>
                         setSignUpData({
                           ...signUpData,
-                          licenseNumber: e.target.value,
+                          vehicleBrand: e.target.value,
                         })
                       }
                       className="bg-slate-50"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-license-expiry" className="text-sm">
-                      SIM/License Expiry Date
+                    <Label
+                      htmlFor="signup-vehicle-model"
+                      className="text-sm"
+                    >
+                      Model Kendaraan *
                     </Label>
                     <Input
-                      id="signup-license-expiry"
-                      type="date"
-                      value={signUpData.licenseExpiryDate}
+                      id="signup-vehicle-model"
+                      type="text"
+                      placeholder="Misal: Avanza"
+                      value={signUpData.vehicleModel}
                       onChange={(e) =>
                         setSignUpData({
                           ...signUpData,
-                          licenseExpiryDate: e.target.value,
+                          vehicleModel: e.target.value,
                         })
                       }
                       className="bg-slate-50"
                     />
                   </div>
-
-                  {/* Vehicle Information - Only for Driver Mitra */}
-                  {signUpData.roleEntity === "driver_mitra" && (
-                    <>
-                      <div className="col-span-2">
-                        <h4 className="text-sm font-semibold text-gray-700 border-b pb-2 mb-4">
-                          Informasi Kendaraan
-                        </h4>
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="signup-vehicle-brand"
-                          className="text-sm"
-                        >
-                          Merk Kendaraan *
-                        </Label>
-                        <Input
-                          id="signup-vehicle-brand"
-                          type="text"
-                          placeholder="Misal: Toyota"
-                          value={signUpData.vehicleBrand}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              vehicleBrand: e.target.value,
-                            })
-                          }
-                          className="bg-slate-50"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="signup-vehicle-model"
-                          className="text-sm"
-                        >
-                          Model Kendaraan *
-                        </Label>
-                        <Input
-                          id="signup-vehicle-model"
-                          type="text"
-                          placeholder="Misal: Avanza"
-                          value={signUpData.vehicleModel}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              vehicleModel: e.target.value,
-                            })
-                          }
-                          className="bg-slate-50"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="signup-plate-number"
-                          className="text-sm"
-                        >
-                          Plate Number *
-                        </Label>
-                        <Input
-                          id="signup-plate-number"
-                          type="text"
-                          placeholder="B 1234 XYZ"
-                          value={signUpData.plateNumber}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              plateNumber: e.target.value,
-                            })
-                          }
-                          className="bg-slate-50"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="signup-vehicle-year"
-                          className="text-sm"
-                        >
-                          Tahun Kendaraan *
-                        </Label>
-                        <Input
-                          id="signup-vehicle-year"
-                          type="text"
-                          placeholder="2020"
-                          value={signUpData.vehicleYear}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              vehicleYear: e.target.value,
-                            })
-                          }
-                          className="bg-slate-50"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="signup-vehicle-color"
-                          className="text-sm"
-                        >
-                          Warna Kendaraan *
-                        </Label>
-                        <Input
-                          id="signup-vehicle-color"
-                          type="text"
-                          placeholder="Hitam"
-                          value={signUpData.vehicleColor}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              vehicleColor: e.target.value,
-                            })
-                          }
-                          className="bg-slate-50"
-                        />
-                      </div>
-                    </>
-                  )}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="signup-plate-number"
+                      className="text-sm"
+                    >
+                      Plate Number *
+                    </Label>
+                    <Input
+                      id="signup-plate-number"
+                      type="text"
+                      placeholder="B 1234 XYZ"
+                      value={signUpData.plateNumber}
+                      onChange={(e) =>
+                        setSignUpData({
+                          ...signUpData,
+                          plateNumber: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="signup-vehicle-year"
+                      className="text-sm"
+                    >
+                      Tahun Kendaraan *
+                    </Label>
+                    <Input
+                      id="signup-vehicle-year"
+                      type="text"
+                      placeholder="2020"
+                      value={signUpData.vehicleYear}
+                      onChange={(e) =>
+                        setSignUpData({
+                          ...signUpData,
+                          vehicleYear: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="signup-vehicle-color"
+                      className="text-sm"
+                    >
+                      Warna Kendaraan *
+                    </Label>
+                    <Input
+                      id="signup-vehicle-color"
+                      type="text"
+                      placeholder="Hitam"
+                      value={signUpData.vehicleColor}
+                      onChange={(e) =>
+                        setSignUpData({
+                          ...signUpData,
+                          vehicleColor: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50"
+                    />
+                  </div>
                 </div>
+              )}
 
                 {/* Upload Documents - For Karyawan, Driver Perusahaan, Driver Mitra entities */}
                 {(signUpData.roleEntity === "karyawan" ||
@@ -2233,108 +2173,6 @@ export function AuthFormContent({
                       Upload Dokumen Karyawan
                     </h3>
                     <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="upload-ktp" className="text-sm">
-                          KTP *
-                        </Label>
-                        <Input
-                          id="upload-ktp"
-                          type="file"
-                          accept="image/*,application/pdf"
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              ktpDocument: e.target.files?.[0] || null,
-                            })
-                          }
-                          className="bg-white"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="upload-selfie" className="text-sm">
-                          Foto Selfie *
-                        </Label>
-                        <Input
-                          id="upload-selfie"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              selfiePhoto: e.target.files?.[0] || null,
-                            })
-                          }
-                          className="bg-white"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="upload_ijasah" className="text-sm">
-                          Ijasah *
-                        </Label>
-                        <Input
-                          id="upload_ijasah"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              uploadIjasah: e.target.files?.[0] || null,
-                            })
-                          }
-                          className="bg-white"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="upload-family-card" className="text-sm">
-                          Kartu Keluarga *
-                        </Label>
-                        <Input
-                          id="upload-family-card"
-                          type="file"
-                          accept="image/*,application/pdf"
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              familyCard: e.target.files?.[0] || null,
-                            })
-                          }
-                          className="bg-white"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="upload-sim" className="text-sm">
-                          SIM
-                        </Label>
-                        <Input
-                          id="upload-sim"
-                          type="file"
-                          accept="image/*,application/pdf"
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              simDocument: e.target.files?.[0] || null,
-                            })
-                          }
-                          className="bg-white"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="upload-skck" className="text-sm">
-                          SKCK
-                        </Label>
-                        <Input
-                          id="upload-skck"
-                          type="file"
-                          accept="image/*,application/pdf"
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              skckDocument: e.target.files?.[0] || null,
-                            })
-                          }
-                          className="bg-white"
-                        />
-                      </div>
 
                       {/* STNK and Vehicle Photo - Only for Driver Mitra */}
                       {signUpData.roleEntity === "driver_mitra" && (

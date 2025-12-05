@@ -184,6 +184,7 @@ export default function CashDisbursementForm({
         bank_account_id: paymentMethod !== "Tunai" ? bankAccountId || null : null,
         coa_expense_code: coaExpenseCode,
         coa_cash_code: coaCashCode,
+        account_code: coaExpenseCode,
         attachment_url: attachmentUrl,
         notes: notes || null,
         created_by: user?.id,

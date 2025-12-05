@@ -97,16 +97,16 @@ export default function ProfitLossReport() {
     setLoading(true);
 
     try {
-      // Fetch data from vw_profit_and_loss view - NO FILTERS
+      // Fetch data from vw_profit_loss_complete view with full COA details
       const { data, error } = await supabase
-        .from("vw_profit_and_loss")
+        .from("vw_profit_loss_complete")
         .select(
-          "account_code, account_name, account_type, debit, credit, balance",
+          "account_id, account_code, account_name, account_type, balance",
         );
 
       if (error) throw error;
 
-      console.log("📊 Raw data from vw_profit_and_loss:", data);
+      console.log("📊 Raw data from vw_profit_loss_complete:", data);
 
       // Categorize accounts by account_type
       const revenueAccounts: LabaRugiDetail[] = [];

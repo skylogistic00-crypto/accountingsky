@@ -56,12 +56,10 @@ export default function BalanceSheetReport() {
     setLoading(true);
 
     try {
-      // Fetch from vw_trial_balance_per_account view
+      // Fetch from vw_balance_sheet_complete view with full COA details
       const { data, error } = await supabase
-        .from("vw_trial_balance_per_account")
-        .select("account_code, account_name, account_type, balance")
-        .gte("entry_date", periodStart)
-        .lte("entry_date", periodEnd);
+        .from("vw_balance_sheet_complete")
+        .select("account_id, account_code, account_name, account_type, balance");
 
       if (error) throw error;
 

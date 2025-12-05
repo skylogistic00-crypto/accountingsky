@@ -39,6 +39,7 @@ import { useNavigate } from "react-router-dom";
 interface FinancialReportData {
   report_type: string;
   section: string;
+  account_header: string;
   account_code: string;
   account_name: string;
   debit_total: number;
@@ -46,11 +47,27 @@ interface FinancialReportData {
   amount: number;
 }
 
+interface JournalEntry {
+  id: string;
+  entry_number: string;
+  entry_date: string;
+  description: string;
+  debit_account: string;
+  credit_account: string;
+  debit: number;
+  credit: number;
+  created_at: string;
+  debit_account_name?: string;
+  credit_account_name?: string;
+}
+
 export default function IntegratedFinancialReport() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<FinancialReportData[]>([]);
   const [filteredData, setFilteredData] = useState<FinancialReportData[]>([]);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [loadingJournal, setLoadingJournal] = useState(false);
 
   const [reportType, setReportType] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,6 +75,7 @@ export default function IntegratedFinancialReport() {
 
   useEffect(() => {
     fetchReportData();
+    fetchJournalEntries();
   }, []);
 
   useEffect(() => {
@@ -67,33 +85,152 @@ export default function IntegratedFinancialReport() {
   const fetchReportData = async () => {
     setLoading(true);
 
-    // Fetch from vw_financial_report_from_journal_entries view
-    const { data, error } = await supabase
-      .from("vw_financial_report_from_journal_entries")
-      .select("account_code, account_name, debit_total, credit_total, amount")
-      .order("account_code", { ascending: true });
+    try {
+      // First, fetch all chart_of_accounts to build parent hierarchy
+      const { data: coaData, error: coaError } = await supabase
+        .from("chart_of_accounts")
+        .select("account_code, account_name, level, parent_code");
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: `Gagal memuat data laporan keuangan: ${error.message}`,
-        variant: "destructive",
-      });
+      if (coaError) {
+        toast({
+          title: "Error",
+          description: `Gagal memuat COA: ${coaError.message}`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Build a map for quick lookup
+      const coaMap = new Map(coaData?.map(coa => [coa.account_code, coa]) || []);
+
+      // Fetch from general_ledger with chart_of_accounts join
+      const { data, error } = await supabase
+        .from("general_ledger")
+        .select(`
+          *,
+          chart_of_accounts!general_ledger_account_code_fkey (
+            account_name,
+            account_type,
+            parent_code,
+            level,
+            is_header
+          )
+        `)
+        .order("account_code", { ascending: true });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: `Gagal memuat data laporan keuangan: ${error.message}`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      console.log("📊 Data from general_ledger:", data);
+
+      // Aggregate data by account_code
+      const aggregated = aggregateGeneralLedgerData(data || [], coaMap);
+      setReportData(aggregated);
       setLoading(false);
-      return;
+    } catch (err) {
+      console.error("Error fetching report data:", err);
+      setLoading(false);
     }
+  };
 
-    console.log("📊 Data from vw_financial_report_from_journal_entries:", data);
+  const aggregateGeneralLedgerData = (glData: any[], coaMap: Map<string, any>): FinancialReportData[] => {
+    const grouped = new Map<string, FinancialReportData>();
 
-    // Map data to include report_type and section for compatibility
-    const reportDataArray = (data || []).map((item: any) => ({
-      ...item,
-      report_type: "GENERAL_LEDGER",
-      section: "Accounts",
-    }));
+    // Helper function to find parent account with level 1 or 2
+    const findAccountHeader = (accountCode: string): string => {
+      let currentCode = accountCode;
+      let iterations = 0;
+      const maxIterations = 10; // Prevent infinite loops
 
-    setReportData(reportDataArray as FinancialReportData[]);
-    setLoading(false);
+      while (currentCode && iterations < maxIterations) {
+        const account = coaMap.get(currentCode);
+        if (!account) break;
+
+        // If level is 1 or 2, return this account name
+        if (account.level === 1 || account.level === 2) {
+          return account.account_name;
+        }
+
+        // Move to parent
+        if (account.parent_code) {
+          currentCode = account.parent_code;
+        } else {
+          break;
+        }
+        iterations++;
+      }
+
+      // Fallback to account type if no parent found
+      const account = coaMap.get(accountCode);
+      return account?.account_name || "Unknown";
+    };
+
+    glData.forEach((entry) => {
+      const accountCode = entry.account_code;
+      const accountInfo = entry.chart_of_accounts;
+      const accountName = accountInfo?.account_name || "Unknown Account";
+      const accountType = accountInfo?.account_type || "Other";
+
+      // Find the account header from level 1 or 2 parent
+      const accountHeader = findAccountHeader(accountCode);
+
+      // Determine report type and section based on account type
+      let reportTypeValue = "Other";
+      let section = "Other";
+
+      if (accountType === "Aset") {
+        reportTypeValue = "Balance Sheet";
+        section = "Assets";
+      } else if (accountType === "Kewajiban") {
+        reportTypeValue = "Balance Sheet";
+        section = "Liabilities";
+      } else if (accountType === "Ekuitas") {
+        reportTypeValue = "Balance Sheet";
+        section = "Equity";
+      } else if (accountType === "Pendapatan") {
+        reportTypeValue = "Profit & Loss";
+        section = "Revenue";
+      } else if (accountType === "Beban Pokok Penjualan") {
+        reportTypeValue = "Profit & Loss";
+        section = "Cost of Goods Sold";
+      } else if (accountType === "Beban Operasional") {
+        reportTypeValue = "Profit & Loss";
+        section = "Operating Expenses";
+      } else if (accountType === "Pendapatan & Beban Lain-lain") {
+        reportTypeValue = "Profit & Loss";
+        section = "Other Income/Expenses";
+      }
+
+      const key = accountCode;
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          report_type: reportTypeValue,
+          section: section,
+          account_header: accountHeader,
+          account_code: accountCode,
+          account_name: accountName,
+          debit_total: 0,
+          credit_total: 0,
+          amount: 0,
+        });
+      }
+
+      const item = grouped.get(key)!;
+      item.debit_total += parseFloat(entry.debit || 0);
+      item.credit_total += parseFloat(entry.credit || 0);
+      item.amount = item.debit_total - item.credit_total;
+    });
+
+    return Array.from(grouped.values());
   };
 
   const applyFilters = () => {
@@ -112,6 +249,62 @@ export default function IntegratedFinancialReport() {
     }
 
     setFilteredData(filtered);
+  };
+
+  const fetchJournalEntries = async () => {
+    setLoadingJournal(true);
+    try {
+      const { data: journalData, error: journalError } = await supabase
+        .from("journal_entries")
+        .select("*")
+        .order("entry_date", { ascending: false });
+
+      if (journalError) {
+        toast({
+          title: "Error",
+          description: `Gagal memuat journal entries: ${journalError.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Fetch COA data to get account names
+      const { data: coaData, error: coaError } = await supabase
+        .from("chart_of_accounts")
+        .select("account_code, account_name");
+
+      if (coaError) {
+        toast({
+          title: "Error",
+          description: `Gagal memuat chart of accounts: ${coaError.message}`,
+          variant: "destructive",
+        });
+        setJournalEntries(journalData || []);
+        return;
+      }
+
+      // Create a map for quick lookup
+      const coaMap = new Map(
+        coaData?.map((coa) => [coa.account_code, coa.account_name]) || []
+      );
+
+      // Enrich journal entries with account names
+      const enrichedEntries = journalData?.map((entry) => ({
+        ...entry,
+        debit_account_name: coaMap.get(entry.debit_account) || entry.debit_account,
+        credit_account_name: coaMap.get(entry.credit_account) || entry.credit_account,
+      })) || [];
+
+      setJournalEntries(enrichedEntries);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Terjadi kesalahan saat memuat journal entries",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingJournal(false);
+    }
   };
 
   const formatRupiah = (amount: number) => {
@@ -136,6 +329,7 @@ export default function IntegratedFinancialReport() {
       [
         "Report Type",
         "Section",
+        "Account Header",
         "Account Code",
         "Account Name",
         "Debit Total",
@@ -145,6 +339,7 @@ export default function IntegratedFinancialReport() {
       ...filteredData.map((item) => [
         item.report_type,
         item.section,
+        item.account_header,
         item.account_code,
         item.account_name,
         item.debit_total,
@@ -314,6 +509,7 @@ export default function IntegratedFinancialReport() {
                     <TableRow className="bg-gray-100">
                       <TableHead>Report Type</TableHead>
                       <TableHead>Section</TableHead>
+                      <TableHead>Account Header</TableHead>
                       <TableHead>Account Code</TableHead>
                       <TableHead>Account Name</TableHead>
                       <TableHead className="text-right">Debit Total</TableHead>
@@ -325,7 +521,7 @@ export default function IntegratedFinancialReport() {
                     {filteredData.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={7}
+                          colSpan={8}
                           className="text-center py-8 text-gray-500"
                         >
                           Tidak ada data
@@ -342,6 +538,9 @@ export default function IntegratedFinancialReport() {
                           <TableCell className="font-medium">
                             {item.section}
                           </TableCell>
+                          <TableCell className="font-medium">
+                            {item.account_header}
+                          </TableCell>
                           <TableCell className="font-mono">
                             {item.account_code}
                           </TableCell>
@@ -357,6 +556,104 @@ export default function IntegratedFinancialReport() {
                           </TableCell>
                         </TableRow>
                       ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Journal Entries Table */}
+      <Card className="max-w-7xl mx-auto rounded-2xl shadow-md mt-6">
+        <CardHeader className="p-4">
+          <CardTitle className="text-2xl">Journal Entries</CardTitle>
+          <CardDescription>Data Journal Entries</CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
+          {loadingJournal ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">
+                  Data Journal Entries ({journalEntries.length} entries)
+                </h3>
+              </div>
+
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-100">
+                      <TableHead>Kode Akun</TableHead>
+                      <TableHead>Nama Akun</TableHead>
+                      <TableHead className="text-right">Debit</TableHead>
+                      <TableHead className="text-right">Kredit</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {journalEntries.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="text-center py-8 text-gray-500"
+                        >
+                          Tidak ada data
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      journalEntries.map((entry) => (
+                        <>
+                          <TableRow key={`${entry.id}-debit`}>
+                            <TableCell className="font-mono">
+                              {entry.debit_account}
+                            </TableCell>
+                            <TableCell>
+                              {entry.debit_account_name || "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              {formatRupiah(entry.debit || 0)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              -
+                            </TableCell>
+                          </TableRow>
+                          <TableRow key={`${entry.id}-credit`}>
+                            <TableCell className="font-mono">
+                              {entry.credit_account}
+                            </TableCell>
+                            <TableCell>
+                              {entry.credit_account_name || "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              -
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              {formatRupiah(entry.credit || 0)}
+                            </TableCell>
+                          </TableRow>
+                        </>
+                      ))
+                    )}
+                    {journalEntries.length > 0 && (
+                      <TableRow className="bg-gray-100 font-bold border-t-2 border-gray-300">
+                        <TableCell colSpan={2} className="text-right">
+                          Total
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatRupiah(
+                            journalEntries.reduce((sum, entry) => sum + (entry.debit || 0), 0)
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatRupiah(
+                            journalEntries.reduce((sum, entry) => sum + (entry.credit || 0), 0)
+                          )}
+                        </TableCell>
+                      </TableRow>
                     )}
                   </TableBody>
                 </Table>

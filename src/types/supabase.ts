@@ -912,6 +912,12 @@ export type Database = {
       }
       cash_and_bank_receipts: {
         Row: {
+          account_code: string | null
+          account_code_credit: string | null
+          account_name: string | null
+          account_name_credit: string | null
+          account_type: string | null
+          account_type_credit: string | null
           amount: number
           approval_status: string | null
           approved_at: string | null
@@ -925,7 +931,9 @@ export type Database = {
           description: string | null
           id: string
           journal_ref: string | null
+          nama_penerima: string | null
           ocr_data: Json | null
+          ocr_id: string | null
           payment_method: string | null
           reference_number: string | null
           source_destination: string | null
@@ -934,6 +942,12 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          account_code?: string | null
+          account_code_credit?: string | null
+          account_name?: string | null
+          account_name_credit?: string | null
+          account_type?: string | null
+          account_type_credit?: string | null
           amount: number
           approval_status?: string | null
           approved_at?: string | null
@@ -947,7 +961,9 @@ export type Database = {
           description?: string | null
           id?: string
           journal_ref?: string | null
+          nama_penerima?: string | null
           ocr_data?: Json | null
+          ocr_id?: string | null
           payment_method?: string | null
           reference_number?: string | null
           source_destination?: string | null
@@ -956,6 +972,12 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          account_code?: string | null
+          account_code_credit?: string | null
+          account_name?: string | null
+          account_name_credit?: string | null
+          account_type?: string | null
+          account_type_credit?: string | null
           amount?: number
           approval_status?: string | null
           approved_at?: string | null
@@ -969,7 +991,9 @@ export type Database = {
           description?: string | null
           id?: string
           journal_ref?: string | null
+          nama_penerima?: string | null
           ocr_data?: Json | null
+          ocr_id?: string | null
           payment_method?: string | null
           reference_number?: string | null
           source_destination?: string | null
@@ -982,41 +1006,36 @@ export type Database = {
       cash_disbursement: {
         Row: {
           account_code: string | null
+          account_name: string | null
           amount: number
           approval_status: string | null
           approved_at: string | null
           approved_by: string | null
           attachment_url: string | null
           bank_account: string | null
-          bank_account_id: string | null
           bukti: string | null
-          cash_account_id: string | null
           category: string | null
           coa_cash_code: string | null
           coa_expense_code: string | null
+          coa_id: string | null
           cost_center_id: string | null
           created_at: string | null
           created_by: string | null
           currency_code: string | null
           description: string
-          disbursement_type: string | null
           document_number: string | null
-          employee_name: string | null
           evidence_url: string | null
           exchange_rate: number | null
-          external_reference: string | null
           id: string
-          journal_id: string | null
           journal_ref: string | null
-          keterangan: string | null
           normalized_amount: number | null
           notes: string | null
           ocr_data: Json | null
+          ocr_id: string | null
           payee_name: string
           payment_method: string
           rejection_reason: string | null
           status: string | null
-          tanggal: string | null
           tax_amount: number | null
           tax_code: string | null
           tax_type: string | null
@@ -1025,41 +1044,36 @@ export type Database = {
         }
         Insert: {
           account_code?: string | null
+          account_name?: string | null
           amount: number
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
           attachment_url?: string | null
           bank_account?: string | null
-          bank_account_id?: string | null
           bukti?: string | null
-          cash_account_id?: string | null
           category?: string | null
           coa_cash_code?: string | null
           coa_expense_code?: string | null
+          coa_id?: string | null
           cost_center_id?: string | null
           created_at?: string | null
           created_by?: string | null
           currency_code?: string | null
           description: string
-          disbursement_type?: string | null
           document_number?: string | null
-          employee_name?: string | null
           evidence_url?: string | null
           exchange_rate?: number | null
-          external_reference?: string | null
           id?: string
-          journal_id?: string | null
           journal_ref?: string | null
-          keterangan?: string | null
           normalized_amount?: number | null
           notes?: string | null
           ocr_data?: Json | null
+          ocr_id?: string | null
           payee_name: string
           payment_method: string
           rejection_reason?: string | null
           status?: string | null
-          tanggal?: string | null
           tax_amount?: number | null
           tax_code?: string | null
           tax_type?: string | null
@@ -1068,41 +1082,36 @@ export type Database = {
         }
         Update: {
           account_code?: string | null
+          account_name?: string | null
           amount?: number
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
           attachment_url?: string | null
           bank_account?: string | null
-          bank_account_id?: string | null
           bukti?: string | null
-          cash_account_id?: string | null
           category?: string | null
           coa_cash_code?: string | null
           coa_expense_code?: string | null
+          coa_id?: string | null
           cost_center_id?: string | null
           created_at?: string | null
           created_by?: string | null
           currency_code?: string | null
           description?: string
-          disbursement_type?: string | null
           document_number?: string | null
-          employee_name?: string | null
           evidence_url?: string | null
           exchange_rate?: number | null
-          external_reference?: string | null
           id?: string
-          journal_id?: string | null
           journal_ref?: string | null
-          keterangan?: string | null
           normalized_amount?: number | null
           notes?: string | null
           ocr_data?: Json | null
+          ocr_id?: string | null
           payee_name?: string
           payment_method?: string
           rejection_reason?: string | null
           status?: string | null
-          tanggal?: string | null
           tax_amount?: number | null
           tax_code?: string | null
           tax_type?: string | null
@@ -1166,92 +1175,7 @@ export type Database = {
           transaction_type?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_contra"
-            columns: ["coa_contra_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_contra"
-            columns: ["coa_contra_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_contra"
-            columns: ["coa_contra_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_contra"
-            columns: ["coa_contra_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_contra"
-            columns: ["coa_contra_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_contra"
-            columns: ["coa_contra_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-        ]
+        Relationships: []
       }
       chart_of_accounts: {
         Row: {
@@ -1269,9 +1193,10 @@ export type Database = {
           is_header: boolean | null
           jenis_layanan: string | null
           kategori_layanan: string | null
-          level: number
-          normal_balance: string | null
+          level: number | null
+          normal_balance: string
           parent_code: string | null
+          status: string | null
           trans_type: string | null
           updated_at: string | null
           usage_role: string | null
@@ -1291,9 +1216,10 @@ export type Database = {
           is_header?: boolean | null
           jenis_layanan?: string | null
           kategori_layanan?: string | null
-          level?: number
-          normal_balance?: string | null
+          level?: number | null
+          normal_balance?: string
           parent_code?: string | null
+          status?: string | null
           trans_type?: string | null
           updated_at?: string | null
           usage_role?: string | null
@@ -1313,9 +1239,10 @@ export type Database = {
           is_header?: boolean | null
           jenis_layanan?: string | null
           kategori_layanan?: string | null
-          level?: number
-          normal_balance?: string | null
+          level?: number | null
+          normal_balance?: string
           parent_code?: string | null
+          status?: string | null
           trans_type?: string | null
           updated_at?: string | null
           usage_role?: string | null
@@ -2433,6 +2360,212 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_advance_returns: {
+        Row: {
+          advance_id: string | null
+          amount: number
+          created_at: string | null
+          created_by: string | null
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          payment_method: string | null
+          return_date: string
+        }
+        Insert: {
+          advance_id?: string | null
+          amount: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          return_date?: string
+        }
+        Update: {
+          advance_id?: string | null
+          amount?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          return_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_advance_returns_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "employee_advances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_advance_returns_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "vw_employee_advance_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_advance_returns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_advance_settlements: {
+        Row: {
+          advance_id: string | null
+          amount: number
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          expense_account_code: string
+          expense_account_name: string | null
+          file_url: string | null
+          id: string
+          journal_entry_id: string | null
+          merchant: string | null
+          ocr_data: Json | null
+          ppn: number | null
+          receipt_number: string | null
+          settlement_date: string
+          total: number
+          updated_at: string | null
+        }
+        Insert: {
+          advance_id?: string | null
+          amount: number
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          expense_account_code: string
+          expense_account_name?: string | null
+          file_url?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          merchant?: string | null
+          ocr_data?: Json | null
+          ppn?: number | null
+          receipt_number?: string | null
+          settlement_date?: string
+          total: number
+          updated_at?: string | null
+        }
+        Update: {
+          advance_id?: string | null
+          amount?: number
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          expense_account_code?: string
+          expense_account_name?: string | null
+          file_url?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          merchant?: string | null
+          ocr_data?: Json | null
+          ppn?: number | null
+          receipt_number?: string | null
+          settlement_date?: string
+          total?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_advance_settlements_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "employee_advances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_advance_settlements_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "vw_employee_advance_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_advance_settlements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_advances: {
+        Row: {
+          advance_date: string
+          advance_number: string
+          amount: number
+          coa_account_code: string
+          created_at: string | null
+          created_by: string | null
+          employee_id: string | null
+          employee_name: string
+          id: string
+          notes: string | null
+          remaining_balance: number
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          advance_date?: string
+          advance_number: string
+          amount: number
+          coa_account_code: string
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string | null
+          employee_name: string
+          id?: string
+          notes?: string | null
+          remaining_balance: number
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          advance_date?: string
+          advance_number?: string
+          amount?: number
+          coa_account_code?: string
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string | null
+          employee_name?: string
+          id?: string
+          notes?: string | null
+          remaining_balance?: number
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_advances_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_advances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_documents: {
         Row: {
           created_at: string | null
@@ -3193,128 +3326,88 @@ export type Database = {
       }
       general_ledger: {
         Row: {
+          account_code: string | null
+          account_id: string | null
+          account_name: string | null
+          Account_name: string | null
+          account_type: string | null
           created_at: string | null
           credit: number | null
           credit_account: string | null
           date: string | null
           debit: number | null
-          debit_account: string
+          debit_account: string | null
           description: string | null
           id: string
           journal_entry_id: string | null
+          journal_id: string | null
           journal_number: number | null
+          parent_id: string | null
+          status: string | null
+          transaction_date: string | null
+          type: string | null
           updated_at: string | null
         }
         Insert: {
+          account_code?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          Account_name?: string | null
+          account_type?: string | null
           created_at?: string | null
           credit?: number | null
           credit_account?: string | null
           date?: string | null
           debit?: number | null
-          debit_account: string
+          debit_account?: string | null
           description?: string | null
           id?: string
           journal_entry_id?: string | null
+          journal_id?: string | null
           journal_number?: number | null
+          parent_id?: string | null
+          status?: string | null
+          transaction_date?: string | null
+          type?: string | null
           updated_at?: string | null
         }
         Update: {
+          account_code?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          Account_name?: string | null
+          account_type?: string | null
           created_at?: string | null
           credit?: number | null
           credit_account?: string | null
           date?: string | null
           debit?: number | null
-          debit_account?: string
+          debit_account?: string | null
           description?: string | null
           id?: string
           journal_entry_id?: string | null
+          journal_id?: string | null
           journal_number?: number | null
+          parent_id?: string | null
+          status?: string | null
+          transaction_date?: string | null
+          type?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_gl_credit_account"
-            columns: ["credit_account"]
+            foreignKeyName: "fk_gl_journal"
+            columns: ["journal_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_gl_credit_account"
-            columns: ["credit_account"]
+            foreignKeyName: "fk_gl_journal"
+            columns: ["journal_id"]
             isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_gl_credit_account"
-            columns: ["credit_account"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_gl_credit_account"
-            columns: ["credit_account"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_gl_credit_account"
-            columns: ["credit_account"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_gl_credit_account"
-            columns: ["credit_account"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_gl_debit_account"
-            columns: ["debit_account"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_gl_debit_account"
-            columns: ["debit_account"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_gl_debit_account"
-            columns: ["debit_account"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_gl_debit_account"
-            columns: ["debit_account"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_gl_debit_account"
-            columns: ["debit_account"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_gl_debit_account"
-            columns: ["debit_account"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
+            referencedRelation: "vw_cash_flow_report"
+            referencedColumns: ["journal_entry_id"]
           },
           {
             foreignKeyName: "general_ledger_journal_entry_id_fkey"
@@ -3824,6 +3917,7 @@ export type Database = {
       journal_entries: {
         Row: {
           account_code: string | null
+          account_id: string | null
           account_name: string | null
           account_number: string | null
           account_type: string | null
@@ -3868,6 +3962,7 @@ export type Database = {
         }
         Insert: {
           account_code?: string | null
+          account_id?: string | null
           account_name?: string | null
           account_number?: string | null
           account_type?: string | null
@@ -3912,6 +4007,7 @@ export type Database = {
         }
         Update: {
           account_code?: string | null
+          account_id?: string | null
           account_name?: string | null
           account_number?: string | null
           account_type?: string | null
@@ -3955,6 +4051,20 @@ export type Database = {
           vehicle_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_account_code"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fk_je_account"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
           {
             foreignKeyName: "fk_journal_stock_adj"
             columns: ["stock_adjustment_id"]
@@ -4029,6 +4139,7 @@ export type Database = {
       journal_entry_lines: {
         Row: {
           account_code: string
+          account_id: string | null
           account_name: string | null
           created_at: string | null
           credit: number | null
@@ -4039,6 +4150,7 @@ export type Database = {
         }
         Insert: {
           account_code: string
+          account_id?: string | null
           account_name?: string | null
           created_at?: string | null
           credit?: number | null
@@ -4049,6 +4161,7 @@ export type Database = {
         }
         Update: {
           account_code?: string
+          account_id?: string | null
           account_name?: string | null
           created_at?: string | null
           credit?: number | null
@@ -4083,17 +4196,15 @@ export type Database = {
           approved_by: string | null
           bukti: string | null
           bukti_url: string | null
-          created_at: string
+          created_at: string | null
+          created_by: string | null
           document_number: string
           employee_id: string | null
-          employee_name: string | null
+          entity_id: string | null
           id: string
           keterangan: string | null
           nominal: number
-          nominal_signed: number | null
-          ocr_data: Json | null
           payment_type: string
-          quantity: number | null
           rejection_reason: string | null
           service_category: string | null
           service_type: string | null
@@ -4101,7 +4212,7 @@ export type Database = {
           tax_amount: number | null
           tax_percentage: number | null
           tax_type: string | null
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           account_name: string
@@ -4111,17 +4222,15 @@ export type Database = {
           approved_by?: string | null
           bukti?: string | null
           bukti_url?: string | null
-          created_at?: string
-          document_number?: string
+          created_at?: string | null
+          created_by?: string | null
+          document_number: string
           employee_id?: string | null
-          employee_name?: string | null
+          entity_id?: string | null
           id?: string
           keterangan?: string | null
           nominal: number
-          nominal_signed?: number | null
-          ocr_data?: Json | null
           payment_type: string
-          quantity?: number | null
           rejection_reason?: string | null
           service_category?: string | null
           service_type?: string | null
@@ -4129,7 +4238,7 @@ export type Database = {
           tax_amount?: number | null
           tax_percentage?: number | null
           tax_type?: string | null
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           account_name?: string
@@ -4139,17 +4248,15 @@ export type Database = {
           approved_by?: string | null
           bukti?: string | null
           bukti_url?: string | null
-          created_at?: string
+          created_at?: string | null
+          created_by?: string | null
           document_number?: string
           employee_id?: string | null
-          employee_name?: string | null
+          entity_id?: string | null
           id?: string
           keterangan?: string | null
           nominal?: number
-          nominal_signed?: number | null
-          ocr_data?: Json | null
           payment_type?: string
-          quantity?: number | null
           rejection_reason?: string | null
           service_category?: string | null
           service_type?: string | null
@@ -4157,7 +4264,7 @@ export type Database = {
           tax_amount?: number | null
           tax_percentage?: number | null
           tax_type?: string | null
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -4671,132 +4778,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "borrowers"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
           },
         ]
       }
@@ -5636,6 +5617,8 @@ export type Database = {
       }
       purchase_transactions: {
         Row: {
+          account_code: string | null
+          account_name: string | null
           approval_status: string | null
           approved_at: string | null
           approved_by: string | null
@@ -5672,6 +5655,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          account_code?: string | null
+          account_name?: string | null
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
@@ -5708,6 +5693,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          account_code?: string | null
+          account_name?: string | null
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
@@ -5744,216 +5731,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_expense"
-            columns: ["coa_expense_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_expense"
-            columns: ["coa_expense_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_expense"
-            columns: ["coa_expense_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_expense"
-            columns: ["coa_expense_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_expense"
-            columns: ["coa_expense_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_expense"
-            columns: ["coa_expense_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_inventory"
-            columns: ["coa_inventory_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_inventory"
-            columns: ["coa_inventory_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_inventory"
-            columns: ["coa_inventory_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_inventory"
-            columns: ["coa_inventory_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_inventory"
-            columns: ["coa_inventory_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_inventory"
-            columns: ["coa_inventory_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_payable"
-            columns: ["coa_payable_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_payable"
-            columns: ["coa_payable_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_payable"
-            columns: ["coa_payable_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_payable"
-            columns: ["coa_payable_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_payable"
-            columns: ["coa_payable_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_payable"
-            columns: ["coa_payable_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_tax"
-            columns: ["coa_tax_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_tax"
-            columns: ["coa_tax_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_tax"
-            columns: ["coa_tax_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_tax"
-            columns: ["coa_tax_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_tax"
-            columns: ["coa_tax_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_tax"
-            columns: ["coa_tax_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
           {
             foreignKeyName: "purchase_transactions_item_id_fkey"
             columns: ["item_id"]
@@ -6081,6 +5858,8 @@ export type Database = {
       }
       sales_transactions: {
         Row: {
+          account_code: string | null
+          account_name: string | null
           approval_status: string | null
           brand: string | null
           bukti: string | null
@@ -6122,6 +5901,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          account_code?: string | null
+          account_name?: string | null
           approval_status?: string | null
           brand?: string | null
           bukti?: string | null
@@ -6163,6 +5944,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          account_code?: string | null
+          account_name?: string | null
           approval_status?: string | null
           brand?: string | null
           bukti?: string | null
@@ -6293,50 +6076,7 @@ export type Database = {
           unit?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "service_items_coa_account_code_fkey"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "service_items_coa_account_code_fkey"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "service_items_coa_account_code_fkey"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "service_items_coa_account_code_fkey"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "service_items_coa_account_code_fkey"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "service_items_coa_account_code_fkey"
-            columns: ["coa_account_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-        ]
+        Relationships: []
       }
       service_purchase: {
         Row: {
@@ -6988,13 +6728,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "stock_balances_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "stock_balances_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -7586,50 +7319,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_coa_selected"
-            columns: ["coa_selected"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_selected"
-            columns: ["coa_selected"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_selected"
-            columns: ["coa_selected"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_selected"
-            columns: ["coa_selected"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_selected"
-            columns: ["coa_selected"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_selected"
-            columns: ["coa_selected"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-        ]
+        Relationships: []
       }
       trial_balance: {
         Row: {
@@ -8752,16 +8442,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_coa_accounts_by_service: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          description: string | null
-          jenis_layanan: string | null
-          kategori_layanan: string | null
-        }
-        Relationships: []
-      }
       vw_customers: {
         Row: {
           address: string | null
@@ -8786,58 +8466,33 @@ export type Database = {
           },
         ]
       }
-      vw_dashboard_summary: {
+      vw_employee_advance_summary: {
         Row: {
-          amount: number | null
-          category: string | null
-          credit_total: number | null
-          debit_total: number | null
-          entry_date: string | null
-          month: number | null
-          year: number | null
+          advance_amount: number | null
+          advance_date: string | null
+          advance_number: string | null
+          coa_account_code: string | null
+          created_at: string | null
+          employee_id: string | null
+          employee_name: string | null
+          id: string | null
+          remaining_balance: number | null
+          return_count: number | null
+          settlement_count: number | null
+          status: string | null
+          total_returned: number | null
+          total_settled: number | null
+          updated_at: string | null
         }
-        Relationships: []
-      }
-      vw_financial_report_from_journal_entries: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          account_type: string | null
-          amount: number | null
-          credit_total: number | null
-          debit_total: number | null
-          entry_date: string | null
-        }
-        Relationships: []
-      }
-      vw_laba_rugi_detail: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          account_type: string | null
-          credit_total: number | null
-          debit_total: number | null
-          display_amount: number | null
-          period_month: string | null
-          transaction_date: string | null
-        }
-        Relationships: []
-      }
-      vw_laporan_keuangan: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          account_type: string | null
-          amount: number | null
-          credit_total: number | null
-          debit_total: number | null
-          normal_balance: string | null
-          period_month: string | null
-          report_type: string | null
-          section: string | null
-          transaction_date: string | null
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employee_advances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_loan_summary: {
         Row: {
@@ -8930,145 +8585,6 @@ export type Database = {
           total_principal_dibayar?: never
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_cash"
-            columns: ["coa_cash_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_interest"
-            columns: ["coa_interest_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "vw_coa_accounts_by_service"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laba_rugi_detail"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "vw_laporan_keuangan"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_from_journal"
-            referencedColumns: ["account_code"]
-          },
-          {
-            foreignKeyName: "fk_coa_loan"
-            columns: ["coa_loan_code"]
-            isOneToOne: false
-            referencedRelation: "vw_trial_balance_per_account"
-            referencedColumns: ["account_code"]
-          },
-        ]
-      }
-      vw_profit_and_loss: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          account_type: string | null
-          balance: number | null
-          credit: number | null
-          debit: number | null
-          entry_date: string | null
-        }
         Relationships: []
       }
       vw_purchase_requests: {
@@ -9095,29 +8611,6 @@ export type Database = {
           request_date?: never
           status?: string | null
           total_amount?: number | null
-        }
-        Relationships: []
-      }
-      vw_trial_balance_from_journal: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          account_type: string | null
-          credit: number | null
-          debit: number | null
-          entry_date: string | null
-        }
-        Relationships: []
-      }
-      vw_trial_balance_per_account: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          account_type: string | null
-          balance: number | null
-          entry_date: string | null
-          total_credit: number | null
-          total_debit: number | null
         }
         Relationships: []
       }
@@ -9168,6 +8661,14 @@ export type Database = {
         Args: { p_disbursement_id: string }
         Returns: undefined
       }
+      balance_sheet: {
+        Args: { report_date: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          amount: number
+        }[]
+      }
       calculate_late_fee:
         | {
             Args: {
@@ -9191,6 +8692,15 @@ export type Database = {
         Returns: number
       }
       cancel_journal: { Args: { p_journal_id: string }; Returns: string }
+      cash_flow_statement: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          amount: number
+          section: string
+        }[]
+      }
       check_availability: {
         Args: { e: string; f_id: string; s: string }
         Returns: boolean
@@ -9219,6 +8729,7 @@ export type Database = {
       }
       fn_update_coa_balance: { Args: never; Returns: undefined }
       gen_stock_code: { Args: never; Returns: string }
+      generate_advance_number: { Args: never; Returns: string }
       generate_booking_reference: { Args: never; Returns: string }
       generate_contract_number: { Args: never; Returns: string }
       generate_employee_number: { Args: never; Returns: string }
@@ -9250,6 +8761,28 @@ export type Database = {
           account_code: string
           total_credit: number
           total_debit: number
+        }[]
+      }
+      get_account_coa: {
+        Args: { p_account_id: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          account_type: string
+          id: string
+          level: number
+          normal_balance: string
+        }[]
+      }
+      get_account_coa_by_code: {
+        Args: { p_account_code: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          account_type: string
+          id: string
+          level: number
+          normal_balance: string
         }[]
       }
       get_balance_sheet: {
@@ -9291,6 +8824,32 @@ export type Database = {
       }
       get_hari_di_gudang: { Args: { tanggal_masuk: string }; Returns: number }
       get_hari_di_lini: { Args: { tanggal_masuk: string }; Returns: number }
+      get_journal_entries_with_coa: {
+        Args: {
+          p_account_code?: string
+          p_account_id?: string
+          p_end_date?: string
+          p_start_date?: string
+        }
+        Returns: {
+          account_code: string
+          account_id: string
+          account_name: string
+          account_type: string
+          created_at: string
+          credit: number
+          date: string
+          debit: number
+          description: string
+          id: string
+          journal_entry_id: string
+          normal_balance: string
+        }[]
+      }
+      get_or_create_employee_advance_coa: {
+        Args: { p_employee_id: string; p_employee_name: string }
+        Returns: string
+      }
       get_product_reference: {
         Args: { p_brand?: string; p_item_name: string }
         Returns: {
@@ -9335,6 +8894,14 @@ export type Database = {
       get_user_department: { Args: never; Returns: string }
       get_user_employee_id: { Args: never; Returns: string }
       get_user_role: { Args: never; Returns: string }
+      income_statement: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          amount: number
+        }[]
+      }
       insert_journal_entries: { Args: { entries: Json }; Returns: undefined }
       kas_autonumber: { Args: never; Returns: string }
       match_documents: {
@@ -9398,6 +8965,16 @@ export type Database = {
           }
       reverse_journal: { Args: { journal_id: string }; Returns: undefined }
       set_app_user: { Args: { uid: string }; Returns: undefined }
+      trial_balance: {
+        Args: { report_date: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          balance: number
+          credit: number
+          debit: number
+        }[]
+      }
     }
     Enums: {
       airwaybill_status:

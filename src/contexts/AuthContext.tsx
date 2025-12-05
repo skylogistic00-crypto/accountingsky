@@ -241,13 +241,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) {
       console.error("Sign up edge function error:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
       throw new Error(error.message || "Failed to create account");
     }
     
     // Check if data contains error from edge function
     if (data && data.error) {
       console.error("Sign up error from edge function:", data.error);
-      throw new Error(data.error + (data.details ? `: ${data.details}` : ""));
+      console.error("Error details from edge function:", data.details ? JSON.stringify(data.details, null, 2) : "No details");
+      const detailsStr = data.details ? ` - Details: ${JSON.stringify(data.details)}` : "";
+      throw new Error(data.error + detailsStr);
     }
     
     return data;

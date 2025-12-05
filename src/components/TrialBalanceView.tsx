@@ -14,8 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Download } from "lucide-react";
 
 interface TrialBalanceEntry {
+  account_id?: string;
   account_code: string;
   account_name: string;
+  account_type?: string;
   debit_total: number;
   credit_total: number;
   balance: number;
@@ -35,16 +37,17 @@ export default function TrialBalanceView() {
   const fetchTrialBalance = async () => {
     setLoading(true);
 
+    // Use the view_general_ledger which has complete COA details
     let query = supabase
-      .from("journal_entries")
-      .select("account_code, account_name, debit, credit, transaction_date");
+      .from("view_general_ledger")
+      .select("account_id, account_code, account_name, account_type, debit, credit, date");
 
     if (startDate) {
-      query = query.gte("transaction_date", startDate);
+      query = query.gte("date", startDate);
     }
 
     if (endDate) {
-      query = query.lte("transaction_date", endDate);
+      query = query.lte("date", endDate);
     }
 
     const { data, error } = await query;
@@ -61,8 +64,10 @@ export default function TrialBalanceView() {
         const key = entry.account_code;
         if (!acc[key]) {
           acc[key] = {
+            account_id: entry.account_id,
             account_code: entry.account_code,
-            account_name: entry.account_name,
+            account_name: entry.account_name || "",
+            account_type: entry.account_type || "",
             debit_total: 0,
             credit_total: 0,
             balance: 0,

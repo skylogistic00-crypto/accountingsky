@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "./ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Plus, Edit, Trash2, Search, Zap } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Zap, Upload, FileSpreadsheet, Loader2 } from "lucide-react";
 import { COA_ENGINE, generateCOAForItem } from "@/lib/coaEngine";
 import { Checkbox } from "./ui/checkbox";
 import Header from "./Header";
@@ -106,6 +106,17 @@ export default function COAManagement() {
     itemCode: "",
   });
   const [isEngineLoading, setIsEngineLoading] = useState(false);
+  
+  // CSV Import states
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    success: boolean;
+    message: string;
+    records_processed?: number;
+    records_skipped?: number;
+    total_coa_rows?: number;
+  } | null>(null);
 
   useEffect(() => {
     fetchCoaAccounts();
@@ -452,12 +463,16 @@ export default function COAManagement() {
           </div>
 
           <Tabs defaultValue="coa" className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-3">
+            <TabsList className="grid w-full max-w-3xl grid-cols-4">
               <TabsTrigger value="coa">Chart of Accounts</TabsTrigger>
               <TabsTrigger value="mapping">Mapping Rules</TabsTrigger>
               <TabsTrigger value="engine">
                 <Zap className="w-4 h-4 mr-2" />
                 COA Engine
+              </TabsTrigger>
+              <TabsTrigger value="import">
+                <Upload className="w-4 h-4 mr-2" />
+                Import CSV
               </TabsTrigger>
             </TabsList>
 
@@ -1343,6 +1358,188 @@ export default function COAManagement() {
                     </Button>
                   </div>
                 </form>
+              </div>
+            </TabsContent>
+
+            {/* Import CSV Tab */}
+            <TabsContent value="import" className="space-y-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold text-slate-800 mb-2 flex items-center gap-2">
+                    <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                    Import COA dari CSV
+                  </h2>
+                  <p className="text-slate-600 text-sm">
+                    Upload file CSV untuk mengimpor data Chart of Accounts secara massal.
+                    Data yang sudah ada akan di-update (UPSERT).
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  {/* CSV Format Info */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="font-medium text-blue-800 mb-2">Format CSV yang Diharapkan:</h3>
+                    <p className="text-sm text-blue-700 mb-2">
+                      File CSV harus memiliki kolom-kolom berikut (header wajib):
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-blue-600">
+                      <span className="bg-blue-100 px-2 py-1 rounded">account_code *</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">account_name *</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">account_type</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">level</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">is_header</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">normal_balance</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">description</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">is_active</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">kategori_layanan</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">jenis_layanan</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">balance</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">current_balance</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">created_by</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">trans_type</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">flow_type</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">usage_role</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">parent_code</span>
+                      <span className="bg-blue-100 px-2 py-1 rounded">status</span>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-2">* Kolom wajib diisi</p>
+                  </div>
+
+                  {/* File Upload */}
+                  <div className="space-y-2">
+                    <Label htmlFor="csv-file">Pilih File CSV</Label>
+                    <Input
+                      id="csv-file"
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        setCsvFile(file || null);
+                        setImportResult(null);
+                      }}
+                      className="cursor-pointer"
+                    />
+                    {csvFile && (
+                      <p className="text-sm text-slate-600">
+                        File dipilih: <span className="font-medium">{csvFile.name}</span> ({(csvFile.size / 1024).toFixed(2)} KB)
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Import Button */}
+                  <Button
+                    onClick={async () => {
+                      if (!csvFile) {
+                        toast({
+                          title: "Error",
+                          description: "Pilih file CSV terlebih dahulu",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
+                      setIsImporting(true);
+                      setImportResult(null);
+
+                      try {
+                        // Parse CSV file
+                        const text = await csvFile.text();
+                        const lines = text.split("\n").filter(line => line.trim());
+                        
+                        if (lines.length < 2) {
+                          throw new Error("File CSV kosong atau tidak memiliki data");
+                        }
+
+                        // Parse header
+                        const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/"/g, ""));
+                        
+                        // Parse data rows
+                        const csvData = [];
+                        for (let i = 1; i < lines.length; i++) {
+                          const values = lines[i].split(",").map(v => v.trim().replace(/"/g, ""));
+                          if (values.length >= 2) {
+                            const row: Record<string, string> = {};
+                            headers.forEach((header, index) => {
+                              row[header] = values[index] || "";
+                            });
+                            csvData.push(row);
+                          }
+                        }
+
+                        if (csvData.length === 0) {
+                          throw new Error("Tidak ada data valid dalam file CSV");
+                        }
+
+                        // Call Edge Function
+                        const { data, error } = await supabase.functions.invoke(
+                          "supabase-functions-import-coa-csv",
+                          {
+                            body: { csv_data: csvData },
+                          }
+                        );
+
+                        if (error) throw error;
+
+                        setImportResult(data);
+                        
+                        if (data.success) {
+                          toast({
+                            title: "Berhasil",
+                            description: `${data.records_processed} record berhasil diimpor`,
+                          });
+                          fetchCoaAccounts();
+                        } else {
+                          throw new Error(data.error || "Import gagal");
+                        }
+                      } catch (error: any) {
+                        console.error("Import error:", error);
+                        setImportResult({
+                          success: false,
+                          message: error.message || "Terjadi kesalahan saat import",
+                        });
+                        toast({
+                          title: "Error",
+                          description: error.message || "Gagal mengimpor data COA",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsImporting(false);
+                      }
+                    }}
+                    disabled={!csvFile || isImporting}
+                    className="w-full"
+                  >
+                    {isImporting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Mengimpor...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Import CSV
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Import Result */}
+                  {importResult && (
+                    <div className={`p-4 rounded-lg ${importResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+                      <h3 className={`font-medium mb-2 ${importResult.success ? "text-green-800" : "text-red-800"}`}>
+                        {importResult.success ? "✅ Import Berhasil" : "❌ Import Gagal"}
+                      </h3>
+                      {importResult.success ? (
+                        <div className="text-sm text-green-700 space-y-1">
+                          <p>Record diproses: <span className="font-medium">{importResult.records_processed}</span></p>
+                          <p>Record dilewati: <span className="font-medium">{importResult.records_skipped}</span></p>
+                          <p>Total COA di database: <span className="font-medium">{importResult.total_coa_rows}</span></p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-red-700">{importResult.message}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </TabsContent>
           </Tabs>

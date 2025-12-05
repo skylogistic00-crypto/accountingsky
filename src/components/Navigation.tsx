@@ -273,6 +273,13 @@ export default function Navigation() {
       roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
+      path: "/employee-advance",
+      label: "Uang Muka Karyawan",
+      icon: DollarSign,
+      color: "blue",
+      roles: ["super_admin", "admin", "finance", "accounting_manager", "accounting_staff"],
+    },
+    {
       path: "/cash-disbursement",
       label: "Pengeluaran Kas",
       icon: DollarSign,

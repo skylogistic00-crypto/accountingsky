@@ -18,7 +18,20 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Check, ChevronsUpDown } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface GeneralLedgerEntry {
   transaction_date: string;
@@ -38,6 +51,8 @@ export default function GeneralLedgerView() {
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [open, setOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   useEffect(() => {
     fetchAccounts();
@@ -63,20 +78,20 @@ export default function GeneralLedgerView() {
     setLoading(true);
 
     let query = supabase
-      .from("journal_entries")
+      .from("view_general_ledger")
       .select("*")
-      .order("transaction_date", { ascending: true });
+      .order("date", { ascending: true });
 
     if (selectedAccount !== "all") {
       query = query.eq("account_code", selectedAccount);
     }
 
     if (startDate) {
-      query = query.gte("transaction_date", startDate);
+      query = query.gte("date", startDate);
     }
 
     if (endDate) {
-      query = query.lte("transaction_date", endDate);
+      query = query.lte("date", endDate);
     }
 
     const { data, error } = await query;
@@ -94,10 +109,11 @@ export default function GeneralLedgerView() {
       const entriesWithBalance = (data || []).map((entry: any) => {
         balance += (entry.debit || 0) - (entry.credit || 0);
         return {
-          transaction_date: entry.transaction_date,
+          transaction_date: entry.date,
           description: entry.description,
           account_code: entry.account_code,
-          account_name: entry.account_name,
+          account_name: entry.account_name || "",
+          account_type: entry.account_type || "",
           debit: entry.debit || 0,
           credit: entry.credit || 0,
           balance,
@@ -146,19 +162,96 @@ export default function GeneralLedgerView() {
           <label className="text-sm font-medium text-slate-700 mb-2 block">
             Akun
           </label>
-          <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-            <SelectTrigger>
-              <SelectValue placeholder="Pilih Akun" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Akun</SelectItem>
-              {accounts.filter((acc) => acc.account_code).map((acc) => (
-                <SelectItem key={acc.account_code} value={acc.account_code}>
-                  {acc.account_code} - {acc.account_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between"
+              >
+                {selectedAccount === "all"
+                  ? "Semua Akun"
+                  : accounts.find((acc) => acc.account_code === selectedAccount)
+                  ? `${accounts.find((acc) => acc.account_code === selectedAccount)?.account_code} - ${accounts.find((acc) => acc.account_code === selectedAccount)?.account_name}`
+                  : "Pilih Akun"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[400px] p-0">
+              <div className="p-2">
+                <Input
+                  placeholder="Ketik kode atau nama akun..."
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  className="mb-2"
+                />
+                <div className="max-h-[300px] overflow-auto">
+                  <div
+                    className="flex items-center px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                    onClick={() => {
+                      setSelectedAccount("all");
+                      setSearchValue("");
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedAccount === "all" ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    Semua Akun
+                  </div>
+                  {Array.isArray(accounts) &&
+                    accounts
+                      .filter((acc) => 
+                        acc && 
+                        acc.account_code && 
+                        (searchValue === "" || 
+                         acc.account_code.toLowerCase().includes(searchValue.toLowerCase()) ||
+                         (acc.account_name && acc.account_name.toLowerCase().includes(searchValue.toLowerCase())))
+                      )
+                      .map((acc) => (
+                        <div
+                          key={acc.account_code}
+                          className="flex items-center px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                          onClick={() => {
+                            setSelectedAccount(acc.account_code);
+                            setSearchValue("");
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedAccount === acc.account_code
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          <div className="flex flex-col">
+                            <span className="font-mono text-sm">{acc.account_code}</span>
+                            <span className="text-xs text-slate-600">{acc.account_name}</span>
+                          </div>
+                        </div>
+                      ))}
+                  {Array.isArray(accounts) &&
+                    accounts.filter((acc) => 
+                      acc && 
+                      acc.account_code && 
+                      (searchValue === "" || 
+                       acc.account_code.toLowerCase().includes(searchValue.toLowerCase()) ||
+                       (acc.account_name && acc.account_name.toLowerCase().includes(searchValue.toLowerCase())))
+                    ).length === 0 && (
+                      <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                        Akun tidak ditemukan.
+                      </div>
+                    )}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div>

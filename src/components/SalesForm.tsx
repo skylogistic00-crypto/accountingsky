@@ -566,6 +566,7 @@ export default function SalesForm() {
               ? formData.coa_account_code
               : null,
           coa_tax_code: formData.tax_amount > 0 ? "2-1250" : null,
+          account_code: formData.payment_method === "Piutang" ? "1-1200" : "1-1100",
           notes: formData.notes,
           created_by: user?.id || "system",
         })

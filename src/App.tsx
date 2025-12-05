@@ -56,6 +56,9 @@ import FloatingChatAI from "@/components/FloatingChatAI";
 import GoogleOCRScanner from "@/components/GoogleOCRScanner";
 import OCRExtractor from "@/pages/OCRExtractor";
 import CheckUserOCRData from "@/components/CheckUserOCRData";
+import EmployeeAdvanceForm from "@/components/EmployeeAdvanceForm";
+import GeneralLedgerView from "@/components/GeneralLedgerView";
+import TrialBalanceView from "@/components/TrialBalanceView";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -460,6 +463,26 @@ function AppRoutesContent() {
         }
       />
       <Route
+        path="/employee-advance"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "admin",
+              "finance",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <EmployeeAdvanceForm />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/cash-disbursement"
         element={
           <ProtectedRoute
@@ -594,6 +617,42 @@ function AppRoutesContent() {
               <Header />
               <Navigation />
               <CashFlowReport />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/general-ledger"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <GeneralLedgerView />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trial-balance"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "super_admin",
+              "accounting_manager",
+              "accounting_staff",
+            ]}
+          >
+            <div className="min-h-screen bg-slate-50">
+              <Header />
+              <Navigation />
+              <TrialBalanceView />
             </div>
           </ProtectedRoute>
         }

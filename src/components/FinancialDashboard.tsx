@@ -12,6 +12,7 @@ import {
   FileText,
   Scale,
   ArrowLeft,
+  BookOpen,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import MonthlyFinanceChart from "./MonthlyFinanceChart";
@@ -19,12 +20,28 @@ import { canClick } from "@/utils/roleAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import TransactionDetailModal from "./TransactionDetailModal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface FinancialSummary {
   totalRevenue: number;
   totalExpense: number;
   netProfit: number;
   totalAssets: number;
+}
+
+interface GeneralLedgerEntry {
+  account_code: string;
+  account_name: string;
+  debit: number;
+  credit: number;
+  saldo: number;
 }
 
 export default function FinancialDashboard() {
@@ -529,6 +546,86 @@ export default function FinancialDashboard() {
                     </CardContent>
                   </Card>
                 </Link>
+              </div>
+
+              {/* Additional Reports Section */}
+              <div className="mt-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  📚 Laporan Detail
+                </h2>
+                <div className="grid md:grid-cols-3 gap-4">
+                  {/* General Ledger */}
+                  <Link
+                    to="/general-ledger"
+                    onClick={(e) => {
+                      if (!canClick(userRole)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300 hover:shadow-lg transition-shadow cursor-pointer h-full">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-orange-800">
+                          General Ledger
+                        </CardTitle>
+                        <BookOpen className="h-5 w-5 text-orange-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-xs text-orange-700">
+                          Buku besar per akun COA
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  {/* Trial Balance */}
+                  <Link
+                    to="/trial-balance"
+                    onClick={(e) => {
+                      if (!canClick(userRole)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-300 hover:shadow-lg transition-shadow cursor-pointer h-full">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-indigo-800">
+                          Trial Balance
+                        </CardTitle>
+                        <Scale className="h-5 w-5 text-indigo-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-xs text-indigo-700">
+                          Neraca saldo per akun
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  {/* COA Management */}
+                  <Link
+                    to="/coa-management"
+                    onClick={(e) => {
+                      if (!canClick(userRole)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-2 border-pink-300 hover:shadow-lg transition-shadow cursor-pointer h-full">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-pink-800">
+                          Chart of Accounts
+                        </CardTitle>
+                        <FileText className="h-5 w-5 text-pink-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-xs text-pink-700">
+                          Kelola akun COA
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </div>
               </div>
             </div>
 
