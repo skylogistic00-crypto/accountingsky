@@ -1,3 +1,86 @@
+// ==============================
+// TRANSACTION CATEGORY DEFINITIONS
+// ==============================
+export const TRANSACTION_CATEGORIES = {
+  Penjualan: {
+    kategori: ["Produk", "Barang Dagang", "Jasa"],
+    jenis: ["Eceran", "Grosir"],
+    source: "sales_transactions",
+    sourceLabelKey: "item_name",
+    sourceValueKey: "id",
+  },
+  Pembelian: {
+    kategori: ["Bahan Baku", "Barang Dagang", "Perlengkapan"],
+    jenis: ["Supplier Utama", "Supplier Cadangan"],
+    source: "purchase_transactions",
+    sourceLabelKey: "item_name",
+    sourceValueKey: "id",
+  },
+  Pendapatan: {
+    kategori: ["Pendapatan Usaha", "Pendapatan Lain"],
+    jenis: ["Tunai", "Transfer"],
+    source: "chart_of_accounts",
+    sourceLabelKey: "account_name",
+    sourceValueKey: "account_code",
+  },
+  Pengeluaran: {
+    kategori: ["Biaya Operasional", "Biaya Lainnya"],
+    jenis: ["Tunai", "Transfer"],
+    source: "chart_of_accounts",
+    sourceLabelKey: "account_name",
+    sourceValueKey: "account_code",
+  },
+  "Transfer Bank": {
+    kategori: ["Kas ke Bank", "Bank ke Kas"],
+    jenis: ["Internal Transfer"],
+    source: "chart_of_accounts",
+    sourceLabelKey: "account_name",
+    sourceValueKey: "account_code",
+  },
+  "Setoran Modal": {
+    kategori: ["Modal Disetor"],
+    jenis: ["Pemilik", "Investor"],
+    source: "chart_of_accounts",
+    sourceLabelKey: "account_name",
+    sourceValueKey: "account_code",
+  },
+  Prive: {
+    kategori: ["Prive Pemilik"],
+    jenis: ["Tunai", "Barang"],
+    source: "chart_of_accounts",
+    sourceLabelKey: "account_name",
+    sourceValueKey: "account_code",
+  },
+  "Pelunasan Piutang": {
+    kategori: ["Piutang Usaha", "Piutang Lainnya"],
+    jenis: ["Tunai", "Transfer"],
+    source: "customers",
+    sourceLabelKey: "customer_name",
+    sourceValueKey: "id",
+  },
+  "Pelunasan Hutang": {
+    kategori: ["Hutang Usaha", "Hutang Lainnya"],
+    jenis: ["Tunai", "Transfer"],
+    source: "suppliers",
+    sourceLabelKey: "supplier_name",
+    sourceValueKey: "id",
+  },
+  "Pinjaman Masuk": {
+    kategori: ["Bank", "Individu", "Perusahaan"],
+    jenis: ["Lump Sum", "Cicilan"],
+    source: "borrowers",
+    sourceLabelKey: "borrower_name",
+    sourceValueKey: "id",
+  },
+  "Pembayaran Pinjaman": {
+    kategori: ["Pelunasan Pokok", "Pembayaran Bunga"],
+    jenis: ["Cicilan", "Lunas"],
+    source: "borrowers",
+    sourceLabelKey: "borrower_name",
+    sourceValueKey: "id",
+  },
+};
+
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -188,29 +271,29 @@ function TransactionReport() {
  * ========================================================================
  * TRANSAKSI KEUANGAN FORM - COMPLETE FINANCIAL TRANSACTION SYSTEM
  * ========================================================================
- * 
+ *
  * FEATURES IMPLEMENTED:
- * 
+ *
  * A. JENIS TRANSAKSI (Transaction Types):
  *    - Penjualan (Sales), Pembelian (Purchase), Pendapatan (Income), Pengeluaran (Expense)
  *    - Transfer Bank, Setoran Modal, Prive, Pelunasan Hutang/Piutang
- * 
+ *
  * B. KATEGORI LAYANAN (Service Categories):
  *    - Freight Forwarding, Customs Clearance, Warehousing, Trucking, Consulting
- * 
+ *
  * C. ITEM TRANSAKSI (Transaction Items):
  *    - Barang (Goods) - linked to stock table
  *    - Jasa (Services) - linked to service_items table
- * 
+ *
  * D. SUPPLIER/CUSTOMER MANAGEMENT:
  *    - Hybrid dropdown (searchable + creatable)
  *    - Auto-save new entries to database
- * 
+ *
  * E. METODE PEMBAYARAN (Payment Methods):
  *    - Cash → Shows Kas account dropdown
  *    - Transfer Bank → Shows Bank account dropdown
  *    - Kredit → Auto-selects Piutang/Hutang accounts
- * 
+ *
  * F. AKUN OTOMATIS BERDASARKAN COA (Automatic COA Account Selection):
  *    - Penjualan Tunai: Debit Kas/Bank → Kredit Pendapatan
  *    - Penjualan Kredit: Debit Piutang → Kredit Pendapatan
@@ -221,15 +304,15 @@ function TransactionReport() {
  *    - Prive: Debit Prive → Kredit Kas/Bank
  *    - Pelunasan Hutang: Debit Hutang → Kredit Kas/Bank
  *    - Pelunasan Piutang: Debit Kas/Bank → Kredit Piutang
- *    - HPP (for Penjualan Barang): Debit HPP → Kredit Persediaan
- * 
+ *    - HPP (for Penjualan): Debit HPP → Kredit Persediaan
+ *
  * G. JURNAL OTOMATIS (Automatic Journal Entries):
  *    - Every transaction generates 2 journal entry lines:
  *      Line 1: Debit entry (debit amount, credit = 0)
  *      Line 2: Credit entry (debit = 0, credit amount)
  *    - Saved to journal_entries table
  *    - general_ledger auto-populated via SQL trigger
- * 
+ *
  * H. FIELD WAJIB (Required Fields):
  *    1. payee_name - Recipient name (hybrid dropdown)
  *    2. payer_name - Payer name (hybrid dropdown)
@@ -239,14 +322,14 @@ function TransactionReport() {
  *    6. tanggal - Transaction date
  *    7. total - Transaction amount
  *    8. attachment_url - OCR receipt file URL
- * 
+ *
  * I. VALIDASI (Validation):
  *    - Nominal > 0
  *    - Cash payment → Kas account required
  *    - Transfer Bank → Bank account required
  *    - Kredit → Auto-selects Hutang/Piutang
  *    - OCR failure → Manual input still allowed
- * 
+ *
  * J. OUTPUT SISTEM (System Output):
  *    1. Complete financial transaction form
  *    2. Auto-fill data from OCR
@@ -256,14 +339,14 @@ function TransactionReport() {
  *    6. Auto-linked stock and services
  *    7. Receipt files stored in Supabase Storage
  *    8. Internal user audit trail
- * 
+ *
  * TECHNICAL STACK:
  *    - React + TypeScript
  *    - Supabase (Database + Storage + Edge Functions)
  *    - ShadCN UI Components
  *    - OCR Processing (Google Vision API)
  *    - Automatic COA Mapping Engine
- * 
+ *
  * ========================================================================
  */
 
@@ -276,7 +359,7 @@ export default function TransaksiKeuanganForm() {
   const [paymentType, setPaymentType] = useState("");
   const [kategori, setKategori] = useState("");
   const [jenisLayanan, setJenisLayanan] = useState("");
-  
+
   // New fields for item selection
   const [transactionItemType, setTransactionItemType] = useState(""); // "Barang" or "Jasa"
   const [stockItems, setStockItems] = useState<any[]>([]);
@@ -311,20 +394,26 @@ export default function TransaksiKeuanganForm() {
 
   // FILTERED ITEMS
   const filteredItemsComputed = Array.isArray(items)
-    ? items.filter((i) =>
-        (i?.item_name || "")
-          .toLowerCase()
-          .includes(itemSearchKeyword.toLowerCase()),
-      )
+    ? items.filter((i) => {
+        const nameValue =
+          i && typeof i.item_name === "string" ? i.item_name : "";
+        const keywordValue =
+          typeof itemSearchKeyword === "string" ? itemSearchKeyword : "";
+        return nameValue.toLowerCase().includes(keywordValue.toLowerCase());
+      })
     : [];
 
   // FILTERED DESCRIPTIONS
   const filteredDescriptionsComputed = Array.isArray(descriptions)
-    ? descriptions.filter((d) =>
-        (d?.description || "")
-          .toLowerCase()
-          .includes(descriptionSearchKeyword.toLowerCase()),
-      )
+    ? descriptions.filter((d) => {
+        const descValue =
+          d && typeof d.description === "string" ? d.description : "";
+        const keywordValue =
+          typeof descriptionSearchKeyword === "string"
+            ? descriptionSearchKeyword
+            : "";
+        return descValue.toLowerCase().includes(keywordValue.toLowerCase());
+      })
     : [];
 
   // Safe arrays for rendering
@@ -338,10 +427,12 @@ export default function TransaksiKeuanganForm() {
 
   const [coa, setCoa] = useState<any[]>([]);
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
-  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [consignees, setConsignees] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [banks, setBanks] = useState<any[]>([]);
   const [kasAccounts, setKasAccounts] = useState<any[]>([]);
 
@@ -352,7 +443,7 @@ export default function TransaksiKeuanganForm() {
   const [supplier, setSupplier] = useState("");
   const [selectedBank, setSelectedBank] = useState("");
   const [selectedKas, setSelectedKas] = useState("");
-  
+
   // Searchable dropdown states
   const [customerSearch, setCustomerSearch] = useState("");
   const [supplierSearch, setSupplierSearch] = useState("");
@@ -360,7 +451,7 @@ export default function TransaksiKeuanganForm() {
   const [kasSearch, setKasSearch] = useState("");
   const [namaPenerimaSearch, setNamaPenerimaSearch] = useState("");
   const [namaPengeluaranSearch, setNamaPengeluaranSearch] = useState("");
-  
+
   // Additional fields for dynamic form
   const [bankAsal, setBankAsal] = useState("");
   const [bankTujuan, setBankTujuan] = useState("");
@@ -371,7 +462,7 @@ export default function TransaksiKeuanganForm() {
   const [namaPenyumbang, setNamaPenyumbang] = useState("");
   const [sumberPenerimaan, setSumberPenerimaan] = useState("");
   const [sumberPengeluaran, setSumberPengeluaran] = useState("");
-  
+
   // Popover open states
   const [customerPopoverOpen, setCustomerPopoverOpen] = useState(false);
   const [supplierPopoverOpen, setSupplierPopoverOpen] = useState(false);
@@ -379,9 +470,12 @@ export default function TransaksiKeuanganForm() {
   const [kasPopoverOpen, setKasPopoverOpen] = useState(false);
   const [bankAsalPopoverOpen, setBankAsalPopoverOpen] = useState(false);
   const [bankTujuanPopoverOpen, setBankTujuanPopoverOpen] = useState(false);
-  const [akunPendapatanPopoverOpen, setAkunPendapatanPopoverOpen] = useState(false);
+  const [akunPendapatanPopoverOpen, setAkunPendapatanPopoverOpen] =
+    useState(false);
   const [akunBebanPopoverOpen, setAkunBebanPopoverOpen] = useState(false);
   const [akunModalPopoverOpen, setAkunModalPopoverOpen] = useState(false);
+  const [namaPenerimaPopoverOpen, setNamaPenerimaPopoverOpen] = useState(false);
+  const [namaPengeluaranPopoverOpen, setNamaPengeluaranPopoverOpen] = useState(false);
 
   // Stock information state
   const [stockInfo, setStockInfo] = useState<any>(null);
@@ -443,15 +537,13 @@ export default function TransaksiKeuanganForm() {
 
   const [previewLines, setPreviewLines] = useState<any[]>([]);
   const [previewMemo, setPreviewMemo] = useState("");
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
   const safeBanks = Array.isArray(banks) ? banks : [];
   const safeKasAccounts = Array.isArray(kasAccounts) ? kasAccounts : [];
   const safeCustomers = Array.isArray(customers) ? customers : [];
   const safeSuppliers = Array.isArray(suppliers) ? suppliers : [];
   const safeConsignees = Array.isArray(consignees) ? consignees : [];
-  const safeCategories = Array.isArray(availableCategories)
-    ? availableCategories
-    : [];
   const safeServiceTypes = Array.isArray(serviceTypes) ? serviceTypes : [];
   const [previewTanggal, setPreviewTanggal] = useState("");
   const [previewIsCashRelated, setPreviewIsCashRelated] = useState(false);
@@ -518,18 +610,24 @@ export default function TransaksiKeuanganForm() {
   const [selectedAccountName, setSelectedAccountName] = useState("");
 
   // Penerimaan Kas dropdown states
-  const [openAccountTypePenerimaanCombobox, setOpenAccountTypePenerimaanCombobox] =
-    useState(false);
+  const [
+    openAccountTypePenerimaanCombobox,
+    setOpenAccountTypePenerimaanCombobox,
+  ] = useState(false);
   const [searchAccountTypePenerimaan, setSearchAccountTypePenerimaan] =
     useState("");
-  const [openAccountNamePenerimaanCombobox, setOpenAccountNamePenerimaanCombobox] =
-    useState(false);
+  const [
+    openAccountNamePenerimaanCombobox,
+    setOpenAccountNamePenerimaanCombobox,
+  ] = useState(false);
   const [searchAccountNamePenerimaan, setSearchAccountNamePenerimaan] =
     useState("");
 
   // Kredit Section states for Penerimaan Kas
-  const [selectedCreditAccountType, setSelectedCreditAccountType] = useState("");
-  const [selectedCreditAccountName, setSelectedCreditAccountName] = useState("");
+  const [selectedCreditAccountType, setSelectedCreditAccountType] =
+    useState("");
+  const [selectedCreditAccountName, setSelectedCreditAccountName] =
+    useState("");
   const [openCreditAccountTypeCombobox, setOpenCreditAccountTypeCombobox] =
     useState(false);
   const [searchCreditAccountType, setSearchCreditAccountType] = useState("");
@@ -619,6 +717,7 @@ export default function TransaksiKeuanganForm() {
       console.error("Error loading employees:", supabaseError);
     } else {
       setEmployees(data || []);
+      setUsers(data || []); // Also populate users state
     }
   };
 
@@ -634,22 +733,22 @@ export default function TransaksiKeuanganForm() {
 
   // Fetch items dynamically based on transaction type
   const fetchTransactionItems = async (tipeItemTransaksi: string) => {
-    if (!tipeItemTransaksi || !['Barang', 'Jasa'].includes(tipeItemTransaksi)) {
+    if (!tipeItemTransaksi || !["Barang", "Jasa"].includes(tipeItemTransaksi)) {
       return;
     }
 
     setIsLoadingItems(true);
     try {
       const { data, error } = await supabase.functions.invoke(
-        'supabase-functions-fetch-transaction-items',
+        "supabase-functions-fetch-transaction-items",
         {
-          body: { tipeItemTransaksi }
-        }
+          body: { tipeItemTransaksi },
+        },
       );
 
       if (error) throw error;
 
-      if (tipeItemTransaksi === 'Barang') {
+      if (tipeItemTransaksi === "Barang") {
         setStockItems(data.items || []);
         setServiceItems([]);
       } else {
@@ -657,7 +756,7 @@ export default function TransaksiKeuanganForm() {
         setStockItems([]);
       }
     } catch (error) {
-      console.error('Error fetching items:', error);
+      console.error("Error fetching items:", error);
       toast({
         title: "Error",
         description: "Gagal memuat data item",
@@ -684,9 +783,10 @@ export default function TransaksiKeuanganForm() {
   // Effect to update item details when item is selected
   useEffect(() => {
     if (selectedItemId) {
-      const allItems = transactionItemType === 'Barang' ? stockItems : serviceItems;
-      const selectedItem = allItems.find(item => item.id === selectedItemId);
-      
+      const allItems =
+        transactionItemType === "Barang" ? stockItems : serviceItems;
+      const selectedItem = allItems.find((item) => item.id === selectedItemId);
+
       if (selectedItem) {
         setSelectedItemDetail(selectedItem.detail || "");
         setItemPrice(selectedItem.price || 0);
@@ -700,7 +800,9 @@ export default function TransaksiKeuanganForm() {
   }, [itemPrice, itemQty]);
 
   // Handle OCR file upload and processing
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -719,17 +821,17 @@ export default function TransaksiKeuanganForm() {
 
     try {
       // 1. Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('ocr-receipts')
+        .from("ocr-receipts")
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('ocr-receipts')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("ocr-receipts").getPublicUrl(fileName);
 
       setUploadedFileUrl(publicUrl);
 
@@ -737,27 +839,28 @@ export default function TransaksiKeuanganForm() {
       const base64File = await fileToBase64(file);
 
       // 3. Call OCR Edge Function
-      const projectRef = import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0] || '';
-      
+      const projectRef =
+        import.meta.env.VITE_SUPABASE_URL?.split("//")[1]?.split(".")[0] || "";
+
       const response = await fetch(
         `https://gfmokpjnnnbnjlqxhoux.supabase.co/functions/v1/supabase-functions-ocr-transaction-processor`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ""}`,
           },
           body: JSON.stringify({
             file: [base64File],
             metadata: {
-              entrypoint_path: 'index.ts',
-              import_map_path: 'deno.json',
+              entrypoint_path: "index.ts",
+              import_map_path: "deno.json",
               static_patterns: [],
               verify_jwt: true,
-              name: 'ocr-transaction-processor'
-            }
-          })
-        }
+              name: "ocr-transaction-processor",
+            },
+          }),
+        },
       );
 
       if (!response.ok) {
@@ -779,48 +882,75 @@ export default function TransaksiKeuanganForm() {
       }
       if (ocrData.payment_method) {
         const methodMap: Record<string, string> = {
-          'cash': 'Cash',
-          'bank': 'Transfer Bank',
-          'transfer': 'Transfer Bank'
+          cash: "Cash",
+          bank: "Transfer Bank",
+          transfer: "Transfer Bank",
         };
-        setPaymentType(methodMap[ocrData.payment_method.toLowerCase()] || 'Cash');
+        const paymentMethodRaw = ocrData.payment_method;
+        const paymentMethod =
+          typeof paymentMethodRaw === "string"
+            ? paymentMethodRaw.toLowerCase()
+            : "";
+        setPaymentType(methodMap[paymentMethod] || "Cash");
       }
       if (ocrData.invoice_number) {
         setDescription(ocrData.invoice_number);
       }
 
       // Match items with stock/service_items
-      if (ocrData.items && ocrData.items.length > 0) {
+      if (
+        ocrData.items &&
+        Array.isArray(ocrData.items) &&
+        ocrData.items.length > 0
+      ) {
         const firstItem = ocrData.items[0];
-        
+
+        const firstNameRaw =
+          firstItem && typeof firstItem.name === "string" ? firstItem.name : "";
+        const firstName = firstNameRaw ? firstNameRaw.toLowerCase() : "";
+
         // Try to match with stock items
-        const matchedStock = stockItems.find(s => 
-          s.product_name.toLowerCase().includes(firstItem.name.toLowerCase())
-        );
-        
+        const matchedStock = Array.isArray(stockItems)
+          ? stockItems.find((s) => {
+              const productName =
+                s && typeof s.product_name === "string" ? s.product_name : "";
+              return productName.toLowerCase().includes(firstName);
+            })
+          : undefined;
+
         if (matchedStock) {
           setTransactionItemType("Barang");
           setSelectedItemId(matchedStock.id);
-          setItemQty(firstItem.qty || 1);
+          setItemQty(
+            firstItem && typeof firstItem.qty === "number" ? firstItem.qty : 1,
+          );
         } else {
           // Try to match with service items
-          const matchedService = serviceItems.find(s => 
-            s.service_name.toLowerCase().includes(firstItem.name.toLowerCase())
-          );
-          
+          const matchedService = Array.isArray(serviceItems)
+            ? serviceItems.find((s) => {
+                const serviceName =
+                  s && typeof s.service_name === "string" ? s.service_name : "";
+                return serviceName.toLowerCase().includes(firstName);
+              })
+            : undefined;
+
           if (matchedService) {
             setTransactionItemType("Jasa");
             setSelectedItemId(matchedService.id);
-            setItemQty(firstItem.qty || 1);
+            setItemQty(
+              firstItem && typeof firstItem.qty === "number"
+                ? firstItem.qty
+                : 1,
+            );
           }
         }
       }
 
       toast({
         title: "Sukses",
-        description: "OCR berhasil! Form telah diisi otomatis. Silakan periksa dan edit jika perlu.",
+        description:
+          "OCR berhasil! Form telah diisi otomatis. Silakan periksa dan edit jika perlu.",
       });
-
     } catch (error) {
       console.error("OCR processing error:", error);
       toast({
@@ -840,24 +970,29 @@ export default function TransaksiKeuanganForm() {
       reader.readAsDataURL(file);
       reader.onload = () => {
         const result = reader.result as string;
-        const base64 = result.split(',')[1];
+        const base64 = result.split(",")[1];
         resolve(base64);
       };
-      reader.onerror = error => reject(error);
+      reader.onerror = (error) => reject(error);
     });
   };
 
   // Load COA accounts for kategori pengeluaran
   const loadCOAAccounts = async () => {
-    const { data, error: supabaseError } = await supabase
-      .from("chart_of_accounts")
-      .select("*")
-      .order("account_name", { ascending: true });
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from("chart_of_accounts")
+        .select("account_type, account_name, level")
+        .order("account_name", { ascending: true });
 
-    if (supabaseError) {
-      console.error("Error loading COA accounts:", supabaseError);
-    } else {
+      if (supabaseError) {
+        throw supabaseError;
+      }
+
       setCoaAccounts(data || []);
+    } catch (error) {
+      console.error("Error loading COA accounts:", error);
+      setCoaAccounts([]);
     }
   };
 
@@ -870,7 +1005,12 @@ export default function TransaksiKeuanganForm() {
 
     // Get all unique account_names for accounts with the same account_type and level 2 or 3
     const accountNames = safeCoaAccounts
-      .filter((acc) => acc && acc.account_type === accountType && (acc.level === 2 || acc.level === 3))
+      .filter(
+        (acc) =>
+          acc &&
+          acc.account_type === accountType &&
+          (acc.level === 2 || acc.level === 3),
+      )
       .map((acc) => acc.account_name)
       .filter((value, index, self) => value && self.indexOf(value) === index);
 
@@ -918,7 +1058,7 @@ export default function TransaksiKeuanganForm() {
           showNamaPemilik: false,
           showNamaPenyumbang: false,
         };
-      
+
       case "Pendapatan":
         return {
           showPaymentMethod: true,
@@ -942,7 +1082,7 @@ export default function TransaksiKeuanganForm() {
           showNamaPemilik: false,
           showNamaPenyumbang: false,
         };
-      
+
       case "Pengeluaran":
         return {
           showPaymentMethod: true,
@@ -966,7 +1106,7 @@ export default function TransaksiKeuanganForm() {
           showNamaPemilik: false,
           showNamaPenyumbang: false,
         };
-      
+
       case "Penjualan":
         return {
           showItemFields: true,
@@ -990,7 +1130,7 @@ export default function TransaksiKeuanganForm() {
           showNamaPemilik: false,
           showNamaPenyumbang: false,
         };
-      
+
       case "Pembelian":
         return {
           showItemFields: true,
@@ -1014,7 +1154,7 @@ export default function TransaksiKeuanganForm() {
           showNamaPemilik: false,
           showNamaPenyumbang: false,
         };
-      
+
       case "Setoran Modal":
         return {
           showKasBank: true,
@@ -1038,7 +1178,7 @@ export default function TransaksiKeuanganForm() {
           showNamaPengeluaran: false,
           showNamaPemilik: false,
         };
-      
+
       case "Prive":
         return {
           showKasBank: true,
@@ -1062,7 +1202,7 @@ export default function TransaksiKeuanganForm() {
           showNamaPengeluaran: false,
           showNamaPenyumbang: false,
         };
-      
+
       case "Pelunasan Piutang":
         return {
           showCustomer: true,
@@ -1086,7 +1226,7 @@ export default function TransaksiKeuanganForm() {
           showNamaPemilik: false,
           showNamaPenyumbang: false,
         };
-      
+
       case "Pelunasan Hutang":
         return {
           showSupplier: true,
@@ -1110,7 +1250,7 @@ export default function TransaksiKeuanganForm() {
           showNamaPemilik: false,
           showNamaPenyumbang: false,
         };
-      
+
       default:
         return {
           showItemFields: false,
@@ -1144,18 +1284,16 @@ export default function TransaksiKeuanganForm() {
     switch (fieldName) {
       case "kategoriLayanan":
       case "jenisLayanan":
-        return jenisTransaksi === "Penjualan Jasa";
+        return jenisTransaksi === "Penjualan";
 
       case "itemBarang":
       case "description":
-        return ["Penjualan Barang", "Pembelian Barang"].includes(
-          jenisTransaksi,
-        );
+        return ["Penjualan", "Pembelian"].includes(jenisTransaksi);
 
       case "akunCoa":
         return ![
-          "Penerimaan Kas",
-          "Pengeluaran Kas",
+          "Pendapatan",
+          "Pengeluaran",
           "Mutasi Kas",
           "Pelunasan Piutang",
           "Pembayaran Hutang",
@@ -1164,17 +1302,17 @@ export default function TransaksiKeuanganForm() {
         ].includes(jenisTransaksi);
 
       case "sumberPenerimaan":
-        return jenisTransaksi === "Penerimaan Kas";
+        return jenisTransaksi === "Pendapatan";
 
       case "kategoriPenerimaan":
-        return jenisTransaksi === "Penerimaan Kas";
+        return false; // Hidden for Pendapatan
 
       case "kasSumber":
       case "kasTujuan":
         return jenisTransaksi === "Mutasi Kas";
 
       case "kategoriPengeluaran":
-        return jenisTransaksi === "Pengeluaran Kas";
+        return false; // Hidden
 
       default:
         return true;
@@ -1184,7 +1322,7 @@ export default function TransaksiKeuanganForm() {
   const shouldDisableField = (fieldName: string): boolean => {
     if (fieldName === "paymentType") {
       return [
-        "Penerimaan Kas",
+        "Pendapatan",
         "Pelunasan Piutang",
         "Pembayaran Hutang",
       ].includes(jenisTransaksi);
@@ -1196,9 +1334,9 @@ export default function TransaksiKeuanganForm() {
   useEffect(() => {
     if (jenisTransaksi) {
       const penerimaanTypes = [
-        "Penjualan Barang",
-        "Penjualan Jasa",
-        "Penerimaan Kas",
+        "Penjualan",
+        "Penjualan",
+        "Pendapatan",
         "Pinjaman Masuk",
         "Pendapatan",
         "Penjualan",
@@ -1208,7 +1346,7 @@ export default function TransaksiKeuanganForm() {
 
       const pengeluaranTypes = [
         "Pembelian",
-        "Pengeluaran Kas",
+        "Pengeluaran",
         "Pembayaran Pinjaman",
         "Pengeluaran",
         "Pelunasan Hutang",
@@ -1250,8 +1388,8 @@ export default function TransaksiKeuanganForm() {
       // Define category mapping based on transaction type
       let allowedCategories: string[] = [];
 
-      if (transactionType === "Penjualan Jasa") {
-        // Only service categories (Jasa)
+      if (transactionType === "Penjualan") {
+        // Service and goods categories
         allowedCategories = [
           "Jasa Cargo",
           "Jasa Gudang",
@@ -1259,17 +1397,16 @@ export default function TransaksiKeuanganForm() {
           "Jasa Trucking",
           "Jasa Lainnya",
           "Unit Disewakan",
+          "Persediaan",
+          "Barang",
         ];
-      } else if (transactionType === "Penjualan Barang") {
-        // Barang/Persediaan categories
-        allowedCategories = ["Persediaan", "Barang"];
       } else if (
         transactionType === "Pembelian Barang" ||
         transactionType === "Pembelian Jasa"
       ) {
         // Pembelian barang/persediaan
         allowedCategories = ["Persediaan", "Barang"];
-      } else if (transactionType === "Penerimaan Kas") {
+      } else if (transactionType === "Pendapatan") {
         // All income categories
         allowedCategories = [
           "Jasa Cargo",
@@ -1281,7 +1418,7 @@ export default function TransaksiKeuanganForm() {
           "Persediaan",
           "Barang",
         ];
-      } else if (transactionType === "Pengeluaran Kas") {
+      } else if (transactionType === "Pengeluaran") {
         // Expense categories
         allowedCategories = ["Beban"];
       } else if (
@@ -1509,7 +1646,9 @@ export default function TransaksiKeuanganForm() {
 
   const loadSuppliers = async (): Promise<void> => {
     try {
-      const { data, error: supabaseError } = await supabase.from("suppliers").select("*");
+      const { data, error: supabaseError } = await supabase
+        .from("suppliers")
+        .select("*");
       if (supabaseError) throw supabaseError;
       console.log("Suppliers loaded:", data);
       setSuppliers(data || []);
@@ -1521,7 +1660,9 @@ export default function TransaksiKeuanganForm() {
 
   const loadCustomers = async (): Promise<void> => {
     try {
-      const { data, error: supabaseError } = await supabase.from("customers").select("*");
+      const { data, error: supabaseError } = await supabase
+        .from("customers")
+        .select("*");
       if (supabaseError) throw supabaseError;
       console.log("Customers loaded:", data);
       console.log("Total customers:", data?.length || 0);
@@ -1537,7 +1678,9 @@ export default function TransaksiKeuanganForm() {
 
   const loadConsignees = async (): Promise<void> => {
     try {
-      const { data, error: supabaseError } = await supabase.from("consignees").select("*");
+      const { data, error: supabaseError } = await supabase
+        .from("consignees")
+        .select("*");
       if (supabaseError) throw supabaseError;
       console.log("Consignees loaded:", data);
       setConsignees(data || []);
@@ -1568,7 +1711,9 @@ export default function TransaksiKeuanganForm() {
       const { data, error: supabaseError } = await supabase
         .from("chart_of_accounts")
         .select("*")
-        .ilike("account_name", "%kas - %")
+        //  .ilike("account_name", "%kas%")
+        .eq("is_active", true)
+        .eq("is_header", false)
         .order("account_code");
       if (supabaseError) throw supabaseError;
       console.log("Kas accounts loaded:", data);
@@ -1581,7 +1726,9 @@ export default function TransaksiKeuanganForm() {
 
   const loadBorrowers = async (): Promise<void> => {
     try {
-      const { data, error: supabaseError } = await supabase.from("borrowers").select("*");
+      const { data, error: supabaseError } = await supabase
+        .from("borrowers")
+        .select("*");
       if (supabaseError) throw supabaseError;
       setBorrowers(data || []);
     } catch (err) {
@@ -1672,10 +1819,7 @@ export default function TransaksiKeuanganForm() {
         );
       } else {
         console.log("Cash receipts data loaded:", cashReceiptsData);
-        console.log(
-          "First cash receipt bukti:",
-          cashReceiptsData?.[0]?.bukti,
-        );
+        console.log("First cash receipt bukti:", cashReceiptsData?.[0]?.bukti);
       }
 
       // Load from approval_transaksi (Penjualan Jasa, etc - approved, waiting approval, and rejected)
@@ -1762,17 +1906,15 @@ export default function TransaksiKeuanganForm() {
           nominal: t.total_value,
         })),
         ...(approvalData || [])
-          .filter(
-            (t) => t.type !== "Penjualan Barang" && t.type !== "Penjualan Jasa",
-          ) // Exclude sales transactions (already in sales_transactions table)
+          .filter((t) => t.type !== "Penjualan" && t.type !== "Penjualan") // Exclude sales transactions (already in sales_transactions table)
           .map((t) => ({
             ...t,
             source:
-              t.type === "Pembelian Jasa"
+              t.type === "Pembelian"
                 ? "PURCHASE TRANSACTIONS"
                 : "approval_transaksi",
             tanggal: t.transaction_date,
-            jenis: t.type === "Pembelian Jasa" ? "Pembelian" : t.type,
+            jenis: t.type === "Pembelian" ? "Pembelian" : t.type,
             nominal: t.total_amount,
             keterangan: t.description || t.notes,
             payment_type: t.type,
@@ -2052,7 +2194,7 @@ export default function TransaksiKeuanganForm() {
       // Revenue Engine - Sales transactions
       else if (
         jenisTransaksi === "Penjualan Jasa" ||
-        jenisTransaksi === "Penjualan Barang"
+        jenisTransaksi === "Penjualan"
       ) {
         const { data: mapping } = await supabase
           .from("coa_category_mapping")
@@ -2147,7 +2289,7 @@ export default function TransaksiKeuanganForm() {
 
     if (paymentType === "Penerimaan Kas") {
       filtered = filtered.filter((c) =>
-        ["Pendapatan", "Aset", "Ekuitas"].includes(c.account_type),
+        ["Pendapatan", "Aset", "Ekuitas", "Revenue"].includes(c.account_type),
       );
     }
 
@@ -2197,8 +2339,16 @@ export default function TransaksiKeuanganForm() {
 
       // Build Journal Lines
       const journalData = buildJournalLines(
-        { account_code: result.debit, account_name: result.debitName, account_type: result.debitType },
-        { account_code: result.credit, account_name: result.creditName, account_type: result.creditType },
+        {
+          account_code: result.debit,
+          account_name: result.debitName,
+          account_type: result.debitType,
+        },
+        {
+          account_code: result.credit,
+          account_name: result.creditName,
+          account_type: result.creditType,
+        },
         normalizedInput.nominal,
         normalizedInput.deskripsi,
         normalizedInput.tanggal,
@@ -2239,14 +2389,16 @@ export default function TransaksiKeuanganForm() {
 
     switch (jenis) {
       case "Penjualan":
-      case "Penjualan Jasa":
+      case "Penjualan":
         // Penjualan Tunai: Debit Kas/Bank, Kredit Pendapatan
         // Penjualan Kredit: Debit Piutang, Kredit Pendapatan
         if (payment === "Cash") {
-          const kasCode = normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
+          const kasCode =
+            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           debitFilter = { account_code: kasCode };
         } else if (payment === "Transfer Bank") {
-          const bankCode = normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          const bankCode =
+            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           debitFilter = { account_code: bankCode };
         } else if (payment === "Kredit") {
           debitFilter = { usage_role: "piutang" };
@@ -2254,18 +2406,21 @@ export default function TransaksiKeuanganForm() {
           debitFilter = { flow_type: "cash" };
         }
         creditFilter = { usage_role: "pendapatan_jasa" };
-        extras.is_cash_related = payment === "Cash" || payment === "Transfer Bank";
+        extras.is_cash_related =
+          payment === "Cash" || payment === "Transfer Bank";
         break;
 
-      case "Penjualan Barang":
+      case "Penjualan":
         // Penjualan Tunai: Debit Kas/Bank, Kredit Pendapatan
         // Penjualan Kredit: Debit Piutang, Kredit Pendapatan
         // + HPP: Debit HPP, Kredit Persediaan
         if (payment === "Cash") {
-          const kasCode = normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
+          const kasCode =
+            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           debitFilter = { account_code: kasCode };
         } else if (payment === "Transfer Bank") {
-          const bankCode = normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          const bankCode =
+            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           debitFilter = { account_code: bankCode };
         } else if (payment === "Kredit") {
           debitFilter = { usage_role: "piutang" };
@@ -2273,7 +2428,8 @@ export default function TransaksiKeuanganForm() {
           debitFilter = { flow_type: "cash" };
         }
         creditFilter = { usage_role: "pendapatan_barang" };
-        extras.is_cash_related = payment === "Cash" || payment === "Transfer Bank";
+        extras.is_cash_related =
+          payment === "Cash" || payment === "Transfer Bank";
         extras.needs_hpp = true;
         extras.hppFilter = { usage_role: "hpp" };
         break;
@@ -2284,17 +2440,23 @@ export default function TransaksiKeuanganForm() {
         // Pembelian Kredit: Debit Persediaan, Kredit Hutang
         debitFilter = { usage_role: "inventory" };
         if (payment === "Cash") {
-          const kasCode = normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
+          const kasCode =
+            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
         } else if (payment === "Transfer Bank") {
-          const bankCode = normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          const bankCode =
+            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
         } else if (payment === "Kredit") {
           creditFilter = { usage_role: "hutang" };
         } else {
-          creditFilter = payment === "cash" ? { flow_type: "cash" } : { usage_role: "hutang" };
+          creditFilter =
+            payment === "cash"
+              ? { flow_type: "cash" }
+              : { usage_role: "hutang" };
         }
-        extras.is_cash_related = payment === "Cash" || payment === "Transfer Bank";
+        extras.is_cash_related =
+          payment === "Cash" || payment === "Transfer Bank";
         break;
 
       case "Pembelian Jasa":
@@ -2302,26 +2464,34 @@ export default function TransaksiKeuanganForm() {
         // Pembelian Kredit: Debit Beban, Kredit Hutang
         debitFilter = { usage_role: "beban_operasional" };
         if (payment === "Cash") {
-          const kasCode = normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
+          const kasCode =
+            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
         } else if (payment === "Transfer Bank") {
-          const bankCode = normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          const bankCode =
+            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
         } else if (payment === "Kredit") {
           creditFilter = { usage_role: "hutang" };
         } else {
-          creditFilter = payment === "cash" ? { flow_type: "cash" } : { usage_role: "hutang" };
+          creditFilter =
+            payment === "cash"
+              ? { flow_type: "cash" }
+              : { usage_role: "hutang" };
         }
-        extras.is_cash_related = payment === "Cash" || payment === "Transfer Bank";
+        extras.is_cash_related =
+          payment === "Cash" || payment === "Transfer Bank";
         break;
 
       case "Pendapatan":
         // Pendapatan: Debit Kas/Bank, Kredit Pendapatan
         if (payment === "Cash") {
-          const kasCode = normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
+          const kasCode =
+            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           debitFilter = { account_code: kasCode };
         } else if (payment === "Transfer Bank") {
-          const bankCode = normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          const bankCode =
+            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           debitFilter = { account_code: bankCode };
         } else if (payment === "Kredit") {
           debitFilter = { usage_role: "piutang" };
@@ -2329,7 +2499,8 @@ export default function TransaksiKeuanganForm() {
           debitFilter = { flow_type: "cash" };
         }
         creditFilter = { usage_role: "pendapatan_jasa" };
-        extras.is_cash_related = payment === "Cash" || payment === "Transfer Bank";
+        extras.is_cash_related =
+          payment === "Cash" || payment === "Transfer Bank";
         break;
 
       case "Pengeluaran":
@@ -2342,20 +2513,25 @@ export default function TransaksiKeuanganForm() {
           debitFilter = { account_type: "Beban" };
         }
         if (payment === "Cash") {
-          const kasCode = normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
+          const kasCode =
+            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
         } else if (payment === "Transfer Bank") {
-          const bankCode = normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          const bankCode =
+            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
         } else {
           creditFilter = { flow_type: "cash" };
         }
-        extras.is_cash_related = payment === "Cash" || payment === "Transfer Bank";
+        extras.is_cash_related =
+          payment === "Cash" || payment === "Transfer Bank";
         break;
 
       case "Transfer Bank":
         // Transfer Bank: Debit Bank Tujuan, Kredit Bank Asal
-        const bankTujuanCode = normalizedInput.selectedBank?.split(" — ")[0] || normalizedInput.kasTujuan;
+        const bankTujuanCode =
+          normalizedInput.selectedBank?.split(" — ")[0] ||
+          normalizedInput.kasTujuan;
         return {
           special: "mutasi",
           debit_account_code: bankTujuanCode,
@@ -2366,10 +2542,12 @@ export default function TransaksiKeuanganForm() {
       case "Setoran Modal":
         // Setoran Modal: Debit Kas/Bank, Kredit Modal
         if (payment === "Cash") {
-          const kasCode = normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
+          const kasCode =
+            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           debitFilter = { account_code: kasCode };
         } else if (payment === "Transfer Bank") {
-          const bankCode = normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          const bankCode =
+            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           debitFilter = { account_code: bankCode };
         } else {
           debitFilter = { flow_type: "cash" };
@@ -2382,10 +2560,12 @@ export default function TransaksiKeuanganForm() {
         // Prive: Debit Prive, Kredit Kas/Bank
         debitFilter = { usage_role: "prive" };
         if (payment === "Cash") {
-          const kasCode = normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
+          const kasCode =
+            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
         } else if (payment === "Transfer Bank") {
-          const bankCode = normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          const bankCode =
+            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
         } else {
           creditFilter = { flow_type: "cash" };
@@ -2398,10 +2578,12 @@ export default function TransaksiKeuanganForm() {
         // Pelunasan Hutang: Debit Hutang, Kredit Kas/Bank
         debitFilter = { usage_role: "hutang" };
         if (payment === "Cash") {
-          const kasCode = normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
+          const kasCode =
+            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
         } else if (payment === "Transfer Bank") {
-          const bankCode = normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          const bankCode =
+            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
         } else {
           creditFilter = { flow_type: "cash" };
@@ -2413,10 +2595,12 @@ export default function TransaksiKeuanganForm() {
       case "Pelanggan Bayar Piutang":
         // Pelunasan Piutang: Debit Kas/Bank, Kredit Piutang
         if (payment === "Cash") {
-          const kasCode = normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
+          const kasCode =
+            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           debitFilter = { account_code: kasCode };
         } else if (payment === "Transfer Bank") {
-          const bankCode = normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          const bankCode =
+            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           debitFilter = { account_code: bankCode };
         } else {
           debitFilter = { flow_type: "cash" };
@@ -2464,7 +2648,11 @@ export default function TransaksiKeuanganForm() {
 
         if (matchedCoa) {
           resultDebit = matchedCoa;
-          return { upserted: false, debitAccount: resultDebit, creditAccount: resultCredit };
+          return {
+            upserted: false,
+            debitAccount: resultDebit,
+            creditAccount: resultCredit,
+          };
         }
       }
 
@@ -2588,7 +2776,7 @@ export default function TransaksiKeuanganForm() {
       },
     ];
 
-    // Add HPP lines if needed (for Penjualan Barang)
+    // Add HPP lines if needed (for Penjualan)
     if (hppEntry) {
       lines.push({
         account_code: hppEntry.debit,
@@ -2617,7 +2805,9 @@ export default function TransaksiKeuanganForm() {
 
     let query = supabase
       .from("chart_of_accounts")
-      .select("account_code, account_name, account_type, trans_type, flow_type, usage_role")
+      .select(
+        "account_code, account_name, account_type, trans_type, flow_type, usage_role",
+      )
       .eq("is_active", true)
       .limit(1)
       .order("account_code", { ascending: true });
@@ -2673,7 +2863,10 @@ export default function TransaksiKeuanganForm() {
       console.log("📊 Debit Account found:", debitAccount);
 
       // Step 3: Load Credit COA
-      console.log("🔍 Loading Credit COA with filter:", mappingRule.creditFilter);
+      console.log(
+        "🔍 Loading Credit COA with filter:",
+        mappingRule.creditFilter,
+      );
       let creditAccount = await loadCOAByFilter(mappingRule.creditFilter);
       console.log("📊 Credit Account found:", creditAccount);
 
@@ -2746,7 +2939,9 @@ export default function TransaksiKeuanganForm() {
       errors.push("Akun Kas wajib dipilih untuk metode pembayaran Cash");
     }
     if (paymentType === "Transfer Bank" && !selectedBank) {
-      errors.push("Akun Bank wajib dipilih untuk metode pembayaran Transfer Bank");
+      errors.push(
+        "Akun Bank wajib dipilih untuk metode pembayaran Transfer Bank",
+      );
     }
     // For Kredit, accounts are auto-selected, no validation needed
 
@@ -2766,17 +2961,22 @@ export default function TransaksiKeuanganForm() {
 
     // Normalize date format to YYYY-MM-DD
     let normalizedDate = form.tanggal;
-    if (normalizedDate && typeof normalizedDate === 'string') {
+    if (normalizedDate && typeof normalizedDate === "string") {
       // Check if date is in DD/MM/YYYY or DD-MM-YYYY format
-      const ddmmyyyyMatch = normalizedDate.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      const ddmmyyyyMatch = normalizedDate.match(
+        /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/,
+      );
       if (ddmmyyyyMatch) {
         const [, day, month, year] = ddmmyyyyMatch;
-        normalizedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        normalizedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
       }
       // Check if date is in invalid format like "1/9-10"
-      else if (normalizedDate.includes('/') || normalizedDate.match(/^\d{1,2}[-\/]\d{1,2}$/)) {
+      else if (
+        normalizedDate.includes("/") ||
+        normalizedDate.match(/^\d{1,2}[-\/]\d{1,2}$/)
+      ) {
         // Invalid date format - use today's date as fallback
-        normalizedDate = new Date().toISOString().split('T')[0];
+        normalizedDate = new Date().toISOString().split("T")[0];
       }
     }
 
@@ -2829,8 +3029,16 @@ export default function TransaksiKeuanganForm() {
 
       // Step 4: Build Journal Lines
       const journalData = buildJournalLines(
-        { account_code: result.debit, account_name: result.debitName, account_type: result.debitType },
-        { account_code: result.credit, account_name: result.creditName, account_type: result.creditType },
+        {
+          account_code: result.debit,
+          account_name: result.debitName,
+          account_type: result.debitType,
+        },
+        {
+          account_code: result.credit,
+          account_name: result.creditName,
+          account_type: result.creditType,
+        },
         normalizedInput.nominal,
         normalizedInput.deskripsi,
         normalizedInput.tanggal,
@@ -2880,7 +3088,7 @@ export default function TransaksiKeuanganForm() {
     const mainCreditLine = previewLines.find((l) => l.dc === "C");
 
     switch (jenisTransaksi) {
-      case "Penjualan Barang": {
+      case "Penjualan": {
         // Insert to sales_transactions
         const unitPrice = Number(nominal) || 0;
         const quantity = 1;
@@ -2999,8 +3207,7 @@ export default function TransaksiKeuanganForm() {
           approved_by: null,
         });
 
-        if (error)
-          throw new Error(`Purchase Transaction: ${error.message}`);
+        if (error) throw new Error(`Purchase Transaction: ${error.message}`);
         console.log("ROUTER: Purchase transaction (Barang) saved");
         break;
       }
@@ -3039,32 +3246,32 @@ export default function TransaksiKeuanganForm() {
       case "Penerimaan Kas":
       case "Pinjaman Masuk": {
         // Insert to cash_and_bank_receipts
-        const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase
-          .from("cash_and_bank_receipts")
-          .insert({
-            transaction_date: previewTanggal,
-            transaction_type: "Penerimaan",
-            category: kategori || sumberPenerimaan,
-            source_destination:
-              sumberPenerimaan || customer || supplier || "Penerimaan Kas",
-            amount: nominal,
-            payment_method: paymentType === "cash" ? "Tunai" : "Bank",
-            coa_cash_code: mainDebitLine?.account_code || "1-1100",
-            coa_contra_code: mainCreditLine?.account_code || "4-1100",
-            account_code: mainDebitLine?.account_code || "",
-            account_name: mainDebitLine?.account_name || "",
-            account_type_credit: selectedCreditAccountType || "",
-            account_name_credit: selectedCreditAccountName || "",
-            description: previewMemo,
-            reference_number: `PKM-${Date.now()}`,
-            journal_ref: journalRef,
-            approval_status: "approved",
-            bukti: uploadedBuktiUrl || null,
-            ocr_data: ocrDataPayload,
-            ocr_id: ocrAppliedData?.ocrId || null,
-            created_by: user?.id || null,
-          });
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const { error } = await supabase.from("cash_and_bank_receipts").insert({
+          transaction_date: previewTanggal,
+          transaction_type: "Penerimaan",
+          category: kategori || sumberPenerimaan,
+          source_destination:
+            sumberPenerimaan || customer || supplier || "Penerimaan Kas",
+          amount: nominal,
+          payment_method: paymentType === "cash" ? "Tunai" : "Bank",
+          coa_cash_code: mainDebitLine?.account_code || "1-1100",
+          coa_contra_code: mainCreditLine?.account_code || "4-1100",
+          account_code: mainDebitLine?.account_code || "",
+          account_name: mainDebitLine?.account_name || "",
+          account_type_credit: selectedCreditAccountType || "",
+          account_name_credit: selectedCreditAccountName || "",
+          description: previewMemo,
+          reference_number: `PKM-${Date.now()}`,
+          journal_ref: journalRef,
+          approval_status: "approved",
+          bukti: uploadedBuktiUrl || null,
+          ocr_data: ocrDataPayload,
+          ocr_id: ocrAppliedData?.ocrId || null,
+          created_by: user?.id || null,
+        });
 
         if (error) throw new Error(`Cash Receipt: ${error.message}`);
         console.log("ROUTER: Cash receipt saved");
@@ -3101,8 +3308,7 @@ export default function TransaksiKeuanganForm() {
           ocr_id: ocrAppliedData?.ocrId || null,
         });
 
-        if (error)
-          throw new Error(`Cash Disbursement: ${error.message}`);
+        if (error) throw new Error(`Cash Disbursement: ${error.message}`);
         console.log("ROUTER: Cash disbursement saved");
         break;
       }
@@ -3113,20 +3319,32 @@ export default function TransaksiKeuanganForm() {
   };
 
   /** Helper function to derive account_type from account_code prefix */
-  const deriveAccountType = (accountCode: string, existingType?: string): string => {
+  const deriveAccountType = (
+    accountCode: string,
+    existingType?: string,
+  ): string => {
     if (existingType && existingType.trim() !== "") return existingType;
     if (!accountCode) return "";
     const prefix = accountCode.charAt(0);
     switch (prefix) {
-      case "1": return "Aset";
-      case "2": return "Kewajiban";
-      case "3": return "Ekuitas";
-      case "4": return "Pendapatan";
-      case "5": return "HPP";
-      case "6": return "Beban";
-      case "7": return "Pendapatan Lain";
-      case "8": return "Beban Lain";
-      default: return "";
+      case "1":
+        return "Aset";
+      case "2":
+        return "Kewajiban";
+      case "3":
+        return "Ekuitas";
+      case "4":
+        return "Pendapatan";
+      case "5":
+        return "HPP";
+      case "6":
+        return "Beban";
+      case "7":
+        return "Pendapatan Lain";
+      case "8":
+        return "Beban Lain";
+      default:
+        return "";
     }
   };
 
@@ -3134,7 +3352,7 @@ export default function TransaksiKeuanganForm() {
   const handleConfirmSave = async () => {
     try {
       setIsConfirming(true);
-      
+
       // Debug: Log file states at the start
       console.log("🚀 handleConfirmSave started");
       console.log("📁 buktiFile at start:", buktiFile);
@@ -3149,8 +3367,14 @@ export default function TransaksiKeuanganForm() {
       const mainCreditLine = previewLines.find((l) => l.dc === "C");
 
       if (mainDebitLine && mainCreditLine) {
-        const debitAccountType = deriveAccountType(mainDebitLine.account_code, mainDebitLine.account_type);
-        const creditAccountType = deriveAccountType(mainCreditLine.account_code, mainCreditLine.account_type);
+        const debitAccountType = deriveAccountType(
+          mainDebitLine.account_code,
+          mainDebitLine.account_type,
+        );
+        const creditAccountType = deriveAccountType(
+          mainCreditLine.account_code,
+          mainCreditLine.account_type,
+        );
 
         console.log("📝 Journal Entry Data:", {
           account_code: mainDebitLine.account_code,
@@ -3161,30 +3385,38 @@ export default function TransaksiKeuanganForm() {
         });
 
         // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
         // Create 2 journal entry lines as required
         // Line 1: Debit entry
-        const { error: debitError } = await supabase.from("journal_entries").insert({
-          journal_ref: journalRef,
-          debit_account: mainDebitLine.account_code,
-          credit_account: mainCreditLine.account_code,
-          account_code: mainDebitLine.account_code,
-          account_name: mainDebitLine.account_name,
-          account_type: debitAccountType,
-          debit: mainDebitLine.amount,
-          credit: 0,
-          description: previewMemo,
-          tanggal: previewTanggal,
-          kategori,
-          jenis_transaksi: jenisTransaksi,
-          payee_name: namaKaryawanPengeluaran || supplier || customer || "",
-          payer_name: customer || supplier || "",
-          handled_by_user_id: user?.id || null,
-          sumber_penerimaan: jenisTransaksi.includes("Penerimaan") ? mainCreditLine.account_name : null,
-          sumber_pengeluaran: jenisTransaksi.includes("Pengeluaran") ? mainDebitLine.account_name : null,
-          attachment_url: uploadedFileUrl || null,
-        });
+        const { error: debitError } = await supabase
+          .from("journal_entries")
+          .insert({
+            journal_ref: journalRef,
+            debit_account: mainDebitLine.account_code,
+            credit_account: mainCreditLine.account_code,
+            account_code: mainDebitLine.account_code,
+            account_name: mainDebitLine.account_name,
+            account_type: debitAccountType,
+            debit: mainDebitLine.amount,
+            credit: 0,
+            description: previewMemo,
+            tanggal: previewTanggal,
+            kategori,
+            jenis_transaksi: jenisTransaksi,
+            payee_name: namaKaryawanPengeluaran || supplier || customer || "",
+            payer_name: customer || supplier || "",
+            handled_by_user_id: user?.id || null,
+            sumber_penerimaan: jenisTransaksi.includes("Penerimaan")
+              ? mainCreditLine.account_name
+              : null,
+            sumber_pengeluaran: jenisTransaksi.includes("Pengeluaran")
+              ? mainDebitLine.account_name
+              : null,
+            attachment_url: uploadedFileUrl || null,
+          });
 
         if (debitError) {
           console.error("Journal Entry Debit Error:", debitError);
@@ -3192,26 +3424,32 @@ export default function TransaksiKeuanganForm() {
         }
 
         // Line 2: Credit entry
-        const { error: creditError } = await supabase.from("journal_entries").insert({
-          journal_ref: journalRef,
-          debit_account: mainDebitLine.account_code,
-          credit_account: mainCreditLine.account_code,
-          account_code: mainCreditLine.account_code,
-          account_name: mainCreditLine.account_name,
-          account_type: creditAccountType,
-          debit: 0,
-          credit: mainCreditLine.amount,
-          description: previewMemo,
-          tanggal: previewTanggal,
-          kategori,
-          jenis_transaksi: jenisTransaksi,
-          payee_name: namaKaryawanPengeluaran || supplier || customer || "",
-          payer_name: customer || supplier || "",
-          handled_by_user_id: user?.id || null,
-          sumber_penerimaan: jenisTransaksi.includes("Penerimaan") ? mainCreditLine.account_name : null,
-          sumber_pengeluaran: jenisTransaksi.includes("Pengeluaran") ? mainDebitLine.account_name : null,
-          attachment_url: uploadedFileUrl || null,
-        });
+        const { error: creditError } = await supabase
+          .from("journal_entries")
+          .insert({
+            journal_ref: journalRef,
+            debit_account: mainDebitLine.account_code,
+            credit_account: mainCreditLine.account_code,
+            account_code: mainCreditLine.account_code,
+            account_name: mainCreditLine.account_name,
+            account_type: creditAccountType,
+            debit: 0,
+            credit: mainCreditLine.amount,
+            description: previewMemo,
+            tanggal: previewTanggal,
+            kategori,
+            jenis_transaksi: jenisTransaksi,
+            payee_name: namaKaryawanPengeluaran || supplier || customer || "",
+            payer_name: customer || supplier || "",
+            handled_by_user_id: user?.id || null,
+            sumber_penerimaan: jenisTransaksi.includes("Penerimaan")
+              ? mainCreditLine.account_name
+              : null,
+            sumber_pengeluaran: jenisTransaksi.includes("Pengeluaran")
+              ? mainDebitLine.account_name
+              : null,
+            attachment_url: uploadedFileUrl || null,
+          });
 
         if (creditError) {
           console.error("Journal Entry Credit Error:", creditError);
@@ -3221,35 +3459,45 @@ export default function TransaksiKeuanganForm() {
         console.log("Journal Entries saved (2 lines)");
       }
 
-      // Step 7: Save HPP entry if exists (for Penjualan Barang)
+      // Step 7: Save HPP entry if exists (for Penjualan)
       if (previewLines.length > 2) {
         const hppDebitLine = previewLines[2]; // HPP debit
         const hppCreditLine = previewLines[3]; // Inventory credit
 
-        const hppDebitAccountType = deriveAccountType(hppDebitLine.account_code, hppDebitLine.account_type);
-        const hppCreditAccountType = deriveAccountType(hppCreditLine.account_code, hppCreditLine.account_type);
+        const hppDebitAccountType = deriveAccountType(
+          hppDebitLine.account_code,
+          hppDebitLine.account_type,
+        );
+        const hppCreditAccountType = deriveAccountType(
+          hppCreditLine.account_code,
+          hppCreditLine.account_type,
+        );
 
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
         // HPP Line 1: Debit HPP
-        const { error: hppDebitError } = await supabase.from("journal_entries").insert({
-          journal_ref: journalRef,
-          debit_account: hppDebitLine.account_code,
-          credit_account: hppCreditLine.account_code,
-          account_code: hppDebitLine.account_code,
-          account_name: hppDebitLine.account_name,
-          account_type: hppDebitAccountType,
-          debit: hppDebitLine.amount,
-          credit: 0,
-          description: `HPP - ${previewMemo}`,
-          tanggal: previewTanggal,
-          kategori,
-          jenis_transaksi: jenisTransaksi,
-          payee_name: namaKaryawanPengeluaran || supplier || customer || "",
-          payer_name: customer || supplier || "",
-          handled_by_user_id: user?.id || null,
-          attachment_url: uploadedFileUrl || null,
-        });
+        const { error: hppDebitError } = await supabase
+          .from("journal_entries")
+          .insert({
+            journal_ref: journalRef,
+            debit_account: hppDebitLine.account_code,
+            credit_account: hppCreditLine.account_code,
+            account_code: hppDebitLine.account_code,
+            account_name: hppDebitLine.account_name,
+            account_type: hppDebitAccountType,
+            debit: hppDebitLine.amount,
+            credit: 0,
+            description: `HPP - ${previewMemo}`,
+            tanggal: previewTanggal,
+            kategori,
+            jenis_transaksi: jenisTransaksi,
+            payee_name: namaKaryawanPengeluaran || supplier || customer || "",
+            payer_name: customer || supplier || "",
+            handled_by_user_id: user?.id || null,
+            attachment_url: uploadedFileUrl || null,
+          });
 
         if (hppDebitError) {
           console.error("HPP Debit Entry Error:", hppDebitError);
@@ -3257,24 +3505,26 @@ export default function TransaksiKeuanganForm() {
         }
 
         // HPP Line 2: Credit Inventory
-        const { error: hppCreditError } = await supabase.from("journal_entries").insert({
-          journal_ref: journalRef,
-          debit_account: hppDebitLine.account_code,
-          credit_account: hppCreditLine.account_code,
-          account_code: hppCreditLine.account_code,
-          account_name: hppCreditLine.account_name,
-          account_type: hppCreditAccountType,
-          debit: 0,
-          credit: hppCreditLine.amount,
-          description: `HPP - ${previewMemo}`,
-          tanggal: previewTanggal,
-          kategori,
-          jenis_transaksi: jenisTransaksi,
-          payee_name: namaKaryawanPengeluaran || supplier || customer || "",
-          payer_name: customer || supplier || "",
-          handled_by_user_id: user?.id || null,
-          attachment_url: uploadedFileUrl || null,
-        });
+        const { error: hppCreditError } = await supabase
+          .from("journal_entries")
+          .insert({
+            journal_ref: journalRef,
+            debit_account: hppDebitLine.account_code,
+            credit_account: hppCreditLine.account_code,
+            account_code: hppCreditLine.account_code,
+            account_name: hppCreditLine.account_name,
+            account_type: hppCreditAccountType,
+            debit: 0,
+            credit: hppCreditLine.amount,
+            description: `HPP - ${previewMemo}`,
+            tanggal: previewTanggal,
+            kategori,
+            jenis_transaksi: jenisTransaksi,
+            payee_name: namaKaryawanPengeluaran || supplier || customer || "",
+            payer_name: customer || supplier || "",
+            handled_by_user_id: user?.id || null,
+            attachment_url: uploadedFileUrl || null,
+          });
 
         if (hppCreditError) {
           console.error("HPP Credit Entry Error:", hppCreditError);
@@ -3290,7 +3540,7 @@ export default function TransaksiKeuanganForm() {
       console.log("🔍 DEBUG - ocrFile state:", ocrFile);
       console.log("🔍 DEBUG - ocrAppliedData state:", ocrAppliedData);
       console.log("🔍 DEBUG - uploadedFileUrl from OCR:", uploadedFileUrl);
-      
+
       // Priority: uploadedFileUrl from OCR > buktiFile > ocrFile
       if (uploadedFileUrl) {
         uploadedBuktiUrl = uploadedFileUrl;
@@ -3344,24 +3594,28 @@ export default function TransaksiKeuanganForm() {
           // Generate document number
           const docNumber = `${jenisTransaksi === "Penerimaan Kas" ? "PKM" : "PKK"}-${Date.now()}`;
 
-          const { error: supabaseError } = await supabase.from("kas_transaksi").insert({
-            tanggal: previewTanggal,
-            document_number: docNumber,
-            payment_type: jenisTransaksi, // "Penerimaan Kas" or "Pengeluaran Kas"
-            account_number: cashLine.account_code,
-            account_name: cashLine.account_name,
-            account_code: cashLine.account_code,
-            nominal: parseFloat(String(cashLine.amount)),
-            keterangan: previewMemo,
-            description: previewMemo,
-            notes: previewMemo,
-            bukti: uploadedBuktiUrl || null,
-            ocr_data: ocrAppliedData ? {
-              extractedText: ocrAppliedData.extractedText,
-              items: ocrAppliedData.items,
-              appliedFields: ocrAppliedData.appliedFields,
-            } : null,
-          } as any);
+          const { error: supabaseError } = await supabase
+            .from("kas_transaksi")
+            .insert({
+              tanggal: previewTanggal,
+              document_number: docNumber,
+              payment_type: jenisTransaksi, // "Penerimaan Kas" or "Pengeluaran Kas"
+              account_number: cashLine.account_code,
+              account_name: cashLine.account_name,
+              account_code: cashLine.account_code,
+              nominal: parseFloat(String(cashLine.amount)),
+              keterangan: previewMemo,
+              description: previewMemo,
+              notes: previewMemo,
+              bukti: uploadedBuktiUrl || null,
+              ocr_data: ocrAppliedData
+                ? {
+                    extractedText: ocrAppliedData.extractedText,
+                    items: ocrAppliedData.items,
+                    appliedFields: ocrAppliedData.appliedFields,
+                  }
+                : null,
+            } as any);
 
           if (supabaseError) {
             console.error("Cash Book Error:", supabaseError);
@@ -3659,8 +3913,16 @@ export default function TransaksiKeuanganForm() {
 
         // Step 3: Build Journal Lines
         const journalData = buildJournalLines(
-          { account_code: result.debit, account_name: result.debitName, account_type: result.debitType },
-          { account_code: result.credit, account_name: result.creditName, account_type: result.creditType },
+          {
+            account_code: result.debit,
+            account_name: result.debitName,
+            account_type: result.debitType,
+          },
+          {
+            account_code: result.credit,
+            account_name: result.creditName,
+            account_type: result.creditType,
+          },
           normalizedInput.nominal,
           normalizedInput.deskripsi,
           normalizedInput.tanggal,
@@ -3675,7 +3937,10 @@ export default function TransaksiKeuanganForm() {
         const mainCreditLine = journalData.lines.find((l) => l.dc === "C");
 
         if (!needsApproval && mainDebitLine && mainCreditLine) {
-          const batchDebitAccountType = deriveAccountType(mainDebitLine.account_code, mainDebitLine.account_type);
+          const batchDebitAccountType = deriveAccountType(
+            mainDebitLine.account_code,
+            mainDebitLine.account_type,
+          );
 
           const { error } = await supabase.from("journal_entries").insert({
             journal_ref: journalRef,
@@ -3695,12 +3960,15 @@ export default function TransaksiKeuanganForm() {
           if (error) throw new Error(`Journal Entry: ${error.message}`);
         }
 
-        // Step 5: Save HPP entry if exists (for Penjualan Barang) - skip if needs approval
+        // Step 5: Save HPP entry if exists (for Penjualan) - skip if needs approval
         if (!needsApproval && journalData.lines.length > 2) {
           const hppDebitLine = journalData.lines[2];
           const hppCreditLine = journalData.lines[3];
 
-          const batchHppAccountType = deriveAccountType(hppDebitLine.account_code, hppDebitLine.account_type);
+          const batchHppAccountType = deriveAccountType(
+            hppDebitLine.account_code,
+            hppDebitLine.account_type,
+          );
 
           const { error } = await supabase.from("journal_entries").insert({
             journal_ref: journalRef,
@@ -3744,11 +4012,13 @@ export default function TransaksiKeuanganForm() {
                   ? "Service Purchase"
                   : null,
               bukti: uploadedBuktiUrl || null, // Add bukti URL
-              ocr_data: ocrAppliedData ? {
-                extractedText: ocrAppliedData.extractedText,
-                items: ocrAppliedData.items,
-                appliedFields: ocrAppliedData.appliedFields,
-              } : null,
+              ocr_data: ocrAppliedData
+                ? {
+                    extractedText: ocrAppliedData.extractedText,
+                    items: ocrAppliedData.items,
+                    appliedFields: ocrAppliedData.appliedFields,
+                  }
+                : null,
             } as any);
           }
         }
@@ -3788,11 +4058,13 @@ export default function TransaksiKeuanganForm() {
               created_by: user?.id,
               approval_status: "waiting_approval",
               bukti: uploadedBuktiUrl || null,
-              ocr_data: ocrAppliedData ? {
-                extractedText: ocrAppliedData.extractedText,
-                items: ocrAppliedData.items,
-                appliedFields: ocrAppliedData.appliedFields,
-              } : null,
+              ocr_data: ocrAppliedData
+                ? {
+                    extractedText: ocrAppliedData.extractedText,
+                    items: ocrAppliedData.items,
+                    appliedFields: ocrAppliedData.appliedFields,
+                  }
+                : null,
             });
 
           if (cashDisbursementError) {
@@ -3848,11 +4120,13 @@ export default function TransaksiKeuanganForm() {
               journal_ref: journalRef,
               approval_status: "approved", // Penerimaan Kas langsung Approved tanpa perlu approval
               bukti: uploadedBuktiUrl || null, // URL bukti file from earlier upload
-              ocr_data: ocrAppliedData ? {
-                extractedText: ocrAppliedData.extractedText,
-                items: ocrAppliedData.items,
-                appliedFields: ocrAppliedData.appliedFields,
-              } : null,
+              ocr_data: ocrAppliedData
+                ? {
+                    extractedText: ocrAppliedData.extractedText,
+                    items: ocrAppliedData.items,
+                    appliedFields: ocrAppliedData.appliedFields,
+                  }
+                : null,
               created_by: user?.id || null,
             });
 
@@ -3869,7 +4143,7 @@ export default function TransaksiKeuanganForm() {
 
         // Step 7: Create Sales Transaction if applicable
         if (
-          item.jenisTransaksi === "Penjualan Barang" ||
+          item.jenisTransaksi === "Penjualan" ||
           item.jenisTransaksi === "Penjualan Jasa"
         ) {
           const unitPrice = Number(item.hargaJual || item.nominal) || 0;
@@ -3879,7 +4153,7 @@ export default function TransaksiKeuanganForm() {
           const taxAmount = subtotal * (taxPercentage / 100);
           const totalAmount = subtotal + taxAmount;
 
-          if (item.jenisTransaksi === "Penjualan Barang") {
+          if (item.jenisTransaksi === "Penjualan") {
             const { data: stockData } = await supabase
               .from("stock")
               .select("quantity, cost_per_unit")
@@ -3911,11 +4185,13 @@ export default function TransaksiKeuanganForm() {
               journal_ref: journalRef,
               approval_status: "approved", // Set approval status to approved
               bukti: uploadedBuktiUrl || null, // Add bukti URL
-              ocr_data: ocrAppliedData ? {
-                extractedText: ocrAppliedData.extractedText,
-                items: ocrAppliedData.items,
-                appliedFields: ocrAppliedData.appliedFields,
-              } : null,
+              ocr_data: ocrAppliedData
+                ? {
+                    extractedText: ocrAppliedData.extractedText,
+                    items: ocrAppliedData.items,
+                    appliedFields: ocrAppliedData.appliedFields,
+                  }
+                : null,
             });
 
             // Stock quantity is automatically updated by database trigger
@@ -3944,11 +4220,13 @@ export default function TransaksiKeuanganForm() {
               journal_ref: journalRef,
               approval_status: "approved", // Set approval status to approved
               bukti: uploadedBuktiUrl || null, // Add bukti URL
-              ocr_data: ocrAppliedData ? {
-                extractedText: ocrAppliedData.extractedText,
-                items: ocrAppliedData.items,
-                appliedFields: ocrAppliedData.appliedFields,
-              } : null,
+              ocr_data: ocrAppliedData
+                ? {
+                    extractedText: ocrAppliedData.extractedText,
+                    items: ocrAppliedData.items,
+                    appliedFields: ocrAppliedData.appliedFields,
+                  }
+                : null,
             });
           }
         }
@@ -4267,11 +4545,13 @@ export default function TransaksiKeuanganForm() {
             journal_ref: journalRef,
             approval_status: needsApproval ? "waiting_approval" : "approved",
             bukti: uploadedBuktiUrl || null,
-            ocr_data: ocrAppliedData ? {
-              extractedText: ocrAppliedData.extractedText,
-              items: ocrAppliedData.items,
-              appliedFields: ocrAppliedData.appliedFields,
-            } : null,
+            ocr_data: ocrAppliedData
+              ? {
+                  extractedText: ocrAppliedData.extractedText,
+                  items: ocrAppliedData.items,
+                  appliedFields: ocrAppliedData.appliedFields,
+                }
+              : null,
             created_by: user?.id,
             approved_by: null,
           };
@@ -4324,11 +4604,13 @@ export default function TransaksiKeuanganForm() {
             journal_ref: journalRef,
             approval_status: needsApproval ? "waiting_approval" : "approved",
             bukti: uploadedBuktiUrl || null,
-            ocr_data: ocrAppliedData ? {
-              extractedText: ocrAppliedData.extractedText,
-              items: ocrAppliedData.items,
-              appliedFields: ocrAppliedData.appliedFields,
-            } : null,
+            ocr_data: ocrAppliedData
+              ? {
+                  extractedText: ocrAppliedData.extractedText,
+                  items: ocrAppliedData.items,
+                  appliedFields: ocrAppliedData.appliedFields,
+                }
+              : null,
             created_by: user?.id,
             approved_by: null,
           };
@@ -4444,40 +4726,71 @@ export default function TransaksiKeuanganForm() {
       .filter((t) => {
         // Only count approved transactions from purchase_transactions with transaction_type = Barang
         if (t.approval_status !== "approved") return false;
-        if (t.source === "purchase_transactions" && t.transaction_type === "Barang") return true;
+        if (
+          t.source === "purchase_transactions" &&
+          t.transaction_type === "Barang"
+        )
+          return true;
         return false;
       })
-      .reduce((sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0), 0),
+      .reduce(
+        (sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0),
+        0,
+      ),
     totalPenjualanBarang: transactions
       .filter((t) => {
         // Only count approved transactions from sales_transactions with transaction_type = Barang
         if (t.approval_status !== "approved") return false;
-        if (t.source === "sales_transactions" && t.transaction_type === "Barang") return true;
+        if (
+          t.source === "sales_transactions" &&
+          t.transaction_type === "Barang"
+        )
+          return true;
         return false;
       })
-      .reduce((sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0), 0),
+      .reduce(
+        (sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0),
+        0,
+      ),
     totalPembelianJasa: transactions
       .filter((t) => {
         // Only count approved transactions from purchase_transactions with transaction_type = Jasa
         if (t.approval_status !== "approved") return false;
-        if (t.source === "purchase_transactions" && t.transaction_type === "Jasa") return true;
+        if (
+          t.source === "purchase_transactions" &&
+          t.transaction_type === "Jasa"
+        )
+          return true;
         return false;
       })
-      .reduce((sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0), 0),
+      .reduce(
+        (sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0),
+        0,
+      ),
     totalPenjualanJasa: transactions
       .filter((t) => {
         // Only count approved transactions from sales_transactions with transaction_type = Jasa
         if (t.approval_status !== "approved") return false;
-        if (t.source === "sales_transactions" && t.transaction_type === "Jasa") return true;
+        if (t.source === "sales_transactions" && t.transaction_type === "Jasa")
+          return true;
         return false;
       })
-      .reduce((sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0), 0),
+      .reduce(
+        (sum, t) => sum + parseFloat(t.total_amount || t.nominal || 0),
+        0,
+      ),
     waitingApproval: transactions.filter(
       (t) => t.approval_status === "waiting_approval",
     ).length,
   };
 
-  const netAmount = (summaryData.totalPenerimaanKas + summaryData.totalPenjualanBarang + summaryData.totalPenjualanJasa) - (summaryData.totalPengeluaranKas + summaryData.totalPembelianBarang + summaryData.totalPembelianJasa);
+  const netAmount =
+    summaryData.totalPenerimaanKas +
+    summaryData.totalPenjualanBarang +
+    summaryData.totalPenjualanJasa -
+    (summaryData.totalPengeluaranKas +
+      summaryData.totalPembelianBarang +
+      summaryData.totalPembelianJasa);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -4487,6 +4800,42 @@ export default function TransaksiKeuanganForm() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  const fetchCategoryItems = async (transactionType: string) => {
+    const config =
+      TRANSACTION_CATEGORIES[
+        transactionType as keyof typeof TRANSACTION_CATEGORIES
+      ];
+
+    if (!config || !config.source) {
+      console.warn(
+        "No category config/source found for transaction type:",
+        transactionType,
+        config,
+      );
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from(config.source)
+      .select(`id, ${config.sourceLabelKey}, ${config.sourceValueKey}`);
+
+    if (error) {
+      console.error("Failed to load category items", error);
+      return [];
+    }
+
+    return data || [];
+  };
+
+  useEffect(() => {
+    if (jenisTransaksi) {
+      fetchCategoryItems(jenisTransaksi).then(setCategoryOptions);
+    } else {
+      setCategoryOptions([]);
+      setSelectedCategory("");
+    }
+  }, [jenisTransaksi]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -4598,8 +4947,8 @@ export default function TransaksiKeuanganForm() {
 
                 <Card
                   className={`border-none shadow-md text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01] ${
-                    netAmount >= 0 
-                      ? "bg-gradient-to-br from-purple-500 to-purple-600" 
+                    netAmount >= 0
+                      ? "bg-gradient-to-br from-purple-500 to-purple-600"
                       : "bg-gradient-to-br from-red-500 to-red-600"
                   }`}
                   onClick={() => {
@@ -4698,14 +5047,14 @@ export default function TransaksiKeuanganForm() {
                 <Card
                   className="border-none shadow-md bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
                   onClick={() => {
-                    setFilterJenis("Penjualan Barang");
+                    setFilterJenis("Penjualan");
                     setFilterStatus("");
                   }}
                 >
                   <CardHeader className="pb-2 pt-3">
                     <div className="flex items-center justify-between">
                       <CardDescription className="text-white/90 text-xs font-medium">
-                        Penjualan Barang
+                        Penjualan
                       </CardDescription>
                       <TrendingUp className="h-5 w-5 text-white/80" />
                     </div>
@@ -4855,8 +5204,6 @@ export default function TransaksiKeuanganForm() {
               </div>
             </div>
 
-
-
             {/* Filters and Table */}
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
               <div className="p-6 border-b bg-gradient-to-r from-indigo-50 via-blue-50 to-cyan-50">
@@ -4935,11 +5282,17 @@ export default function TransaksiKeuanganForm() {
                         onChange={(e) => setFilterJenis(e.target.value)}
                       >
                         <option value="">Semua Jenis Transaksi</option>
-                        <option value="cash_and_bank_receipts">Penerimaan Kas & Bank</option>
-                        <option value="cash_disbursement">Pengeluaran Kas</option>
-                        <option value="sales_barang">Penjualan Barang</option>
+                        <option value="cash_and_bank_receipts">
+                          Penerimaan Kas & Bank
+                        </option>
+                        <option value="cash_disbursement">
+                          Pengeluaran Kas
+                        </option>
+                        <option value="sales_barang">Penjualan</option>
                         <option value="sales_jasa">Penjualan Jasa</option>
-                        <option value="purchase_barang">Pembelian Barang</option>
+                        <option value="purchase_barang">
+                          Pembelian Barang
+                        </option>
                         <option value="purchase_jasa">Pembelian Jasa</option>
                       </select>
                     </div>
@@ -5101,15 +5454,32 @@ export default function TransaksiKeuanganForm() {
                             if (filterJenis === "cash_and_bank_receipts") {
                               if (t.source !== "cash_receipts") return false;
                             } else if (filterJenis === "cash_disbursement") {
-                              if (t.source !== "cash_disbursement") return false;
+                              if (t.source !== "cash_disbursement")
+                                return false;
                             } else if (filterJenis === "sales_barang") {
-                              if (t.source !== "sales_transactions" || t.transaction_type !== "Barang") return false;
+                              if (
+                                t.source !== "sales_transactions" ||
+                                t.transaction_type !== "Barang"
+                              )
+                                return false;
                             } else if (filterJenis === "sales_jasa") {
-                              if (t.source !== "sales_transactions" || t.transaction_type !== "Jasa") return false;
+                              if (
+                                t.source !== "sales_transactions" ||
+                                t.transaction_type !== "Jasa"
+                              )
+                                return false;
                             } else if (filterJenis === "purchase_barang") {
-                              if (t.source !== "PURCHASE TRANSACTIONS" || t.transaction_type !== "Barang") return false;
+                              if (
+                                t.source !== "PURCHASE TRANSACTIONS" ||
+                                t.transaction_type !== "Barang"
+                              )
+                                return false;
                             } else if (filterJenis === "purchase_jasa") {
-                              if (t.source !== "PURCHASE TRANSACTIONS" || t.transaction_type !== "Jasa") return false;
+                              if (
+                                t.source !== "PURCHASE TRANSACTIONS" ||
+                                t.transaction_type !== "Jasa"
+                              )
+                                return false;
                             }
                           }
 
@@ -5126,25 +5496,48 @@ export default function TransaksiKeuanganForm() {
 
                           // Search query filter
                           if (!searchQuery) return true;
-                          const query = searchQuery.toLowerCase();
+                          const query = (searchQuery ?? "").toLowerCase();
                           return (
-                            t.no_dokumen?.toLowerCase().includes(query) ||
-                            t.document_number?.toLowerCase().includes(query) ||
-                            t.payment_type?.toLowerCase().includes(query) ||
-                            t.jenis?.toLowerCase().includes(query) ||
-                            t.account_name?.toLowerCase().includes(query) ||
-                            t.keterangan?.toLowerCase().includes(query) ||
-                            t.description?.toLowerCase().includes(query) ||
-                            t.notes?.toLowerCase().includes(query) ||
-                            t.item_name?.toLowerCase().includes(query) ||
-                            t.supplier_name?.toLowerCase().includes(query) ||
-                            t.customer_name?.toLowerCase().includes(query) ||
-                            t.lender_name?.toLowerCase().includes(query) ||
-                            t.loan_number?.toLowerCase().includes(query) ||
-                            t.source?.toLowerCase().includes(query)
+                            (t.no_dokumen ?? "")
+                              .toLowerCase()
+                              .includes(query) ||
+                            (t.document_number ?? "")
+                              .toLowerCase()
+                              .includes(query) ||
+                            (t.payment_type ?? "")
+                              .toLowerCase()
+                              .includes(query) ||
+                            (t.jenis ?? "").toLowerCase().includes(query) ||
+                            (t.account_name ?? "")
+                              .toLowerCase()
+                              .includes(query) ||
+                            (t.keterangan ?? "")
+                              .toLowerCase()
+                              .includes(query) ||
+                            (t.description ?? "")
+                              .toLowerCase()
+                              .includes(query) ||
+                            (t.notes ?? "").toLowerCase().includes(query) ||
+                            (t.item_name ?? "").toLowerCase().includes(query) ||
+                            (t.supplier_name ?? "")
+                              .toLowerCase()
+                              .includes(query) ||
+                            (t.customer_name ?? "")
+                              .toLowerCase()
+                              .includes(query) ||
+                            (t.lender_name ?? "")
+                              .toLowerCase()
+                              .includes(query) ||
+                            (t.loan_number ?? "")
+                              .toLowerCase()
+                              .includes(query) ||
+                            (t.source ?? "").toLowerCase().includes(query)
                           );
                         })
-                        .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                        .slice(
+                          (currentPage - 1) * itemsPerPage,
+                          currentPage * itemsPerPage,
+                        )
                         .map((transaction, index) => {
                           // Determine display values based on source
                           let displayJenis =
@@ -5155,9 +5548,15 @@ export default function TransaksiKeuanganForm() {
                             "-";
 
                           // Handle Pembelian/Penjualan with transaction_type
-                          if (transaction.jenis === "Pembelian" && transaction.transaction_type) {
+                          if (
+                            transaction.jenis === "Pembelian" &&
+                            transaction.transaction_type
+                          ) {
                             displayJenis = `Pembelian ${transaction.transaction_type}`;
-                          } else if (transaction.jenis === "Penjualan" && transaction.transaction_type) {
+                          } else if (
+                            transaction.jenis === "Penjualan" &&
+                            transaction.transaction_type
+                          ) {
                             displayJenis = `Penjualan ${transaction.transaction_type}`;
                           }
 
@@ -5208,7 +5607,9 @@ export default function TransaksiKeuanganForm() {
                                 {(currentPage - 1) * itemsPerPage + index + 1}
                               </TableCell>
                               <TableCell className="text-sm">
-                                {userMappings[transaction.created_by] || transaction.created_by || "-"}
+                                {userMappings[transaction.created_by] ||
+                                  transaction.created_by ||
+                                  "-"}
                               </TableCell>
                               <TableCell>
                                 {new Date(
@@ -5287,7 +5688,10 @@ export default function TransaksiKeuanganForm() {
                                         {displayDocNumber}
                                       </DialogDescription>
                                     </DialogHeader>
-                                    {console.log("🔍 Transaction OCR Data:", transaction.ocr_data)}
+                                    {console.log(
+                                      "🔍 Transaction OCR Data:",
+                                      transaction.ocr_data,
+                                    )}
                                     <div className="space-y-4 mt-4">
                                       <div className="grid grid-cols-2 gap-4">
                                         <div>
@@ -5458,7 +5862,9 @@ export default function TransaksiKeuanganForm() {
                                                 Karyawan yang Menginput:
                                               </span>
                                               <span className="text-sm font-medium">
-                                                {userMappings[transaction.created_by] || transaction.created_by}
+                                                {userMappings[
+                                                  transaction.created_by
+                                                ] || transaction.created_by}
                                               </span>
                                             </div>
                                           )}
@@ -5468,7 +5874,9 @@ export default function TransaksiKeuanganForm() {
                                                 Karyawan yang Meng-approve:
                                               </span>
                                               <span className="text-sm font-medium">
-                                                {userMappings[transaction.approved_by] || transaction.approved_by}
+                                                {userMappings[
+                                                  transaction.approved_by
+                                                ] || transaction.approved_by}
                                               </span>
                                             </div>
                                           )}
@@ -5578,20 +5986,21 @@ export default function TransaksiKeuanganForm() {
                                         </div>
                                       )}
 
-
                                       {/* Rejection Reason if status is rejected */}
-                                      {transaction.approval_status === "rejected" && transaction.rejection_reason && (
-                                        <div className="border-t pt-4">
-                                          <p className="text-sm font-semibold text-red-600 mb-2">
-                                            Alasan Di Reject:
-                                          </p>
-                                          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                            <p className="text-sm text-red-800">
-                                              {transaction.rejection_reason}
+                                      {transaction.approval_status ===
+                                        "rejected" &&
+                                        transaction.rejection_reason && (
+                                          <div className="border-t pt-4">
+                                            <p className="text-sm font-semibold text-red-600 mb-2">
+                                              Alasan Di Reject:
                                             </p>
+                                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                              <p className="text-sm text-red-800">
+                                                {transaction.rejection_reason}
+                                              </p>
+                                            </div>
                                           </div>
-                                        </div>
-                                      )}
+                                        )}
                                     </div>
                                   </DialogContent>
                                 </Dialog>
@@ -5613,7 +6022,8 @@ export default function TransaksiKeuanganForm() {
                                       <DialogHeader>
                                         <DialogTitle>📄 Data OCR</DialogTitle>
                                         <DialogDescription>
-                                          Data OCR untuk transaksi {displayDocNumber}
+                                          Data OCR untuk transaksi{" "}
+                                          {displayDocNumber}
                                         </DialogDescription>
                                       </DialogHeader>
                                       <div className="mt-4 space-y-4">
@@ -5624,68 +6034,110 @@ export default function TransaksiKeuanganForm() {
                                               Teks yang Diekstrak:
                                             </p>
                                             <div className="p-4 bg-slate-50 rounded-lg border text-xs font-mono whitespace-pre-wrap max-h-96 overflow-y-auto text-slate-700">
-                                              {transaction.ocr_data.extractedText}
+                                              {
+                                                transaction.ocr_data
+                                                  .extractedText
+                                              }
                                             </div>
                                           </div>
                                         )}
 
                                         {/* Raw OCR Data */}
-                                        {!transaction.ocr_data.extractedText && (
+                                        {!transaction.ocr_data
+                                          .extractedText && (
                                           <div>
                                             <p className="text-sm font-semibold text-gray-700 mb-2">
                                               Data OCR Mentah:
                                             </p>
                                             <div className="p-4 bg-slate-50 rounded-lg border text-xs font-mono whitespace-pre-wrap max-h-96 overflow-y-auto text-slate-700">
-                                              {JSON.stringify(transaction.ocr_data, null, 2)}
+                                              {JSON.stringify(
+                                                transaction.ocr_data,
+                                                null,
+                                                2,
+                                              )}
                                             </div>
                                           </div>
                                         )}
 
                                         {/* Applied Fields */}
-                                        {transaction.ocr_data.appliedFields && transaction.ocr_data.appliedFields.length > 0 && (
-                                          <div>
-                                            <p className="text-sm font-semibold text-gray-700 mb-2">
-                                              Field yang Diterapkan:
-                                            </p>
-                                            <div className="space-y-2">
-                                              {transaction.ocr_data.appliedFields.map((field: any, idx: number) => (
-                                                <div key={idx} className="flex justify-between items-center p-2 bg-blue-50 rounded border border-blue-200">
-                                                  <span className="text-sm font-medium text-blue-900">{field.field}</span>
-                                                  <span className="text-sm text-blue-700">{field.value}</span>
-                                                </div>
-                                              ))}
+                                        {transaction.ocr_data.appliedFields &&
+                                          transaction.ocr_data.appliedFields
+                                            .length > 0 && (
+                                            <div>
+                                              <p className="text-sm font-semibold text-gray-700 mb-2">
+                                                Field yang Diterapkan:
+                                              </p>
+                                              <div className="space-y-2">
+                                                {transaction.ocr_data.appliedFields.map(
+                                                  (field: any, idx: number) => (
+                                                    <div
+                                                      key={idx}
+                                                      className="flex justify-between items-center p-2 bg-blue-50 rounded border border-blue-200"
+                                                    >
+                                                      <span className="text-sm font-medium text-blue-900">
+                                                        {field.field}
+                                                      </span>
+                                                      <span className="text-sm text-blue-700">
+                                                        {field.value}
+                                                      </span>
+                                                    </div>
+                                                  ),
+                                                )}
+                                              </div>
                                             </div>
-                                          </div>
-                                        )}
+                                          )}
 
                                         {/* Items */}
-                                        {transaction.ocr_data.items && transaction.ocr_data.items.length > 0 && (
-                                          <div>
-                                            <p className="text-sm font-semibold text-gray-700 mb-2">
-                                              Item yang Diekstrak:
-                                            </p>
-                                            <table className="w-full text-sm border">
-                                              <thead className="bg-slate-100">
-                                                <tr>
-                                                  <th className="p-2 text-left border">Item</th>
-                                                  <th className="p-2 text-center border">Qty</th>
-                                                  <th className="p-2 text-right border">Harga</th>
-                                                </tr>
-                                              </thead>
-                                              <tbody>
-                                                {transaction.ocr_data.items.map((item: any, idx: number) => (
-                                                  <tr key={idx} className="border-t">
-                                                    <td className="p-2 text-slate-800">{item.name}</td>
-                                                    <td className="p-2 text-center text-slate-600">{item.qty}</td>
-                                                    <td className="p-2 text-right text-slate-800">
-                                                      Rp {item.price?.toLocaleString("id-ID")}
-                                                    </td>
+                                        {transaction.ocr_data.items &&
+                                          transaction.ocr_data.items.length >
+                                            0 && (
+                                            <div>
+                                              <p className="text-sm font-semibold text-gray-700 mb-2">
+                                                Item yang Diekstrak:
+                                              </p>
+                                              <table className="w-full text-sm border">
+                                                <thead className="bg-slate-100">
+                                                  <tr>
+                                                    <th className="p-2 text-left border">
+                                                      Item
+                                                    </th>
+                                                    <th className="p-2 text-center border">
+                                                      Qty
+                                                    </th>
+                                                    <th className="p-2 text-right border">
+                                                      Harga
+                                                    </th>
                                                   </tr>
-                                                ))}
-                                              </tbody>
-                                            </table>
-                                          </div>
-                                        )}
+                                                </thead>
+                                                <tbody>
+                                                  {transaction.ocr_data.items.map(
+                                                    (
+                                                      item: any,
+                                                      idx: number,
+                                                    ) => (
+                                                      <tr
+                                                        key={idx}
+                                                        className="border-t"
+                                                      >
+                                                        <td className="p-2 text-slate-800">
+                                                          {item.name}
+                                                        </td>
+                                                        <td className="p-2 text-center text-slate-600">
+                                                          {item.qty}
+                                                        </td>
+                                                        <td className="p-2 text-right text-slate-800">
+                                                          Rp{" "}
+                                                          {item.price?.toLocaleString(
+                                                            "id-ID",
+                                                          )}
+                                                        </td>
+                                                      </tr>
+                                                    ),
+                                                  )}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                          )}
                                       </div>
                                     </DialogContent>
                                   </Dialog>
@@ -5710,19 +6162,26 @@ export default function TransaksiKeuanganForm() {
                                     </DialogTrigger>
                                     <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
                                       <DialogHeader>
-                                        <DialogTitle>Bukti Transaksi</DialogTitle>
+                                        <DialogTitle>
+                                          Bukti Transaksi
+                                        </DialogTitle>
                                         <DialogDescription>
-                                          Bukti untuk transaksi {displayDocNumber}
+                                          Bukti untuk transaksi{" "}
+                                          {displayDocNumber}
                                         </DialogDescription>
                                       </DialogHeader>
                                       <div className="mt-4">
-                                        {transaction.bukti.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                        {transaction.bukti.match(
+                                          /\.(jpg|jpeg|png|gif|webp)$/i,
+                                        ) ? (
                                           <img
                                             src={transaction.bukti}
                                             alt="Bukti Transaksi"
                                             className="w-full h-auto max-h-[60vh] object-contain rounded-lg border"
                                           />
-                                        ) : transaction.bukti.match(/\.pdf$/i) ? (
+                                        ) : transaction.bukti.match(
+                                            /\.pdf$/i,
+                                          ) ? (
                                           <iframe
                                             src={transaction.bukti}
                                             className="w-full h-[60vh] rounded-lg border"
@@ -5828,44 +6287,52 @@ export default function TransaksiKeuanganForm() {
                                     return false;
                                 }
                                 if (searchQuery) {
-                                  const query = searchQuery.toLowerCase();
+                                  const query = (
+                                    searchQuery ?? ""
+                                  ).toLowerCase();
                                   const matchesSearch =
-                                    t.no_dokumen
-                                      ?.toLowerCase()
+                                    (t.no_dokumen ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.document_number
-                                      ?.toLowerCase()
+                                    (t.document_number ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.payment_type
-                                      ?.toLowerCase()
+                                    (t.payment_type ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.jenis?.toLowerCase().includes(query) ||
-                                    t.account_name
-                                      ?.toLowerCase()
+                                    (t.jenis ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.keterangan
-                                      ?.toLowerCase()
+                                    (t.account_name ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.description
-                                      ?.toLowerCase()
+                                    (t.keterangan ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.notes?.toLowerCase().includes(query) ||
-                                    t.item_name
-                                      ?.toLowerCase()
+                                    (t.description ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.supplier_name
-                                      ?.toLowerCase()
+                                    (t.notes ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.customer_name
-                                      ?.toLowerCase()
+                                    (t.item_name ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.lender_name
-                                      ?.toLowerCase()
+                                    (t.supplier_name ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.loan_number
-                                      ?.toLowerCase()
+                                    (t.customer_name ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.source?.toLowerCase().includes(query);
+                                    (t.lender_name ?? "")
+                                      .toLowerCase()
+                                      .includes(query) ||
+                                    (t.loan_number ?? "")
+                                      .toLowerCase()
+                                      .includes(query) ||
+                                    (t.source ?? "")
+                                      .toLowerCase()
+                                      .includes(query);
                                   if (!matchesSearch) return false;
                                 }
 
@@ -5879,7 +6346,7 @@ export default function TransaksiKeuanganForm() {
                                   t.transaction_type === "Jasa"
                                 )
                                   return true;
-                                // Income from Penjualan Barang
+                                // Income from Penjualan
                                 if (
                                   t.source === "sales_transactions" &&
                                   t.transaction_type === "Barang"
@@ -5955,44 +6422,52 @@ export default function TransaksiKeuanganForm() {
                                     return false;
                                 }
                                 if (searchQuery) {
-                                  const query = searchQuery.toLowerCase();
+                                  const query = (
+                                    searchQuery ?? ""
+                                  ).toLowerCase();
                                   const matchesSearch =
-                                    t.no_dokumen
-                                      ?.toLowerCase()
+                                    (t.no_dokumen ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.document_number
-                                      ?.toLowerCase()
+                                    (t.document_number ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.payment_type
-                                      ?.toLowerCase()
+                                    (t.payment_type ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.jenis?.toLowerCase().includes(query) ||
-                                    t.account_name
-                                      ?.toLowerCase()
+                                    (t.jenis ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.keterangan
-                                      ?.toLowerCase()
+                                    (t.account_name ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.description
-                                      ?.toLowerCase()
+                                    (t.keterangan ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.notes?.toLowerCase().includes(query) ||
-                                    t.item_name
-                                      ?.toLowerCase()
+                                    (t.description ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.supplier_name
-                                      ?.toLowerCase()
+                                    (t.notes ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.customer_name
-                                      ?.toLowerCase()
+                                    (t.item_name ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.lender_name
-                                      ?.toLowerCase()
+                                    (t.supplier_name ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.loan_number
-                                      ?.toLowerCase()
+                                    (t.customer_name ?? "")
+                                      .toLowerCase()
                                       .includes(query) ||
-                                    t.source?.toLowerCase().includes(query);
+                                    (t.lender_name ?? "")
+                                      .toLowerCase()
+                                      .includes(query) ||
+                                    (t.loan_number ?? "")
+                                      .toLowerCase()
+                                      .includes(query) ||
+                                    (t.source ?? "")
+                                      .toLowerCase()
+                                      .includes(query);
                                   if (!matchesSearch) return false;
                                 }
 
@@ -6066,18 +6541,44 @@ export default function TransaksiKeuanganForm() {
                                   }
                                   if (filterJenis) {
                                     // Handle specific filter values
-                                    if (filterJenis === "cash_and_bank_receipts") {
-                                      if (t.source !== "cash_receipts") return false;
-                                    } else if (filterJenis === "cash_disbursement") {
-                                      if (t.source !== "cash_disbursement") return false;
+                                    if (
+                                      filterJenis === "cash_and_bank_receipts"
+                                    ) {
+                                      if (t.source !== "cash_receipts")
+                                        return false;
+                                    } else if (
+                                      filterJenis === "cash_disbursement"
+                                    ) {
+                                      if (t.source !== "cash_disbursement")
+                                        return false;
                                     } else if (filterJenis === "sales_barang") {
-                                      if (t.source !== "sales_transactions" || t.transaction_type !== "Barang") return false;
+                                      if (
+                                        t.source !== "sales_transactions" ||
+                                        t.transaction_type !== "Barang"
+                                      )
+                                        return false;
                                     } else if (filterJenis === "sales_jasa") {
-                                      if (t.source !== "sales_transactions" || t.transaction_type !== "Jasa") return false;
-                                    } else if (filterJenis === "purchase_barang") {
-                                      if (t.source !== "PURCHASE TRANSACTIONS" || t.transaction_type !== "Barang") return false;
-                                    } else if (filterJenis === "purchase_jasa") {
-                                      if (t.source !== "PURCHASE TRANSACTIONS" || t.transaction_type !== "Jasa") return false;
+                                      if (
+                                        t.source !== "sales_transactions" ||
+                                        t.transaction_type !== "Jasa"
+                                      )
+                                        return false;
+                                    } else if (
+                                      filterJenis === "purchase_barang"
+                                    ) {
+                                      if (
+                                        t.source !== "PURCHASE TRANSACTIONS" ||
+                                        t.transaction_type !== "Barang"
+                                      )
+                                        return false;
+                                    } else if (
+                                      filterJenis === "purchase_jasa"
+                                    ) {
+                                      if (
+                                        t.source !== "PURCHASE TRANSACTIONS" ||
+                                        t.transaction_type !== "Jasa"
+                                      )
+                                        return false;
                                     }
                                   }
                                   if (filterSource) {
@@ -6088,41 +6589,49 @@ export default function TransaksiKeuanganForm() {
                                       return false;
                                   }
                                   if (searchQuery) {
-                                    const query = searchQuery.toLowerCase();
+                                    const query = (
+                                      searchQuery ?? ""
+                                    ).toLowerCase();
                                     return (
-                                      t.payment_type
-                                        ?.toLowerCase()
+                                      (t.payment_type ?? "")
+                                        .toLowerCase()
                                         .includes(query) ||
-                                      t.jenis?.toLowerCase().includes(query) ||
-                                      t.account_name
-                                        ?.toLowerCase()
+                                      (t.jenis ?? "")
+                                        .toLowerCase()
                                         .includes(query) ||
-                                      t.keterangan
-                                        ?.toLowerCase()
+                                      (t.account_name ?? "")
+                                        .toLowerCase()
                                         .includes(query) ||
-                                      t.description
-                                        ?.toLowerCase()
+                                      (t.keterangan ?? "")
+                                        .toLowerCase()
                                         .includes(query) ||
-                                      t.notes?.toLowerCase().includes(query) ||
-                                      t.item_name
-                                        ?.toLowerCase()
+                                      (t.description ?? "")
+                                        .toLowerCase()
                                         .includes(query) ||
-                                      t.supplier_name
-                                        ?.toLowerCase()
+                                      (t.notes ?? "")
+                                        .toLowerCase()
                                         .includes(query) ||
-                                      t.customer_name
-                                        ?.toLowerCase()
+                                      (t.item_name ?? "")
+                                        .toLowerCase()
                                         .includes(query) ||
-                                      t.lender_name
-                                        ?.toLowerCase()
+                                      (t.supplier_name ?? "")
+                                        .toLowerCase()
                                         .includes(query) ||
-                                      t.document_number
-                                        ?.toLowerCase()
+                                      (t.customer_name ?? "")
+                                        .toLowerCase()
                                         .includes(query) ||
-                                      t.loan_number
-                                        ?.toLowerCase()
+                                      (t.lender_name ?? "")
+                                        .toLowerCase()
                                         .includes(query) ||
-                                      t.source?.toLowerCase().includes(query)
+                                      (t.document_number ?? "")
+                                        .toLowerCase()
+                                        .includes(query) ||
+                                      (t.loan_number ?? "")
+                                        .toLowerCase()
+                                        .includes(query) ||
+                                      (t.source ?? "")
+                                        .toLowerCase()
+                                        .includes(query)
                                     );
                                   }
                                   return true;
@@ -6201,123 +6710,197 @@ export default function TransaksiKeuanganForm() {
                 <div className="text-sm text-gray-700">
                   Menampilkan{" "}
                   <span className="font-medium">
-                    {Math.min((currentPage - 1) * itemsPerPage + 1, transactions.filter((t) => {
-                      if (filterDateFrom || filterDateTo) {
-                        const transactionDate = new Date(t.tanggal);
-                        if (filterDateFrom) {
-                          const fromDate = new Date(filterDateFrom);
-                          if (transactionDate < fromDate) return false;
+                    {Math.min(
+                      (currentPage - 1) * itemsPerPage + 1,
+                      transactions.filter((t) => {
+                        if (filterDateFrom || filterDateTo) {
+                          const transactionDate = new Date(t.tanggal);
+                          if (filterDateFrom) {
+                            const fromDate = new Date(filterDateFrom);
+                            if (transactionDate < fromDate) return false;
+                          }
+                          if (filterDateTo) {
+                            const toDate = new Date(filterDateTo);
+                            toDate.setHours(23, 59, 59, 999);
+                            if (transactionDate > toDate) return false;
+                          }
                         }
-                        if (filterDateTo) {
-                          const toDate = new Date(filterDateTo);
-                          toDate.setHours(23, 59, 59, 999);
-                          if (transactionDate > toDate) return false;
+                        if (filterJenis) {
+                          const jenis =
+                            t.payment_type ||
+                            t.jenis ||
+                            t.transaction_type ||
+                            t.expense_type ||
+                            "";
+                          if (
+                            !jenis
+                              .toLowerCase()
+                              .includes(filterJenis.toLowerCase())
+                          )
+                            return false;
                         }
-                      }
-                      if (filterJenis) {
-                        const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
-                        if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
-                      }
-                      if (filterSource && t.source !== filterSource) return false;
-                      if (filterStatus && t.approval_status !== filterStatus) return false;
-                      if (!searchQuery) return true;
-                      const query = searchQuery.toLowerCase();
-                      return (
-                        t.payment_type?.toLowerCase().includes(query) ||
-                        t.jenis?.toLowerCase().includes(query) ||
-                        t.account_name?.toLowerCase().includes(query) ||
-                        t.keterangan?.toLowerCase().includes(query) ||
-                        t.description?.toLowerCase().includes(query) ||
-                        t.notes?.toLowerCase().includes(query) ||
-                        t.item_name?.toLowerCase().includes(query) ||
-                        t.supplier_name?.toLowerCase().includes(query) ||
-                        t.customer_name?.toLowerCase().includes(query) ||
-                        t.lender_name?.toLowerCase().includes(query) ||
-                        t.document_number?.toLowerCase().includes(query) ||
-                        t.loan_number?.toLowerCase().includes(query) ||
-                        t.source?.toLowerCase().includes(query)
-                      );
-                    }).length)}
+                        if (filterSource && t.source !== filterSource)
+                          return false;
+                        if (filterStatus && t.approval_status !== filterStatus)
+                          return false;
+                        if (!searchQuery) return true;
+                        const query = (searchQuery ?? "").toLowerCase();
+                        return (
+                          (t.payment_type ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.jenis ?? "").toLowerCase().includes(query) ||
+                          (t.account_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.keterangan ?? "").toLowerCase().includes(query) ||
+                          (t.description ?? "").toLowerCase().includes(query) ||
+                          (t.notes ?? "").toLowerCase().includes(query) ||
+                          (t.item_name ?? "").toLowerCase().includes(query) ||
+                          (t.supplier_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.customer_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.lender_name ?? "").toLowerCase().includes(query) ||
+                          (t.document_number ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.loan_number ?? "").toLowerCase().includes(query) ||
+                          (t.source ?? "").toLowerCase().includes(query)
+                        );
+                      }).length,
+                    )}
                   </span>{" "}
                   sampai{" "}
                   <span className="font-medium">
-                    {Math.min(currentPage * itemsPerPage, transactions.filter((t) => {
-                      if (filterDateFrom || filterDateTo) {
-                        const transactionDate = new Date(t.tanggal);
-                        if (filterDateFrom) {
-                          const fromDate = new Date(filterDateFrom);
-                          if (transactionDate < fromDate) return false;
+                    {Math.min(
+                      currentPage * itemsPerPage,
+                      transactions.filter((t) => {
+                        if (filterDateFrom || filterDateTo) {
+                          const transactionDate = new Date(t.tanggal);
+                          if (filterDateFrom) {
+                            const fromDate = new Date(filterDateFrom);
+                            if (transactionDate < fromDate) return false;
+                          }
+                          if (filterDateTo) {
+                            const toDate = new Date(filterDateTo);
+                            toDate.setHours(23, 59, 59, 999);
+                            if (transactionDate > toDate) return false;
+                          }
                         }
-                        if (filterDateTo) {
-                          const toDate = new Date(filterDateTo);
-                          toDate.setHours(23, 59, 59, 999);
-                          if (transactionDate > toDate) return false;
+                        if (filterJenis) {
+                          const jenis =
+                            t.payment_type ||
+                            t.jenis ||
+                            t.transaction_type ||
+                            t.expense_type ||
+                            "";
+                          if (
+                            !jenis
+                              .toLowerCase()
+                              .includes(filterJenis.toLowerCase())
+                          )
+                            return false;
                         }
-                      }
-                      if (filterJenis) {
-                        const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
-                        if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
-                      }
-                      if (filterSource && t.source !== filterSource) return false;
-                      if (filterStatus && t.approval_status !== filterStatus) return false;
-                      if (!searchQuery) return true;
-                      const query = searchQuery.toLowerCase();
-                      return (
-                        t.payment_type?.toLowerCase().includes(query) ||
-                        t.jenis?.toLowerCase().includes(query) ||
-                        t.account_name?.toLowerCase().includes(query) ||
-                        t.keterangan?.toLowerCase().includes(query) ||
-                        t.description?.toLowerCase().includes(query) ||
-                        t.notes?.toLowerCase().includes(query) ||
-                        t.item_name?.toLowerCase().includes(query) ||
-                        t.supplier_name?.toLowerCase().includes(query) ||
-                        t.customer_name?.toLowerCase().includes(query) ||
-                        t.lender_name?.toLowerCase().includes(query) ||
-                        t.document_number?.toLowerCase().includes(query) ||
-                        t.loan_number?.toLowerCase().includes(query) ||
-                        t.source?.toLowerCase().includes(query)
-                      );
-                    }).length)}
+                        if (filterSource && t.source !== filterSource)
+                          return false;
+                        if (filterStatus && t.approval_status !== filterStatus)
+                          return false;
+                        if (!searchQuery) return true;
+                        const query = (searchQuery ?? "").toLowerCase();
+                        return (
+                          (t.payment_type ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.jenis ?? "").toLowerCase().includes(query) ||
+                          (t.account_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.keterangan ?? "").toLowerCase().includes(query) ||
+                          (t.description ?? "").toLowerCase().includes(query) ||
+                          (t.notes ?? "").toLowerCase().includes(query) ||
+                          (t.item_name ?? "").toLowerCase().includes(query) ||
+                          (t.supplier_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.customer_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.lender_name ?? "").toLowerCase().includes(query) ||
+                          (t.document_number ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.loan_number ?? "").toLowerCase().includes(query) ||
+                          (t.source ?? "").toLowerCase().includes(query)
+                        );
+                      }).length,
+                    )}
                   </span>{" "}
                   dari{" "}
                   <span className="font-medium">
-                    {transactions.filter((t) => {
-                      if (filterDateFrom || filterDateTo) {
-                        const transactionDate = new Date(t.tanggal);
-                        if (filterDateFrom) {
-                          const fromDate = new Date(filterDateFrom);
-                          if (transactionDate < fromDate) return false;
+                    {
+                      transactions.filter((t) => {
+                        if (filterDateFrom || filterDateTo) {
+                          const transactionDate = new Date(t.tanggal);
+                          if (filterDateFrom) {
+                            const fromDate = new Date(filterDateFrom);
+                            if (transactionDate < fromDate) return false;
+                          }
+                          if (filterDateTo) {
+                            const toDate = new Date(filterDateTo);
+                            toDate.setHours(23, 59, 59, 999);
+                            if (transactionDate > toDate) return false;
+                          }
                         }
-                        if (filterDateTo) {
-                          const toDate = new Date(filterDateTo);
-                          toDate.setHours(23, 59, 59, 999);
-                          if (transactionDate > toDate) return false;
+                        if (filterJenis) {
+                          const jenis =
+                            t.payment_type ||
+                            t.jenis ||
+                            t.transaction_type ||
+                            t.expense_type ||
+                            "";
+                          if (
+                            !jenis
+                              .toLowerCase()
+                              .includes(filterJenis.toLowerCase())
+                          )
+                            return false;
                         }
-                      }
-                      if (filterJenis) {
-                        const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
-                        if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
-                      }
-                      if (filterSource && t.source !== filterSource) return false;
-                      if (filterStatus && t.approval_status !== filterStatus) return false;
-                      if (!searchQuery) return true;
-                      const query = searchQuery.toLowerCase();
-                      return (
-                        t.payment_type?.toLowerCase().includes(query) ||
-                        t.jenis?.toLowerCase().includes(query) ||
-                        t.account_name?.toLowerCase().includes(query) ||
-                        t.keterangan?.toLowerCase().includes(query) ||
-                        t.description?.toLowerCase().includes(query) ||
-                        t.notes?.toLowerCase().includes(query) ||
-                        t.item_name?.toLowerCase().includes(query) ||
-                        t.supplier_name?.toLowerCase().includes(query) ||
-                        t.customer_name?.toLowerCase().includes(query) ||
-                        t.lender_name?.toLowerCase().includes(query) ||
-                        t.document_number?.toLowerCase().includes(query) ||
-                        t.loan_number?.toLowerCase().includes(query) ||
-                        t.source?.toLowerCase().includes(query)
-                      );
-                    }).length}
+                        if (filterSource && t.source !== filterSource)
+                          return false;
+                        if (filterStatus && t.approval_status !== filterStatus)
+                          return false;
+                        if (!searchQuery) return true;
+                        const query = (searchQuery ?? "").toLowerCase();
+                        return (
+                          (t.payment_type ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.jenis ?? "").toLowerCase().includes(query) ||
+                          (t.account_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.keterangan ?? "").toLowerCase().includes(query) ||
+                          (t.description ?? "").toLowerCase().includes(query) ||
+                          (t.notes ?? "").toLowerCase().includes(query) ||
+                          (t.item_name ?? "").toLowerCase().includes(query) ||
+                          (t.supplier_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.customer_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.lender_name ?? "").toLowerCase().includes(query) ||
+                          (t.document_number ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.loan_number ?? "").toLowerCase().includes(query) ||
+                          (t.source ?? "").toLowerCase().includes(query)
+                        );
+                      }).length
+                    }
                   </span>{" "}
                   transaksi
                 </div>
@@ -6335,43 +6918,68 @@ export default function TransaksiKeuanganForm() {
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage * itemsPerPage >= transactions.filter((t) => {
-                      if (filterDateFrom || filterDateTo) {
-                        const transactionDate = new Date(t.tanggal);
-                        if (filterDateFrom) {
-                          const fromDate = new Date(filterDateFrom);
-                          if (transactionDate < fromDate) return false;
+                    disabled={
+                      currentPage * itemsPerPage >=
+                      transactions.filter((t) => {
+                        if (filterDateFrom || filterDateTo) {
+                          const transactionDate = new Date(t.tanggal);
+                          if (filterDateFrom) {
+                            const fromDate = new Date(filterDateFrom);
+                            if (transactionDate < fromDate) return false;
+                          }
+                          if (filterDateTo) {
+                            const toDate = new Date(filterDateTo);
+                            toDate.setHours(23, 59, 59, 999);
+                            if (transactionDate > toDate) return false;
+                          }
                         }
-                        if (filterDateTo) {
-                          const toDate = new Date(filterDateTo);
-                          toDate.setHours(23, 59, 59, 999);
-                          if (transactionDate > toDate) return false;
+                        if (filterJenis) {
+                          const jenis =
+                            t.payment_type ||
+                            t.jenis ||
+                            t.transaction_type ||
+                            t.expense_type ||
+                            "";
+                          if (
+                            !jenis
+                              .toLowerCase()
+                              .includes(filterJenis.toLowerCase())
+                          )
+                            return false;
                         }
-                      }
-                      if (filterJenis) {
-                        const jenis = t.payment_type || t.jenis || t.transaction_type || t.expense_type || "";
-                        if (!jenis.toLowerCase().includes(filterJenis.toLowerCase())) return false;
-                      }
-                      if (filterSource && t.source !== filterSource) return false;
-                      if (filterStatus && t.approval_status !== filterStatus) return false;
-                      if (!searchQuery) return true;
-                      const query = searchQuery.toLowerCase();
-                      return (
-                        t.payment_type?.toLowerCase().includes(query) ||
-                        t.jenis?.toLowerCase().includes(query) ||
-                        t.account_name?.toLowerCase().includes(query) ||
-                        t.keterangan?.toLowerCase().includes(query) ||
-                        t.description?.toLowerCase().includes(query) ||
-                        t.notes?.toLowerCase().includes(query) ||
-                        t.item_name?.toLowerCase().includes(query) ||
-                        t.supplier_name?.toLowerCase().includes(query) ||
-                        t.customer_name?.toLowerCase().includes(query) ||
-                        t.lender_name?.toLowerCase().includes(query) ||
-                        t.document_number?.toLowerCase().includes(query) ||
-                        t.loan_number?.toLowerCase().includes(query) ||
-                        t.source?.toLowerCase().includes(query)
-                      );
-                    }).length}
+                        if (filterSource && t.source !== filterSource)
+                          return false;
+                        if (filterStatus && t.approval_status !== filterStatus)
+                          return false;
+                        if (!searchQuery) return true;
+                        const query = (searchQuery ?? "").toLowerCase();
+                        return (
+                          (t.payment_type ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.jenis ?? "").toLowerCase().includes(query) ||
+                          (t.account_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.keterangan ?? "").toLowerCase().includes(query) ||
+                          (t.description ?? "").toLowerCase().includes(query) ||
+                          (t.notes ?? "").toLowerCase().includes(query) ||
+                          (t.item_name ?? "").toLowerCase().includes(query) ||
+                          (t.supplier_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.customer_name ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.lender_name ?? "").toLowerCase().includes(query) ||
+                          (t.document_number ?? "")
+                            .toLowerCase()
+                            .includes(query) ||
+                          (t.loan_number ?? "").toLowerCase().includes(query) ||
+                          (t.source ?? "").toLowerCase().includes(query)
+                        );
+                      }).length
+                    }
                   >
                     Selanjutnya
                     <ChevronRight className="h-4 w-4" />
@@ -6386,9 +6994,8 @@ export default function TransaksiKeuanganForm() {
         {showForm && !showCart && (
           <Card className="bg-white rounded-xl shadow-lg border border-slate-200">
             <CardContent className="p-6 space-y-6">
-              
               {/* OCR UPLOAD SECTION */}
-              <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 bg-blue-50">
+              {/*       <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 bg-blue-50">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <h3 className="font-semibold text-blue-900 mb-1">
@@ -6424,6 +7031,7 @@ export default function TransaksiKeuanganForm() {
                   </div>
                 )}
               </div>
+              */}
 
               {/* ROW 1 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -6437,27 +7045,17 @@ export default function TransaksiKeuanganForm() {
                       <SelectValue placeholder="-- pilih --" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Pendapatan">
-                        Pendapatan
-                      </SelectItem>
-                      <SelectItem value="Pengeluaran">
-                        Pengeluaran
-                      </SelectItem>
-                      <SelectItem value="Penjualan">
-                        Penjualan
-                      </SelectItem>
-                      <SelectItem value="Pembelian">
-                        Pembelian
-                      </SelectItem>
+                      <SelectItem value="Pendapatan">Pendapatan</SelectItem>
+                      <SelectItem value="Pengeluaran">Pengeluaran</SelectItem>
+                      <SelectItem value="Penjualan">Penjualan</SelectItem>
+                      <SelectItem value="Pembelian">Pembelian</SelectItem>
                       <SelectItem value="Transfer Bank">
                         Transfer Bank
                       </SelectItem>
                       <SelectItem value="Setoran Modal">
                         Setoran Modal
                       </SelectItem>
-                      <SelectItem value="Prive">
-                        Prive
-                      </SelectItem>
+                      <SelectItem value="Prive">Prive</SelectItem>
                       <SelectItem value="Pelunasan Piutang">
                         Pelunasan Piutang
                       </SelectItem>
@@ -6472,17 +7070,18 @@ export default function TransaksiKeuanganForm() {
                 {visibleFields.showPaymentMethod && (
                   <div className="space-y-2">
                     <Label htmlFor="payment_method">Metode Pembayaran *</Label>
-                    <Select
-                      value={paymentType}
-                      onValueChange={setPaymentType}
-                    >
+                    <Select value={paymentType} onValueChange={setPaymentType}>
                       <SelectTrigger id="payment_method">
                         <SelectValue placeholder="-- pilih metode --" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Cash">Cash</SelectItem>
-                        <SelectItem value="Transfer Bank">Transfer Bank</SelectItem>
-                        <SelectItem value="Kredit">Kredit (Hutang/Piutang)</SelectItem>
+                        <SelectItem value="Transfer Bank">
+                          Transfer Bank
+                        </SelectItem>
+                        <SelectItem value="Kredit">
+                          Kredit (Hutang/Piutang)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -6494,7 +7093,10 @@ export default function TransaksiKeuanganForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="bank_asal">Bank Asal *</Label>
-                    <Popover open={bankAsalPopoverOpen} onOpenChange={setBankAsalPopoverOpen}>
+                    <Popover
+                      open={bankAsalPopoverOpen}
+                      onOpenChange={setBankAsalPopoverOpen}
+                    >
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
@@ -6517,14 +7119,16 @@ export default function TransaksiKeuanganForm() {
                             .filter((bank) =>
                               `${bank.account_code} ${bank.account_name}`
                                 .toLowerCase()
-                                .includes(bankSearch.toLowerCase())
+                                .includes(bankSearch.toLowerCase()),
                             )
                             .map((bank) => (
                               <div
-                                key={bank.account_code}
+                                key={`bank-asal-${bank.id || bank.account_code}`}
                                 className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                                 onClick={() => {
-                                  setBankAsal(`${bank.account_code} — ${bank.account_name}`);
+                                  setBankAsal(
+                                    `${bank.account_code} — ${bank.account_name}`,
+                                  );
                                   setBankAsalPopoverOpen(false);
                                   setBankSearch("");
                                 }}
@@ -6532,30 +7136,31 @@ export default function TransaksiKeuanganForm() {
                                 <span className="text-sm">
                                   {bank.account_code} — {bank.account_name}
                                 </span>
-                                {bankAsal === `${bank.account_code} — ${bank.account_name}` && (
+                                {bankAsal ===
+                                  `${bank.account_code} — ${bank.account_name}` && (
                                   <Check className="h-4 w-4 text-blue-600" />
                                 )}
                               </div>
                             ))}
-                          {bankSearch && 
+                          {bankSearch &&
                             !banks.some((bank) =>
                               `${bank.account_code} ${bank.account_name}`
                                 .toLowerCase()
-                                .includes(bankSearch.toLowerCase())
+                                .includes(bankSearch.toLowerCase()),
                             ) && (
-                            <div
-                              className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
-                              onClick={() => {
-                                setBankAsal(bankSearch);
-                                setBankAsalPopoverOpen(false);
-                                setBankSearch("");
-                              }}
-                            >
-                              <span className="text-sm text-blue-600">
-                                + Tambah manual: "{bankSearch}"
-                              </span>
-                            </div>
-                          )}
+                              <div
+                                className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
+                                onClick={() => {
+                                  setBankAsal(bankSearch);
+                                  setBankAsalPopoverOpen(false);
+                                  setBankSearch("");
+                                }}
+                              >
+                                <span className="text-sm text-blue-600">
+                                  + Tambah manual: "{bankSearch}"
+                                </span>
+                              </div>
+                            )}
                         </div>
                       </PopoverContent>
                     </Popover>
@@ -6563,7 +7168,10 @@ export default function TransaksiKeuanganForm() {
 
                   <div className="space-y-2">
                     <Label htmlFor="bank_tujuan">Bank Tujuan *</Label>
-                    <Popover open={bankTujuanPopoverOpen} onOpenChange={setBankTujuanPopoverOpen}>
+                    <Popover
+                      open={bankTujuanPopoverOpen}
+                      onOpenChange={setBankTujuanPopoverOpen}
+                    >
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
@@ -6586,14 +7194,16 @@ export default function TransaksiKeuanganForm() {
                             .filter((bank) =>
                               `${bank.account_code} ${bank.account_name}`
                                 .toLowerCase()
-                                .includes(bankSearch.toLowerCase())
+                                .includes(bankSearch.toLowerCase()),
                             )
                             .map((bank) => (
                               <div
-                                key={bank.account_code}
+                                key={`bank-tujuan-${bank.id || bank.account_code}`}
                                 className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                                 onClick={() => {
-                                  setBankTujuan(`${bank.account_code} — ${bank.account_name}`);
+                                  setBankTujuan(
+                                    `${bank.account_code} — ${bank.account_name}`,
+                                  );
                                   setBankTujuanPopoverOpen(false);
                                   setBankSearch("");
                                 }}
@@ -6601,30 +7211,31 @@ export default function TransaksiKeuanganForm() {
                                 <span className="text-sm">
                                   {bank.account_code} — {bank.account_name}
                                 </span>
-                                {bankTujuan === `${bank.account_code} — ${bank.account_name}` && (
+                                {bankTujuan ===
+                                  `${bank.account_code} — ${bank.account_name}` && (
                                   <Check className="h-4 w-4 text-blue-600" />
                                 )}
                               </div>
                             ))}
-                          {bankSearch && 
+                          {bankSearch &&
                             !banks.some((bank) =>
                               `${bank.account_code} ${bank.account_name}`
                                 .toLowerCase()
-                                .includes(bankSearch.toLowerCase())
+                                .includes(bankSearch.toLowerCase()),
                             ) && (
-                            <div
-                              className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
-                              onClick={() => {
-                                setBankTujuan(bankSearch);
-                                setBankTujuanPopoverOpen(false);
-                                setBankSearch("");
-                              }}
-                            >
-                              <span className="text-sm text-blue-600">
-                                + Tambah manual: "{bankSearch}"
-                              </span>
-                            </div>
-                          )}
+                              <div
+                                className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
+                                onClick={() => {
+                                  setBankTujuan(bankSearch);
+                                  setBankTujuanPopoverOpen(false);
+                                  setBankSearch("");
+                                }}
+                              >
+                                <span className="text-sm text-blue-600">
+                                  + Tambah manual: "{bankSearch}"
+                                </span>
+                              </div>
+                            )}
                         </div>
                       </PopoverContent>
                     </Popover>
@@ -6637,7 +7248,9 @@ export default function TransaksiKeuanganForm() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="transaction_item_type">Tipe Item Transaksi *</Label>
+                      <Label htmlFor="transaction_item_type">
+                        Tipe Item Transaksi *
+                      </Label>
                       <Select
                         value={transactionItemType}
                         onValueChange={(value) => {
@@ -6668,25 +7281,35 @@ export default function TransaksiKeuanganForm() {
                           disabled={isLoadingItems}
                         >
                           <SelectTrigger id="selected_item">
-                            <SelectValue placeholder={isLoadingItems ? "Memuat..." : `-- pilih item name --`} />
+                            <SelectValue
+                              placeholder={
+                                isLoadingItems
+                                  ? "Memuat..."
+                                  : `-- pilih item name --`
+                              }
+                            />
                           </SelectTrigger>
                           <SelectContent>
-                            {transactionItemType === "Barang" && stockItems.length === 0 && !isLoadingItems && (
-                              <div className="px-2 py-1.5 text-sm text-gray-500">
-                                Tidak ada barang tersedia
-                              </div>
-                            )}
+                            {transactionItemType === "Barang" &&
+                              stockItems.length === 0 &&
+                              !isLoadingItems && (
+                                <div className="px-2 py-1.5 text-sm text-gray-500">
+                                  Tidak ada barang tersedia
+                                </div>
+                              )}
                             {transactionItemType === "Barang" &&
                               stockItems.map((item) => (
                                 <SelectItem key={item.id} value={item.id}>
                                   {item.item_name}
                                 </SelectItem>
                               ))}
-                            {transactionItemType === "Jasa" && serviceItems.length === 0 && !isLoadingItems && (
-                              <div className="px-2 py-1.5 text-sm text-gray-500">
-                                Tidak ada jasa tersedia
-                              </div>
-                            )}
+                            {transactionItemType === "Jasa" &&
+                              serviceItems.length === 0 &&
+                              !isLoadingItems && (
+                                <div className="px-2 py-1.5 text-sm text-gray-500">
+                                  Tidak ada jasa tersedia
+                                </div>
+                              )}
                             {transactionItemType === "Jasa" &&
                               serviceItems.map((item) => (
                                 <SelectItem key={item.id} value={item.id}>
@@ -6696,17 +7319,26 @@ export default function TransaksiKeuanganForm() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="item_detail">
-                          {transactionItemType === "Barang" ? "Jenis Barang" : "Deskripsi"} *
+                          {transactionItemType === "Barang"
+                            ? "Jenis Barang"
+                            : "Deskripsi"}{" "}
+                          *
                         </Label>
                         <Input
                           id="item_detail"
                           type="text"
                           value={selectedItemDetail}
-                          onChange={(e) => setSelectedItemDetail(e.target.value)}
-                          placeholder={transactionItemType === "Barang" ? "Jenis barang akan terisi otomatis" : "Deskripsi akan terisi otomatis"}
+                          onChange={(e) =>
+                            setSelectedItemDetail(e.target.value)
+                          }
+                          placeholder={
+                            transactionItemType === "Barang"
+                              ? "Jenis barang akan terisi otomatis"
+                              : "Deskripsi akan terisi otomatis"
+                          }
                           className="w-full"
                           disabled={isLoadingItems}
                         />
@@ -6719,7 +7351,9 @@ export default function TransaksiKeuanganForm() {
                           type="number"
                           min="1"
                           value={itemQty}
-                          onChange={(e) => setItemQty(parseInt(e.target.value) || 1)}
+                          onChange={(e) =>
+                            setItemQty(parseInt(e.target.value) || 1)
+                          }
                         />
                       </div>
                     </div>
@@ -6748,7 +7382,10 @@ export default function TransaksiKeuanganForm() {
               {visibleFields.showCustomer && (
                 <div className="space-y-2">
                   <Label htmlFor="customer">Customer *</Label>
-                  <Popover open={customerPopoverOpen} onOpenChange={setCustomerPopoverOpen}>
+                  <Popover
+                    open={customerPopoverOpen}
+                    onOpenChange={setCustomerPopoverOpen}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -6769,9 +7406,9 @@ export default function TransaksiKeuanganForm() {
                       <div className="max-h-64 overflow-auto">
                         {customers
                           .filter((cust) =>
-                            cust.customer_name
+                            (cust.customer_name ?? "")
                               .toLowerCase()
-                              .includes(customerSearch.toLowerCase())
+                              .includes((customerSearch ?? "").toLowerCase()),
                           )
                           .map((cust) => (
                             <div
@@ -6783,31 +7420,33 @@ export default function TransaksiKeuanganForm() {
                                 setCustomerSearch("");
                               }}
                             >
-                              <span className="text-sm">{cust.customer_name}</span>
+                              <span className="text-sm">
+                                {cust.customer_name}
+                              </span>
                               {customer === cust.customer_name && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
                             </div>
                           ))}
-                        {customerSearch && 
+                        {customerSearch &&
                           !customers.some((cust) =>
                             cust.customer_name
                               .toLowerCase()
-                              .includes(customerSearch.toLowerCase())
+                              .includes(customerSearch.toLowerCase()),
                           ) && (
-                          <div
-                            className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
-                            onClick={() => {
-                              setCustomer(customerSearch);
-                              setCustomerPopoverOpen(false);
-                              setCustomerSearch("");
-                            }}
-                          >
-                            <span className="text-sm text-blue-600">
-                              + Tambah manual: "{customerSearch}"
-                            </span>
-                          </div>
-                        )}
+                            <div
+                              className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
+                              onClick={() => {
+                                setCustomer(customerSearch);
+                                setCustomerPopoverOpen(false);
+                                setCustomerSearch("");
+                              }}
+                            >
+                              <span className="text-sm text-blue-600">
+                                + Tambah manual: "{customerSearch}"
+                              </span>
+                            </div>
+                          )}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -6818,7 +7457,10 @@ export default function TransaksiKeuanganForm() {
               {visibleFields.showSupplier && (
                 <div className="space-y-2">
                   <Label htmlFor="supplier">Supplier *</Label>
-                  <Popover open={supplierPopoverOpen} onOpenChange={setSupplierPopoverOpen}>
+                  <Popover
+                    open={supplierPopoverOpen}
+                    onOpenChange={setSupplierPopoverOpen}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -6841,7 +7483,7 @@ export default function TransaksiKeuanganForm() {
                           .filter((supp) =>
                             supp.supplier_name
                               .toLowerCase()
-                              .includes(supplierSearch.toLowerCase())
+                              .includes(supplierSearch.toLowerCase()),
                           )
                           .map((supp) => (
                             <div
@@ -6853,31 +7495,33 @@ export default function TransaksiKeuanganForm() {
                                 setSupplierSearch("");
                               }}
                             >
-                              <span className="text-sm">{supp.supplier_name}</span>
+                              <span className="text-sm">
+                                {supp.supplier_name}
+                              </span>
                               {supplier === supp.supplier_name && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
                             </div>
                           ))}
-                        {supplierSearch && 
+                        {supplierSearch &&
                           !suppliers.some((supp) =>
                             supp.supplier_name
                               .toLowerCase()
-                              .includes(supplierSearch.toLowerCase())
+                              .includes(supplierSearch.toLowerCase()),
                           ) && (
-                          <div
-                            className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
-                            onClick={() => {
-                              setSupplier(supplierSearch);
-                              setSupplierPopoverOpen(false);
-                              setSupplierSearch("");
-                            }}
-                          >
-                            <span className="text-sm text-blue-600">
-                              + Tambah manual: "{supplierSearch}"
-                            </span>
-                          </div>
-                        )}
+                            <div
+                              className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
+                              onClick={() => {
+                                setSupplier(supplierSearch);
+                                setSupplierPopoverOpen(false);
+                                setSupplierSearch("");
+                              }}
+                            >
+                              <span className="text-sm text-blue-600">
+                                + Tambah manual: "{supplierSearch}"
+                              </span>
+                            </div>
+                          )}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -6891,7 +7535,10 @@ export default function TransaksiKeuanganForm() {
                   {paymentType === "Transfer Bank" && (
                     <div className="space-y-2">
                       <Label htmlFor="bank">Bank *</Label>
-                      <Popover open={bankPopoverOpen} onOpenChange={setBankPopoverOpen}>
+                      <Popover
+                        open={bankPopoverOpen}
+                        onOpenChange={setBankPopoverOpen}
+                      >
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
@@ -6914,14 +7561,16 @@ export default function TransaksiKeuanganForm() {
                               .filter((bank) =>
                                 `${bank.account_code} ${bank.account_name}`
                                   .toLowerCase()
-                                  .includes(bankSearch.toLowerCase())
+                                  .includes(bankSearch.toLowerCase()),
                               )
                               .map((bank) => (
                                 <div
                                   key={bank.account_code}
                                   className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                                   onClick={() => {
-                                    setSelectedBank(`${bank.account_code} — ${bank.account_name}`);
+                                    setSelectedBank(
+                                      `${bank.account_code} — ${bank.account_name}`,
+                                    );
                                     setBankPopoverOpen(false);
                                     setBankSearch("");
                                   }}
@@ -6929,30 +7578,31 @@ export default function TransaksiKeuanganForm() {
                                   <span className="text-sm">
                                     {bank.account_code} — {bank.account_name}
                                   </span>
-                                  {selectedBank === `${bank.account_code} — ${bank.account_name}` && (
+                                  {selectedBank ===
+                                    `${bank.account_code} — ${bank.account_name}` && (
                                     <Check className="h-4 w-4 text-blue-600" />
                                   )}
                                 </div>
                               ))}
-                            {bankSearch && 
+                            {bankSearch &&
                               !banks.some((bank) =>
                                 `${bank.account_code} ${bank.account_name}`
                                   .toLowerCase()
-                                  .includes(bankSearch.toLowerCase())
+                                  .includes(bankSearch.toLowerCase()),
                               ) && (
-                              <div
-                                className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
-                                onClick={() => {
-                                  setSelectedBank(bankSearch);
-                                  setBankPopoverOpen(false);
-                                  setBankSearch("");
-                                }}
-                              >
-                                <span className="text-sm text-blue-600">
-                                  + Tambah manual: "{bankSearch}"
-                                </span>
-                              </div>
-                            )}
+                                <div
+                                  className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
+                                  onClick={() => {
+                                    setSelectedBank(bankSearch);
+                                    setBankPopoverOpen(false);
+                                    setBankSearch("");
+                                  }}
+                                >
+                                  <span className="text-sm text-blue-600">
+                                    + Tambah manual: "{bankSearch}"
+                                  </span>
+                                </div>
+                              )}
                           </div>
                         </PopoverContent>
                       </Popover>
@@ -6963,7 +7613,10 @@ export default function TransaksiKeuanganForm() {
                   {paymentType === "Cash" && (
                     <div className="space-y-2">
                       <Label htmlFor="kas">Kas *</Label>
-                      <Popover open={kasPopoverOpen} onOpenChange={setKasPopoverOpen}>
+                      <Popover
+                        open={kasPopoverOpen}
+                        onOpenChange={setKasPopoverOpen}
+                      >
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
@@ -6986,14 +7639,16 @@ export default function TransaksiKeuanganForm() {
                               .filter((kas) =>
                                 `${kas.account_code} ${kas.account_name}`
                                   .toLowerCase()
-                                  .includes(kasSearch.toLowerCase())
+                                  .includes(kasSearch.toLowerCase()),
                               )
                               .map((kas) => (
                                 <div
                                   key={kas.account_code}
                                   className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                                   onClick={() => {
-                                    setSelectedKas(`${kas.account_code} — ${kas.account_name}`);
+                                    setSelectedKas(
+                                      `${kas.account_code} — ${kas.account_name}`,
+                                    );
                                     setKasPopoverOpen(false);
                                     setKasSearch("");
                                   }}
@@ -7001,30 +7656,31 @@ export default function TransaksiKeuanganForm() {
                                   <span className="text-sm">
                                     {kas.account_code} — {kas.account_name}
                                   </span>
-                                  {selectedKas === `${kas.account_code} — ${kas.account_name}` && (
+                                  {selectedKas ===
+                                    `${kas.account_code} — ${kas.account_name}` && (
                                     <Check className="h-4 w-4 text-blue-600" />
                                   )}
                                 </div>
                               ))}
-                            {kasSearch && 
+                            {kasSearch &&
                               !kasAccounts.some((kas) =>
                                 `${kas.account_code} ${kas.account_name}`
                                   .toLowerCase()
-                                  .includes(kasSearch.toLowerCase())
+                                  .includes(kasSearch.toLowerCase()),
                               ) && (
-                              <div
-                                className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
-                                onClick={() => {
-                                  setSelectedKas(kasSearch);
-                                  setKasPopoverOpen(false);
-                                  setKasSearch("");
-                                }}
-                              >
-                                <span className="text-sm text-blue-600">
-                                  + Tambah manual: "{kasSearch}"
-                                </span>
-                              </div>
-                            )}
+                                <div
+                                  className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
+                                  onClick={() => {
+                                    setSelectedKas(kasSearch);
+                                    setKasPopoverOpen(false);
+                                    setKasSearch("");
+                                  }}
+                                >
+                                  <span className="text-sm text-blue-600">
+                                    + Tambah manual: "{kasSearch}"
+                                  </span>
+                                </div>
+                              )}
                           </div>
                         </PopoverContent>
                       </Popover>
@@ -7037,11 +7693,13 @@ export default function TransaksiKeuanganForm() {
                       <Label>Akun Kredit</Label>
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                         <p className="text-sm text-blue-900">
-                          {jenisTransaksi === "Penjualan" || jenisTransaksi === "Pendapatan" 
+                          {jenisTransaksi === "Penjualan" ||
+                          jenisTransaksi === "Pendapatan"
                             ? "✓ Akun Piutang Usaha akan digunakan secara otomatis"
-                            : jenisTransaksi === "Pembelian" || jenisTransaksi === "Pengeluaran"
-                            ? "✓ Akun Hutang Usaha akan digunakan secara otomatis"
-                            : "✓ Akun Kredit akan dipilih otomatis berdasarkan jenis transaksi"}
+                            : jenisTransaksi === "Pembelian" ||
+                                jenisTransaksi === "Pengeluaran"
+                              ? "✓ Akun Hutang Usaha akan digunakan secara otomatis"
+                              : "✓ Akun Kredit akan dipilih otomatis berdasarkan jenis transaksi"}
                         </p>
                       </div>
                     </div>
@@ -7053,7 +7711,10 @@ export default function TransaksiKeuanganForm() {
               {visibleFields.showAkunPendapatan && (
                 <div className="space-y-2">
                   <Label htmlFor="akun_pendapatan">Akun Pendapatan *</Label>
-                  <Popover open={akunPendapatanPopoverOpen} onOpenChange={setAkunPendapatanPopoverOpen}>
+                  <Popover
+                    open={akunPendapatanPopoverOpen}
+                    onOpenChange={setAkunPendapatanPopoverOpen}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -7073,17 +7734,21 @@ export default function TransaksiKeuanganForm() {
                       />
                       <div className="max-h-64 overflow-auto">
                         {coa
-                          .filter((acc) => acc.account_type === "Pendapatan" && 
-                            `${acc.account_code} ${acc.account_name}`
-                              .toLowerCase()
-                              .includes(bankSearch.toLowerCase())
+                          .filter(
+                            (acc) =>
+                              acc.account_type === "Pendapatan" &&
+                              `${acc.account_code} ${acc.account_name}`
+                                .toLowerCase()
+                                .includes(bankSearch.toLowerCase()),
                           )
                           .map((acc) => (
                             <div
                               key={acc.account_code}
                               className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => {
-                                setAkunPendapatan(`${acc.account_code} — ${acc.account_name}`);
+                                setAkunPendapatan(
+                                  `${acc.account_code} — ${acc.account_name}`,
+                                );
                                 setAkunPendapatanPopoverOpen(false);
                                 setBankSearch("");
                               }}
@@ -7091,7 +7756,8 @@ export default function TransaksiKeuanganForm() {
                               <span className="text-sm">
                                 {acc.account_code} — {acc.account_name}
                               </span>
-                              {akunPendapatan === `${acc.account_code} — ${acc.account_name}` && (
+                              {akunPendapatan ===
+                                `${acc.account_code} — ${acc.account_name}` && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
                             </div>
@@ -7106,7 +7772,10 @@ export default function TransaksiKeuanganForm() {
               {visibleFields.showAkunBeban && (
                 <div className="space-y-2">
                   <Label htmlFor="akun_beban">Akun Beban *</Label>
-                  <Popover open={akunBebanPopoverOpen} onOpenChange={setAkunBebanPopoverOpen}>
+                  <Popover
+                    open={akunBebanPopoverOpen}
+                    onOpenChange={setAkunBebanPopoverOpen}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -7126,17 +7795,21 @@ export default function TransaksiKeuanganForm() {
                       />
                       <div className="max-h-64 overflow-auto">
                         {coa
-                          .filter((acc) => acc.account_type === "Beban" && 
-                            `${acc.account_code} ${acc.account_name}`
-                              .toLowerCase()
-                              .includes(bankSearch.toLowerCase())
+                          .filter(
+                            (acc) =>
+                              acc.account_type === "Beban Operasional" &&
+                              `${acc.account_code} ${acc.account_name}`
+                                .toLowerCase()
+                                .includes(bankSearch.toLowerCase()),
                           )
                           .map((acc) => (
                             <div
                               key={acc.account_code}
                               className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => {
-                                setAkunBeban(`${acc.account_code} — ${acc.account_name}`);
+                                setAkunBeban(
+                                  `${acc.account_code} — ${acc.account_name}`,
+                                );
                                 setAkunBebanPopoverOpen(false);
                                 setBankSearch("");
                               }}
@@ -7144,7 +7817,8 @@ export default function TransaksiKeuanganForm() {
                               <span className="text-sm">
                                 {acc.account_code} — {acc.account_name}
                               </span>
-                              {akunBeban === `${acc.account_code} — ${acc.account_name}` && (
+                              {akunBeban ===
+                                `${acc.account_code} — ${acc.account_name}` && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
                             </div>
@@ -7159,7 +7833,10 @@ export default function TransaksiKeuanganForm() {
               {visibleFields.showAkunModal && (
                 <div className="space-y-2">
                   <Label htmlFor="akun_modal">Akun Modal *</Label>
-                  <Popover open={akunModalPopoverOpen} onOpenChange={setAkunModalPopoverOpen}>
+                  <Popover
+                    open={akunModalPopoverOpen}
+                    onOpenChange={setAkunModalPopoverOpen}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -7179,17 +7856,22 @@ export default function TransaksiKeuanganForm() {
                       />
                       <div className="max-h-64 overflow-auto">
                         {coa
-                          .filter((acc) => acc.account_type === "Modal" && 
-                            `${acc.account_code} ${acc.account_name}`
-                              .toLowerCase()
-                              .includes(bankSearch.toLowerCase())
+                          .filter(
+                            (acc) =>
+                              acc.account_type === "Ekuitas" &&
+                              acc.parent_code !== null &&
+                              `${acc.account_code} ${acc.account_name}`
+                                .toLowerCase()
+                                .includes(bankSearch.toLowerCase()),
                           )
                           .map((acc) => (
                             <div
                               key={acc.account_code}
                               className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => {
-                                setAkunModal(`${acc.account_code} — ${acc.account_name}`);
+                                setAkunModal(
+                                  `${acc.account_code} — ${acc.account_name}`,
+                                );
                                 setAkunModalPopoverOpen(false);
                                 setBankSearch("");
                               }}
@@ -7197,7 +7879,8 @@ export default function TransaksiKeuanganForm() {
                               <span className="text-sm">
                                 {acc.account_code} — {acc.account_name}
                               </span>
-                              {akunModal === `${acc.account_code} — ${acc.account_name}` && (
+                              {akunModal ===
+                                `${acc.account_code} — ${acc.account_name}` && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
                             </div>
@@ -7225,7 +7908,9 @@ export default function TransaksiKeuanganForm() {
               {/* SUMBER PENGELUARAN */}
               {visibleFields.showSumberPengeluaran && (
                 <div className="space-y-2">
-                  <Label htmlFor="sumber_pengeluaran">Sumber Pengeluaran *</Label>
+                  <Label htmlFor="sumber_pengeluaran">
+                    Sumber Pengeluaran *
+                  </Label>
                   <Input
                     id="sumber_pengeluaran"
                     type="text"
@@ -7240,13 +7925,55 @@ export default function TransaksiKeuanganForm() {
               {visibleFields.showNamaPenerima && (
                 <div className="space-y-2">
                   <Label htmlFor="nama_penerima">Nama Penerima *</Label>
-                  <Input
-                    id="nama_penerima"
-                    type="text"
-                    value={namaPenerimaSearch}
-                    onChange={(e) => setNamaPenerimaSearch(e.target.value)}
-                    placeholder="Nama penerima dana"
-                  />
+                  <Popover
+                    open={namaPenerimaPopoverOpen}
+                    onOpenChange={setNamaPenerimaPopoverOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
+                      >
+                        {namaPenerimaSearch || "-- pilih nama penerima --"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-2">
+                      <Input
+                        placeholder="Cari nama penerima..."
+                        value={namaPenerimaSearch}
+                        onChange={(e) => setNamaPenerimaSearch(e.target.value)}
+                        className="mb-2"
+                      />
+                      <div className="max-h-64 overflow-auto">
+                        {users
+                          .filter((u) => u.full_name)
+                          .filter((u) =>
+                            u.full_name
+                              .toLowerCase()
+                              .includes(namaPenerimaSearch.toLowerCase()),
+                          )
+                          .map((u) => (
+                            <div
+                              key={u.id}
+                              className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
+                              onClick={() => {
+                                setNamaPenerimaSearch(u.full_name);
+                                setNamaPenerimaPopoverOpen(false);
+                              }}
+                            >
+                              <span className="text-sm">
+                                {u.full_name}
+                              </span>
+                              {namaPenerimaSearch === u.full_name && (
+                                <Check className="h-4 w-4 text-blue-600" />
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )}
 
@@ -7254,13 +7981,55 @@ export default function TransaksiKeuanganForm() {
               {visibleFields.showNamaPengeluaran && (
                 <div className="space-y-2">
                   <Label htmlFor="nama_pengeluaran">Nama Pengeluaran *</Label>
-                  <Input
-                    id="nama_pengeluaran"
-                    type="text"
-                    value={namaPengeluaranSearch}
-                    onChange={(e) => setNamaPengeluaranSearch(e.target.value)}
-                    placeholder="Nama penerima pengeluaran"
-                  />
+                  <Popover
+                    open={namaPengeluaranPopoverOpen}
+                    onOpenChange={setNamaPengeluaranPopoverOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
+                      >
+                        {namaPengeluaranSearch || "-- pilih nama pengeluaran --"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-2">
+                      <Input
+                        placeholder="Cari nama pengeluaran..."
+                        value={namaPengeluaranSearch}
+                        onChange={(e) => setNamaPengeluaranSearch(e.target.value)}
+                        className="mb-2"
+                      />
+                      <div className="max-h-64 overflow-auto">
+                        {users
+                          .filter((u) => u.full_name)
+                          .filter((u) =>
+                            u.full_name
+                              .toLowerCase()
+                              .includes(namaPengeluaranSearch.toLowerCase()),
+                          )
+                          .map((u) => (
+                            <div
+                              key={u.id}
+                              className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
+                              onClick={() => {
+                                setNamaPengeluaranSearch(u.full_name);
+                                setNamaPengeluaranPopoverOpen(false);
+                              }}
+                            >
+                              <span className="text-sm">
+                                {u.full_name}
+                              </span>
+                              {namaPengeluaranSearch === u.full_name && (
+                                <Check className="h-4 w-4 text-blue-600" />
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )}
 
@@ -7296,27 +8065,31 @@ export default function TransaksiKeuanganForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {shouldShowField("kategoriLayanan") && (
                   <div className="space-y-2">
-                    <Label htmlFor="kategori">Kategori Layanan</Label>
+                    <Label>Kategori</Label>
                     <Select
-                      value={kategori}
-                      onValueChange={setKategori}
+                      onValueChange={setSelectedCategory}
+                      value={selectedCategory}
                       disabled={!jenisTransaksi}
                     >
-                      <SelectTrigger id="kategori">
-                        <SelectValue
-                          placeholder={
-                            jenisTransaksi
-                              ? "-- pilih --"
-                              : "Pilih jenis transaksi terlebih dahulu"
-                          }
-                        />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih kategori..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableCategories.filter((cat) => cat).map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
+                        {categoryOptions.map((item) => {
+                          const config =
+                            TRANSACTION_CATEGORIES[
+                              jenisTransaksi as keyof typeof TRANSACTION_CATEGORIES
+                            ];
+                          if (!config) return null;
+                          return (
+                            <SelectItem
+                              key={item.id}
+                              value={item[config.sourceValueKey]}
+                            >
+                              {item[config.sourceLabelKey]}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     {jenisTransaksi && availableCategories.length > 0 && (
@@ -7345,11 +8118,13 @@ export default function TransaksiKeuanganForm() {
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        {serviceTypes.filter((type) => type).map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
+                        {serviceTypes
+                          .filter((type) => type)
+                          .map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     {kategori && serviceTypes.length > 0 && (
@@ -7591,57 +8366,55 @@ export default function TransaksiKeuanganForm() {
                 </div>
               )}
 
-              {/* QUANTITY & HARGA JUAL - Only for Penjualan Barang */}
-              {jenisTransaksi === "Penjualan Barang" &&
-                itemName &&
-                description && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="quantity">Quantity *</Label>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        min="1"
-                        value={quantity}
-                        onChange={(e) => {
-                          setQuantity(e.target.value);
-                          // Auto-calculate nominal
-                          if (hargaJual) {
-                            const total =
-                              Number(e.target.value) * Number(hargaJual);
-                            setNominal(total.toString());
-                          }
-                        }}
-                        placeholder="1"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="harga_jual">Harga Jual per Unit *</Label>
-                      <Input
-                        id="harga_jual"
-                        type="number"
-                        value={hargaJual}
-                        onChange={(e) => {
-                          setHargaJual(e.target.value);
-                          // Auto-calculate nominal
-                          if (quantity) {
-                            const total =
-                              Number(quantity) * Number(e.target.value);
-                            setNominal(total.toString());
-                          }
-                        }}
-                        placeholder="0"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Total: Rp{" "}
-                        {new Intl.NumberFormat("id-ID").format(
-                          Number(quantity || 0) * Number(hargaJual || 0),
-                        )}
-                      </p>
-                    </div>
+              {/* QUANTITY & HARGA JUAL - Only for Penjualan */}
+              {jenisTransaksi === "Penjualan" && itemName && description && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity *</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={(e) => {
+                        setQuantity(e.target.value);
+                        // Auto-calculate nominal
+                        if (hargaJual) {
+                          const total =
+                            Number(e.target.value) * Number(hargaJual);
+                          setNominal(total.toString());
+                        }
+                      }}
+                      placeholder="1"
+                    />
                   </div>
-                )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="harga_jual">Harga Jual per Unit *</Label>
+                    <Input
+                      id="harga_jual"
+                      type="number"
+                      value={hargaJual}
+                      onChange={(e) => {
+                        setHargaJual(e.target.value);
+                        // Auto-calculate nominal
+                        if (quantity) {
+                          const total =
+                            Number(quantity) * Number(e.target.value);
+                          setNominal(total.toString());
+                        }
+                      }}
+                      placeholder="0"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Total: Rp{" "}
+                      {new Intl.NumberFormat("id-ID").format(
+                        Number(quantity || 0) * Number(hargaJual || 0),
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* QUANTITY, HARGA BELI & PPN - Only for Pembelian Barang */}
               {jenisTransaksi === "Pembelian Barang" &&
@@ -7776,78 +8549,10 @@ export default function TransaksiKeuanganForm() {
                   </div>
                 )}
 
-              {/* CUSTOMER / SUPPLIER */}
-              {(jenisTransaksi === "Penjualan Barang" ||
+              {/* CONSIGNEE ONLY - Customer removed */}
+              {(jenisTransaksi === "Penjualan" ||
                 jenisTransaksi === "Penjualan Jasa") && (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="customer">Customer</Label>
-                    <Popover open={customerPopoverOpen} onOpenChange={setCustomerPopoverOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className="w-full justify-between"
-                        >
-                          {customer || "-- pilih atau ketik customer --"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-2">
-                        <Input
-                          placeholder="Cari atau ketik customer baru..."
-                          value={customerSearch}
-                          onChange={(e) => setCustomerSearch(e.target.value)}
-                          className="mb-2"
-                        />
-                        <div className="max-h-64 overflow-auto">
-                          {customers
-                            .filter((c) => c.customer_name)
-                            .filter((c) =>
-                              c.customer_name
-                                .toLowerCase()
-                                .includes(customerSearch.toLowerCase())
-                            )
-                            .map((c) => (
-                              <div
-                                key={c.id}
-                                className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
-                                onClick={() => {
-                                  setCustomer(c.customer_name);
-                                  setCustomerPopoverOpen(false);
-                                  setCustomerSearch("");
-                                }}
-                              >
-                                <span className="text-sm">{c.customer_name}</span>
-                                {customer === c.customer_name && (
-                                  <Check className="h-4 w-4 text-blue-600" />
-                                )}
-                              </div>
-                            ))}
-                          {customerSearch && 
-                            !customers.some((c) =>
-                              c.customer_name
-                                ?.toLowerCase()
-                                .includes(customerSearch.toLowerCase())
-                            ) && (
-                            <div
-                              className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
-                              onClick={() => {
-                                setCustomer(customerSearch);
-                                setCustomerPopoverOpen(false);
-                                setCustomerSearch("");
-                              }}
-                            >
-                              <span className="text-sm text-blue-600">
-                                + Tambah manual: "{customerSearch}"
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="consignee">Consignee</Label>
                     <Select value={consignee} onValueChange={setConsignee}>
@@ -7860,11 +8565,13 @@ export default function TransaksiKeuanganForm() {
                             Tidak ada data consignee
                           </SelectItem>
                         ) : (
-                          consignees.filter((c) => c.consignee_name).map((c) => (
-                            <SelectItem key={c.id} value={c.consignee_name}>
-                              {c.consignee_name}
-                            </SelectItem>
-                          ))
+                          consignees
+                            .filter((c) => c.consignee_name)
+                            .map((c) => (
+                              <SelectItem key={c.id} value={c.consignee_name}>
+                                {c.consignee_name}
+                              </SelectItem>
+                            ))
                         )}
                       </SelectContent>
                     </Select>
@@ -7881,7 +8588,10 @@ export default function TransaksiKeuanganForm() {
                 jenisTransaksi === "Pembelian Jasa") && (
                 <div className="space-y-2">
                   <Label htmlFor="supplier">Supplier</Label>
-                  <Popover open={supplierPopoverOpen} onOpenChange={setSupplierPopoverOpen}>
+                  <Popover
+                    open={supplierPopoverOpen}
+                    onOpenChange={setSupplierPopoverOpen}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -7905,7 +8615,7 @@ export default function TransaksiKeuanganForm() {
                           .filter((s) =>
                             s.supplier_name
                               .toLowerCase()
-                              .includes(supplierSearch.toLowerCase())
+                              .includes(supplierSearch.toLowerCase()),
                           )
                           .map((s) => (
                             <div
@@ -7923,25 +8633,25 @@ export default function TransaksiKeuanganForm() {
                               )}
                             </div>
                           ))}
-                        {supplierSearch && 
+                        {supplierSearch &&
                           !suppliers.some((s) =>
-                            s.supplier_name
-                              ?.toLowerCase()
-                              .includes(supplierSearch.toLowerCase())
+                            (s.supplier_name ?? "")
+                              .toLowerCase()
+                              .includes((supplierSearch ?? "").toLowerCase()),
                           ) && (
-                          <div
-                            className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
-                            onClick={() => {
-                              setSupplier(supplierSearch);
-                              setSupplierPopoverOpen(false);
-                              setSupplierSearch("");
-                            }}
-                          >
-                            <span className="text-sm text-blue-600">
-                              + Tambah manual: "{supplierSearch}"
-                            </span>
-                          </div>
-                        )}
+                            <div
+                              className="p-2 hover:bg-gray-100 cursor-pointer rounded border-t"
+                              onClick={() => {
+                                setSupplier(supplierSearch);
+                                setSupplierPopoverOpen(false);
+                                setSupplierSearch("");
+                              }}
+                            >
+                              <span className="text-sm text-blue-600">
+                                + Tambah manual: "{supplierSearch}"
+                              </span>
+                            </div>
+                          )}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -7972,11 +8682,13 @@ export default function TransaksiKeuanganForm() {
                               Tidak ada data peminjam
                             </SelectItem>
                           ) : (
-                            borrowers.filter((b) => b.borrower_name).map((b) => (
-                              <SelectItem key={b.id} value={b.borrower_name}>
-                                {b.borrower_name} ({b.borrower_code})
-                              </SelectItem>
-                            ))
+                            borrowers
+                              .filter((b) => b.borrower_name)
+                              .map((b) => (
+                                <SelectItem key={b.id} value={b.borrower_name}>
+                                  {b.borrower_name} ({b.borrower_code})
+                                </SelectItem>
+                              ))
                           )}
                         </SelectContent>
                       </Select>
@@ -8554,11 +9266,13 @@ export default function TransaksiKeuanganForm() {
                             Tidak ada pinjaman aktif
                           </SelectItem>
                         ) : (
-                          borrowers.filter((b) => b.borrower_name).map((b) => (
-                            <SelectItem key={b.id} value={b.borrower_name}>
-                              {b.borrower_name} ({b.borrower_code})
-                            </SelectItem>
-                          ))
+                          borrowers
+                            .filter((b) => b.borrower_name)
+                            .map((b) => (
+                              <SelectItem key={b.id} value={b.borrower_name}>
+                                {b.borrower_name} ({b.borrower_code})
+                              </SelectItem>
+                            ))
                         )}
                       </SelectContent>
                     </Select>
@@ -9080,35 +9794,6 @@ export default function TransaksiKeuanganForm() {
 
               {/* COA field removed - automatically filled based on category & service type */}
 
-              {/* Sumber Penerimaan */}
-              {shouldShowField("sumberPenerimaan") && (
-                <div className="space-y-2">
-                  <Label htmlFor="sumber_penerimaan">Sumber Penerimaan *</Label>
-                  <Select
-                    value={sumberPenerimaan}
-                    onValueChange={setSumberPenerimaan}
-                  >
-                    <SelectTrigger id="sumber_penerimaan">
-                      <SelectValue placeholder="-- pilih --" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pinjaman Bank">
-                        Pinjaman Bank
-                      </SelectItem>
-                      <SelectItem value="Setoran Modal">
-                        Setoran Modal
-                      </SelectItem>
-                      <SelectItem value="Pelunasan Piutang">
-                        Pelunasan Piutang
-                      </SelectItem>
-                      <SelectItem value="Pendapatan Lain">
-                        Pendapatan Lain
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
               {/* Kategori Penerimaan - Simplified (Debit/Kredit otomatis) */}
               {shouldShowField("kategoriPenerimaan") && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -9127,8 +9812,7 @@ export default function TransaksiKeuanganForm() {
                           aria-expanded={openAccountTypePenerimaanCombobox}
                           className="w-full justify-between"
                         >
-                          {selectedAccountType ||
-                            "-- pilih account type --"}
+                          {selectedAccountType || "-- pilih account type --"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -9148,11 +9832,13 @@ export default function TransaksiKeuanganForm() {
                               .filter(
                                 (acc, index, self) =>
                                   acc &&
-                                  acc.account_type &&
+                                  typeof acc.account_type === "string" &&
                                   acc.account_type
                                     .toLowerCase()
                                     .includes(
-                                      searchAccountTypePenerimaan.toLowerCase(),
+                                      (
+                                        searchAccountTypePenerimaan || ""
+                                      ).toLowerCase(),
                                     ) &&
                                   self.findIndex(
                                     (a) => a.account_type === acc.account_type,
@@ -9171,8 +9857,7 @@ export default function TransaksiKeuanganForm() {
                                   <span className="text-sm">
                                     {acc.account_type}
                                   </span>
-                                  {selectedAccountType ===
-                                    acc.account_type && (
+                                  {selectedAccountType === acc.account_type && (
                                     <Check className="h-4 w-4 text-blue-600" />
                                   )}
                                 </div>
@@ -9181,20 +9866,22 @@ export default function TransaksiKeuanganForm() {
                             coaAccounts.filter(
                               (acc, index, self) =>
                                 acc &&
-                                acc.account_type &&
+                                typeof acc.account_type === "string" &&
                                 acc.account_type
                                   .toLowerCase()
                                   .includes(
-                                    searchAccountTypePenerimaan.toLowerCase(),
+                                    (
+                                      searchAccountTypePenerimaan || ""
+                                    ).toLowerCase(),
                                   ) &&
                                 self.findIndex(
                                   (a) => a.account_type === acc.account_type,
                                 ) === index,
                             ).length === 0 && (
-                            <div className="p-2 text-sm text-gray-500 text-center">
-                              Tidak ada account type ditemukan
-                            </div>
-                          )}
+                              <div className="p-2 text-sm text-gray-500 text-center">
+                                Tidak ada account type ditemukan
+                              </div>
+                            )}
                         </div>
                       </PopoverContent>
                     </Popover>
@@ -9216,8 +9903,7 @@ export default function TransaksiKeuanganForm() {
                           className="w-full justify-between"
                           disabled={!selectedAccountType}
                         >
-                          {selectedAccountName ||
-                            "-- pilih account name --"}
+                          {selectedAccountName || "-- pilih account name --"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -9296,7 +9982,8 @@ export default function TransaksiKeuanganForm() {
                                 acc &&
                                 acc.account_type &&
                                 self.findIndex(
-                                  (a) => a && a.account_type === acc.account_type,
+                                  (a) =>
+                                    a && a.account_type === acc.account_type,
                                 ) === index,
                             )
                             .map((account) => (
@@ -9345,11 +10032,14 @@ export default function TransaksiKeuanganForm() {
                           <div className="max-h-64 overflow-auto">
                             {Array.isArray(filteredAccountNames) &&
                               filteredAccountNames
-                                .filter((name) =>
-                                  name &&
-                                  name
-                                    .toLowerCase()
-                                    .includes(searchAccountName.toLowerCase()),
+                                .filter(
+                                  (name) =>
+                                    name &&
+                                    name
+                                      .toLowerCase()
+                                      .includes(
+                                        searchAccountName.toLowerCase(),
+                                      ),
                                 )
                                 .map((name) => (
                                   <div
@@ -9372,11 +10062,12 @@ export default function TransaksiKeuanganForm() {
                                   </div>
                                 ))}
                             {Array.isArray(filteredAccountNames) &&
-                              filteredAccountNames.filter((name) =>
-                                name &&
-                                name
-                                  .toLowerCase()
-                                  .includes(searchAccountName.toLowerCase()),
+                              filteredAccountNames.filter(
+                                (name) =>
+                                  name &&
+                                  name
+                                    .toLowerCase()
+                                    .includes(searchAccountName.toLowerCase()),
                               ).length === 0 && (
                                 <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                                   Tidak ada account name ditemukan.
@@ -9507,8 +10198,7 @@ export default function TransaksiKeuanganForm() {
                           aria-expanded={openEmployeePengeluaranCombobox}
                           className="w-full justify-between"
                         >
-                          {namaKaryawanPengeluaran ||
-                            "-- pilih karyawan --"}
+                          {namaKaryawanPengeluaran || "-- pilih karyawan --"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -9541,11 +10231,8 @@ export default function TransaksiKeuanganForm() {
                                   setSearchEmployeePengeluaran("");
                                 }}
                               >
-                                <span className="text-sm">
-                                  {emp.full_name}
-                                </span>
-                                {namaKaryawanPengeluaran ===
-                                  emp.full_name && (
+                                <span className="text-sm">{emp.full_name}</span>
+                                {namaKaryawanPengeluaran === emp.full_name && (
                                   <Check className="h-4 w-4 text-blue-600" />
                                 )}
                               </div>
@@ -9623,7 +10310,8 @@ export default function TransaksiKeuanganForm() {
                   📷 Scan Receipt dengan OCR
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Upload gambar receipt untuk mengisi data transaksi secara otomatis
+                  Upload gambar receipt untuk mengisi data transaksi secara
+                  otomatis
                 </p>
                 <OCRScanner
                   onResult={(data) => {
@@ -9636,7 +10324,7 @@ export default function TransaksiKeuanganForm() {
                     if (data.deskripsi) {
                       setDescription(data.deskripsi);
                     }
-                    
+
                     // Auto-fill upload bukti with image file
                     if (data.imageFile) {
                       setBuktiFile(data.imageFile);
@@ -9644,7 +10332,7 @@ export default function TransaksiKeuanganForm() {
                       const previewUrl = URL.createObjectURL(data.imageFile);
                       setBuktiUrl(previewUrl);
                     }
-                    
+
                     // Store OCR data for database (including ocr_id)
                     setOcrAppliedData({
                       extractedText: data.extractedText || "",
@@ -9658,7 +10346,7 @@ export default function TransaksiKeuanganForm() {
                       nomorNota: data.nomorNota,
                       toko: data.toko,
                     });
-                    
+
                     toast({
                       title: "✅ OCR berhasil diproses",
                       description: `Data transaksi telah terisi otomatis. Silakan periksa kembali sebelum menyimpan.`,
@@ -9675,7 +10363,7 @@ export default function TransaksiKeuanganForm() {
                 <div className="space-y-2">
                   <Label htmlFor="nominal">
                     Nominal *
-                    {jenisTransaksi === "Penjualan Barang" &&
+                    {jenisTransaksi === "Penjualan" &&
                       itemName &&
                       description && (
                         <span className="text-xs text-muted-foreground ml-2">
@@ -9697,7 +10385,7 @@ export default function TransaksiKeuanganForm() {
                     onChange={(e) => setNominal(e.target.value)}
                     placeholder="0"
                     readOnly={
-                      (jenisTransaksi === "Penjualan Barang" &&
+                      (jenisTransaksi === "Penjualan" &&
                         itemName &&
                         description) ||
                       (jenisTransaksi === "Pembelian Barang" &&
@@ -9705,7 +10393,7 @@ export default function TransaksiKeuanganForm() {
                         description)
                     }
                     className={
-                      (jenisTransaksi === "Penjualan Barang" &&
+                      (jenisTransaksi === "Penjualan" &&
                         itemName &&
                         description) ||
                       (jenisTransaksi === "Pembelian Barang" &&
@@ -9729,7 +10417,7 @@ export default function TransaksiKeuanganForm() {
                       if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
                         setTanggal(value);
                       } else if (!value) {
-                        setTanggal('');
+                        setTanggal("");
                       }
                     }}
                   />
@@ -9753,14 +10441,14 @@ export default function TransaksiKeuanganForm() {
                 <div className="space-y-2">
                   <Label htmlFor="handled_by">Ditangani Oleh</Label>
                   <p className="text-sm text-gray-600">
-                    User yang login saat ini akan tercatat sebagai penanggungjawab transaksi ini.
+                    User yang login saat ini akan tercatat sebagai
+                    penanggungjawab transaksi ini.
                   </p>
                 </div>
               </div>
 
-
-
-              {/* UPLOAD BUKTI FOTO */}
+              {/* UPLOAD BUKTI FOTO - Hidden for Pendapatan */}
+              {jenisTransaksi !== "Pendapatan" && (
               <div className="space-y-2 mt-6">
                 <Label htmlFor="bukti-foto" className="text-base font-semibold">
                   Bukti Foto Transaksi
@@ -9775,31 +10463,33 @@ export default function TransaksiKeuanganForm() {
                       if (!file || !file.name) return;
 
                       setBuktiFile(file);
-                      
+
                       // Upload to Supabase Storage
                       try {
-                        const fileExt = file.name.split('.').pop();
+                        const fileExt = file.name.split(".").pop();
                         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
                         const filePath = `transaksi-bukti/${fileName}`;
 
                         const { error: uploadError } = await supabase.storage
-                          .from('documents')
+                          .from("documents")
                           .upload(filePath, file);
 
                         if (uploadError) throw uploadError;
 
-                        const { data: { publicUrl } } = supabase.storage
-                          .from('documents')
+                        const {
+                          data: { publicUrl },
+                        } = supabase.storage
+                          .from("documents")
                           .getPublicUrl(filePath);
 
                         setBuktiUrl(publicUrl);
-                        
+
                         toast({
                           title: "✅ Bukti berhasil diupload",
                           description: "File bukti transaksi telah tersimpan",
                         });
                       } catch (err: any) {
-                        console.error('Upload error:', error);
+                        console.error("Upload error:", error);
                         toast({
                           title: "❌ Upload gagal",
                           description: error.message,
@@ -9818,8 +10508,10 @@ export default function TransaksiKeuanganForm() {
                         setBuktiFile(null);
                         setBuktiUrl("");
                         // Reset file input
-                        const fileInput = document.getElementById('bukti-foto') as HTMLInputElement;
-                        if (fileInput) fileInput.value = '';
+                        const fileInput = document.getElementById(
+                          "bukti-foto",
+                        ) as HTMLInputElement;
+                        if (fileInput) fileInput.value = "";
                       }}
                       className="text-red-500 hover:text-red-700"
                     >
@@ -9827,13 +10519,13 @@ export default function TransaksiKeuanganForm() {
                     </Button>
                   )}
                 </div>
-                
+
                 {/* Preview Bukti */}
                 {buktiUrl && buktiFile && (
                   <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0">
-                        {buktiFile.type.startsWith('image/') ? (
+                        {buktiFile.type.startsWith("image/") ? (
                           <img
                             src={buktiUrl}
                             alt="Bukti Transaksi"
@@ -9864,11 +10556,13 @@ export default function TransaksiKeuanganForm() {
                     </div>
                   </div>
                 )}
-                
+
                 <p className="text-xs text-slate-500">
-                  Upload foto bukti transaksi (struk, invoice, kwitansi, dll). Format: JPG, PNG, atau PDF
+                  Upload foto bukti transaksi (struk, invoice, kwitansi, dll).
+                  Format: JPG, PNG, atau PDF
                 </p>
               </div>
+              )}
 
               {/* BUTTONS */}
               <div className="flex gap-4 pt-4">
@@ -10206,4 +10900,3 @@ export default function TransaksiKeuanganForm() {
     </div>
   );
 }
-

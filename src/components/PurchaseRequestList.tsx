@@ -150,8 +150,8 @@ export default function PurchaseRequestList() {
     if (searchTerm) {
       filtered = filtered.filter(
         (req) =>
-          req.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          req.item_name.toLowerCase().includes(searchTerm.toLowerCase()),
+          req.(name ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          req.item_(name ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 

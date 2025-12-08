@@ -197,6 +197,7 @@ export default function AttendanceSystem() {
             data: {
               employee_id: selectedEmployee,
               attendance_date: selectedDate,
+              clock_in_location: locationString,
               notes: `Device: ${deviceInfo}, Location: ${locationString}`,
             },
           },
@@ -228,12 +229,15 @@ export default function AttendanceSystem() {
 
     try {
       // Call edge function for UPDATE operation to database
+      const locationString = `${location.lat},${location.lng}`;
       const { data: responseData, error } = await supabase.functions.invoke(
         "supabase-functions-hrd-save-attendance",
         {
           body: {
             action: "clock_out",
-            data: {},
+            data: {
+              clock_out_location: locationString,
+            },
             id: attendanceId,
           },
         },

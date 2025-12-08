@@ -34,8 +34,11 @@ Deno.serve(async (req) => {
           employee_id: data.employee_id,
           attendance_date: attendanceDate,
           clock_in: clockInTime,
+          clock_in_location: data.clock_in_location || null,
+          clock_in_photo_url: data.clock_in_photo_url || null,
           status: "present",
           notes: data.notes || null,
+          overtime_hours: 0,
         })
         .select("id")
         .single();
@@ -50,6 +53,8 @@ Deno.serve(async (req) => {
         .from("attendance")
         .update({
           clock_out: clockOutTime,
+          clock_out_location: data.clock_out_location || null,
+          clock_out_photo_url: data.clock_out_photo_url || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
@@ -67,8 +72,12 @@ Deno.serve(async (req) => {
           attendance_date: data.attendance_date,
           clock_in: data.clock_in || null,
           clock_out: data.clock_out || null,
+          clock_in_location: data.clock_in_location || null,
+          clock_out_location: data.clock_out_location || null,
+          clock_in_photo_url: data.clock_in_photo_url || null,
+          clock_out_photo_url: data.clock_out_photo_url || null,
           status: data.status || "present",
-          overtime_hours: data.overtime_hours || null,
+          overtime_hours: data.overtime_hours || 0,
           notes: data.notes || null,
         })
         .select("id")
@@ -85,8 +94,12 @@ Deno.serve(async (req) => {
           attendance_date: data.attendance_date,
           clock_in: data.clock_in || null,
           clock_out: data.clock_out || null,
+          clock_in_location: data.clock_in_location || null,
+          clock_out_location: data.clock_out_location || null,
+          clock_in_photo_url: data.clock_in_photo_url || null,
+          clock_out_photo_url: data.clock_out_photo_url || null,
           status: data.status,
-          overtime_hours: data.overtime_hours || null,
+          overtime_hours: data.overtime_hours || 0,
           notes: data.notes || null,
           updated_at: new Date().toISOString(),
         })

@@ -210,7 +210,7 @@ export default function GeneralLedgerView() {
                         acc.account_code && 
                         (searchValue === "" || 
                          acc.account_code.toLowerCase().includes(searchValue.toLowerCase()) ||
-                         (acc.account_name && acc.account_name.toLowerCase().includes(searchValue.toLowerCase())))
+                         (acc.account_name && (acc.account_name ?? "").toLowerCase().includes(searchValue.toLowerCase())))
                       )
                       .map((acc) => (
                         <div
@@ -242,7 +242,7 @@ export default function GeneralLedgerView() {
                       acc.account_code && 
                       (searchValue === "" || 
                        acc.account_code.toLowerCase().includes(searchValue.toLowerCase()) ||
-                       (acc.account_name && acc.account_name.toLowerCase().includes(searchValue.toLowerCase())))
+                       (acc.account_name && (acc.account_name ?? "").toLowerCase().includes(searchValue.toLowerCase())))
                     ).length === 0 && (
                       <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                         Akun tidak ditemukan.

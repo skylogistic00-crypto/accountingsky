@@ -1,9 +1,12 @@
 import { corsHeaders } from "@shared/cors.ts";
-import { createClient } from "@shared/supabase-client.ts";
+import { createSupabaseClient } from "@shared/supabase-client.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders, status: 200 });
+    return new Response(null, { 
+      headers: corsHeaders, 
+      status: 204 
+    });
   }
 
   try {
@@ -15,7 +18,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(authHeader);
+    const supabase = createSupabaseClient();
 
     const body = await req.json();
     const { action, data, id } = body;
@@ -23,22 +26,37 @@ Deno.serve(async (req) => {
     let result;
 
     if (action === "insert") {
+      // Calculate totals
+      const basicSalary = parseFloat(data.basic_salary) || 0;
+      const allowances = parseFloat(data.allowances) || 0;
+      const overtimePay = parseFloat(data.overtime_pay) || 0;
+      const deductions = parseFloat(data.deductions) || 0;
+      const tax = parseFloat(data.tax) || 0;
+      const bpjsKesehatan = parseFloat(data.bpjs_kesehatan) || 0;
+      const bpjsKetenagakerjaan = parseFloat(data.bpjs_ketenagakerjaan) || 0;
+
+      const grossSalary = basicSalary + allowances + overtimePay;
+      const totalDeductions = deductions + tax + bpjsKesehatan + bpjsKetenagakerjaan;
+      const netSalary = grossSalary - totalDeductions;
+
       const { data: insertData, error } = await supabase
         .from("payroll")
         .insert({
           employee_id: data.employee_id,
           period_month: data.period_month,
           period_year: data.period_year,
-          basic_salary: data.basic_salary,
-          allowances: data.allowances,
-          overtime_pay: data.overtime_pay,
-          deductions: data.deductions,
-          tax: data.tax,
-          bpjs_kesehatan: data.bpjs_kesehatan,
-          bpjs_ketenagakerjaan: data.bpjs_ketenagakerjaan,
-          net_salary: data.net_salary,
-          status: data.status || "draft",
-          paid_at: data.paid_at || null,
+          basic_salary: basicSalary,
+          other_allowances: allowances > 0 ? { other: allowances } : null,
+          overtime_hours: parseFloat(data.overtime_hours) || 0,
+          overtime_pay: overtimePay,
+          other_deductions: deductions > 0 ? { other: deductions } : null,
+          tax_pph21: tax,
+          bpjs_kesehatan_deduction: bpjsKesehatan,
+          bpjs_ketenagakerjaan_deduction: bpjsKetenagakerjaan,
+          gross_salary: grossSalary,
+          total_deductions: totalDeductions,
+          net_salary: netSalary,
+          payment_status: data.status || "pending",
           notes: data.notes,
         })
         .select()
@@ -47,22 +65,37 @@ Deno.serve(async (req) => {
       if (error) throw error;
       result = insertData;
     } else if (action === "update" && id) {
+      // Calculate totals for update
+      const basicSalary = parseFloat(data.basic_salary) || 0;
+      const allowances = parseFloat(data.allowances) || 0;
+      const overtimePay = parseFloat(data.overtime_pay) || 0;
+      const deductions = parseFloat(data.deductions) || 0;
+      const tax = parseFloat(data.tax) || 0;
+      const bpjsKesehatan = parseFloat(data.bpjs_kesehatan) || 0;
+      const bpjsKetenagakerjaan = parseFloat(data.bpjs_ketenagakerjaan) || 0;
+
+      const grossSalary = basicSalary + allowances + overtimePay;
+      const totalDeductions = deductions + tax + bpjsKesehatan + bpjsKetenagakerjaan;
+      const netSalary = grossSalary - totalDeductions;
+
       const { data: updateData, error } = await supabase
         .from("payroll")
         .update({
           employee_id: data.employee_id,
           period_month: data.period_month,
           period_year: data.period_year,
-          basic_salary: data.basic_salary,
-          allowances: data.allowances,
-          overtime_pay: data.overtime_pay,
-          deductions: data.deductions,
-          tax: data.tax,
-          bpjs_kesehatan: data.bpjs_kesehatan,
-          bpjs_ketenagakerjaan: data.bpjs_ketenagakerjaan,
-          net_salary: data.net_salary,
-          status: data.status,
-          paid_at: data.paid_at || null,
+          basic_salary: basicSalary,
+          other_allowances: allowances > 0 ? { other: allowances } : null,
+          overtime_hours: parseFloat(data.overtime_hours) || 0,
+          overtime_pay: overtimePay,
+          other_deductions: deductions > 0 ? { other: deductions } : null,
+          tax_pph21: tax,
+          bpjs_kesehatan_deduction: bpjsKesehatan,
+          bpjs_ketenagakerjaan_deduction: bpjsKetenagakerjaan,
+          gross_salary: grossSalary,
+          total_deductions: totalDeductions,
+          net_salary: netSalary,
+          payment_status: data.status || "pending",
           notes: data.notes,
         })
         .eq("id", id)
@@ -75,7 +108,7 @@ Deno.serve(async (req) => {
       const { data: processData, error } = await supabase
         .from("payroll")
         .update({
-          status: "processed",
+          payment_status: "processed",
         })
         .eq("id", id)
         .select()
@@ -87,8 +120,8 @@ Deno.serve(async (req) => {
       const { data: payData, error } = await supabase
         .from("payroll")
         .update({
-          status: "paid",
-          paid_at: new Date().toISOString(),
+          payment_status: "paid",
+          payment_date: new Date().toISOString(),
         })
         .eq("id", id)
         .select()

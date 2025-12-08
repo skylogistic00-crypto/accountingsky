@@ -1523,7 +1523,7 @@ export default function SalesForm() {
                 Laporan Transaksi Penjualan
               </CardTitle>
               <CardDescription className="text-green-50">
-                Daftar semua transaksi penjualan barang dan jasa
+                Daftar semua transaksi penjualan
               </CardDescription>
             </div>
             <Button

@@ -68,6 +68,9 @@ export default function PayrollManagement() {
     overtime_hours: "0",
     overtime_pay: "0",
     tax: "0",
+    bpjs_kesehatan: "0",
+    bpjs_ketenagakerjaan: "0",
+    notes: "",
   });
 
   useEffect(() => {
@@ -104,37 +107,45 @@ export default function PayrollManagement() {
     const deductions = parseFloat(formData.deductions) || 0;
     const overtimePay = parseFloat(formData.overtime_pay) || 0;
     const tax = parseFloat(formData.tax) || 0;
+    const bpjsKesehatan = parseFloat(formData.bpjs_kesehatan) || 0;
+    const bpjsKetenagakerjaan = parseFloat(formData.bpjs_ketenagakerjaan) || 0;
 
     const gross = basic + allowances + overtimePay;
-    const net = gross - deductions - tax;
+    const totalDeductions = deductions + tax + bpjsKesehatan + bpjsKetenagakerjaan;
+    const net = gross - totalDeductions;
 
-    return { gross, net };
+    return { gross, totalDeductions, net };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      const { gross, net } = calculatePayroll();
+      const { gross, totalDeductions, net } = calculatePayroll();
 
-      const { error } = await supabase.from("payroll").insert({
-        employee_id: formData.employee_id,
-        period_month: parseInt(formData.period_month),
-        period_year: parseInt(formData.period_year),
-        basic_salary: parseFloat(formData.basic_salary),
-        allowances: formData.allowances
-          ? JSON.parse(formData.allowances)
-          : null,
-        deductions: formData.deductions
-          ? JSON.parse(formData.deductions)
-          : null,
-        overtime_hours: parseFloat(formData.overtime_hours),
-        overtime_pay: parseFloat(formData.overtime_pay),
-        gross_salary: gross,
-        tax: parseFloat(formData.tax),
-        net_salary: net,
-        payment_status: "pending",
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-hrd-save-payroll",
+        {
+          body: {
+            action: "insert",
+            data: {
+              employee_id: formData.employee_id,
+              period_month: parseInt(formData.period_month),
+              period_year: parseInt(formData.period_year),
+              basic_salary: parseFloat(formData.basic_salary),
+              allowances: parseFloat(formData.allowances) || 0,
+              overtime_hours: parseFloat(formData.overtime_hours) || 0,
+              overtime_pay: parseFloat(formData.overtime_pay) || 0,
+              deductions: parseFloat(formData.deductions) || 0,
+              tax: parseFloat(formData.tax) || 0,
+              bpjs_kesehatan: parseFloat(formData.bpjs_kesehatan) || 0,
+              bpjs_ketenagakerjaan: parseFloat(formData.bpjs_ketenagakerjaan) || 0,
+              status: "pending",
+              notes: formData.notes || null,
+            },
+          },
+        },
+      );
 
       if (error) throw error;
       toast({ title: "Berhasil", description: "Payroll berhasil dibuat" });
@@ -142,9 +153,10 @@ export default function PayrollManagement() {
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
+      console.error("Payroll save error:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Gagal menyimpan payroll",
         variant: "destructive",
       });
     }
@@ -186,6 +198,9 @@ export default function PayrollManagement() {
       overtime_hours: "0",
       overtime_pay: "0",
       tax: "0",
+      bpjs_kesehatan: "0",
+      bpjs_ketenagakerjaan: "0",
+      notes: "",
     });
   };
 
