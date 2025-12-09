@@ -79,6 +79,19 @@ export const TRANSACTION_CATEGORIES = {
     sourceLabelKey: "borrower_name",
     sourceValueKey: "id",
   },
+  "Jurnal Umum": {
+    kategori: [
+      { label: "Penyesuaian", value: "penyesuaian" },
+      { label: "Koreksi", value: "koreksi" },
+      { label: "Akrual", value: "akrual" },
+      { label: "Eliminasi", value: "eliminasi" },
+      { label: "Reklasifikasi", value: "reklasifikasi" },
+    ],
+    jenis: [{ label: "Debit / Kredit Manual", value: "manual_entry" }],
+    source: "chart_of_accounts",
+    sourceLabelKey: "account_name",
+    sourceValueKey: "account_code",
+  },
 };
 
 import { useState, useEffect, useRef } from "react";
@@ -91,6 +104,7 @@ import BorrowerForm from "./BorrowerForm";
 import JournalPreviewModal from "./JournalPreviewModal";
 import ApprovalTransaksi from "./ApprovalTransaksi";
 import OCRScanner from "./OCRScanner";
+import JurnalUmum from "./JurnalUmum";
 import { generateJournal } from "./journalRules";
 import {
   Card,
@@ -371,6 +385,36 @@ export default function TransaksiKeuanganForm() {
   const [itemTotal, setItemTotal] = useState<number>(0);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
 
+  // Jurnal Umum AI Suggestions (disabled for manual Jurnal Umum)
+  const [jurnalUmumSuggestions, setJurnalUmumSuggestions] =
+    useState<string>("");
+  const [isLoadingJurnalSuggestions, setIsLoadingJurnalSuggestions] =
+    useState(false);
+  const [journalRows, setJournalRows] = useState([
+    { account_code: "", debit: 0, credit: 0, keterangan_baris: "" },
+  ]);
+
+  const updateRow = (
+    index: number,
+    field: "account_code" | "debit" | "credit" | "keterangan_baris",
+    value: string | number,
+  ) => {
+    setJournalRows((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)),
+    );
+  };
+
+  const addRow = () => {
+    setJournalRows((prev) => [
+      ...prev,
+      { account_code: "", debit: 0, credit: 0, keterangan_baris: "" },
+    ]);
+  };
+
+  const removeRow = (index: number) => {
+    setJournalRows((prev) => prev.filter((_, i) => i !== index));
+  };
+
   // OCR Upload states
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
@@ -457,6 +501,11 @@ export default function TransaksiKeuanganForm() {
   const [bankTujuan, setBankTujuan] = useState("");
   const [akunPendapatan, setAkunPendapatan] = useState("");
   const [akunBeban, setAkunBeban] = useState("");
+  const [selectedExpenseAccount, setSelectedExpenseAccount] = useState<{
+    id: string;
+    account_code: string;
+    account_name: string;
+  } | null>(null);
   const [akunModal, setAkunModal] = useState("");
   const [namaPemilik, setNamaPemilik] = useState("");
   const [namaPenyumbang, setNamaPenyumbang] = useState("");
@@ -475,7 +524,8 @@ export default function TransaksiKeuanganForm() {
   const [akunBebanPopoverOpen, setAkunBebanPopoverOpen] = useState(false);
   const [akunModalPopoverOpen, setAkunModalPopoverOpen] = useState(false);
   const [namaPenerimaPopoverOpen, setNamaPenerimaPopoverOpen] = useState(false);
-  const [namaPengeluaranPopoverOpen, setNamaPengeluaranPopoverOpen] = useState(false);
+  const [namaPengeluaranPopoverOpen, setNamaPengeluaranPopoverOpen] =
+    useState(false);
 
   // Stock information state
   const [stockInfo, setStockInfo] = useState<any>(null);
@@ -798,6 +848,42 @@ export default function TransaksiKeuanganForm() {
   useEffect(() => {
     setItemTotal(itemPrice * itemQty);
   }, [itemPrice, itemQty]);
+
+  const fetchJurnalUmumSuggestions = async () => {
+    if (!previewMemo) return;
+
+    setIsLoadingJurnalSuggestions(true);
+    setJurnalUmumSuggestions("");
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-jurnal-umum-ai-saran-akun",
+        {
+          body: {
+            userInput:
+              previewMemo ||
+              memo ||
+              "Suggest journal entries for this transaksi keuangan.",
+          },
+        },
+      );
+
+      if (error) throw error;
+
+      if (data?.suggestions) {
+        setJurnalUmumSuggestions(String(data.suggestions));
+      }
+    } catch (error) {
+      console.error("Error fetching jurnal umum suggestions:", error as Error);
+      toast({
+        title: "Error",
+        description: "Gagal mengambil saran jurnal umum",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingJurnalSuggestions(false);
+    }
+  };
 
   // Handle OCR file upload and processing
   const handleFileUpload = async (
@@ -1251,6 +1337,31 @@ export default function TransaksiKeuanganForm() {
           showNamaPenyumbang: false,
         };
 
+      case "Jurnal Umum":
+        return {
+          showJurnalUmum: true,
+          showItemFields: false,
+          showPaymentMethod: false,
+          showKasBank: false,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showCustomer: false,
+          showSupplier: false,
+          showAkunPendapatan: false,
+          showAkunBeban: false,
+          showAkunModal: false,
+          showSumberPenerimaan: false,
+          showSumberPengeluaran: false,
+          showNamaPenerima: false,
+          showNamaPengeluaran: false,
+          showNamaPemilik: false,
+          showNamaPenyumbang: false,
+          showNominal: false,
+          showTanggal: false,
+          showDeskripsi: false,
+          showUploadBukti: false,
+        };
+
       default:
         return {
           showItemFields: false,
@@ -1321,11 +1432,9 @@ export default function TransaksiKeuanganForm() {
 
   const shouldDisableField = (fieldName: string): boolean => {
     if (fieldName === "paymentType") {
-      return [
-        "Pendapatan",
-        "Pelunasan Piutang",
-        "Pembayaran Hutang",
-      ].includes(jenisTransaksi);
+      return ["Pendapatan", "Pelunasan Piutang", "Pembayaran Hutang"].includes(
+        jenisTransaksi,
+      );
     }
     return false;
   };
@@ -1711,7 +1820,7 @@ export default function TransaksiKeuanganForm() {
       const { data, error: supabaseError } = await supabase
         .from("chart_of_accounts")
         .select("*")
-        //  .ilike("account_name", "%kas%")
+        .ilike("account_name", "%kas%")
         .eq("is_active", true)
         .eq("is_header", false)
         .order("account_code");
@@ -3001,6 +3110,31 @@ export default function TransaksiKeuanganForm() {
   /** Save Transaction (Jurnal + Cash Book) */
   const handleSave = async () => {
     try {
+      if (jenisTransaksi === "Jurnal Umum") {
+        const payload = {
+          jenis_transaksi: "Jurnal Umum",
+          tanggal,
+          deskripsi: description,
+          ditangani_oleh: user?.id,
+          entries: journalRows,
+        };
+
+        const { data, error } = await supabase.functions.invoke(
+          "supabase-functions-save-journal-manual",
+          {
+            body: payload,
+          },
+        );
+
+        if (error) {
+          console.error("Error saving manual journal:", error);
+        } else {
+          console.log("Manual journal saved:", data);
+        }
+
+        return;
+      }
+
       // Step 1: Validate Input
       validateInput({
         jenisTransaksi,
@@ -3249,67 +3383,142 @@ export default function TransaksiKeuanganForm() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        const { error } = await supabase.from("cash_and_bank_receipts").insert({
-          transaction_date: previewTanggal,
-          transaction_type: "Penerimaan",
-          category: kategori || sumberPenerimaan,
-          source_destination:
-            sumberPenerimaan || customer || supplier || "Penerimaan Kas",
-          amount: nominal,
-          payment_method: paymentType === "cash" ? "Tunai" : "Bank",
-          coa_cash_code: mainDebitLine?.account_code || "1-1100",
-          coa_contra_code: mainCreditLine?.account_code || "4-1100",
-          account_code: mainDebitLine?.account_code || "",
-          account_name: mainDebitLine?.account_name || "",
-          account_type_credit: selectedCreditAccountType || "",
-          account_name_credit: selectedCreditAccountName || "",
-          description: previewMemo,
-          reference_number: `PKM-${Date.now()}`,
-          journal_ref: journalRef,
-          approval_status: "approved",
-          bukti: uploadedBuktiUrl || null,
-          ocr_data: ocrDataPayload,
-          ocr_id: ocrAppliedData?.ocrId || null,
-          created_by: user?.id || null,
-        });
+        const { error } = await supabase
+          .from("cash_and_bank_receipts")
+          .insert({
+            transaction_date: previewTanggal,
+            transaction_type: "Penerimaan",
+            category: kategori || sumberPenerimaan,
+            source_destination:
+              sumberPenerimaan || customer || supplier || "Penerimaan Kas",
+            amount: nominal,
+            payment_method: paymentType === "cash" ? "Tunai" : "Bank",
+            coa_cash_code: mainDebitLine?.account_code || "1-1100",
+            coa_contra_code: mainCreditLine?.account_code || "4-1100",
+            account_code: mainDebitLine?.account_code || "",
+            account_name: mainDebitLine?.account_name || "",
+            account_type_credit: selectedCreditAccountType || "",
+            account_name_credit: selectedCreditAccountName || "",
+            description: previewMemo,
+            reference_number: `PKM-${Date.now()}`,
+            journal_ref: journalRef,
+            approval_status: "approved",
+            bukti: uploadedBuktiUrl || null,
+            ocr_data: ocrDataPayload,
+            ocr_id: ocrAppliedData?.ocrId || null,
+            created_by: user?.id || null,
+          });
 
         if (error) throw new Error(`Cash Receipt: ${error.message}`);
         console.log("ROUTER: Cash receipt saved");
         break;
       }
 
+      case "Pengeluaran":
       case "Pengeluaran Kas":
-      case "Pembayaran Pinjaman": {
-        // Insert to cash_disbursement
-        const expenseLine = previewLines.find((l) => l.dc === "D");
+      case "Pengeluaran_Kas":
+      case "Pengeluaran-Kas":
+      case "PengeluaranKas":
+      case "Cash Out":
+      case "CashOut":
+      case "Cash_Out":
+      case "Cash-Out":
+      case "Pembayaran Pinjaman":
+      case "Pembayaran_Pinjaman":
+      case "Pembayaran-Pinjaman":
+      case "Kas Keluar":
+      case "Cash Keluar":
+      case "Keluar":
+      case "Expense":
+      case "Beban": {
+        // Get current user
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        // Use manual expense account if selected by user, otherwise use journal line
+        let expenseAccountCode = "";
+        let expenseAccountName = "";
+        let expenseAccountId = null;
+
+        if (selectedExpenseAccount) {
+          // User manually selected expense account - bypass AI mapping
+          expenseAccountCode = selectedExpenseAccount.account_code;
+          expenseAccountName = selectedExpenseAccount.account_name;
+          expenseAccountId = selectedExpenseAccount.id;
+          console.log("✅ ROUTER: Using MANUAL expense account:", {
+            code: expenseAccountCode,
+            name: expenseAccountName,
+            id: expenseAccountId
+          });
+        } else {
+          // Use AI/automatic mapping from journal lines
+          const expenseLine = previewLines.find((l) => l.dc === "D");
+          expenseAccountCode = expenseLine?.account_code || "6-1100";
+          expenseAccountName = expenseLine?.account_name || "";
+          console.log("🤖 ROUTER: Using AI-mapped expense account:", {
+            code: expenseAccountCode,
+            name: expenseAccountName
+          });
+        }
+
         const cashLine = previewLines.find((l) => l.dc === "C");
 
-        const { error } = await supabase.from("cash_disbursement").insert({
-          transaction_date: previewTanggal,
-          payee_name:
-            namaKaryawanPengeluaran ||
-            supplier ||
-            customer ||
-            "Pengeluaran Kas",
-          description: previewMemo,
-          category: kategori,
-          amount: nominal,
-          payment_method:
-            jenisPembayaranPengeluaran === "Cash" ? "Tunai" : "Transfer Bank",
-          coa_expense_code: expenseLine?.account_code || "6-1100",
-          coa_cash_code: cashLine?.account_code || "1-1100",
-          account_code: expenseLine?.account_code || "",
-          account_name: expenseLine?.account_name || "",
-          notes: description,
-          created_by: user?.id,
-          approval_status: "waiting_approval",
-          bukti: uploadedBuktiUrl || null,
-          ocr_data: ocrDataPayload,
-          ocr_id: ocrAppliedData?.ocrId || null,
-        });
+        console.log("💰 ROUTER: Inserting to cash_disbursement...");
+        console.log("👤 User ID:", user?.id);
+        console.log("📅 Transaction Date:", previewTanggal);
+        console.log("💵 Amount:", nominal);
+        console.log("💰 Cash Line:", cashLine);
 
-        if (error) throw new Error(`Cash Disbursement: ${error.message}`);
-        console.log("ROUTER: Cash disbursement saved");
+        const { data, error } = await supabase
+          .from("cash_disbursement")
+          .insert({
+            transaction_date: previewTanggal,
+            payee_name:
+              namaKaryawanPengeluaran ||
+              supplier ||
+              customer ||
+              "Pengeluaran Kas",
+            description: previewMemo,
+            category: kategori,
+            amount: nominal,
+            payment_method:
+              jenisPembayaranPengeluaran === "Cash"
+                ? "Tunai"
+                : "Transfer Bank",
+
+            // COA Mapping
+            coa_expense_code: expenseAccountCode,
+            coa_cash_code: cashLine?.account_code || "1-1100",
+            account_code: expenseAccountCode,
+            account_name: expenseAccountName,
+            coa_id: expenseAccountId,
+
+            // REQUIRED FIXES
+            exchange_rate: 1, // wajib > 0
+            status: "draft",
+            approval_status: "waiting_approval",
+
+            // User metadata
+            created_by: user?.id,
+
+            // Additional fields
+            notes: description,
+            bukti: uploadedBuktiUrl || null,
+            ocr_data: ocrDataPayload,
+            ocr_id: ocrAppliedData?.ocrId || null,
+          })
+          .select();
+
+        if (error) {
+          console.error("❌ Cash Disbursement Insert Error:", error);
+          throw new Error(`Cash Disbursement: ${error.message}`);
+        }
+
+        console.log(
+          "✅ ROUTER: Cash disbursement saved successfully:",
+          data,
+        );
         break;
       }
 
@@ -3813,6 +4022,8 @@ export default function TransaksiKeuanganForm() {
       taxType,
       // Bukti file
       buktiFile: buktiFile, // Store the file object in cart
+      // Manual expense account selection
+      selectedExpenseAccount: selectedExpenseAccount,
       // Checkbox selection
       selected: true,
     };
@@ -4024,15 +4235,60 @@ export default function TransaksiKeuanganForm() {
         }
 
         // Step 6b: If Pengeluaran Kas, save to cash_disbursement table
-        if (item.jenisTransaksi === "Pengeluaran Kas") {
+        // Support multiple variations: "Pengeluaran", "Pengeluaran Kas", etc.
+        const isPengeluaran = 
+          item.jenisTransaksi === "Pengeluaran Kas" ||
+          item.jenisTransaksi === "Pengeluaran" ||
+          item.jenisTransaksi?.toLowerCase().includes("pengeluaran") ||
+          item.jenisTransaksi?.toLowerCase().includes("expense") ||
+          item.jenisTransaksi?.toLowerCase().includes("beban");
+        
+        console.log("🔍 DEBUG: Checking Pengeluaran condition:", {
+          jenisTransaksi: item.jenisTransaksi,
+          isPengeluaran: isPengeluaran
+        });
+        
+        if (isPengeluaran) {
+          console.log("💰 BATCH CHECKOUT: Inserting to cash_disbursement...");
+          
           const {
             data: { user },
           } = await supabase.auth.getUser();
 
-          const expenseLine = journalData.lines.find((l) => l.dc === "D");
-          const cashLine = journalData.lines.find((l) => l.dc === "C");
+          // Use manual expense account if selected by user, otherwise use journal line
+          let expenseAccountCode = "";
+          let expenseAccountName = "";
+          let expenseAccountId = null;
 
-          const { error: cashDisbursementError } = await supabase
+          if (item.selectedExpenseAccount) {
+            // User manually selected expense account - bypass AI mapping
+            expenseAccountCode = item.selectedExpenseAccount.account_code;
+            expenseAccountName = item.selectedExpenseAccount.account_name;
+            expenseAccountId = item.selectedExpenseAccount.id;
+            console.log("✅ Using MANUAL expense account:", {
+              code: expenseAccountCode,
+              name: expenseAccountName,
+              id: expenseAccountId
+            });
+          } else {
+            // Use AI/automatic mapping from journal lines
+            const expenseLine = journalData.lines.find((l) => l.dc === "D");
+            expenseAccountCode = expenseLine?.account_code || "6-1100";
+            expenseAccountName = expenseLine?.account_name || "";
+            console.log("🤖 Using AI-mapped expense account:", {
+              code: expenseAccountCode,
+              name: expenseAccountName
+            });
+          }
+
+          const cashLine = journalData.lines.find((l) => l.dc === "C");
+          
+          console.log("👤 User ID:", user?.id);
+          console.log("📅 Transaction Date:", journalData.tanggal);
+          console.log("💵 Amount:", normalizedInput.nominal);
+          console.log("💰 Cash Line:", cashLine);
+
+          const { data: insertedData, error: cashDisbursementError } = await supabase
             .from("cash_disbursement")
             .insert({
               transaction_date: journalData.tanggal,
@@ -4050,10 +4306,11 @@ export default function TransaksiKeuanganForm() {
                   : item.paymentType === "cash"
                     ? "Tunai"
                     : "Transfer Bank",
-              coa_expense_code: expenseLine?.account_code || "6-1100",
+              coa_expense_code: expenseAccountCode,
               coa_cash_code: cashLine?.account_code || "1-1100",
-              account_code: expenseLine?.account_code || "",
-              account_name: expenseLine?.account_name || "",
+              account_code: expenseAccountCode,
+              account_name: expenseAccountName,
+              coa_id: expenseAccountId,
               notes: item.description,
               created_by: user?.id,
               approval_status: "waiting_approval",
@@ -4065,7 +4322,8 @@ export default function TransaksiKeuanganForm() {
                     appliedFields: ocrAppliedData.appliedFields,
                   }
                 : null,
-            });
+            })
+            .select();
 
           if (cashDisbursementError) {
             console.error(
@@ -4077,7 +4335,8 @@ export default function TransaksiKeuanganForm() {
             );
           } else {
             console.log(
-              "✅ Cash disbursement saved successfully - waiting for approval",
+              "✅ BATCH CHECKOUT: Cash disbursement saved successfully:",
+              insertedData,
             );
           }
         }
@@ -7062,31 +7321,45 @@ export default function TransaksiKeuanganForm() {
                       <SelectItem value="Pelunasan Hutang">
                         Pelunasan Hutang
                       </SelectItem>
+                      <SelectItem value="Jurnal Umum">Jurnal Umum</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Payment Method - Conditional */}
-                {visibleFields.showPaymentMethod && (
-                  <div className="space-y-2">
-                    <Label htmlFor="payment_method">Metode Pembayaran *</Label>
-                    <Select value={paymentType} onValueChange={setPaymentType}>
-                      <SelectTrigger id="payment_method">
-                        <SelectValue placeholder="-- pilih metode --" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Cash">Cash</SelectItem>
-                        <SelectItem value="Transfer Bank">
-                          Transfer Bank
-                        </SelectItem>
-                        <SelectItem value="Kredit">
-                          Kredit (Hutang/Piutang)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                {visibleFields.showPaymentMethod &&
+                  !visibleFields.showJurnalUmum && (
+                    <div className="space-y-2">
+                      <Label htmlFor="payment_method">
+                        Metode Pembayaran *
+                      </Label>
+                      <Select
+                        value={paymentType}
+                        onValueChange={setPaymentType}
+                      >
+                        <SelectTrigger id="payment_method">
+                          <SelectValue placeholder="-- pilih metode --" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Cash">Cash</SelectItem>
+                          <SelectItem value="Transfer Bank">
+                            Transfer Bank
+                          </SelectItem>
+                          <SelectItem value="Kredit">
+                            Kredit (Hutang/Piutang)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
               </div>
+
+              {/* JURNAL UMUM COMPONENT */}
+              {jenisTransaksi === "Jurnal Umum" && (
+                <div className="mt-4">
+                  <JurnalUmum />
+                </div>
+              )}
 
               {/* TRANSFER BANK FIELDS */}
               {visibleFields.showBankAsal && (
@@ -7737,7 +8010,7 @@ export default function TransaksiKeuanganForm() {
                           .filter(
                             (acc) =>
                               acc.account_type === "Pendapatan" &&
-                              `${acc.account_code} ${acc.account_name}`
+                              `${acc.account_code} ${acc.description || acc.account_name}`
                                 .toLowerCase()
                                 .includes(bankSearch.toLowerCase()),
                           )
@@ -7747,17 +8020,18 @@ export default function TransaksiKeuanganForm() {
                               className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => {
                                 setAkunPendapatan(
-                                  `${acc.account_code} — ${acc.account_name}`,
+                                  `${acc.account_code} — ${acc.description || acc.account_name}`,
                                 );
                                 setAkunPendapatanPopoverOpen(false);
                                 setBankSearch("");
                               }}
                             >
                               <span className="text-sm">
-                                {acc.account_code} — {acc.account_name}
+                                {acc.account_code} —{" "}
+                                {acc.description || acc.account_name}
                               </span>
                               {akunPendapatan ===
-                                `${acc.account_code} — ${acc.account_name}` && (
+                                `${acc.account_code} — ${acc.description || acc.account_name}` && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
                             </div>
@@ -7771,7 +8045,14 @@ export default function TransaksiKeuanganForm() {
               {/* AKUN BEBAN */}
               {visibleFields.showAkunBeban && (
                 <div className="space-y-2">
-                  <Label htmlFor="akun_beban">Akun Beban *</Label>
+                  <Label htmlFor="akun_beban">
+                    Akun Beban *
+                    {selectedExpenseAccount && (
+                      <span className="ml-2 text-xs text-green-600 font-semibold">
+                        ✓ Manual (Bypass AI)
+                      </span>
+                    )}
+                  </Label>
                   <Popover
                     open={akunBebanPopoverOpen}
                     onOpenChange={setAkunBebanPopoverOpen}
@@ -7780,7 +8061,7 @@ export default function TransaksiKeuanganForm() {
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="w-full justify-between"
+                        className={`w-full justify-between ${selectedExpenseAccount ? 'border-green-500 bg-green-50' : ''}`}
                       >
                         {akunBeban || "-- pilih akun beban --"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -7810,12 +8091,18 @@ export default function TransaksiKeuanganForm() {
                                 setAkunBeban(
                                   `${acc.account_code} — ${acc.account_name}`,
                                 );
+                                setSelectedExpenseAccount({
+                                  id: acc.id,
+                                  account_code: acc.account_code,
+                                  account_name: acc.account_name,
+                                });
                                 setAkunBebanPopoverOpen(false);
                                 setBankSearch("");
                               }}
                             >
                               <span className="text-sm">
-                                {acc.account_code} — {acc.account_name}
+                                {acc.account_code} —{" "}
+                                {acc.description || acc.account_name}
                               </span>
                               {akunBeban ===
                                 `${acc.account_code} — ${acc.account_name}` && (
@@ -7826,6 +8113,20 @@ export default function TransaksiKeuanganForm() {
                       </div>
                     </PopoverContent>
                   </Popover>
+                  {selectedExpenseAccount && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setAkunBeban("");
+                        setSelectedExpenseAccount(null);
+                      }}
+                      className="text-xs text-red-600 hover:text-red-700"
+                    >
+                      ✕ Hapus Pilihan Manual (Gunakan AI)
+                    </Button>
+                  )}
                 </div>
               )}
 
@@ -7877,7 +8178,8 @@ export default function TransaksiKeuanganForm() {
                               }}
                             >
                               <span className="text-sm">
-                                {acc.account_code} — {acc.account_name}
+                                {acc.account_code} —{" "}
+                                {acc.description || acc.account_name}
                               </span>
                               {akunModal ===
                                 `${acc.account_code} — ${acc.account_name}` && (
@@ -7963,9 +8265,7 @@ export default function TransaksiKeuanganForm() {
                                 setNamaPenerimaPopoverOpen(false);
                               }}
                             >
-                              <span className="text-sm">
-                                {u.full_name}
-                              </span>
+                              <span className="text-sm">{u.full_name}</span>
                               {namaPenerimaSearch === u.full_name && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
@@ -7991,7 +8291,8 @@ export default function TransaksiKeuanganForm() {
                         role="combobox"
                         className="w-full justify-between"
                       >
-                        {namaPengeluaranSearch || "-- pilih nama pengeluaran --"}
+                        {namaPengeluaranSearch ||
+                          "-- pilih nama pengeluaran --"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -7999,7 +8300,9 @@ export default function TransaksiKeuanganForm() {
                       <Input
                         placeholder="Cari nama pengeluaran..."
                         value={namaPengeluaranSearch}
-                        onChange={(e) => setNamaPengeluaranSearch(e.target.value)}
+                        onChange={(e) =>
+                          setNamaPengeluaranSearch(e.target.value)
+                        }
                         className="mb-2"
                       />
                       <div className="max-h-64 overflow-auto">
@@ -8019,9 +8322,7 @@ export default function TransaksiKeuanganForm() {
                                 setNamaPengeluaranPopoverOpen(false);
                               }}
                             >
-                              <span className="text-sm">
-                                {u.full_name}
-                              </span>
+                              <span className="text-sm">{u.full_name}</span>
                               {namaPengeluaranSearch === u.full_name && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
@@ -10359,238 +10660,252 @@ export default function TransaksiKeuanganForm() {
               </div>
 
               {/* NOMINAL + DATE */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nominal">
-                    Nominal *
-                    {jenisTransaksi === "Penjualan" &&
-                      itemName &&
-                      description && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          (Otomatis dari Quantity × Harga Jual)
-                        </span>
-                      )}
-                    {jenisTransaksi === "Pembelian Barang" &&
-                      itemName &&
-                      description && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          (Otomatis dari (Quantity × Harga Beli) + PPN)
-                        </span>
-                      )}
-                  </Label>
-                  <Input
-                    id="nominal"
-                    type="number"
-                    value={nominal}
-                    onChange={(e) => setNominal(e.target.value)}
-                    placeholder="0"
-                    readOnly={
-                      (jenisTransaksi === "Penjualan" &&
+              {jenisTransaksi !== "Jurnal Umum" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nominal">
+                      Nominal *
+                      {jenisTransaksi === "Penjualan" &&
                         itemName &&
-                        description) ||
-                      (jenisTransaksi === "Pembelian Barang" &&
+                        description && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            (Otomatis dari Quantity × Harga Jual)
+                          </span>
+                        )}
+                      {jenisTransaksi === "Pembelian Barang" &&
                         itemName &&
-                        description)
-                    }
-                    className={
-                      (jenisTransaksi === "Penjualan" &&
-                        itemName &&
-                        description) ||
-                      (jenisTransaksi === "Pembelian Barang" &&
-                        itemName &&
-                        description)
-                        ? "bg-gray-100"
-                        : ""
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tanggal">Tanggal *</Label>
-                  <Input
-                    id="tanggal"
-                    type="date"
-                    value={tanggal}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Validate date format before setting
-                      if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                        setTanggal(value);
-                      } else if (!value) {
-                        setTanggal("");
+                        description && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            (Otomatis dari (Quantity × Harga Beli) + PPN)
+                          </span>
+                        )}
+                    </Label>
+                    <Input
+                      id="nominal"
+                      type="number"
+                      value={nominal}
+                      onChange={(e) => setNominal(e.target.value)}
+                      placeholder="0"
+                      readOnly={
+                        (jenisTransaksi === "Penjualan" &&
+                          itemName &&
+                          description) ||
+                        (jenisTransaksi === "Pembelian Barang" &&
+                          itemName &&
+                          description)
                       }
-                    }}
-                  />
+                      className={
+                        (jenisTransaksi === "Penjualan" &&
+                          itemName &&
+                          description) ||
+                        (jenisTransaksi === "Pembelian Barang" &&
+                          itemName &&
+                          description)
+                          ? "bg-gray-100"
+                          : ""
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tanggal">Tanggal *</Label>
+                    <Input
+                      id="tanggal"
+                      type="date"
+                      value={tanggal}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Validate date format before setting
+                        if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                          setTanggal(value);
+                        } else if (!value) {
+                          setTanggal("");
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* DESC */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Deskripsi</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Masukkan deskripsi transaksi"
-                  rows={3}
-                />
-              </div>
+              {jenisTransaksi !== "Jurnal Umum" && (
+                <div className="space-y-2">
+                  <Label htmlFor="description">Deskripsi</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Masukkan deskripsi transaksi"
+                    rows={3}
+                  />
+                </div>
+              )}
 
               {/* HANDLED BY USER */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="handled_by">Ditangani Oleh</Label>
-                  <p className="text-sm text-gray-600">
-                    User yang login saat ini akan tercatat sebagai
-                    penanggungjawab transaksi ini.
-                  </p>
+              {jenisTransaksi !== "Jurnal Umum" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="handled_by">Ditangani Oleh</Label>
+                    <p className="text-sm text-gray-600">
+                      User yang login saat ini akan tercatat sebagai
+                      penanggungjawab transaksi ini.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* UPLOAD BUKTI FOTO - Hidden for Pendapatan */}
-              {jenisTransaksi !== "Pendapatan" && (
-              <div className="space-y-2 mt-6">
-                <Label htmlFor="bukti-foto" className="text-base font-semibold">
-                  Bukti Foto Transaksi
-                </Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    id="bukti-foto"
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file || !file.name) return;
-
-                      setBuktiFile(file);
-
-                      // Upload to Supabase Storage
-                      try {
-                        const fileExt = file.name.split(".").pop();
-                        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-                        const filePath = `transaksi-bukti/${fileName}`;
-
-                        const { error: uploadError } = await supabase.storage
-                          .from("documents")
-                          .upload(filePath, file);
-
-                        if (uploadError) throw uploadError;
-
-                        const {
-                          data: { publicUrl },
-                        } = supabase.storage
-                          .from("documents")
-                          .getPublicUrl(filePath);
-
-                        setBuktiUrl(publicUrl);
-
-                        toast({
-                          title: "✅ Bukti berhasil diupload",
-                          description: "File bukti transaksi telah tersimpan",
-                        });
-                      } catch (err: any) {
-                        console.error("Upload error:", error);
-                        toast({
-                          title: "❌ Upload gagal",
-                          description: error.message,
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                    className="flex-1"
-                  />
-                  {buktiFile && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setBuktiFile(null);
-                        setBuktiUrl("");
-                        // Reset file input
-                        const fileInput = document.getElementById(
-                          "bukti-foto",
-                        ) as HTMLInputElement;
-                        if (fileInput) fileInput.value = "";
-                      }}
-                      className="text-red-500 hover:text-red-700"
+              {jenisTransaksi !== "Pendapatan" &&
+                jenisTransaksi !== "Jurnal Umum" && (
+                  <div className="space-y-2 mt-6">
+                    <Label
+                      htmlFor="bukti-foto"
+                      className="text-base font-semibold"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+                      Bukti Foto Transaksi
+                    </Label>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id="bukti-foto"
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || !file.name) return;
 
-                {/* Preview Bukti */}
-                {buktiUrl && buktiFile && (
-                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0">
-                        {buktiFile.type.startsWith("image/") ? (
-                          <img
-                            src={buktiUrl}
-                            alt="Bukti Transaksi"
-                            className="w-24 h-24 object-cover rounded border"
-                          />
-                        ) : (
-                          <div className="w-24 h-24 bg-gray-200 rounded border flex items-center justify-center">
-                            <FileText className="h-8 w-8 text-gray-500" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-green-800">
-                          ✅ Bukti berhasil diupload
-                        </p>
-                        <p className="text-xs text-green-600 mt-1">
-                          {buktiFile.name}
-                        </p>
-                        <a
-                          href={buktiUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                          setBuktiFile(file);
+
+                          // Upload to Supabase Storage
+                          try {
+                            const fileExt = file.name.split(".").pop();
+                            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                            const filePath = `transaksi-bukti/${fileName}`;
+
+                            const { error: uploadError } =
+                              await supabase.storage
+                                .from("documents")
+                                .upload(filePath, file);
+
+                            if (uploadError) throw uploadError;
+
+                            const {
+                              data: { publicUrl },
+                            } = supabase.storage
+                              .from("documents")
+                              .getPublicUrl(filePath);
+
+                            setBuktiUrl(publicUrl);
+
+                            toast({
+                              title: "✅ Bukti berhasil diupload",
+                              description:
+                                "File bukti transaksi telah tersimpan",
+                            });
+                          } catch (err: any) {
+                            console.error("Upload error:", error);
+                            toast({
+                              title: "❌ Upload gagal",
+                              description: error.message,
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      {buktiFile && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setBuktiFile(null);
+                            setBuktiUrl("");
+                            // Reset file input
+                            const fileInput = document.getElementById(
+                              "bukti-foto",
+                            ) as HTMLInputElement;
+                            if (fileInput) fileInput.value = "";
+                          }}
+                          className="text-red-500 hover:text-red-700"
                         >
-                          Lihat file →
-                        </a>
-                      </div>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
+
+                    {/* Preview Bukti */}
+                    {buktiUrl && buktiFile && (
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0">
+                            {buktiFile.type.startsWith("image/") ? (
+                              <img
+                                src={buktiUrl}
+                                alt="Bukti Transaksi"
+                                className="w-24 h-24 object-cover rounded border"
+                              />
+                            ) : (
+                              <div className="w-24 h-24 bg-gray-200 rounded border flex items-center justify-center">
+                                <FileText className="h-8 w-8 text-gray-500" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-800">
+                              ✅ Bukti berhasil diupload
+                            </p>
+                            <p className="text-xs text-green-600 mt-1">
+                              {buktiFile.name}
+                            </p>
+                            <a
+                              href={buktiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                            >
+                              Lihat file →
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-slate-500">
+                      Upload foto bukti transaksi (struk, invoice, kwitansi,
+                      dll). Format: JPG, PNG, atau PDF
+                    </p>
                   </div>
                 )}
 
-                <p className="text-xs text-slate-500">
-                  Upload foto bukti transaksi (struk, invoice, kwitansi, dll).
-                  Format: JPG, PNG, atau PDF
-                </p>
-              </div>
-              )}
-
               {/* BUTTONS */}
-              <div className="flex gap-4 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePreview}
-                  className="flex-1"
-                >
-                  Preview Jurnal
-                </Button>
+              {jenisTransaksi !== "Jurnal Umum" && (
+                <div className="flex gap-4 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePreview}
+                    className="flex-1"
+                  >
+                    Preview Jurnal
+                  </Button>
 
-                <Button
-                  type="button"
-                  onClick={handleAddToCart}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  🛒 Tambah ke Keranjang
-                </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddToCart}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    🛒 Tambah ke Keranjang
+                  </Button>
 
-                <Button
-                  type="button"
-                  onClick={handleSave}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  Simpan Transaksi
-                </Button>
-              </div>
+                  <Button
+                    type="button"
+                    onClick={handleSave}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    Simpan Transaksi
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

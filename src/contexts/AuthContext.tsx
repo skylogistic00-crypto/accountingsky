@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { data, error } = await supabase
         .from("users")
-        .select("*, roles:role_id(*)")
+        .select("*")
         .eq("id", userId)
         .single();
 
@@ -123,17 +123,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserProfile({
           id: userId,
           email: session?.user?.email || "",
-          role_name: "user",
+          role: "viewer",
           status: "active",
         } as any);
-        setUserRole("user");
+        setUserRole("viewer");
         setLoading(false);
         return;
       }
 
       setUserProfile(data);
-      const role = data.role_name || data.roles?.role_name || null;
-      setUserRole((role || "").toLowerCase().trim().replace(/\s+/g, "_"));
+      const role = data.role || "viewer";
+      setUserRole(role);
 
       setLoading(false);
     } catch (error: any) {

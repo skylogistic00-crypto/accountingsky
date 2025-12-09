@@ -123,9 +123,13 @@ export default function PayrollManagement() {
     try {
       const { gross, totalDeductions, net } = calculatePayroll();
 
+      const { data: { session } } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke(
         "supabase-functions-hrd-save-payroll",
         {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+          },
           body: {
             action: "insert",
             data: {

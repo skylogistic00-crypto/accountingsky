@@ -47,6 +47,10 @@ export default function Navigation() {
         "warehouse_manager",
         "warehouse_staff",
         "read_only",
+        "viewer",
+        "admin",
+        "hr_manager",
+        "hr_staff",
       ],
     },
     // Dashboard & Overview
@@ -60,6 +64,8 @@ export default function Navigation() {
         "accounting_manager",
         "accounting_staff",
         "read_only",
+        "viewer",
+        "admin",
       ],
     },
     

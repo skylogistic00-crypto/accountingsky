@@ -141,12 +141,13 @@ export default function FinancialDashboard() {
 
       console.log("📊 Purchase Jasa:", { data: purchaseJasa, error: errorPurchaseJasa });
 
-      // Fetch Pengeluaran Kas
+      // Fetch Pengeluaran Kas dari kas_transaksi (payment_type = 'Pengeluaran Kas')
       const { data: disbursements, error: errorDisbursements } = await supabase
-        .from("cash_disbursement")
+        .from("kas_transaksi")
         .select("amount")
-        .gte("transaction_date", startDate)
-        .lte("transaction_date", endDate)
+        .gte("tanggal", startDate)
+        .lte("tanggal", endDate)
+        .eq("payment_type", "Pengeluaran Kas")
         .eq("approval_status", "approved");
 
       console.log("📊 Disbursements:", { data: disbursements, error: errorDisbursements });

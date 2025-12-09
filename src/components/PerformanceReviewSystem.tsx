@@ -643,7 +643,7 @@ export default function PerformanceReviewSystem() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-bold text-indigo-600">
-                          {review.overall_rating.toFixed(2)}
+                          {Number(review.overall_rating).toFixed(2)}
                         </span>
                         {getRatingBadge(review.overall_rating)}
                       </div>
@@ -672,9 +672,9 @@ export default function PerformanceReviewSystem() {
 
       {/* View Review Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detail Penilaian Kinerja</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Detail Penilaian Kinerja</DialogTitle>
           </DialogHeader>
           {viewingReview && (
             <div className="space-y-6">
@@ -707,13 +707,13 @@ export default function PerformanceReviewSystem() {
                 <p className="text-sm text-gray-600 mb-2">Overall Rating</p>
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <p className="text-5xl font-bold text-indigo-600">
-                    {viewingReview.overall_rating.toFixed(2)}
+                    {Number(viewingReview.overall_rating).toFixed(2)}
                   </p>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        className={`h-8 w-8 ${viewingReview.overall_rating >= star ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                        className={`h-8 w-8 ${Number(viewingReview.overall_rating) >= star ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
                       />
                     ))}
                   </div>
@@ -748,13 +748,13 @@ export default function PerformanceReviewSystem() {
                     <p className="text-sm text-gray-600">{item.label}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xl font-bold text-indigo-600">
-                        {item.value.toFixed(1)}
+                        {Number(item.value).toFixed(1)}
                       </span>
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
-                            className={`h-4 w-4 ${item.value >= star ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                            className={`h-4 w-4 ${Number(item.value) >= star ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
                           />
                         ))}
                       </div>

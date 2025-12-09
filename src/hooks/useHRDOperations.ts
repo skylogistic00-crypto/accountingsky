@@ -223,9 +223,13 @@ export function useHRDOperations() {
   // Payroll operations
   const savePayroll = async (data: PayrollData, id?: string) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const { data: responseData, error } = await supabase.functions.invoke(
         "supabase-functions-hrd-save-payroll",
         {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+          },
           body: {
             action: id ? "update" : "insert",
             data,
@@ -254,9 +258,13 @@ export function useHRDOperations() {
 
   const processPayroll = async (id: string) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const { data: responseData, error } = await supabase.functions.invoke(
         "supabase-functions-hrd-save-payroll",
         {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+          },
           body: {
             action: "process",
             data: {},
@@ -285,9 +293,13 @@ export function useHRDOperations() {
 
   const payPayroll = async (id: string) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const { data: responseData, error } = await supabase.functions.invoke(
         "supabase-functions-hrd-save-payroll",
         {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+          },
           body: {
             action: "pay",
             data: {},

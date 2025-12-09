@@ -137,7 +137,7 @@ export default function PayrollSystem() {
   };
 
   const loadPayrolls = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("payroll")
       .select(
         `
@@ -154,6 +154,10 @@ export default function PayrollSystem() {
       )
       .order("period_year", { ascending: false })
       .order("period_month", { ascending: false });
+    
+    console.log("Payroll data:", data);
+    console.log("Payroll error:", error);
+    
     setPayrolls(data || []);
   };
 
@@ -192,34 +196,46 @@ export default function PayrollSystem() {
       const { gross, totalDeductions, net } = calculatePayroll();
 
       // Call edge function for INSERT operation to database
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error("User not authenticated");
+      }
+
+      const payrollData = {
+        action: "insert",
+        data: {
+          employee_id: formData.employee_id,
+          period_month: parseInt(formData.period_month),
+          period_year: parseInt(formData.period_year),
+          basic_salary: parseFloat(formData.basic_salary),
+          allowances:
+            parseFloat(formData.transport_allowance) +
+            parseFloat(formData.meal_allowance) +
+            parseFloat(formData.position_allowance),
+          overtime_hours: parseFloat(formData.overtime_hours) || 0,
+          overtime_pay: parseFloat(formData.overtime_pay),
+          deductions:
+            parseFloat(formData.late_deduction) +
+            parseFloat(formData.absence_deduction) +
+            parseFloat(formData.loan_deduction),
+          tax: parseFloat(formData.tax_pph21),
+          bpjs_kesehatan: parseFloat(formData.bpjs_kesehatan_deduction),
+          bpjs_ketenagakerjaan: parseFloat(
+            formData.bpjs_ketenagakerjaan_deduction,
+          ),
+          net_salary: net,
+          status: "pending",
+          notes: formData.notes || null,
+        },
+      };
+
+      console.log("Sending payroll data:", payrollData);
+
       const { data: responseData, error } = await supabase.functions.invoke(
         "supabase-functions-hrd-save-payroll",
         {
-          body: {
-            action: "insert",
-            data: {
-              employee_id: formData.employee_id,
-              period_month: parseInt(formData.period_month),
-              period_year: parseInt(formData.period_year),
-              basic_salary: parseFloat(formData.basic_salary),
-              allowances:
-                parseFloat(formData.transport_allowance) +
-                parseFloat(formData.meal_allowance) +
-                parseFloat(formData.position_allowance),
-              overtime_pay: parseFloat(formData.overtime_pay),
-              deductions:
-                parseFloat(formData.late_deduction) +
-                parseFloat(formData.absence_deduction) +
-                parseFloat(formData.loan_deduction),
-              tax: parseFloat(formData.tax_pph21),
-              bpjs_kesehatan: parseFloat(formData.bpjs_kesehatan_deduction),
-              bpjs_ketenagakerjaan: parseFloat(
-                formData.bpjs_ketenagakerjaan_deduction,
-              ),
-              net_salary: net,
-              status: "pending",
-            },
-          },
+          body: payrollData,
         },
       );
 
@@ -240,6 +256,7 @@ export default function PayrollSystem() {
   const handlePaymentStatus = async (id: string, status: string) => {
     try {
       // Call edge function for UPDATE operation to database
+      const { data: { session } } = await supabase.auth.getSession();
       const { data: responseData, error } = await supabase.functions.invoke(
         "supabase-functions-hrd-save-payroll",
         {
