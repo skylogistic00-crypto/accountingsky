@@ -2441,6 +2441,7 @@ export default function TransaksiKeuanganForm() {
         selectedCreditAccountName: selectedCreditAccountName,
         selectedKas: selectedKas,
         selectedBank: selectedBank,
+        selectedExpenseAccount: selectedExpenseAccount,
       });
 
       // Run Financial Engine
@@ -2949,6 +2950,42 @@ export default function TransaksiKeuanganForm() {
   /** Financial Engine - Determine Debit/Credit Accounts using filter-based mapping */
   const runFinancialEngine = async (normalizedInput: any) => {
     try {
+      // PRIORITY 1: Check if user manually selected expense account
+      if (normalizedInput.selectedExpenseAccount) {
+        console.log("✅ Manual expense account detected - bypassing AI/OCR mapping:", normalizedInput.selectedExpenseAccount);
+        
+        // Load the manually selected debit account
+        const manualDebitAccount = await supabase
+          .from("chart_of_accounts")
+          .select("*")
+          .eq("id", normalizedInput.selectedExpenseAccount.id)
+          .maybeSingle();
+        
+        if (manualDebitAccount.data) {
+          console.log("📊 Using manual debit account:", manualDebitAccount.data);
+          
+          // Still need to determine credit account (cash/bank)
+          const mappingRule = chooseMappingRule(normalizedInput);
+          console.log("🔍 Loading Credit COA with filter:", mappingRule.creditFilter);
+          let creditAccount = await loadCOAByFilter(mappingRule.creditFilter);
+          console.log("📊 Credit Account found:", creditAccount);
+          
+          return {
+            debit: manualDebitAccount.data.account_code,
+            credit: creditAccount?.account_code || "",
+            debitName: manualDebitAccount.data.account_name,
+            creditName: creditAccount?.account_name || "",
+            debitType: manualDebitAccount.data.account_type,
+            creditType: creditAccount?.account_type || "",
+            is_cash_related: mappingRule.extras.is_cash_related,
+            hpp_entry: null,
+          };
+        }
+      }
+      
+      // PRIORITY 2: Use AI/OCR mapping if no manual selection
+      console.log("🤖 No manual account selection - using AI/OCR mapping");
+      
       // Step 1: Choose mapping rule
       const mappingRule = chooseMappingRule(normalizedInput);
 
@@ -3104,6 +3141,7 @@ export default function TransaksiKeuanganForm() {
       selectedCreditAccountName: form.selectedCreditAccountName || "",
       selectedKas: form.selectedKas || "",
       selectedBank: form.selectedBank || "",
+      selectedExpenseAccount: form.selectedExpenseAccount || null,
     };
   };
 
@@ -3156,6 +3194,7 @@ export default function TransaksiKeuanganForm() {
         selectedAccountName: selectedAccountName,
         selectedCreditAccountType: selectedCreditAccountType,
         selectedCreditAccountName: selectedCreditAccountName,
+        selectedExpenseAccount: selectedExpenseAccount,
       });
 
       // Step 3: Run Financial Engine
@@ -3436,38 +3475,14 @@ export default function TransaksiKeuanganForm() {
           data: { user },
         } = await supabase.auth.getUser();
 
-        // Use manual expense account if selected by user, otherwise use journal line
-        let expenseAccountCode = "";
-        let expenseAccountName = "";
-        let expenseAccountId = null;
-
-        if (selectedExpenseAccount) {
-          // User manually selected expense account - bypass AI mapping
-          expenseAccountCode = selectedExpenseAccount.account_code;
-          expenseAccountName = selectedExpenseAccount.account_name;
-          expenseAccountId = selectedExpenseAccount.id;
-          console.log("✅ ROUTER: Using MANUAL expense account:", {
-            code: expenseAccountCode,
-            name: expenseAccountName,
-            id: expenseAccountId
-          });
-        } else {
-          // Use AI/automatic mapping from journal lines
-          const expenseLine = previewLines.find((l) => l.dc === "D");
-          expenseAccountCode = expenseLine?.account_code || "6-1100";
-          expenseAccountName = expenseLine?.account_name || "";
-          console.log("🤖 ROUTER: Using AI-mapped expense account:", {
-            code: expenseAccountCode,
-            name: expenseAccountName
-          });
-        }
-
+        const expenseLine = previewLines.find((l) => l.dc === "D");
         const cashLine = previewLines.find((l) => l.dc === "C");
 
         console.log("💰 ROUTER: Inserting to cash_disbursement...");
         console.log("👤 User ID:", user?.id);
         console.log("📅 Transaction Date:", previewTanggal);
         console.log("💵 Amount:", nominal);
+        console.log("🧾 Expense Line:", expenseLine);
         console.log("💰 Cash Line:", cashLine);
 
         const { data, error } = await supabase
@@ -3488,11 +3503,10 @@ export default function TransaksiKeuanganForm() {
                 : "Transfer Bank",
 
             // COA Mapping
-            coa_expense_code: expenseAccountCode,
+            coa_expense_code: expenseLine?.account_code || "6-1100",
             coa_cash_code: cashLine?.account_code || "1-1100",
-            account_code: expenseAccountCode,
-            account_name: expenseAccountName,
-            coa_id: expenseAccountId,
+            account_code: expenseLine?.account_code || null,
+            account_name: expenseLine?.account_name || null,
 
             // REQUIRED FIXES
             exchange_rate: 1, // wajib > 0
@@ -4064,8 +4078,19 @@ export default function TransaksiKeuanganForm() {
     }
 
     setIsConfirming(true);
+    console.log(`🚀 Starting batch checkout for ${selectedItems.length} items...`);
+    const startTime = Date.now();
+    
     try {
-      for (const item of selectedItems) {
+      for (let i = 0; i < selectedItems.length; i++) {
+        const item = selectedItems[i];
+        const itemStartTime = Date.now();
+        console.log(`\n📦 Processing item ${i + 1}/${selectedItems.length}:`, {
+          jenisTransaksi: item.jenisTransaksi,
+          nominal: item.nominal,
+          description: item.description
+        });
+        
         // Upload bukti file if exists (for all transaction types)
         let uploadedBuktiUrl = "";
         console.log("🔍 DEBUG Checkout - item.buktiFile:", item.buktiFile);
@@ -4117,6 +4142,7 @@ export default function TransaksiKeuanganForm() {
           selectedAccountName: item.selectedAccountName || "",
           selectedCreditAccountType: item.selectedCreditAccountType || "",
           selectedCreditAccountName: item.selectedCreditAccountName || "",
+          selectedExpenseAccount: item.selectedExpenseAccount || null,
         });
 
         // Step 2: Run Financial Engine
@@ -4255,37 +4281,13 @@ export default function TransaksiKeuanganForm() {
             data: { user },
           } = await supabase.auth.getUser();
 
-          // Use manual expense account if selected by user, otherwise use journal line
-          let expenseAccountCode = "";
-          let expenseAccountName = "";
-          let expenseAccountId = null;
-
-          if (item.selectedExpenseAccount) {
-            // User manually selected expense account - bypass AI mapping
-            expenseAccountCode = item.selectedExpenseAccount.account_code;
-            expenseAccountName = item.selectedExpenseAccount.account_name;
-            expenseAccountId = item.selectedExpenseAccount.id;
-            console.log("✅ Using MANUAL expense account:", {
-              code: expenseAccountCode,
-              name: expenseAccountName,
-              id: expenseAccountId
-            });
-          } else {
-            // Use AI/automatic mapping from journal lines
-            const expenseLine = journalData.lines.find((l) => l.dc === "D");
-            expenseAccountCode = expenseLine?.account_code || "6-1100";
-            expenseAccountName = expenseLine?.account_name || "";
-            console.log("🤖 Using AI-mapped expense account:", {
-              code: expenseAccountCode,
-              name: expenseAccountName
-            });
-          }
-
+          const expenseLine = journalData.lines.find((l) => l.dc === "D");
           const cashLine = journalData.lines.find((l) => l.dc === "C");
           
           console.log("👤 User ID:", user?.id);
           console.log("📅 Transaction Date:", journalData.tanggal);
           console.log("💵 Amount:", normalizedInput.nominal);
+          console.log("🧾 Expense Line:", expenseLine);
           console.log("💰 Cash Line:", cashLine);
 
           const { data: insertedData, error: cashDisbursementError } = await supabase
@@ -4306,11 +4308,10 @@ export default function TransaksiKeuanganForm() {
                   : item.paymentType === "cash"
                     ? "Tunai"
                     : "Transfer Bank",
-              coa_expense_code: expenseAccountCode,
+              coa_expense_code: expenseLine?.account_code || "6-1100",
               coa_cash_code: cashLine?.account_code || "1-1100",
-              account_code: expenseAccountCode,
-              account_name: expenseAccountName,
-              coa_id: expenseAccountId,
+              account_code: expenseLine?.account_code || "",
+              account_name: expenseLine?.account_name || "",
               notes: item.description,
               created_by: user?.id,
               approval_status: "waiting_approval",
@@ -4888,7 +4889,16 @@ export default function TransaksiKeuanganForm() {
             purchaseData_result,
           );
         }
+        
+        const itemEndTime = Date.now();
+        const itemDuration = ((itemEndTime - itemStartTime) / 1000).toFixed(2);
+        console.log(`✅ Item ${i + 1}/${selectedItems.length} completed in ${itemDuration}s\n`);
       }
+
+      const totalEndTime = Date.now();
+      const totalDuration = ((totalEndTime - startTime) / 1000).toFixed(2);
+      console.log(`\n🎉 Batch checkout completed! Total time: ${totalDuration}s for ${selectedItems.length} items`);
+      console.log(`⏱️ Average time per item: ${(parseFloat(totalDuration) / selectedItems.length).toFixed(2)}s`);
 
       // Refresh loan data if payment was made
       const hasLoanPayment = cart.some(
@@ -4949,7 +4959,12 @@ export default function TransaksiKeuanganForm() {
       });
 
       // Reload transactions to show new data
+      console.log("🔄 Reloading transactions...");
+      const reloadStartTime = Date.now();
       await loadTransactions();
+      const reloadEndTime = Date.now();
+      const reloadDuration = ((reloadEndTime - reloadStartTime) / 1000).toFixed(2);
+      console.log(`✅ Transactions reloaded in ${reloadDuration}s`);
     } catch (err: any) {
       console.error("Checkout Error:", err);
       toast({
@@ -8045,14 +8060,7 @@ export default function TransaksiKeuanganForm() {
               {/* AKUN BEBAN */}
               {visibleFields.showAkunBeban && (
                 <div className="space-y-2">
-                  <Label htmlFor="akun_beban">
-                    Akun Beban *
-                    {selectedExpenseAccount && (
-                      <span className="ml-2 text-xs text-green-600 font-semibold">
-                        ✓ Manual (Bypass AI)
-                      </span>
-                    )}
-                  </Label>
+                  <Label htmlFor="akun_beban">Akun Beban *</Label>
                   <Popover
                     open={akunBebanPopoverOpen}
                     onOpenChange={setAkunBebanPopoverOpen}
@@ -8061,7 +8069,7 @@ export default function TransaksiKeuanganForm() {
                       <Button
                         variant="outline"
                         role="combobox"
-                        className={`w-full justify-between ${selectedExpenseAccount ? 'border-green-500 bg-green-50' : ''}`}
+                        className="w-full justify-between"
                       >
                         {akunBeban || "-- pilih akun beban --"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -8113,20 +8121,6 @@ export default function TransaksiKeuanganForm() {
                       </div>
                     </PopoverContent>
                   </Popover>
-                  {selectedExpenseAccount && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setAkunBeban("");
-                        setSelectedExpenseAccount(null);
-                      }}
-                      className="text-xs text-red-600 hover:text-red-700"
-                    >
-                      ✕ Hapus Pilihan Manual (Gunakan AI)
-                    </Button>
-                  )}
                 </div>
               )}
 
