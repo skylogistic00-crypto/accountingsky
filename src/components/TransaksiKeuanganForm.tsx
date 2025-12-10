@@ -701,7 +701,8 @@ export default function TransaksiKeuanganForm() {
   // Pengeluaran Kas specific fields
   const [jenisPembayaranPengeluaran, setJenisPembayaranPengeluaran] =
     useState("Cash");
-  const [namaKaryawanPengeluaran, setNamaKaryawanPengeluaran] = useState("");
+  const [namaPengeluaran, setNamaPengeluaran] = useState("");
+  // const [namaKaryawanPengeluaran, setNamaKaryawanPengeluaran] = useState("");
 
   // COA accounts for kategori pengeluaran
   const [coaAccounts, setCoaAccounts] = useState<any[]>([]);
@@ -3669,11 +3670,7 @@ export default function TransaksiKeuanganForm() {
           .from("cash_disbursement")
           .insert({
             transaction_date: previewTanggal,
-            payee_name:
-              namaKaryawanPengeluaran ||
-              supplier ||
-              customer ||
-              "Pengeluaran Kas",
+            payee_name: namaPengeluaran || supplier || customer || null,
             description: previewMemo,
             category: kategori,
             amount: nominal,
@@ -3804,7 +3801,7 @@ export default function TransaksiKeuanganForm() {
             tanggal: previewTanggal,
             kategori,
             jenis_transaksi: jenisTransaksi,
-            payee_name: namaKaryawanPengeluaran || supplier || customer || "",
+            payee_name: namaPengeluaran || supplier || customer || "",
             payer_name: customer || supplier || "",
             handled_by_user_id: user?.id || null,
             sumber_penerimaan: jenisTransaksi.includes("Penerimaan")
@@ -3837,7 +3834,7 @@ export default function TransaksiKeuanganForm() {
             tanggal: previewTanggal,
             kategori,
             jenis_transaksi: jenisTransaksi,
-            payee_name: namaKaryawanPengeluaran || supplier || customer || "",
+            payee_name: namaPengeluaran || supplier || customer || "",
             payer_name: customer || supplier || "",
             handled_by_user_id: user?.id || null,
             sumber_penerimaan: jenisTransaksi.includes("Penerimaan")
@@ -3891,7 +3888,7 @@ export default function TransaksiKeuanganForm() {
             tanggal: previewTanggal,
             kategori,
             jenis_transaksi: jenisTransaksi,
-            payee_name: namaKaryawanPengeluaran || supplier || customer || "",
+            payee_name: namaPengeluaran || supplier || customer || "",
             payer_name: customer || supplier || "",
             handled_by_user_id: user?.id || null,
             attachment_url: uploadedFileUrl || null,
@@ -3918,7 +3915,7 @@ export default function TransaksiKeuanganForm() {
             tanggal: previewTanggal,
             kategori,
             jenis_transaksi: jenisTransaksi,
-            payee_name: namaKaryawanPengeluaran || supplier || customer || "",
+            payee_name: namaPengeluaran || supplier || customer || "",
             payer_name: customer || supplier || "",
             handled_by_user_id: user?.id || null,
             attachment_url: uploadedFileUrl || null,
@@ -4075,7 +4072,7 @@ export default function TransaksiKeuanganForm() {
     setSelectedKas("");
     setStockInfo(null);
     setJenisPembayaranPengeluaran("Cash");
-    setNamaKaryawanPengeluaran("");
+    setnamaPengeluaran("");
     setSearchEmployeePengeluaran("");
     setOpenEmployeePengeluaranCombobox(false);
     setSelectedAccountType("");
@@ -4140,7 +4137,7 @@ export default function TransaksiKeuanganForm() {
         });
         return;
       }
-      if (!namaKaryawanPengeluaran.trim()) {
+      if (!namaPengeluaran.trim()) {
         toast({
           title: "⚠️ Peringatan",
           description: "Masukkan nama karyawan terlebih dahulu",
@@ -4191,7 +4188,7 @@ export default function TransaksiKeuanganForm() {
       employeeName,
       // Pengeluaran Kas fields
       jenisPembayaranPengeluaran,
-      namaKaryawanPengeluaran,
+      namaPengeluaran,
       // Loan fields
       borrowerName: selectedBorrower,
       loanType,
@@ -4477,7 +4474,7 @@ export default function TransaksiKeuanganForm() {
               .insert({
                 transaction_date: journalData.tanggal,
                 payee_name:
-                  item.namaKaryawanPengeluaran ||
+                  item.namaPengeluaran ||
                   item.supplier ||
                   item.customer ||
                   "Pengeluaran Kas",
@@ -10705,7 +10702,7 @@ export default function TransaksiKeuanganForm() {
                           aria-expanded={openEmployeePengeluaranCombobox}
                           className="w-full justify-between"
                         >
-                          {namaKaryawanPengeluaran || "-- pilih karyawan --"}
+                          {namaPengeluaran || "-- pilih karyawan --"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -10733,13 +10730,13 @@ export default function TransaksiKeuanganForm() {
                                 key={emp.id}
                                 className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                                 onClick={() => {
-                                  setNamaKaryawanPengeluaran(emp.full_name);
+                                  namaPengeluaran(emp.full_name);
                                   setOpenEmployeePengeluaranCombobox(false);
                                   setSearchEmployeePengeluaran("");
                                 }}
                               >
                                 <span className="text-sm">{emp.full_name}</span>
-                                {namaKaryawanPengeluaran === emp.full_name && (
+                                {namaPengeluaran === emp.full_name && (
                                   <Check className="h-4 w-4 text-blue-600" />
                                 )}
                               </div>

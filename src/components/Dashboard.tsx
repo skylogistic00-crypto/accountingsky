@@ -25,7 +25,7 @@ import PurchaseRequestForm from "./PurchaseRequestForm";
 import SupplierForm from "./SupplierForm";
 import PermohonanDanaForm from "./PermohonanDanaForm";
 import { Button } from "./ui/button";
-import { canClick } from "@/utils/roleAccess";
+import { canClick,canEdit } from "@/utils/roleAccess";
 import {
   Table,
   TableBody,
@@ -578,7 +578,7 @@ export default function Dashboard() {
 
                 <div
                   onClick={() => {
-                    if (canClick(userRole)) {
+                    if (canEdit(userRole)) {
                       navigate("/transaksi-keuangan");
                     }
                   }}

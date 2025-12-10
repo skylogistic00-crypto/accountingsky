@@ -59,8 +59,8 @@ import { useNavigate } from "react-router-dom";
 function formatRoleName(role: string) {
   const map: Record<string, string> = {
     super_admin: "Super Admin",
-    warehouse_manager: "Warehouse Manager",
-    warehouse_staff: "Warehouse Staff",
+    operation_manager: "Operation Manager",
+    operation_staff: "Operation Staff",
     accounting_manager: "Accounting Manager",
     accounting_staff: "Accounting Staff",
     customs_specialist: "Customs Specialist",
@@ -68,6 +68,7 @@ function formatRoleName(role: string) {
     admin: "Admin",
     editor: "Editor",
     viewer: "Viewer",
+    supervisor: "Supervisor",
   };
 
   return (
@@ -160,12 +161,13 @@ export default function UserManagement() {
 
   const ROLE_MAP: Record<UserRole, number> = {
     super_admin: 1,
-    warehouse_manager: 2,
-    warehouse_staff: 6,
+    operation_manager: 2,
+    operation_staff: 6,
     customs_specialist: 4,
     accounting_manager: 5,
     accounting_staff: 3,
     read_only: 7,
+    supervisor: 15,
   };
 
   const updateUserRole = async (userId: string, newRole: UserRole) => {
@@ -261,10 +263,10 @@ export default function UserManagement() {
       case "super_admin":
         return "bg-blue-500 text-white"; // biru
 
-      case "warehouse_manager":
+      case "operation_manager":
         return "bg-amber-700 text-white"; // coklat
 
-      case "warehouse_staff":
+      case "operation_staff":
         return "bg-amber-200 text-amber-900"; // cream
 
       case "accounting_manager":
@@ -278,6 +280,9 @@ export default function UserManagement() {
 
       case "read_only":
         return "bg-gray-400 text-white"; // abu-abu
+
+      case "supervisor":
+        return "bg-slate-200 text-slate-900";
 
       default:
         return "bg-slate-200 text-slate-900"; // default soft
@@ -471,15 +476,16 @@ export default function UserManagement() {
                     <SelectItem value="accounting_staff">
                       Accounting Staff
                     </SelectItem>
-                    <SelectItem value="warehouse_manager">
-                      Warehouse Manager
+                    <SelectItem value="operation_manager">
+                      Operation Manager
                     </SelectItem>
-                    <SelectItem value="warehouse_staff">
-                      Warehouse Staff
+                    <SelectItem value="operation_staff">
+                      Operation Staff
                     </SelectItem>
                     <SelectItem value="customs_specialist">
                       Customs Specialist
                     </SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
                     <SelectItem value="read_only">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
@@ -564,11 +570,11 @@ export default function UserManagement() {
                               <SelectItem value="super_admin">
                                 Super Admin
                               </SelectItem>
-                              <SelectItem value="warehouse_manager">
-                                Warehouse Manager
+                              <SelectItem value="operation_manager">
+                                Operation Manager
                               </SelectItem>
-                              <SelectItem value="warehouse_staff">
-                                Warehouse Staff
+                              <SelectItem value="operation_staff">
+                                Operation Staff
                               </SelectItem>
                               <SelectItem value="accounting_manager">
                                 Accounting Manager
@@ -578,6 +584,9 @@ export default function UserManagement() {
                               </SelectItem>
                               <SelectItem value="customs_specialist">
                                 Customs Specialist
+                              </SelectItem>
+                              <SelectItem value="supervisor">
+                                Supervisor
                               </SelectItem>
                               <SelectItem value="read_only">
                                 Read Only

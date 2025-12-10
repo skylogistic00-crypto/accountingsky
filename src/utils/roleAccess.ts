@@ -209,6 +209,7 @@ export const CAN_EDIT_ROLES = [
   "super_admin",
   "warehouse_manager",
   "accounting_manager",
+  "accounting_staff",
 ];
 
 export const CAN_DELETE_ROLES = [

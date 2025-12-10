@@ -28,7 +28,7 @@ export default function Navigation() {
   const location = useLocation();
 
   const role = userProfile?.role || "guest";
-  
+
   console.log("Current user role:", role);
   console.log("User profile:", userProfile);
 
@@ -68,7 +68,7 @@ export default function Navigation() {
         "admin",
       ],
     },
-    
+
     // Master Data
     {
       path: "/users",
@@ -96,7 +96,14 @@ export default function Navigation() {
       label: "POS Kasir",
       icon: ShoppingCart,
       color: "emerald",
-      roles: ["super_admin", "admin", "cashier", "staff", "accounting_manager", "accounting_staff"],
+      roles: [
+        "super_admin",
+        "admin",
+        "cashier",
+        "staff",
+        "accounting_manager",
+        "accounting_staff",
+      ],
     },
     {
       path: "/warehouse-dashboard",
@@ -176,7 +183,7 @@ export default function Navigation() {
         "read_only",
       ],
     },
-    
+
     // Warehouse & Inventory
     {
       path: "/warehouses",
@@ -283,7 +290,13 @@ export default function Navigation() {
       label: "Uang Muka Karyawan",
       icon: DollarSign,
       color: "blue",
-      roles: ["super_admin", "admin", "finance", "accounting_manager", "accounting_staff"],
+      roles: [
+        "super_admin",
+        "admin",
+        "finance",
+        "accounting_manager",
+        "accounting_staff",
+      ],
     },
     {
       path: "/cash-disbursement",
@@ -304,7 +317,13 @@ export default function Navigation() {
       label: "Finance Transactions",
       icon: DollarSign,
       color: "emerald",
-      roles: ["super_admin", "accounting_manager", "accounting_staff", "finance_manager", "finance_staff"],
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
+        "finance_manager",
+        "finance_staff",
+      ],
     },
     {
       path: "/coa-management",
@@ -320,40 +339,28 @@ export default function Navigation() {
       color: "blue",
       roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
-    
+
     // Tax & Reports
     {
       path: "/tax-reports",
       label: "Laporan Pajak",
       icon: Receipt,
       color: "red",
-      roles: [
-        "super_admin",
-        "accounting_manager",
-        "accounting_staff",
-      ],
+      roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
       path: "/coretax-upload",
       label: "Upload Coretax",
       icon: Upload,
       color: "yellow",
-      roles: [
-        "super_admin",
-        "accounting_manager",
-        "accounting_staff",
-      ],
+      roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
       path: "/coretax-report",
       label: "Daftar Upload Coretax",
       icon: FileText,
       color: "orange",
-      roles: [
-        "super_admin",
-        "accounting_manager",
-        "accounting_staff",
-      ],
+      roles: ["super_admin", "accounting_manager", "accounting_staff"],
     },
     {
       path: "/report-barang-lama",
@@ -394,132 +401,159 @@ export default function Navigation() {
       const isActive = location.pathname === item.path;
 
       // Color variants for each button
-      const colorVariants: Record<string, { from: string; to: string; border: string; borderDark: string; shadow: string }> = {
+      const colorVariants: Record<
+        string,
+        {
+          from: string;
+          to: string;
+          border: string;
+          borderDark: string;
+          shadow: string;
+        }
+      > = {
         purple: {
           from: "from-purple-500",
           to: "to-purple-600",
           border: "border-purple-400",
           borderDark: "border-purple-700",
-          shadow: "shadow-[0_4px_12px_rgba(168,85,247,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(168,85,247,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         blue: {
           from: "from-blue-500",
           to: "to-blue-600",
           border: "border-blue-400",
           borderDark: "border-blue-700",
-          shadow: "shadow-[0_4px_12px_rgba(59,130,246,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(59,130,246,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         green: {
           from: "from-green-500",
           to: "to-green-600",
           border: "border-green-400",
           borderDark: "border-green-700",
-          shadow: "shadow-[0_4px_12px_rgba(34,197,94,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(34,197,94,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         cyan: {
           from: "from-cyan-500",
           to: "to-cyan-600",
           border: "border-cyan-400",
           borderDark: "border-cyan-700",
-          shadow: "shadow-[0_4px_12px_rgba(6,182,212,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(6,182,212,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         orange: {
           from: "from-orange-500",
           to: "to-orange-600",
           border: "border-orange-400",
           borderDark: "border-orange-700",
-          shadow: "shadow-[0_4px_12px_rgba(249,115,22,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(249,115,22,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         teal: {
           from: "from-teal-500",
           to: "to-teal-600",
           border: "border-teal-400",
           borderDark: "border-teal-700",
-          shadow: "shadow-[0_4px_12px_rgba(20,184,166,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(20,184,166,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         indigo: {
           from: "from-indigo-500",
           to: "to-indigo-600",
           border: "border-indigo-400",
           borderDark: "border-indigo-700",
-          shadow: "shadow-[0_4px_12px_rgba(99,102,241,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(99,102,241,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         amber: {
           from: "from-amber-500",
           to: "to-amber-600",
           border: "border-amber-400",
           borderDark: "border-amber-700",
-          shadow: "shadow-[0_4px_12px_rgba(245,158,11,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(245,158,11,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         emerald: {
           from: "from-emerald-500",
           to: "to-emerald-600",
           border: "border-emerald-400",
           borderDark: "border-emerald-700",
-          shadow: "shadow-[0_4px_12px_rgba(16,185,129,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(16,185,129,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         lime: {
           from: "from-lime-500",
           to: "to-lime-600",
           border: "border-lime-400",
           borderDark: "border-lime-700",
-          shadow: "shadow-[0_4px_12px_rgba(132,204,22,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(132,204,22,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         rose: {
           from: "from-rose-500",
           to: "to-rose-600",
           border: "border-rose-400",
           borderDark: "border-rose-700",
-          shadow: "shadow-[0_4px_12px_rgba(244,63,94,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(244,63,94,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         pink: {
           from: "from-pink-500",
           to: "to-pink-600",
           border: "border-pink-400",
           borderDark: "border-pink-700",
-          shadow: "shadow-[0_4px_12px_rgba(236,72,153,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(236,72,153,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         sky: {
           from: "from-sky-500",
           to: "to-sky-600",
           border: "border-sky-400",
           borderDark: "border-sky-700",
-          shadow: "shadow-[0_4px_12px_rgba(14,165,233,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(14,165,233,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         violet: {
           from: "from-violet-500",
           to: "to-violet-600",
           border: "border-violet-400",
           borderDark: "border-violet-700",
-          shadow: "shadow-[0_4px_12px_rgba(139,92,246,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(139,92,246,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         fuchsia: {
           from: "from-fuchsia-500",
           to: "to-fuchsia-600",
           border: "border-fuchsia-400",
           borderDark: "border-fuchsia-700",
-          shadow: "shadow-[0_4px_12px_rgba(217,70,239,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(217,70,239,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         red: {
           from: "from-red-500",
           to: "to-red-600",
           border: "border-red-400",
           borderDark: "border-red-700",
-          shadow: "shadow-[0_4px_12px_rgba(239,68,68,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(239,68,68,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         yellow: {
           from: "from-yellow-500",
           to: "to-yellow-600",
           border: "border-yellow-400",
           borderDark: "border-yellow-700",
-          shadow: "shadow-[0_4px_12px_rgba(234,179,8,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(234,179,8,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
         slate: {
           from: "from-slate-500",
           to: "to-slate-600",
           border: "border-slate-400",
           borderDark: "border-slate-700",
-          shadow: "shadow-[0_4px_12px_rgba(100,116,139,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
+          shadow:
+            "shadow-[0_4px_12px_rgba(100,116,139,0.3),0_2px_4px_rgba(0,0,0,0.1)]",
         },
       };
 
@@ -556,7 +590,7 @@ export default function Navigation() {
         >
           {/* Inner highlight for emboss effect */}
           <span className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-lg" />
-          
+
           <Icon className="w-4 h-4 relative z-10" />
           <span className="relative z-10">{item.label}</span>
         </Link>
