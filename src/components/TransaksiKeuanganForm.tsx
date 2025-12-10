@@ -8517,9 +8517,15 @@ export default function TransaksiKeuanganForm() {
                       <Input
                         placeholder="Cari nama pengeluaran..."
                         value={namaPengeluaranSearch}
-                        onChange={(e) =>
-                          setNamaPengeluaranSearch(e.target.value)
-                        }
+                        onChange={(e) => {
+                          setNamaPengeluaranSearch(e.target.value);
+                          setNamaPengeluaran(e.target.value);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            setNamaPengeluaranPopoverOpen(false);
+                          }
+                        }}
                         className="mb-2"
                       />
                       <div className="max-h-64 overflow-auto">
@@ -8546,6 +8552,12 @@ export default function TransaksiKeuanganForm() {
                               )}
                             </div>
                           ))}
+                        {namaPengeluaranSearch && 
+                          !users.some(u => u.full_name?.toLowerCase() === namaPengeluaranSearch.toLowerCase()) && (
+                          <div className="p-2 text-sm text-gray-500 italic">
+                            Tekan Enter untuk menggunakan "{namaPengeluaranSearch}" sebagai input manual
+                          </div>
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>
