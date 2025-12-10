@@ -113,8 +113,10 @@ export default function ServiceItemsForm() {
     try {
       const { data, error } = await supabase
         .from("chart_of_accounts")
-        .select("account_code, account_name")
+        .select("account_code, account_name, description, account_type")
         .in("account_type", ["Revenue", "Expense"])
+        .eq("is_active", true)
+        .eq("is_header", false)
         .order("account_code");
 
       if (error) throw error;
@@ -259,11 +261,16 @@ export default function ServiceItemsForm() {
   };
 
   const filteredItems = serviceItems.filter((item) => {
+    const itemName = item.item_name || "";
+    const description = item.description || "";
+
     const matchesSearch =
-      item.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      description.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesCategory =
       filterCategory === "all" || item.category === filterCategory;
+
     return matchesSearch && matchesCategory;
   });
 

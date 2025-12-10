@@ -45,6 +45,8 @@ interface User {
 interface COAAccount {
   account_code: string;
   account_name: string;
+  description?: string;
+  account_type?: string;
 }
 
 export default function InternalUsageForm() {
@@ -157,12 +159,12 @@ export default function InternalUsageForm() {
   const fetchCOAAccounts = async () => {
     const { data, error } = await supabase
       .from("chart_of_accounts")
-      .select("account_code, account_name")
+      .select("account_code, account_name, description, account_type")
       .eq("account_type", "Expense")
       .eq("is_active", true)
       .eq("is_header", false)
       .order("account_code");
-    
+
     if (error) {
       toast({
         title: "Error",

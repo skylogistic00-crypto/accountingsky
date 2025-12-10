@@ -500,13 +500,26 @@ export default function TransaksiKeuanganForm() {
   const [bankAsal, setBankAsal] = useState("");
   const [bankTujuan, setBankTujuan] = useState("");
   const [akunPendapatan, setAkunPendapatan] = useState("");
+  const [selectedRevenueAccount, setSelectedRevenueAccount] = useState<{
+    id: string;
+    account_code: string;
+    account_name: string;
+    description?: string;
+  } | null>(null);
   const [akunBeban, setAkunBeban] = useState("");
   const [selectedExpenseAccount, setSelectedExpenseAccount] = useState<{
     id: string;
     account_code: string;
     account_name: string;
+    description?: string;
   } | null>(null);
   const [akunModal, setAkunModal] = useState("");
+  const [selectedModalAccount, setSelectedModalAccount] = useState<{
+    id: string;
+    account_code: string;
+    account_name: string;
+    description?: string;
+  } | null>(null);
   const [namaPemilik, setNamaPemilik] = useState("");
   const [namaPenyumbang, setNamaPenyumbang] = useState("");
   const [sumberPenerimaan, setSumberPenerimaan] = useState("");
@@ -1059,7 +1072,7 @@ export default function TransaksiKeuanganForm() {
         const base64 = result.split(",")[1];
         resolve(base64);
       };
-      reader.onerror = (error) => reject(error);
+      reader.onerror = (err) => reject(err);
     });
   };
 
@@ -1069,6 +1082,8 @@ export default function TransaksiKeuanganForm() {
       const { data, error: supabaseError } = await supabase
         .from("chart_of_accounts")
         .select("account_type, account_name, level")
+        .eq("is_active", true)
+        .eq("is_header", false)
         .order("account_name", { ascending: true });
 
       if (supabaseError) {
@@ -1849,7 +1864,6 @@ export default function TransaksiKeuanganForm() {
   const loadTransactions = async () => {
     try {
       setLoadingTransactions(true);
-      console.log("🔄 Loading transactions from all tables...");
 
       // Load from kas_transaksi (approved, waiting approval, and rejected)
       const { data: kasData, error: kasError } = await supabase
@@ -2426,6 +2440,16 @@ export default function TransaksiKeuanganForm() {
       });
 
       // Normalize Input
+      console.log("🔍 Preview - selectedBank:", selectedBank);
+      console.log("🔍 Preview - selectedKas:", selectedKas);
+      console.log(
+        "🔍 Preview - selectedExpenseAccount:",
+        selectedExpenseAccount,
+      );
+      console.log("🔍 Preview - akunBeban:", akunBeban);
+      console.log("🔍 Preview - jenisTransaksi:", jenisTransaksi);
+      console.log("🔍 Preview - paymentType:", paymentType);
+
       const normalizedInput = normalizeInput({
         jenisTransaksi,
         paymentType,
@@ -2442,7 +2466,15 @@ export default function TransaksiKeuanganForm() {
         selectedKas: selectedKas,
         selectedBank: selectedBank,
         selectedExpenseAccount: selectedExpenseAccount,
+        selectedRevenueAccount: selectedRevenueAccount,
+        selectedModalAccount: selectedModalAccount,
       });
+
+      console.log("🔍 Normalized Input:", normalizedInput);
+      console.log(
+        "🔍 Normalized selectedExpenseAccount:",
+        normalizedInput.selectedExpenseAccount,
+      );
 
       // Run Financial Engine
       const result = await runFinancialEngine(normalizedInput);
@@ -2499,50 +2531,33 @@ export default function TransaksiKeuanganForm() {
 
     switch (jenis) {
       case "Penjualan":
-      case "Penjualan":
-        // Penjualan Tunai: Debit Kas/Bank, Kredit Pendapatan
-        // Penjualan Kredit: Debit Piutang, Kredit Pendapatan
+        // Debit Kas / Bank / Piutang
         if (payment === "Cash") {
-          const kasCode =
-            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
-          debitFilter = { account_code: kasCode };
+          debitFilter = {
+            account_code: normalizedInput.selectedKas?.split(" — ")[0],
+          };
         } else if (payment === "Transfer Bank") {
-          const bankCode =
-            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
-          debitFilter = { account_code: bankCode };
-        } else if (payment === "Kredit") {
-          debitFilter = { usage_role: "piutang" };
+          debitFilter = {
+            account_code: normalizedInput.selectedBank?.split(" — ")[0],
+          };
         } else {
-          debitFilter = { flow_type: "cash" };
+          debitFilter = { usage_role: "piutang" };
         }
+
+        // Kredit Pendapatan
         creditFilter = { usage_role: "pendapatan_jasa" };
+
+        // HPP hanya jika jual stok
+        extras.needs_hpp = normalizedInput.hasStockItem === true;
+        extras.hppFilter = { usage_role: "hpp" };
+
+        // Transaksi penjualan tetap dianggap cash-related jika pakai kas/bank
         extras.is_cash_related =
           payment === "Cash" || payment === "Transfer Bank";
         break;
 
-      case "Penjualan":
-        // Penjualan Tunai: Debit Kas/Bank, Kredit Pendapatan
-        // Penjualan Kredit: Debit Piutang, Kredit Pendapatan
-        // + HPP: Debit HPP, Kredit Persediaan
-        if (payment === "Cash") {
-          const kasCode =
-            normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
-          debitFilter = { account_code: kasCode };
-        } else if (payment === "Transfer Bank") {
-          const bankCode =
-            normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
-          debitFilter = { account_code: bankCode };
-        } else if (payment === "Kredit") {
-          debitFilter = { usage_role: "piutang" };
-        } else {
-          debitFilter = { flow_type: "cash" };
-        }
-        creditFilter = { usage_role: "pendapatan_barang" };
-        extras.is_cash_related =
-          payment === "Cash" || payment === "Transfer Bank";
-        extras.needs_hpp = true;
-        extras.hppFilter = { usage_role: "hpp" };
-        break;
+      // Pastikan semua transaksi lain override needs_hpp ke false
+      // (blok lama di bawah ini dihapus karena menyebabkan syntax error)
 
       case "Pembelian":
       case "Pembelian Barang":
@@ -2615,12 +2630,15 @@ export default function TransaksiKeuanganForm() {
 
       case "Pengeluaran":
         // Pengeluaran: Debit Beban, Kredit Kas/Bank
-        if (accountName) {
-          debitFilter = { account_name: accountName };
-        } else if (kategori === "Beban Kendaraan") {
-          debitFilter = { usage_role: "beban_kendaraan" };
-        } else {
-          debitFilter = { account_type: "Beban" };
+        // SKIP debitFilter if manual account is selected (will be handled in runFinancialEngine)
+        if (!normalizedInput.selectedExpenseAccount) {
+          if (accountName) {
+            debitFilter = { account_name: accountName };
+          } else if (kategori === "Beban Kendaraan") {
+            debitFilter = { usage_role: "beban_kendaraan" };
+          } else {
+            debitFilter = { account_type: "Beban" };
+          }
         }
         if (payment === "Cash") {
           const kasCode =
@@ -2836,7 +2854,7 @@ export default function TransaksiKeuanganForm() {
       try {
         const { error: supabaseError } = await supabase
           .from("chart_of_accounts")
-          .upsert(toUpsert, { onConflict: "account_code" });
+          .upsert(toUpsert);
 
         if (supabaseError) {
           console.error("Error upserting placeholder COA:", supabaseError);
@@ -2930,6 +2948,10 @@ export default function TransaksiKeuanganForm() {
       } else if (key === "account_type") {
         // Use ilike for account_type to handle case variations
         query = query.ilike(key, `%${filter[key]}%`);
+      } else if (key === "account_code") {
+        // Use ilike for account_code to handle variations (spaces, case)
+        console.log("🔍 Searching account_code with ilike:", filter[key]);
+        query = query.ilike(key, `%${filter[key]}%`);
       } else {
         query = query.eq(key, filter[key]);
       }
@@ -2952,24 +2974,33 @@ export default function TransaksiKeuanganForm() {
     try {
       // PRIORITY 1: Check if user manually selected expense account
       if (normalizedInput.selectedExpenseAccount) {
-        console.log("✅ Manual expense account detected - bypassing AI/OCR mapping:", normalizedInput.selectedExpenseAccount);
-        
+        console.log(
+          "✅ Manual expense account detected - bypassing AI/OCR mapping:",
+          normalizedInput.selectedExpenseAccount,
+        );
+
         // Load the manually selected debit account
         const manualDebitAccount = await supabase
           .from("chart_of_accounts")
           .select("*")
           .eq("id", normalizedInput.selectedExpenseAccount.id)
           .maybeSingle();
-        
+
         if (manualDebitAccount.data) {
-          console.log("📊 Using manual debit account:", manualDebitAccount.data);
-          
+          console.log(
+            "📊 Using manual debit account:",
+            manualDebitAccount.data,
+          );
+
           // Still need to determine credit account (cash/bank)
           const mappingRule = chooseMappingRule(normalizedInput);
-          console.log("🔍 Loading Credit COA with filter:", mappingRule.creditFilter);
+          console.log(
+            "🔍 Loading Credit COA with filter:",
+            mappingRule.creditFilter,
+          );
           let creditAccount = await loadCOAByFilter(mappingRule.creditFilter);
           console.log("📊 Credit Account found:", creditAccount);
-          
+
           return {
             debit: manualDebitAccount.data.account_code,
             credit: creditAccount?.account_code || "",
@@ -2982,10 +3013,94 @@ export default function TransaksiKeuanganForm() {
           };
         }
       }
-      
-      // PRIORITY 2: Use AI/OCR mapping if no manual selection
+
+      // PRIORITY 2: Check if user manually selected revenue account
+      if (normalizedInput.selectedRevenueAccount) {
+        console.log(
+          "✅ Manual revenue account detected - bypassing AI/OCR mapping:",
+          normalizedInput.selectedRevenueAccount,
+        );
+
+        // Load the manually selected credit account (revenue)
+        const manualCreditAccount = await supabase
+          .from("chart_of_accounts")
+          .select("*")
+          .eq("id", normalizedInput.selectedRevenueAccount.id)
+          .maybeSingle();
+
+        if (manualCreditAccount.data) {
+          console.log(
+            "📊 Using manual credit account:",
+            manualCreditAccount.data,
+          );
+
+          // Still need to determine debit account (cash/bank)
+          const mappingRule = chooseMappingRule(normalizedInput);
+          console.log(
+            "🔍 Loading Debit COA with filter:",
+            mappingRule.debitFilter,
+          );
+          let debitAccount = await loadCOAByFilter(mappingRule.debitFilter);
+          console.log("📊 Debit Account found:", debitAccount);
+
+          return {
+            debit: debitAccount?.account_code || "",
+            credit: manualCreditAccount.data.account_code,
+            debitName: debitAccount?.account_name || "",
+            creditName: manualCreditAccount.data.account_name,
+            debitType: debitAccount?.account_type || "",
+            creditType: manualCreditAccount.data.account_type,
+            is_cash_related: mappingRule.extras.is_cash_related,
+            hpp_entry: null,
+          };
+        }
+      }
+
+      // PRIORITY 3: Check if user manually selected modal account
+      if (normalizedInput.selectedModalAccount) {
+        console.log(
+          "✅ Manual modal account detected - bypassing AI/OCR mapping:",
+          normalizedInput.selectedModalAccount,
+        );
+
+        // Load the manually selected credit account (modal/equity)
+        const manualCreditAccount = await supabase
+          .from("chart_of_accounts")
+          .select("*")
+          .eq("id", normalizedInput.selectedModalAccount.id)
+          .maybeSingle();
+
+        if (manualCreditAccount.data) {
+          console.log(
+            "📊 Using manual credit account:",
+            manualCreditAccount.data,
+          );
+
+          // Still need to determine debit account (cash/bank)
+          const mappingRule = chooseMappingRule(normalizedInput);
+          console.log(
+            "🔍 Loading Debit COA with filter:",
+            mappingRule.debitFilter,
+          );
+          let debitAccount = await loadCOAByFilter(mappingRule.debitFilter);
+          console.log("📊 Debit Account found:", debitAccount);
+
+          return {
+            debit: debitAccount?.account_code || "",
+            credit: manualCreditAccount.data.account_code,
+            debitName: debitAccount?.account_name || "",
+            creditName: manualCreditAccount.data.account_name,
+            debitType: debitAccount?.account_type || "",
+            creditType: manualCreditAccount.data.account_type,
+            is_cash_related: mappingRule.extras.is_cash_related,
+            hpp_entry: null,
+          };
+        }
+      }
+
+      // PRIORITY 4: Use AI/OCR mapping if no manual selection
       console.log("🤖 No manual account selection - using AI/OCR mapping");
-      
+
       // Step 1: Choose mapping rule
       const mappingRule = chooseMappingRule(normalizedInput);
 
@@ -3034,11 +3149,14 @@ export default function TransaksiKeuanganForm() {
       console.log("📊 Final Debit Account:", debitAccount);
       console.log("📊 Final Credit Account:", creditAccount);
 
-      // Step 5: Load HPP COA if needed
+      // Step 5: Load HPP COA if needed (hanya untuk Penjualan stok)
       let hppEntry = null;
-      if (mappingRule.extras.needs_hpp) {
+      if (
+        normalizedInput.jenisTransaksi === "Penjualan" &&
+        mappingRule.extras.needs_hpp
+      ) {
         const hppDebitAccount = await loadCOAByFilter(
-          mappingRule.extras.hppFilter,
+          mappingRule.exras.hppFilter,
         );
         const hppCreditAccount = await loadCOAByFilter({
           usage_role: "inventory",
@@ -3142,6 +3260,8 @@ export default function TransaksiKeuanganForm() {
       selectedKas: form.selectedKas || "",
       selectedBank: form.selectedBank || "",
       selectedExpenseAccount: form.selectedExpenseAccount || null,
+      selectedRevenueAccount: form.selectedRevenueAccount || null,
+      selectedModalAccount: form.selectedModalAccount || null,
     };
   };
 
@@ -3195,6 +3315,8 @@ export default function TransaksiKeuanganForm() {
         selectedCreditAccountType: selectedCreditAccountType,
         selectedCreditAccountName: selectedCreditAccountName,
         selectedExpenseAccount: selectedExpenseAccount,
+        selectedRevenueAccount: selectedRevenueAccount,
+        selectedModalAccount: selectedModalAccount,
       });
 
       // Step 3: Run Financial Engine
@@ -3225,6 +3347,39 @@ export default function TransaksiKeuanganForm() {
       setPreviewTanggal(journalData.tanggal);
       setPreviewIsCashRelated(result.is_cash_related);
       setPreviewOpen(true);
+
+      // Step 6: Trigger payment-processor for cash-related transactions
+      if (jenisTransaksi === "Penerimaan" || jenisTransaksi === "Pengeluaran") {
+        const paymentPayload = {
+          invoice_id: null,
+          booking_id: null,
+          amount: Number(nominal),
+          payment_method_id: selectedPaymentMethod?.id || null,
+          debit_account_id: selectedExpenseAccount?.id || null,
+          debit_account_code: selectedExpenseAccount?.account_code || null,
+          debit_account_name: selectedExpenseAccount?.account_name || null,
+          notes,
+        };
+
+        console.log("Payment processor payload:", paymentPayload);
+
+        try {
+          const res = await fetch("/functions/v1/payment-processor", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(paymentPayload),
+          });
+
+          if (!res.ok) {
+            console.error("payment-processor error:", await res.text());
+          } else {
+            const data = await res.json();
+            console.log("payment-processor success:", data);
+          }
+        } catch (paymentError) {
+          console.error("payment-processor fetch failed:", paymentError);
+        }
+      }
     } catch (err: any) {
       toast({
         title: "❌ Error",
@@ -3259,6 +3414,33 @@ export default function TransaksiKeuanganForm() {
 
     const mainDebitLine = previewLines.find((l) => l.dc === "D");
     const mainCreditLine = previewLines.find((l) => l.dc === "C");
+
+    if (transactionType === "Penerimaan" || transactionType === "Pengeluaran") {
+      const payload = {
+        invoice_id: null,
+        booking_id: null,
+        transaction_type: transactionType,
+        amount: amount,
+        notes: notes,
+
+        payment_method_id: selectedPaymentMethod?.id,
+        payment_method_name: selectedPaymentMethod?.method_name,
+
+        debit_account_id: selectedExpenseAccount?.id,
+        debit_account_code: selectedExpenseAccount?.account_code,
+        debit_account_name: selectedExpenseAccount?.account_name,
+      };
+
+      console.log("PAYLOAD → PAYMENT PROCESSOR", payload);
+
+      await fetch(`${supabaseUrl}/functions/v1/payment-processor`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      return; // pastikan tidak lanjut ke jalur transaksi lain
+    }
 
     switch (jenisTransaksi) {
       case "Penjualan": {
@@ -3422,31 +3604,29 @@ export default function TransaksiKeuanganForm() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        const { error } = await supabase
-          .from("cash_and_bank_receipts")
-          .insert({
-            transaction_date: previewTanggal,
-            transaction_type: "Penerimaan",
-            category: kategori || sumberPenerimaan,
-            source_destination:
-              sumberPenerimaan || customer || supplier || "Penerimaan Kas",
-            amount: nominal,
-            payment_method: paymentType === "cash" ? "Tunai" : "Bank",
-            coa_cash_code: mainDebitLine?.account_code || "1-1100",
-            coa_contra_code: mainCreditLine?.account_code || "4-1100",
-            account_code: mainDebitLine?.account_code || "",
-            account_name: mainDebitLine?.account_name || "",
-            account_type_credit: selectedCreditAccountType || "",
-            account_name_credit: selectedCreditAccountName || "",
-            description: previewMemo,
-            reference_number: `PKM-${Date.now()}`,
-            journal_ref: journalRef,
-            approval_status: "approved",
-            bukti: uploadedBuktiUrl || null,
-            ocr_data: ocrDataPayload,
-            ocr_id: ocrAppliedData?.ocrId || null,
-            created_by: user?.id || null,
-          });
+        const { error } = await supabase.from("cash_and_bank_receipts").insert({
+          transaction_date: previewTanggal,
+          transaction_type: "Penerimaan",
+          category: kategori || sumberPenerimaan,
+          source_destination:
+            sumberPenerimaan || customer || supplier || "Penerimaan Kas",
+          amount: nominal,
+          payment_method: paymentType === "cash" ? "Tunai" : "Bank",
+          coa_cash_code: mainDebitLine?.account_code || "1-1100",
+          coa_contra_code: mainCreditLine?.account_code || "4-1100",
+          account_code: mainDebitLine?.account_code || "",
+          account_name: mainDebitLine?.account_name || "",
+          account_type_credit: selectedCreditAccountType || "",
+          account_name_credit: selectedCreditAccountName || "",
+          description: previewMemo,
+          reference_number: `PKM-${Date.now()}`,
+          journal_ref: journalRef,
+          approval_status: "approved",
+          bukti: uploadedBuktiUrl || null,
+          ocr_data: ocrDataPayload,
+          ocr_id: ocrAppliedData?.ocrId || null,
+          created_by: user?.id || null,
+        });
 
         if (error) throw new Error(`Cash Receipt: ${error.message}`);
         console.log("ROUTER: Cash receipt saved");
@@ -3498,9 +3678,7 @@ export default function TransaksiKeuanganForm() {
             category: kategori,
             amount: nominal,
             payment_method:
-              jenisPembayaranPengeluaran === "Cash"
-                ? "Tunai"
-                : "Transfer Bank",
+              jenisPembayaranPengeluaran === "Cash" ? "Tunai" : "Transfer Bank",
 
             // COA Mapping
             coa_expense_code: expenseLine?.account_code || "6-1100",
@@ -3529,10 +3707,7 @@ export default function TransaksiKeuanganForm() {
           throw new Error(`Cash Disbursement: ${error.message}`);
         }
 
-        console.log(
-          "✅ ROUTER: Cash disbursement saved successfully:",
-          data,
-        );
+        console.log("✅ ROUTER: Cash disbursement saved successfully:", data);
         break;
       }
 
@@ -4036,8 +4211,10 @@ export default function TransaksiKeuanganForm() {
       taxType,
       // Bukti file
       buktiFile: buktiFile, // Store the file object in cart
-      // Manual expense account selection
+      // Manual account selections
       selectedExpenseAccount: selectedExpenseAccount,
+      selectedRevenueAccount: selectedRevenueAccount,
+      selectedModalAccount: selectedModalAccount,
       // Checkbox selection
       selected: true,
     };
@@ -4078,9 +4255,11 @@ export default function TransaksiKeuanganForm() {
     }
 
     setIsConfirming(true);
-    console.log(`🚀 Starting batch checkout for ${selectedItems.length} items...`);
+    console.log(
+      `🚀 Starting batch checkout for ${selectedItems.length} items...`,
+    );
     const startTime = Date.now();
-    
+
     try {
       for (let i = 0; i < selectedItems.length; i++) {
         const item = selectedItems[i];
@@ -4088,9 +4267,9 @@ export default function TransaksiKeuanganForm() {
         console.log(`\n📦 Processing item ${i + 1}/${selectedItems.length}:`, {
           jenisTransaksi: item.jenisTransaksi,
           nominal: item.nominal,
-          description: item.description
+          description: item.description,
         });
-        
+
         // Upload bukti file if exists (for all transaction types)
         let uploadedBuktiUrl = "";
         console.log("🔍 DEBUG Checkout - item.buktiFile:", item.buktiFile);
@@ -4143,6 +4322,8 @@ export default function TransaksiKeuanganForm() {
           selectedCreditAccountType: item.selectedCreditAccountType || "",
           selectedCreditAccountName: item.selectedCreditAccountName || "",
           selectedExpenseAccount: item.selectedExpenseAccount || null,
+          selectedRevenueAccount: item.selectedRevenueAccount || null,
+          selectedModalAccount: item.selectedModalAccount || null,
         });
 
         // Step 2: Run Financial Engine
@@ -4262,69 +4443,70 @@ export default function TransaksiKeuanganForm() {
 
         // Step 6b: If Pengeluaran Kas, save to cash_disbursement table
         // Support multiple variations: "Pengeluaran", "Pengeluaran Kas", etc.
-        const isPengeluaran = 
+        const isPengeluaran =
           item.jenisTransaksi === "Pengeluaran Kas" ||
           item.jenisTransaksi === "Pengeluaran" ||
           item.jenisTransaksi?.toLowerCase().includes("pengeluaran") ||
           item.jenisTransaksi?.toLowerCase().includes("expense") ||
           item.jenisTransaksi?.toLowerCase().includes("beban");
-        
+
         console.log("🔍 DEBUG: Checking Pengeluaran condition:", {
           jenisTransaksi: item.jenisTransaksi,
-          isPengeluaran: isPengeluaran
+          isPengeluaran: isPengeluaran,
         });
-        
+
         if (isPengeluaran) {
           console.log("💰 BATCH CHECKOUT: Inserting to cash_disbursement...");
-          
+
           const {
             data: { user },
           } = await supabase.auth.getUser();
 
           const expenseLine = journalData.lines.find((l) => l.dc === "D");
           const cashLine = journalData.lines.find((l) => l.dc === "C");
-          
+
           console.log("👤 User ID:", user?.id);
           console.log("📅 Transaction Date:", journalData.tanggal);
           console.log("💵 Amount:", normalizedInput.nominal);
           console.log("🧾 Expense Line:", expenseLine);
           console.log("💰 Cash Line:", cashLine);
 
-          const { data: insertedData, error: cashDisbursementError } = await supabase
-            .from("cash_disbursement")
-            .insert({
-              transaction_date: journalData.tanggal,
-              payee_name:
-                item.namaKaryawanPengeluaran ||
-                item.supplier ||
-                item.customer ||
-                "Pengeluaran Kas",
-              description: journalData.memo,
-              category: item.kategori,
-              amount: normalizedInput.nominal,
-              payment_method:
-                item.jenisPembayaranPengeluaran === "Cash"
-                  ? "Tunai"
-                  : item.paymentType === "cash"
+          const { data: insertedData, error: cashDisbursementError } =
+            await supabase
+              .from("cash_disbursement")
+              .insert({
+                transaction_date: journalData.tanggal,
+                payee_name:
+                  item.namaKaryawanPengeluaran ||
+                  item.supplier ||
+                  item.customer ||
+                  "Pengeluaran Kas",
+                description: journalData.memo,
+                category: item.kategori,
+                amount: normalizedInput.nominal,
+                payment_method:
+                  item.jenisPembayaranPengeluaran === "Cash"
                     ? "Tunai"
-                    : "Transfer Bank",
-              coa_expense_code: expenseLine?.account_code || "6-1100",
-              coa_cash_code: cashLine?.account_code || "1-1100",
-              account_code: expenseLine?.account_code || "",
-              account_name: expenseLine?.account_name || "",
-              notes: item.description,
-              created_by: user?.id,
-              approval_status: "waiting_approval",
-              bukti: uploadedBuktiUrl || null,
-              ocr_data: ocrAppliedData
-                ? {
-                    extractedText: ocrAppliedData.extractedText,
-                    items: ocrAppliedData.items,
-                    appliedFields: ocrAppliedData.appliedFields,
-                  }
-                : null,
-            })
-            .select();
+                    : item.paymentType === "cash"
+                      ? "Tunai"
+                      : "Transfer Bank",
+                coa_expense_code: expenseLine?.account_code || "6-1100",
+                coa_cash_code: cashLine?.account_code || "1-1100",
+                account_code: expenseLine?.account_code || "",
+                account_name: expenseLine?.account_name || "",
+                notes: item.description,
+                created_by: user?.id,
+                approval_status: "waiting_approval",
+                bukti: uploadedBuktiUrl || null,
+                ocr_data: ocrAppliedData
+                  ? {
+                      extractedText: ocrAppliedData.extractedText,
+                      items: ocrAppliedData.items,
+                      appliedFields: ocrAppliedData.appliedFields,
+                    }
+                  : null,
+              })
+              .select();
 
           if (cashDisbursementError) {
             console.error(
@@ -4889,16 +5071,22 @@ export default function TransaksiKeuanganForm() {
             purchaseData_result,
           );
         }
-        
+
         const itemEndTime = Date.now();
         const itemDuration = ((itemEndTime - itemStartTime) / 1000).toFixed(2);
-        console.log(`✅ Item ${i + 1}/${selectedItems.length} completed in ${itemDuration}s\n`);
+        console.log(
+          `✅ Item ${i + 1}/${selectedItems.length} completed in ${itemDuration}s\n`,
+        );
       }
 
       const totalEndTime = Date.now();
       const totalDuration = ((totalEndTime - startTime) / 1000).toFixed(2);
-      console.log(`\n🎉 Batch checkout completed! Total time: ${totalDuration}s for ${selectedItems.length} items`);
-      console.log(`⏱️ Average time per item: ${(parseFloat(totalDuration) / selectedItems.length).toFixed(2)}s`);
+      console.log(
+        `\n🎉 Batch checkout completed! Total time: ${totalDuration}s for ${selectedItems.length} items`,
+      );
+      console.log(
+        `⏱️ Average time per item: ${(parseFloat(totalDuration) / selectedItems.length).toFixed(2)}s`,
+      );
 
       // Refresh loan data if payment was made
       const hasLoanPayment = cart.some(
@@ -4963,7 +5151,9 @@ export default function TransaksiKeuanganForm() {
       const reloadStartTime = Date.now();
       await loadTransactions();
       const reloadEndTime = Date.now();
-      const reloadDuration = ((reloadEndTime - reloadStartTime) / 1000).toFixed(2);
+      const reloadDuration = ((reloadEndTime - reloadStartTime) / 1000).toFixed(
+        2,
+      );
       console.log(`✅ Transactions reloaded in ${reloadDuration}s`);
     } catch (err: any) {
       console.error("Checkout Error:", err);
@@ -8024,7 +8214,7 @@ export default function TransaksiKeuanganForm() {
                         {coa
                           .filter(
                             (acc) =>
-                              acc.account_type === "Pendapatan" &&
+                              acc.account_type === "revenue" &&
                               `${acc.account_code} ${acc.description || acc.account_name}`
                                 .toLowerCase()
                                 .includes(bankSearch.toLowerCase()),
@@ -8034,19 +8224,28 @@ export default function TransaksiKeuanganForm() {
                               key={acc.account_code}
                               className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => {
-                                setAkunPendapatan(
-                                  `${acc.account_code} — ${acc.description || acc.account_name}`,
-                                );
+                                setAkunPendapatan(acc.account_name);
+                                setSelectedRevenueAccount({
+                                  id: acc.id,
+                                  account_code: acc.account_code,
+                                  account_name: acc.account_name,
+                                  description: acc.description,
+                                });
                                 setAkunPendapatanPopoverOpen(false);
                                 setBankSearch("");
                               }}
                             >
-                              <span className="text-sm">
-                                {acc.account_code} —{" "}
-                                {acc.description || acc.account_name}
-                              </span>
-                              {akunPendapatan ===
-                                `${acc.account_code} — ${acc.description || acc.account_name}` && (
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">
+                                  {acc.account_name}
+                                </span>
+                                {acc.description && (
+                                  <span className="text-xs text-gray-500">
+                                    {acc.description}
+                                  </span>
+                                )}
+                              </div>
+                              {akunPendapatan === acc.account_name && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
                             </div>
@@ -8086,7 +8285,7 @@ export default function TransaksiKeuanganForm() {
                         {coa
                           .filter(
                             (acc) =>
-                              acc.account_type === "Beban Operasional" &&
+                              acc.account_type === "expense" &&
                               `${acc.account_code} ${acc.account_name}`
                                 .toLowerCase()
                                 .includes(bankSearch.toLowerCase()),
@@ -8096,24 +8295,28 @@ export default function TransaksiKeuanganForm() {
                               key={acc.account_code}
                               className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => {
-                                setAkunBeban(
-                                  `${acc.account_code} — ${acc.account_name}`,
-                                );
+                                setAkunBeban(acc.account_name);
                                 setSelectedExpenseAccount({
                                   id: acc.id,
                                   account_code: acc.account_code,
                                   account_name: acc.account_name,
+                                  description: acc.description,
                                 });
                                 setAkunBebanPopoverOpen(false);
                                 setBankSearch("");
                               }}
                             >
-                              <span className="text-sm">
-                                {acc.account_code} —{" "}
-                                {acc.description || acc.account_name}
-                              </span>
-                              {akunBeban ===
-                                `${acc.account_code} — ${acc.account_name}` && (
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">
+                                  {acc.account_name}
+                                </span>
+                                {acc.description && (
+                                  <span className="text-xs text-gray-500">
+                                    {acc.description}
+                                  </span>
+                                )}
+                              </div>
+                              {akunBeban === acc.account_name && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
                             </div>
@@ -8153,7 +8356,7 @@ export default function TransaksiKeuanganForm() {
                         {coa
                           .filter(
                             (acc) =>
-                              acc.account_type === "Ekuitas" &&
+                              acc.account_type === "equity" &&
                               acc.parent_code !== null &&
                               `${acc.account_code} ${acc.account_name}`
                                 .toLowerCase()
@@ -8164,19 +8367,28 @@ export default function TransaksiKeuanganForm() {
                               key={acc.account_code}
                               className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => {
-                                setAkunModal(
-                                  `${acc.account_code} — ${acc.account_name}`,
-                                );
+                                setAkunModal(acc.account_name);
+                                setSelectedModalAccount({
+                                  id: acc.id,
+                                  account_code: acc.account_code,
+                                  account_name: acc.account_name,
+                                  description: acc.description,
+                                });
                                 setAkunModalPopoverOpen(false);
                                 setBankSearch("");
                               }}
                             >
-                              <span className="text-sm">
-                                {acc.account_code} —{" "}
-                                {acc.description || acc.account_name}
-                              </span>
-                              {akunModal ===
-                                `${acc.account_code} — ${acc.account_name}` && (
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">
+                                  {acc.account_name}
+                                </span>
+                                {acc.description && (
+                                  <span className="text-xs text-gray-500">
+                                    {acc.description}
+                                  </span>
+                                )}
+                              </div>
+                              {akunModal === acc.account_name && (
                                 <Check className="h-4 w-4 text-blue-600" />
                               )}
                             </div>
@@ -10609,7 +10821,18 @@ export default function TransaksiKeuanganForm() {
                   otomatis
                 </p>
                 <OCRScanner
-                  onResult={(data) => {
+                  onResult={async (data) => {
+                    console.log("🔍 OCR Result received:", data);
+                    console.log("🔍 document_type:", data.document_type);
+                    console.log(
+                      "🔍 suggested_debit_account:",
+                      data.suggested_debit_account,
+                    );
+                    console.log(
+                      "🔍 suggested_credit_account:",
+                      data.suggested_credit_account,
+                    );
+
                     if (data.nominal) {
                       setNominal(data.nominal.toString());
                     }
@@ -10628,6 +10851,106 @@ export default function TransaksiKeuanganForm() {
                       setBuktiUrl(previewUrl);
                     }
 
+                    // SALARY SLIP AUTO-MAPPING
+                    // Check both document_type and description for salary slip detection
+                    const isSalarySlip =
+                      data.document_type === "salary_slip" ||
+                      (data.deskripsi &&
+                        /slip\s+gaji|gaji\s+karyawan|payroll/i.test(
+                          data.deskripsi,
+                        ));
+
+                    if (isSalarySlip) {
+                      console.log("🎯 Salary slip detected!");
+                      console.log(
+                        "🎯 Suggested debit account:",
+                        data.suggested_debit_account,
+                      );
+                      console.log(
+                        "🎯 Suggested credit account:",
+                        data.suggested_credit_account,
+                      );
+
+                      // Auto-select Beban Gaji & Karyawan (6-1000)
+                      const debitAccountCode =
+                        data.suggested_debit_account || "6-1000";
+                      const { data: account, error } = await supabase
+                        .from("chart_of_accounts")
+                        .select("*")
+                        .eq("account_code", debitAccountCode)
+                        .maybeSingle();
+
+                      console.log("🔍 Query result for debit account:", {
+                        account,
+                        error,
+                      });
+
+                      if (account) {
+                        const expenseAccountData = {
+                          id: account.id,
+                          account_code: account.account_code,
+                          account_name: account.account_name,
+                          description: account.description,
+                        };
+
+                        setSelectedExpenseAccount(expenseAccountData);
+                        setAkunBeban(
+                          `${account.account_code} — ${account.account_name}`,
+                        );
+
+                        console.log(
+                          "✅ Auto-selected expense account:",
+                          account.account_name,
+                        );
+                        console.log(
+                          "✅ selectedExpenseAccount set to:",
+                          expenseAccountData,
+                        );
+                      } else {
+                        console.error(
+                          "❌ Failed to find expense account:",
+                          debitAccountCode,
+                        );
+                      }
+
+                      // Auto-select Bank account if suggested
+                      if (data.suggested_credit_account) {
+                        const { data: account, error } = await supabase
+                          .from("chart_of_accounts")
+                          .select("*")
+                          .eq("account_code", data.suggested_credit_account)
+                          .maybeSingle();
+
+                        console.log("🔍 Query result for credit account:", {
+                          account,
+                          error,
+                        });
+
+                        if (account) {
+                          setSelectedBank(
+                            `${account.account_code} — ${account.account_name}`,
+                          );
+                          console.log(
+                            "✅ Auto-selected bank account:",
+                            account.account_name,
+                          );
+                        } else {
+                          console.error(
+                            "❌ Failed to find bank account:",
+                            data.suggested_credit_account,
+                          );
+                        }
+                      }
+
+                      // Set payment method to Transfer Bank for salary
+                      setPaymentType("Transfer Bank");
+
+                      toast({
+                        title: "💰 Slip Gaji Terdeteksi!",
+                        description: `Akun Beban Gaji & Bank telah dipilih otomatis. Silakan periksa kembali.`,
+                      });
+                    }
+
                     // Store OCR data for database (including ocr_id)
                     setOcrAppliedData({
                       extractedText: data.extractedText || "",
@@ -10640,12 +10963,25 @@ export default function TransaksiKeuanganForm() {
                       ocrId: data.ocrId, // Store OCR result ID for linking
                       nomorNota: data.nomorNota,
                       toko: data.toko,
+                      document_type: data.document_type,
+                      employee_name: data.employee_name,
+                      employee_number: data.employee_number,
                     });
 
-                    toast({
-                      title: "✅ OCR berhasil diproses",
-                      description: `Data transaksi telah terisi otomatis. Silakan periksa kembali sebelum menyimpan.`,
-                    });
+                    // Show success toast for non-salary slip documents
+                    const isSalarySlipCheck =
+                      data.document_type === "salary_slip" ||
+                      (data.deskripsi &&
+                        /slip\s+gaji|gaji\s+karyawan|payroll/i.test(
+                          data.deskripsi,
+                        ));
+
+                    if (!isSalarySlipCheck) {
+                      toast({
+                        title: "✅ OCR berhasil diproses",
+                        description: `Data transaksi telah terisi otomatis. Silakan periksa kembali sebelum menyimpan.`,
+                      });
+                    }
                   }}
                   buttonText="📷 Upload & Scan Receipt"
                   buttonVariant="default"

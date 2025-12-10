@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,17 +23,17 @@ import AdminSetup from "@/components/AdminSetup";
 import COAManagement from "@/components/COAManagement";
 import BarangLamaReport from "@/components/BarangLamaReport";
 import COAMappingManager from "@/components/COAMappingManager";
-import IntegratedFinancialReport from "@/components/IntegratedFinancialReport";
-import ProfitLossReport from "@/components/ProfitLossReport";
-import BalanceSheetReport from "@/components/BalanceSheetReport";
-import FinancialDashboard from "@/components/FinancialDashboard";
-import CashFlowReport from "@/components/CashFlowReport";
-import TaxReportManagement from "@/components/TaxReportManagement";
-import CoretaxUploadForm from "@/components/CoretaxUploadForm";
-import CoretaxReportList from "@/components/CoretaxReportList";
-import ServiceItemsForm from "@/components/ServiceItemsForm";
-import ApprovalTransaksi from "@/components/ApprovalTransaksi";
-import CashDisbursementForm from "@/components/CashDisbursementForm";
+const IntegratedFinancialReport = lazy(() => import("@/components/IntegratedFinancialReport"));
+const ProfitLossReport = lazy(() => import("@/components/ProfitLossReport"));
+const BalanceSheetReport = lazy(() => import("@/components/BalanceSheetReport"));
+const FinancialDashboard = lazy(() => import("@/components/FinancialDashboard"));
+const CashFlowReport = lazy(() => import("@/components/CashFlowReport"));
+const TaxReportManagement = lazy(() => import("@/components/TaxReportManagement"));
+const CoretaxUploadForm = lazy(() => import("@/components/CoretaxUploadForm"));
+const CoretaxReportList = lazy(() => import("@/components/CoretaxReportList"));
+const ServiceItemsForm = lazy(() => import("@/components/ServiceItemsForm"));
+const ApprovalTransaksi = lazy(() => import("@/components/ApprovalTransaksi"));
+const CashDisbursementForm = lazy(() => import("@/components/CashDisbursementForm"));
 import { Toaster } from "@/components/ui/toaster";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import EmailConfirm from "@/pages/EmailConfirm";
@@ -40,25 +41,25 @@ import PendingRegistrasi from "@/pages/pending-registrasi";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import StockAdjustmentForm from "@/components/StockAdjustmentForm";
 import StockBarangImport from "@/components/StockBarangImport";
-import HRDDashboard from "@/components/HRDDashboard";
-import DataKaryawan from "@/components/DataKaryawan";
-import POSTerminal from "@/components/POSTerminal";
-import WarehouseDashboard from "@/components/WarehouseDashboard";
-import POSDashboard from "@/components/POSDashboard";
+const HRDDashboard = lazy(() => import("@/components/HRDDashboard"));
+const DataKaryawan = lazy(() => import("@/components/DataKaryawan"));
+const POSTerminal = lazy(() => import("@/components/POSTerminal"));
+const WarehouseDashboard = lazy(() => import("@/components/WarehouseDashboard"));
+const POSDashboard = lazy(() => import("@/components/POSDashboard"));
 import AccountMappingsManager from "@/components/AccountMappingsManager";
 import CreateProfitLossView from "@/components/CreateProfitLossView";
 import FinanceTransactionsList from "@/components/FinanceTransactionsList";
-import TestOpenAIConnection from "@/components/TestOpenAIConnection";
-import FinanceTransactionsPage from "@/components/FinanceTransactionsPage";
-import FinanceTransactionDetail from "@/components/FinanceTransactionDetail";
-import ChatAI from "@/pages/ChatAI";
-import FloatingChatAI from "@/components/FloatingChatAI";
-import GoogleOCRScanner from "@/components/GoogleOCRScanner";
-import OCRExtractor from "@/pages/OCRExtractor";
-import CheckUserOCRData from "@/components/CheckUserOCRData";
-import EmployeeAdvanceForm from "@/components/EmployeeAdvanceForm";
-import GeneralLedgerView from "@/components/GeneralLedgerView";
-import TrialBalanceView from "@/components/TrialBalanceView";
+const TestOpenAIConnection = lazy(() => import("@/components/TestOpenAIConnection"));
+const FinanceTransactionsPage = lazy(() => import("@/components/FinanceTransactionsPage"));
+const FinanceTransactionDetail = lazy(() => import("@/components/FinanceTransactionDetail"));
+const ChatAI = lazy(() => import("@/pages/ChatAI"));
+const FloatingChatAI = lazy(() => import("@/components/FloatingChatAI"));
+const GoogleOCRScanner = lazy(() => import("@/components/GoogleOCRScanner"));
+const OCRExtractor = lazy(() => import("@/pages/OCRExtractor"));
+const CheckUserOCRData = lazy(() => import("@/components/CheckUserOCRData"));
+const EmployeeAdvanceForm = lazy(() => import("@/components/EmployeeAdvanceForm"));
+const GeneralLedgerView = lazy(() => import("@/components/GeneralLedgerView"));
+const TrialBalanceView = lazy(() => import("@/components/TrialBalanceView"));
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -72,7 +73,7 @@ function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">Loading aplikasi...</div>
       </div>
     );
   }
@@ -104,9 +105,13 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppRoutesContent />
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-600"><div className="text-lg">Loading...</div></div>}>
+           <AppRoutesContent />
+        </Suspense>
         <Toaster />
-        <FloatingChatAI />
+        <Suspense fallback={null}>
+          <FloatingChatAI />
+        </Suspense>
       </AuthProvider>
     </ThemeProvider>
   );
@@ -154,7 +159,7 @@ function AppRoutesContent() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">Loading aplikasi...</div>
       </div>
     );
   }

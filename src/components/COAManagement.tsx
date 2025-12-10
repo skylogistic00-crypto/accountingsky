@@ -155,7 +155,7 @@ export default function COAManagement() {
       const { data, error } = await supabase
         .from("chart_of_accounts")
         .select("*")
-        .order("account_code");
+        .order("account_code", { ascending: true });
 
       if (error) throw error;
       setCoaAccounts(data || []);

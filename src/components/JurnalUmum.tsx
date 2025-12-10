@@ -21,6 +21,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Search, ChevronDown } from "lucide-react";
 
 interface AkunCOA {
   account_code: string;
@@ -72,6 +78,8 @@ export default function JurnalUmum() {
   const [jurnalRows, setJurnalRows] = useState<JurnalRow[]>([
     { akunCOA: "", deskripsiBaris: "", debit: null, kredit: null },
   ]);
+  const [coaSearchTerms, setCoaSearchTerms] = useState<{ [key: number]: string }>({});
+  const [openPopoverIndex, setOpenPopoverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     async function loadCoa() {
@@ -415,21 +423,85 @@ export default function JurnalUmum() {
                     }
                     onClick={() => setSelectedRowIndex(idx)}
                   >
-                    <TableCell className="w-56">
-                      <select
-                        className="w-full border rounded px-2 py-1 text-sm"
-                        value={row.akunCOA}
-                        onChange={(e) =>
-                          updateRow(idx, "akunCOA", e.target.value)
-                        }
+                    <TableCell className="w-64">
+                      <Popover 
+                        open={openPopoverIndex === idx} 
+                        onOpenChange={(open) => {
+                          setOpenPopoverIndex(open ? idx : null);
+                          if (!open) {
+                            setCoaSearchTerms(prev => ({ ...prev, [idx]: "" }));
+                          }
+                        }}
                       >
-                        <option value="">-- Pilih Akun COA --</option>
-                        {akunCOAList.map((acc) => (
-                          <option key={acc.id} value={acc.account_code}>
-                            {acc.account_code} - {acc.account_name}
-                          </option>
-                        ))}
-                      </select>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between text-left font-normal text-sm h-9"
+                          >
+                            <span className="truncate">
+                              {row.akunCOA
+                                ? `${row.akunCOA} - ${akunCOAList.find(acc => acc.account_code === row.akunCOA)?.account_name || ""}`
+                                : "-- Pilih Akun COA --"}
+                            </span>
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <div className="p-2 border-b">
+                            <div className="flex items-center gap-2 px-2 py-1 border rounded-md">
+                              <Search className="h-4 w-4 text-gray-400" />
+                              <input
+                                type="text"
+                                placeholder="Cari akun COA..."
+                                className="flex-1 outline-none text-sm bg-transparent"
+                                value={coaSearchTerms[idx] || ""}
+                                onChange={(e) => {
+                                  setCoaSearchTerms(prev => ({ ...prev, [idx]: e.target.value }));
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+                          <div className="max-h-[300px] overflow-y-auto">
+                            {akunCOAList
+                              .filter((acc) => {
+                                const searchTerm = (coaSearchTerms[idx] || "").toLowerCase();
+                                return (
+                                  acc.account_code.toLowerCase().includes(searchTerm) ||
+                                  acc.account_name.toLowerCase().includes(searchTerm)
+                                );
+                              })
+                              .map((acc) => (
+                                <div
+                                  key={acc.account_code}
+                                  className={`px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm ${
+                                    row.akunCOA === acc.account_code ? "bg-blue-50 text-blue-700" : ""
+                                  }`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateRow(idx, "akunCOA", acc.account_code);
+                                    setOpenPopoverIndex(null);
+                                    setCoaSearchTerms(prev => ({ ...prev, [idx]: "" }));
+                                  }}
+                                >
+                                  {acc.account_code} - {acc.account_name}
+                                </div>
+                              ))}
+                            {akunCOAList.filter((acc) => {
+                              const searchTerm = (coaSearchTerms[idx] || "").toLowerCase();
+                              return (
+                                acc.account_code.toLowerCase().includes(searchTerm) ||
+                                acc.account_name.toLowerCase().includes(searchTerm)
+                              );
+                            }).length === 0 && (
+                              <div className="px-3 py-2 text-sm text-gray-500">
+                                Tidak ada akun ditemukan
+                              </div>
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                     <TableCell>
                       <Input

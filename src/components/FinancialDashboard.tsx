@@ -128,8 +128,6 @@ export default function FinancialDashboard() {
         .eq("transaction_type", "Barang")
         .eq("approval_status", "approved");
 
-      console.log("📊 Purchase Barang:", { data: purchaseBarang, error: errorPurchaseBarang });
-
       // Fetch Pembelian Jasa
       const { data: purchaseJasa, error: errorPurchaseJasa } = await supabase
         .from("purchase_transactions")
@@ -139,8 +137,6 @@ export default function FinancialDashboard() {
         .eq("transaction_type", "Jasa")
         .eq("approval_status", "approved");
 
-      console.log("📊 Purchase Jasa:", { data: purchaseJasa, error: errorPurchaseJasa });
-
       // Fetch Pengeluaran Kas dari kas_transaksi (payment_type = 'Pengeluaran Kas')
       const { data: disbursements, error: errorDisbursements } = await supabase
         .from("kas_transaksi")
@@ -149,8 +145,6 @@ export default function FinancialDashboard() {
         .lte("tanggal", endDate)
         .eq("payment_type", "Pengeluaran Kas")
         .eq("approval_status", "approved");
-
-      console.log("📊 Disbursements:", { data: disbursements, error: errorDisbursements });
 
       // Calculate totals
       const totalPenjualanBarang = (salesBarang || []).reduce((sum, t) => sum + (t.total_amount || 0), 0);

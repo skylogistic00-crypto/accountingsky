@@ -89,7 +89,7 @@ export default function IntegratedFinancialReport() {
       // First, fetch all chart_of_accounts to build parent hierarchy
       const { data: coaData, error: coaError } = await supabase
         .from("chart_of_accounts")
-        .select("account_code, account_name, level, parent_code");
+        .select("account_code, account_name, level, parent_id");
 
       if (coaError) {
         toast({
@@ -102,21 +102,25 @@ export default function IntegratedFinancialReport() {
       }
 
       // Build a map for quick lookup
-      const coaMap = new Map(coaData?.map(coa => [coa.account_code, coa]) || []);
+      const coaMap = new Map(
+        coaData?.map((coa) => [coa.account_code, coa]) || [],
+      );
 
       // Fetch from general_ledger with chart_of_accounts join
       const { data, error } = await supabase
         .from("general_ledger")
-        .select(`
+        .select(
+          `
           *,
           chart_of_accounts!general_ledger_account_code_fkey (
             account_name,
             account_type,
-            parent_code,
+            parent_id,
             level,
             is_header
           )
-        `)
+        `,
+        )
         .order("account_code", { ascending: true });
 
       if (error) {
@@ -141,7 +145,10 @@ export default function IntegratedFinancialReport() {
     }
   };
 
-  const aggregateGeneralLedgerData = (glData: any[], coaMap: Map<string, any>): FinancialReportData[] => {
+  const aggregateGeneralLedgerData = (
+    glData: any[],
+    coaMap: Map<string, any>,
+  ): FinancialReportData[] => {
     const grouped = new Map<string, FinancialReportData>();
 
     // Helper function to find parent account with level 1 or 2
@@ -160,8 +167,8 @@ export default function IntegratedFinancialReport() {
         }
 
         // Move to parent
-        if (account.parent_code) {
-          currentCode = account.parent_code;
+        if (account.parent_id) {
+          currentCode = account.parent_id;
         } else {
           break;
         }
@@ -285,15 +292,18 @@ export default function IntegratedFinancialReport() {
 
       // Create a map for quick lookup
       const coaMap = new Map(
-        coaData?.map((coa) => [coa.account_code, coa.account_name]) || []
+        coaData?.map((coa) => [coa.account_code, coa.account_name]) || [],
       );
 
       // Enrich journal entries with account names
-      const enrichedEntries = journalData?.map((entry) => ({
-        ...entry,
-        debit_account_name: coaMap.get(entry.debit_account) || entry.debit_account,
-        credit_account_name: coaMap.get(entry.credit_account) || entry.credit_account,
-      })) || [];
+      const enrichedEntries =
+        journalData?.map((entry) => ({
+          ...entry,
+          debit_account_name:
+            coaMap.get(entry.debit_account) || entry.debit_account,
+          credit_account_name:
+            coaMap.get(entry.credit_account) || entry.credit_account,
+        })) || [];
 
       setJournalEntries(enrichedEntries);
     } catch (err) {
@@ -403,7 +413,7 @@ export default function IntegratedFinancialReport() {
           {/* Filter Section */}
           <div className="grid md:grid-cols-4 gap-3 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <div className="space-y-2">
-              <Label htmlFor="reportType">Report Type</Label>
+              <Label htmlFor="reportType">Report Type1</Label>
               <Select value={reportType} onValueChange={setReportType}>
                 <SelectTrigger id="reportType">
                   <SelectValue placeholder="Pilih Report Type" />
@@ -645,12 +655,18 @@ export default function IntegratedFinancialReport() {
                         </TableCell>
                         <TableCell className="text-right font-mono">
                           {formatRupiah(
-                            journalEntries.reduce((sum, entry) => sum + (entry.debit || 0), 0)
+                            journalEntries.reduce(
+                              (sum, entry) => sum + (entry.debit || 0),
+                              0,
+                            ),
                           )}
                         </TableCell>
                         <TableCell className="text-right font-mono">
                           {formatRupiah(
-                            journalEntries.reduce((sum, entry) => sum + (entry.credit || 0), 0)
+                            journalEntries.reduce(
+                              (sum, entry) => sum + (entry.credit || 0),
+                              0,
+                            ),
                           )}
                         </TableCell>
                       </TableRow>

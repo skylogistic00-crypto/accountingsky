@@ -22,6 +22,11 @@ interface OCRResponse {
   }>;
   payment_method: string;
   invoice_number: string;
+  document_type?: string;
+  employee_name?: string;
+  employee_number?: string;
+  suggested_debit_account?: string;
+  suggested_credit_account?: string;
 }
 
 Deno.serve(async (req) => {
@@ -67,21 +72,39 @@ Deno.serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `Analyze this receipt/invoice image and extract the following information in JSON format:
+                text: `Analyze this receipt/invoice/salary slip image and extract the following information in JSON format:
 {
-  "vendor_name": "name of the vendor/merchant",
+  "document_type": "invoice|receipt|salary_slip|other",
+  "vendor_name": "name of the vendor/merchant (or company name for salary slip)",
+  "employee_name": "employee name (only for salary slip)",
+  "employee_number": "employee number/ID (only for salary slip)",
   "transaction_date": "date in YYYY-MM-DD format",
-  "total_amount": numeric value of total amount,
+  "total_amount": numeric value of total amount (Gaji Bersih/Take Home Pay for salary slip),
   "items": [
     {
-      "name": "item name",
+      "name": "item name or salary component",
       "qty": numeric quantity,
       "price": numeric price per unit
     }
   ],
-  "payment_method": "cash, bank, or transfer",
-  "invoice_number": "invoice or reference number if available"
+  "payment_method": "cash, bank, or transfer (extract bank name if mentioned: Mandiri, BCA, BNI, etc)",
+  "invoice_number": "invoice or reference number if available",
+  "suggested_debit_account": "6-1000 for salary slip, empty for others",
+  "suggested_credit_account": "1-1038 if Bank Mandiri mentioned, empty for others"
 }
+
+CRITICAL RULES FOR SALARY SLIP DETECTION:
+1. If document contains "SLIP GAJI", "GAJI KARYAWAN", "PAYROLL", "SALARY SLIP", or salary-related terms:
+   - Set document_type to "salary_slip"
+   - Set suggested_debit_account to "6-1000" (Beban Gaji & Karyawan)
+   - Extract employee_name and employee_number
+   - If bank name is "Mandiri", set suggested_credit_account to "1-1038"
+   - If bank name is "BCA", set suggested_credit_account to "1-1200"
+   - Use "Gaji Bersih" or "Take Home Pay" as total_amount
+   
+2. For regular invoices/receipts:
+   - Set document_type to "invoice" or "receipt"
+   - Leave suggested accounts empty
 
 Extract all visible information. If any field is not found, use empty string or 0 for numbers. Return ONLY valid JSON, no additional text.`
               },
@@ -122,7 +145,12 @@ Extract all visible information. If any field is not found, use empty string or 
         total_amount: 0,
         items: [],
         payment_method: 'cash',
-        invoice_number: ''
+        invoice_number: '',
+        document_type: 'other',
+        employee_name: '',
+        employee_number: '',
+        suggested_debit_account: '',
+        suggested_credit_account: ''
       };
     }
 
@@ -144,7 +172,12 @@ Extract all visible information. If any field is not found, use empty string or 
         total_amount: 0,
         items: [],
         payment_method: 'cash',
-        invoice_number: ''
+        invoice_number: '',
+        document_type: 'other',
+        employee_name: '',
+        employee_number: '',
+        suggested_debit_account: '',
+        suggested_credit_account: ''
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

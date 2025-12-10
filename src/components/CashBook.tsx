@@ -217,8 +217,8 @@ export default function CashBook() {
       }
 
       setServiceCategories(uniqueCategories);
-    } catch (error) {
-      console.error("Error fetching service categories:", error);
+    } catch (err) {
+      console.error("Error fetching service categories:", err);
     }
   };
 
@@ -229,12 +229,12 @@ export default function CashBook() {
     }
 
     try {
-      const { data, error } = await supabase.rpc(
+      const { data, error: rpcError } = await supabase.rpc(
         "get_service_types_by_category",
         { p_category: category },
       );
 
-      if (error) throw error;
+      if (rpcError) throw rpcError;
       setCategoryMappings(data || []);
     } catch (error) {
       console.error("Error fetching service types:", error);

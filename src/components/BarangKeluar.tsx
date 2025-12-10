@@ -160,7 +160,7 @@ export default function BarangKeluar() {
       if (error) throw error;
       setItems(data || []);
     } catch (error) {
-      console.error("Error fetching items:", error);
+      console.error("Error fetching items:", err);
     }
   };
 
@@ -175,7 +175,7 @@ export default function BarangKeluar() {
       if (error) throw error;
       setBarangLini2Items(data || []);
     } catch (error) {
-      console.error("Error fetching barang lini 2:", error);
+      console.error("Error fetching barang lini 2:", err);
     }
   };
 
@@ -203,7 +203,7 @@ export default function BarangKeluar() {
           .single();
 
         if (error) {
-          console.error("Error fetching stock data:", error);
+          console.error("Error fetching stock data:", err);
         }
 
         setFormData({
@@ -231,7 +231,7 @@ export default function BarangKeluar() {
           lots: stockData?.lots || barang.lots || "",
         });
       } catch (error) {
-        console.error("Error in handleBarangSelect:", error);
+        console.error("Error in handleBarangSelect:", err);
         toast({
           title: "Error",
           description: "Gagal mengambil data dari stock",

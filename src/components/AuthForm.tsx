@@ -52,7 +52,6 @@ const smartMerge = (oldData: Record<string, any>, newData: Record<string, any>):
 
     // Skip if newValue is empty/null/undefined
     if (newValue === undefined || newValue === null || newValue === "") {
-      console.log(`⊗ smartMerge: ${key} skipped (new value is empty)`);
       return;
     }
 
@@ -63,13 +62,11 @@ const smartMerge = (oldData: Record<string, any>, newData: Record<string, any>):
       oldData[key] !== null &&
       oldData[key] !== ""
     ) {
-      console.log(`⊗ smartMerge: ${key} skipped (existing value: ${oldData[key]})`);
       return;
     }
 
     // Add new value or fill empty field
     merged[key] = newValue;
-    console.log(`✔ smartMerge: ${key} = ${newValue}`);
   });
 
   return merged;
@@ -186,7 +183,7 @@ export function AuthFormContent({
       .order("role_name", { ascending: true });
 
     if (error) {
-      console.error("Error loading roles:", error);
+      console.error("Error loading roles:", err);
     } else {
       setRoles(data || []);
     }
@@ -259,21 +256,15 @@ export function AuthFormContent({
       );
 
       if (ocrError) {
-        console.error("OCR Error:", ocrError);
-        throw ocrError;
+        console.error("OCR Error:", ocrErr);
+        throw ocrErr;
       }
-
-      console.log("Hybrid OCR Result:", ocrData);
 
       if (!ocrData || !ocrData.success) {
         throw new Error(ocrData?.error || "OCR processing failed");
       }
 
       const { ocr_engine, jenis_dokumen, data: structuredData, raw_text, clean_text } = ocrData;
-      
-      console.log(`OCR Engine Used: ${ocr_engine}`);
-      console.log(`Document Type: ${jenis_dokumen}`);
-      console.log(`Clean Text Length: ${clean_text?.length || 0}`);
       
       if (!structuredData) {
         throw new Error("No structured data returned from OCR");
@@ -282,8 +273,6 @@ export function AuthFormContent({
       // ========================================
       // A. SMART OCR MERGE ENGINE
       // ========================================
-      console.log("=== ACTIVATING SMART OCR MERGE ENGINE ===");
-      console.log("Full OCR Extracted Data:", structuredData);
       
       // Determine document type for namespace
       const docTypeMap: Record<string, string> = {
@@ -294,9 +283,6 @@ export function AuthFormContent({
         "CV": "cv"
       };
       const docTypeForMerge = docTypeMap[jenis_dokumen] || null;
-      
-      console.log("Document type for merge:", docTypeForMerge);
-      console.log("Existing signUpData before merge:", signUpData);
       
       // Skip keys - technical fields that should not be processed
       const skipKeys = [
@@ -311,8 +297,6 @@ export function AuthFormContent({
           cleanedOcrData[key] = value;
         }
       });
-      
-      console.log("Cleaned OCR data (without skip keys):", cleanedOcrData);
       
       // Build complete update object for signUpData using SMART MERGE
       const updatedSignUpData: Record<string, any> = { ...signUpData };
@@ -342,28 +326,20 @@ export function AuthFormContent({
                 updatedSignUpData.details[docTypeForMerge][key] === "" ||
                 updatedSignUpData.details[docTypeForMerge][key] === null) {
               updatedSignUpData.details[docTypeForMerge][key] = value;
-              console.log(`✔ NAMESPACE [${docTypeForMerge}]: ${key} = ${value}`);
-            } else {
-              console.log(`⊗ NAMESPACE [${docTypeForMerge}]: ${key} already exists, skipping`);
             }
           }
         });
         
-        console.log(`✔ Document data stored in details.${docTypeForMerge}`);
       }
       
       // Special handling for KK documents with anggota_keluarga
       if (jenis_dokumen === "KK" && structuredData.anggota_keluarga && Array.isArray(structuredData.anggota_keluarga)) {
-        console.log("Processing KK with anggota_keluarga:", structuredData.anggota_keluarga.length, "members");
         
         // SMART MERGE: Only add anggota_keluarga if not already exists
         if (!updatedSignUpData["anggota_keluarga"] || 
             updatedSignUpData["anggota_keluarga"] === null || 
             updatedSignUpData["anggota_keluarga"] === undefined) {
           updatedSignUpData["anggota_keluarga"] = structuredData.anggota_keluarga;
-          console.log("✔ SMART MERGE: anggota_keluarga added");
-        } else {
-          console.log("⊗ SMART MERGE: anggota_keluarga already exists, skipping");
         }
         
         // Add anggota_keluarga as a dynamic field (will be displayed as JSON)
@@ -394,7 +370,6 @@ export function AuthFormContent({
                 updatedSignUpData[field] === null || 
                 updatedSignUpData[field] === undefined) {
               updatedSignUpData[field] = structuredData[field];
-              console.log(`✔ SMART MERGE [KK header]: ${field} = ${structuredData[field]}`);
               
               // Add to dynamic fields for display
               newDynamicFields.push({
@@ -404,8 +379,6 @@ export function AuthFormContent({
                 required: false,
                 value: structuredData[field]
               });
-            } else {
-              console.log(`⊗ SMART MERGE [KK header]: ${field} already exists, skipping`);
             }
           }
         });

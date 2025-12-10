@@ -21,8 +21,6 @@ import { supabase } from "../lib/supabase";
 import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import Navigation from "./Navigation";
-import GeneralLedgerView from "./GeneralLedgerView";
-import TrialBalanceView from "./TrialBalanceView";
 import PurchaseRequestForm from "./PurchaseRequestForm";
 import SupplierForm from "./SupplierForm";
 import PermohonanDanaForm from "./PermohonanDanaForm";
@@ -46,10 +44,7 @@ type ViewType =
   | "create-request"
   | "create-supplier"
   | "permohonan-dana"
-  | "create-permohonan"
-  | "general-ledger"
-  | "trial-balance"
-  | "financial-report";
+  | "create-permohonan";
 
 export default function Dashboard() {
   const { userProfile } = useAuth();
@@ -73,7 +68,6 @@ export default function Dashboard() {
   }, []);
 
   const fetchDashboardData = async (retryCount = 0) => {
-    let hasError = false;
     try {
       const { data: requests, error: reqError } = await supabase
         .from("purchase_requests")
@@ -81,7 +75,6 @@ export default function Dashboard() {
         .order("created_at", { ascending: false });
 
       if (reqError) {
-        hasError = true;
         if (reqError.message?.includes("Failed to fetch") && retryCount < 2) {
           console.log(`Retrying dashboard fetch (attempt ${retryCount + 1})...`);
           setTimeout(() => fetchDashboardData(retryCount + 1), 1000);
@@ -128,7 +121,6 @@ export default function Dashboard() {
       setAllSuppliers(suppliers || []);
       setAllUsers(users || []);
     } catch (error: any) {
-      hasError = true;
       console.error("Error fetching dashboard data:", error);
       // Only show error state after retries
       if (retryCount >= 2) {
@@ -141,7 +133,7 @@ export default function Dashboard() {
         });
       }
     } finally {
-      if (retryCount >= 2 || !hasError) {
+      if (retryCount >= 2) {
         setLoading(false);
       }
     }

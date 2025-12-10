@@ -48,6 +48,15 @@ interface AutofillData {
   deskripsi: string | null;
 }
 
+interface SalarySlipData {
+  is_salary_slip: boolean;
+  employee_name: string | null;
+  employee_number: string | null;
+  bank_name: string | null;
+  suggested_debit_account: string | null;
+  suggested_credit_account: string | null;
+}
+
 interface KTPData {
   type: "KTP";
   nik: string;
@@ -77,13 +86,25 @@ function extractFinancialData(text: string): AutofillData {
   };
 
   // Extract nominal (currency amounts) - Find the HIGHEST value
-  // Priority 1: Look for HARGA JUAL (selling price)
-  const hargaJualMatch = text.match(/HARGA\s+JUAL[:\s]*([\d.,]+)/i);
-  if (hargaJualMatch) {
-    const numStr = hargaJualMatch[1].replace(/[^\d]/g, '');
+  // Priority 1: Look for GAJI BERSIH / TAKE HOME PAY (for salary slips)
+  const gajiBersihMatch = text.match(/(?:GAJI\s+BERSIH|TAKE\s+HOME\s+PAY)[:\s]*(?:Rp\.?\s*)?([0-9.,]+)/i);
+  if (gajiBersihMatch) {
+    const numStr = gajiBersihMatch[1].replace(/[^0-9]/g, '');
     const num = parseFloat(numStr);
     if (!isNaN(num) && num > 0) {
       result.nominal = num;
+    }
+  }
+  
+  // Priority 2: Look for HARGA JUAL (selling price)
+  if (!result.nominal) {
+    const hargaJualMatch = text.match(/HARGA\s+JUAL[:\s]*([\d.,]+)/i);
+    if (hargaJualMatch) {
+      const numStr = hargaJualMatch[1].replace(/[^\d]/g, '');
+      const num = parseFloat(numStr);
+      if (!isNaN(num) && num > 0) {
+        result.nominal = num;
+      }
     }
   }
   
@@ -197,6 +218,84 @@ function extractFinancialData(text: string): AutofillData {
 
   if (!result.deskripsi && text.length > 0) {
     result.deskripsi = text.substring(0, 100).replace(/\n/g, ' ').trim();
+  }
+
+  return result;
+}
+
+function detectSalarySlip(text: string): SalarySlipData {
+  const result: SalarySlipData = {
+    is_salary_slip: false,
+    employee_name: null,
+    employee_number: null,
+    bank_name: null,
+    suggested_debit_account: null,
+    suggested_credit_account: null,
+  };
+
+  // Check if document is a salary slip
+  const salaryKeywords = [
+    /SLIP\s+GAJI/i,
+    /GAJI\s+KARYAWAN/i,
+    /PAYROLL/i,
+    /SALARY\s+SLIP/i,
+    /GAJI\s+BERSIH/i,
+    /TAKE\s+HOME\s+PAY/i,
+    /PENDAPATAN/i,
+    /POTONGAN/i,
+  ];
+
+  const isSalarySlip = salaryKeywords.some(pattern => pattern.test(text));
+  
+  if (!isSalarySlip) {
+    return result;
+  }
+
+  result.is_salary_slip = true;
+  result.suggested_debit_account = "6-1000"; // Beban Gaji & Karyawan
+
+  // Extract employee name
+  const namePatterns = [
+    /(?:Nama|Name)[:\\s]*([A-Za-z\\s]+?)(?:\\n|Departemen|Department|Jabatan|Position)/i,
+    /No\\.?\\s+Karyawan[:\\s]*[A-Z0-9]+[\\s\\n]+([A-Za-z\\s]+?)(?:\\n|Departemen)/i,
+  ];
+
+  for (const pattern of namePatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      result.employee_name = match[1].trim();
+      break;
+    }
+  }
+
+  // Extract employee number
+  const empNumberPatterns = [
+    /(?:No\\.?\\s+Karyawan|Employee\\s+No|EMP)[:\\s]*([A-Z0-9]+)/i,
+  ];
+
+  for (const pattern of empNumberPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      result.employee_number = match[1].trim();
+      break;
+    }
+  }
+
+  // Extract bank name and map to account code
+  const bankPatterns = [
+    { pattern: /Bank[:\\s]*(Mandiri)/i, code: "1-1038" },
+    { pattern: /Bank[:\\s]*(BCA)/i, code: "1-1200" },
+    { pattern: /Bank[:\\s]*(BNI)/i, code: "1-1201" },
+    { pattern: /Bank[:\\s]*(BRI)/i, code: "1-1202" },
+  ];
+
+  for (const { pattern, code } of bankPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      result.bank_name = match[1].trim();
+      result.suggested_credit_account = code;
+      break;
+    }
   }
 
   return result;
@@ -555,9 +654,9 @@ Deno.serve(async (req) => {
       
       // Check for Vision API errors in response
       if (visionData.responses?.[0]?.error) {
-        const visionError = visionData.responses[0].error;
-        console.error("Vision API returned error:", visionError);
-        throw new Error(`Google Vision API error: ${visionError.message || JSON.stringify(visionError)}`);
+        const visionErr = visionData.responses[0].error;
+        console.error("Vision API returned error:", visionErr);
+        throw new Error(`Google Vision API error: ${visionErr.message || JSON.stringify(visionErr)}`);
       }
       
       // Extract text
@@ -628,7 +727,10 @@ Deno.serve(async (req) => {
     // 5. Extract financial data for autofill
     const autofillData = extractFinancialData(extractedText);
 
-    // 5b. Detect document type and extract KTP data if applicable
+    // 5b. Detect salary slip
+    const salarySlipData = detectSalarySlip(extractedText);
+
+    // 5c. Detect document type and extract KTP data if applicable
     let ktpData: KTPData | null = null;
     const upperText = extractedText.toUpperCase();
     const isKTP = (upperText.includes("PROVINSI") && 
@@ -684,15 +786,15 @@ Deno.serve(async (req) => {
     }
 
     // Save to ocr_results table with filtered data
-    const { data: dbData, error: dbError } = await supabase
+    const { data: dbData, error: dbErr } = await supabase
       .from("ocr_results")
       .insert([dataToInsert])
       .select()
       .single();
 
-    if (dbError) {
-      console.error("Database error:", dbError);
-      throw new Error(`Database error: ${dbError.message}`);
+    if (dbErr) {
+      console.error("Database error:", dbErr);
+      throw new Error(`Database error: ${dbErr.message}`);
     }
 
     return new Response(
@@ -707,7 +809,11 @@ Deno.serve(async (req) => {
         file_path: fileName,
         autofill: autofillData,
         ktp_data: ktpData,
-        document_type: isKTP ? "KTP" : "FINANCIAL",
+        document_type: isKTP ? "KTP" : (salarySlipData.is_salary_slip ? "salary_slip" : "FINANCIAL"),
+        employee_name: salarySlipData.employee_name,
+        employee_number: salarySlipData.employee_number,
+        suggested_debit_account: salarySlipData.suggested_debit_account,
+        suggested_credit_account: salarySlipData.suggested_credit_account,
         json_data: visionData,
         db_record: dbData,
       }),

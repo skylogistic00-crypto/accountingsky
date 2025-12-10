@@ -15,6 +15,16 @@ interface OCRResult {
   nomorNota?: string;
   toko?: string;
   ocrId?: string;
+  document_type?: string;
+  employee_name?: string;
+  employee_number?: string;
+  suggested_debit_account?: string;
+  suggested_credit_account?: string;
+  items?: Array<{
+    name: string;
+    qty: number;
+    price: number;
+  }>;
 }
 
 interface OCRScannerProps {
@@ -135,6 +145,12 @@ const OCRScanner: React.FC<OCRScannerProps> = ({
       const tanggal = data.tanggal || new Date().toISOString().split("T")[0];
       const nomorNota = data.nomor_nota || null;
       const toko = data.toko || null;
+      const documentType = data.document_type || null;
+      const employeeName = data.employee_name || null;
+      const employeeNumber = data.employee_number || null;
+      const suggestedDebitAccount = data.suggested_debit_account || null;
+      const suggestedCreditAccount = data.suggested_credit_account || null;
+      const items = data.items || [];
 
       // 5. Save OCR results to "ocr_results" table
       const { data: ocrData, error: ocrSaveError } = await supabase
@@ -160,7 +176,12 @@ const OCRScanner: React.FC<OCRScannerProps> = ({
       console.log("OCR results saved to database:", ocrData);
 
       // 5. Build deskripsi with OCR summary
-      const deskripsi = `Transaksi dari ${toko || "-"}, nota ${nomorNota || "-"}. Ekstrak OCR: ${ocrText.substring(0, 150)}${ocrText.length > 150 ? "..." : ""}`;
+      let deskripsi = "";
+      if (documentType === "salary_slip") {
+        deskripsi = `Slip Gaji ${employeeName || ""} (${employeeNumber || ""}) - ${toko || ""}`;
+      } else {
+        deskripsi = `Transaksi dari ${toko || "-"}, nota ${nomorNota || "-"}. Ekstrak OCR: ${ocrText.substring(0, 150)}${ocrText.length > 150 ? "..." : ""}`;
+      }
 
       // 6. Prepare result for autofill
       const result: OCRResult = {
@@ -173,6 +194,12 @@ const OCRScanner: React.FC<OCRScannerProps> = ({
         nomorNota: nomorNota || undefined,
         toko: toko || undefined,
         ocrId: ocrData.id,
+        document_type: documentType || undefined,
+        employee_name: employeeName || undefined,
+        employee_number: employeeNumber || undefined,
+        suggested_debit_account: suggestedDebitAccount || undefined,
+        suggested_credit_account: suggestedCreditAccount || undefined,
+        items: items,
       };
 
       toast({
