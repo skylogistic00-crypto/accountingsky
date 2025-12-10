@@ -1,7 +1,19 @@
 // utils/roleAccess.ts
-import { supabase } from '@/lib/supabase';
+import { supabase } from "@/lib/supabase";
 
-export type UserRole = 'super_admin' | 'admin' | 'driver' | 'employee' | 'supplier' | 'customer' | 'viewer' | 'warehouse_manager' | 'accounting_manager' | 'customs_specialist' | 'accounting_staff' | 'warehouse_staff';
+export type UserRole =
+  | "super_admin"
+  | "admin"
+  | "driver"
+  | "employee"
+  | "supplier"
+  | "customer"
+  | "viewer"
+  | "warehouse_manager"
+  | "accounting_manager"
+  | "customs_specialist"
+  | "accounting_staff"
+  | "warehouse_staff";
 
 export interface RolePermissions {
   canViewUsers: boolean;
@@ -107,7 +119,10 @@ export const getRolePermissions = (role: string): RolePermissions => {
 /**
  * Check if user has a specific permission
  */
-export const hasPermission = (role: string, permission: keyof RolePermissions): boolean => {
+export const hasPermission = (
+  role: string,
+  permission: keyof RolePermissions,
+): boolean => {
   const permissions = getRolePermissions(role);
   return permissions[permission];
 };
@@ -116,7 +131,7 @@ export const hasPermission = (role: string, permission: keyof RolePermissions): 
  * Check if user is admin (super_admin or admin)
  */
 export const isAdmin = (role: string): boolean => {
-  return role === 'super_admin' || role === 'admin';
+  return role === "super_admin" || role === "admin";
 };
 
 /**
@@ -124,19 +139,21 @@ export const isAdmin = (role: string): boolean => {
  */
 export const getCurrentUserRole = async (): Promise<string | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return null;
 
     const { data, error } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
       .single();
 
     if (error || !data) return null;
     return data.role;
   } catch (error) {
-    console.error('Error getting user role:', error);
+    console.error("Error getting user role:", error);
     return null;
   }
 };
@@ -156,7 +173,7 @@ export const canAccessAdminPanel = async (): Promise<boolean> => {
 export const requireAdmin = async (): Promise<void> => {
   const role = await getCurrentUserRole();
   if (!role || !isAdmin(role)) {
-    throw new Error('Unauthorized: Admin access required');
+    throw new Error("Unauthorized: Admin access required");
   }
 };
 
@@ -167,13 +184,15 @@ export const logAuditEvent = async (
   action: string,
   entityType: string,
   entityId?: string,
-  details?: Record<string, any>
+  details?: Record<string, any>,
 ): Promise<void> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from('audit_logs').insert({
+    await supabase.from("audit_logs").insert({
       user_id: user.id,
       action,
       entity_type: entityType,
@@ -181,7 +200,7 @@ export const logAuditEvent = async (
       details,
     });
   } catch (error) {
-    console.error('Error logging audit event:', error);
+    console.error("Error logging audit event:", error);
   }
 };
 
@@ -201,6 +220,7 @@ export const CAN_DELETE_ROLES = [
 export const CAN_VIEW_ROLES = [
   "super_admin",
   "warehouse_manager",
+  "accounting_staff",
 ];
 
 export function canEdit(role: string | null) {

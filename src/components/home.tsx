@@ -63,7 +63,13 @@ function Home() {
       icon: DollarSign,
       path: "/finance/transactions",
       color: "bg-emerald-500",
-      roles: ["super_admin", "accounting_manager", "accounting_staff", "finance_manager", "finance_staff"],
+      roles: [
+        "super_admin",
+        "accounting_manager",
+        "accounting_staff",
+        "finance_manager",
+        "finance_staff",
+      ],
     },
     {
       title: "Manajemen Stok",
@@ -220,9 +226,6 @@ function Home() {
     menu.roles.includes(currentRole),
   );
 
-
-
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
@@ -234,7 +237,6 @@ function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-
           {filteredMenus.map((menu) => {
             const Icon = menu.icon;
             return (
