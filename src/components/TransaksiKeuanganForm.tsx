@@ -2533,11 +2533,11 @@ export default function TransaksiKeuanganForm() {
     switch (jenis) {
       case "Penjualan":
         // Debit Kas / Bank / Piutang
-        if (payment === "Cash") {
+        if (payment === "cash") {
           debitFilter = {
             account_code: normalizedInput.selectedKas?.split(" — ")[0],
           };
-        } else if (payment === "Transfer Bank") {
+        } else if (payment === "transfer bank") {
           debitFilter = {
             account_code: normalizedInput.selectedBank?.split(" — ")[0],
           };
@@ -2554,7 +2554,7 @@ export default function TransaksiKeuanganForm() {
 
         // Transaksi penjualan tetap dianggap cash-related jika pakai kas/bank
         extras.is_cash_related =
-          payment === "Cash" || payment === "Transfer Bank";
+          payment === "cash" || payment === "transfer bank";
         break;
 
       // Pastikan semua transaksi lain override needs_hpp ke false
@@ -2565,11 +2565,11 @@ export default function TransaksiKeuanganForm() {
         // Pembelian Tunai: Debit Persediaan, Kredit Kas/Bank
         // Pembelian Kredit: Debit Persediaan, Kredit Hutang
         debitFilter = { usage_role: "inventory" };
-        if (payment === "Cash") {
+        if (payment === "cash") {
           const kasCode =
             normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if (payment === "Transfer Bank") {
+        } else if (payment === "transfer bank") {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
@@ -2582,18 +2582,18 @@ export default function TransaksiKeuanganForm() {
               : { usage_role: "hutang" };
         }
         extras.is_cash_related =
-          payment === "Cash" || payment === "Transfer Bank";
+          payment === "cash" || payment === "transfer bank";
         break;
 
       case "Pembelian Jasa":
         // Pembelian Tunai: Debit Beban, Kredit Kas/Bank
         // Pembelian Kredit: Debit Beban, Kredit Hutang
         debitFilter = { usage_role: "beban_operasional" };
-        if (payment === "Cash") {
+        if (payment === "cash") {
           const kasCode =
             normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if (payment === "Transfer Bank") {
+        } else if (payment === "transfer bank") {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
@@ -2606,16 +2606,16 @@ export default function TransaksiKeuanganForm() {
               : { usage_role: "hutang" };
         }
         extras.is_cash_related =
-          payment === "Cash" || payment === "Transfer Bank";
+          payment === "cash" || payment === "transfer bank";
         break;
 
       case "Pendapatan":
         // Pendapatan: Debit Kas/Bank, Kredit Pendapatan
-        if (payment === "Cash") {
+        if (payment === "cash") {
           const kasCode =
             normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           debitFilter = { account_code: kasCode };
-        } else if (payment === "Transfer Bank") {
+        } else if (payment === "transfer bank") {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           debitFilter = { account_code: bankCode };
@@ -2626,7 +2626,7 @@ export default function TransaksiKeuanganForm() {
         }
         creditFilter = { usage_role: "pendapatan_jasa" };
         extras.is_cash_related =
-          payment === "Cash" || payment === "Transfer Bank";
+          payment === "cash" || payment === "transfer bank";
         break;
 
       case "Pengeluaran":
@@ -2641,19 +2641,24 @@ export default function TransaksiKeuanganForm() {
             debitFilter = { account_type: "Beban" };
           }
         }
-        if (payment === "Cash") {
+        if (payment === "cash") {
           const kasCode =
             normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if (payment === "Transfer Bank") {
+        } else if (payment === "transfer bank") {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
+          console.log(
+            "🔍 PENGELUARAN - normalizedInput.selectedBank:",
+            normalizedInput.selectedBank,
+          );
+          console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
           creditFilter = { account_code: bankCode };
         } else {
           creditFilter = { flow_type: "cash" };
         }
         extras.is_cash_related =
-          payment === "Cash" || payment === "Transfer Bank";
+          payment === "cash" || payment === "transfer bank";
         break;
 
       case "Transfer Bank":
@@ -2670,11 +2675,11 @@ export default function TransaksiKeuanganForm() {
 
       case "Setoran Modal":
         // Setoran Modal: Debit Kas/Bank, Kredit Modal
-        if (payment === "Cash") {
+        if (payment === "cash") {
           const kasCode =
             normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           debitFilter = { account_code: kasCode };
-        } else if (payment === "Transfer Bank") {
+        } else if (payment === "transfer bank") {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           debitFilter = { account_code: bankCode };
@@ -2688,11 +2693,11 @@ export default function TransaksiKeuanganForm() {
       case "Prive":
         // Prive: Debit Prive, Kredit Kas/Bank
         debitFilter = { usage_role: "prive" };
-        if (payment === "Cash") {
+        if (payment === "cash") {
           const kasCode =
             normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if (payment === "Transfer Bank") {
+        } else if (payment === "transfer bank") {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
@@ -2706,11 +2711,11 @@ export default function TransaksiKeuanganForm() {
       case "Pembayaran Hutang":
         // Pelunasan Hutang: Debit Hutang, Kredit Kas/Bank
         debitFilter = { usage_role: "hutang" };
-        if (payment === "Cash") {
+        if (payment === "cash") {
           const kasCode =
             normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if (payment === "Transfer Bank") {
+        } else if (payment === "transfer bank") {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
@@ -2723,11 +2728,11 @@ export default function TransaksiKeuanganForm() {
       case "Pelunasan Piutang":
       case "Pelanggan Bayar Piutang":
         // Pelunasan Piutang: Debit Kas/Bank, Kredit Piutang
-        if (payment === "Cash") {
+        if (payment === "cash") {
           const kasCode =
             normalizedInput.selectedKas?.split(" — ")[0] || "1-1100";
           debitFilter = { account_code: kasCode };
-        } else if (payment === "Transfer Bank") {
+        } else if (payment === "transfer bank") {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           debitFilter = { account_code: bankCode };
@@ -2937,9 +2942,7 @@ export default function TransaksiKeuanganForm() {
       .select(
         "account_code, account_name, account_type, trans_type, flow_type, usage_role",
       )
-      .eq("is_active", true)
-      .limit(1)
-      .order("account_code", { ascending: true });
+      .eq("is_active", true);
 
     // Apply filters - handle special cases
     Object.keys(filter).forEach((key) => {
@@ -2950,13 +2953,18 @@ export default function TransaksiKeuanganForm() {
         // Use ilike for account_type to handle case variations
         query = query.ilike(key, `%${filter[key]}%`);
       } else if (key === "account_code") {
-        // Use ilike for account_code to handle variations (spaces, case)
-        console.log("🔍 Searching account_code with ilike:", filter[key]);
-        query = query.ilike(key, `%${filter[key]}%`);
+        // Use exact match for account_code
+        console.log("🔍 Searching account_code with exact match:", filter[key]);
+        query = query.eq(key, filter[key]);
       } else {
         query = query.eq(key, filter[key]);
       }
     });
+
+    // Apply limit and order only for non-exact-match queries
+    if (!filter.account_code) {
+      query = query.limit(1).order("account_code", { ascending: true });
+    }
 
     const { data, error: supabaseError } = await query.maybeSingle();
 
