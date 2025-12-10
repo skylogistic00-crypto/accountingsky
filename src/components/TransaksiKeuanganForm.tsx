@@ -3670,7 +3670,12 @@ export default function TransaksiKeuanganForm() {
           .from("cash_disbursement")
           .insert({
             transaction_date: previewTanggal,
-            payee_name: namaPengeluaran || supplier || customer || null,
+            payee_name:
+              namaPengeluaran ||
+              namaKaryawanPengeluaran ||
+              supplier ||
+              customer ||
+              null,
             description: previewMemo,
             category: kategori,
             amount: nominal,
@@ -4072,7 +4077,7 @@ export default function TransaksiKeuanganForm() {
     setSelectedKas("");
     setStockInfo(null);
     setJenisPembayaranPengeluaran("Cash");
-    setnamaPengeluaran("");
+    setNamaPengeluaran("");
     setSearchEmployeePengeluaran("");
     setOpenEmployeePengeluaranCombobox(false);
     setSelectedAccountType("");
@@ -4475,6 +4480,7 @@ export default function TransaksiKeuanganForm() {
                 transaction_date: journalData.tanggal,
                 payee_name:
                   item.namaPengeluaran ||
+                  item.namaKaryawanPengeluaran ||
                   item.supplier ||
                   item.customer ||
                   "Pengeluaran Kas",
@@ -8522,6 +8528,7 @@ export default function TransaksiKeuanganForm() {
                               className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => {
                                 setNamaPengeluaranSearch(u.full_name);
+                                setNamaPengeluaran(u.full_name);
                                 setNamaPengeluaranPopoverOpen(false);
                               }}
                             >
@@ -10730,7 +10737,7 @@ export default function TransaksiKeuanganForm() {
                                 key={emp.id}
                                 className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                                 onClick={() => {
-                                  namaPengeluaran(emp.full_name);
+                                  setNamaPengeluaran(emp.full_name);
                                   setOpenEmployeePengeluaranCombobox(false);
                                   setSearchEmployeePengeluaran("");
                                 }}
