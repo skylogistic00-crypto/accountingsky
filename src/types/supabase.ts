@@ -233,7 +233,7 @@ export type Database = {
             foreignKeyName: "ai_learning_data_suggested_account_id_fkey"
             columns: ["suggested_account_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
@@ -254,7 +254,7 @@ export type Database = {
             foreignKeyName: "ai_learning_data_user_selected_account_id_fkey"
             columns: ["user_selected_account_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
         ]
@@ -1504,10 +1504,13 @@ export type Database = {
           approved_by: string | null
           attachment_url: string | null
           bank_account: string | null
+          bank_account_id: string | null
           bukti: string | null
+          cash_account_id: string | null
           category: string | null
-          coa_cash_code: string | null
-          coa_expense_code: string | null
+          coa_cash_account_code: string | null
+          coa_cash_id: string | null
+          coa_expense_id: string | null
           coa_id: string | null
           cost_center_id: string | null
           created_at: string | null
@@ -1542,10 +1545,13 @@ export type Database = {
           approved_by?: string | null
           attachment_url?: string | null
           bank_account?: string | null
+          bank_account_id?: string | null
           bukti?: string | null
+          cash_account_id?: string | null
           category?: string | null
-          coa_cash_code?: string | null
-          coa_expense_code?: string | null
+          coa_cash_account_code?: string | null
+          coa_cash_id?: string | null
+          coa_expense_id?: string | null
           coa_id?: string | null
           cost_center_id?: string | null
           created_at?: string | null
@@ -1580,10 +1586,13 @@ export type Database = {
           approved_by?: string | null
           attachment_url?: string | null
           bank_account?: string | null
+          bank_account_id?: string | null
           bukti?: string | null
+          cash_account_id?: string | null
           category?: string | null
-          coa_cash_code?: string | null
-          coa_expense_code?: string | null
+          coa_cash_account_code?: string | null
+          coa_cash_id?: string | null
+          coa_expense_id?: string | null
           coa_id?: string | null
           cost_center_id?: string | null
           created_at?: string | null
@@ -1609,7 +1618,22 @@ export type Database = {
           transaction_date?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_cd_coa_cash"
+            columns: ["coa_cash_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts_backup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_cd_coa_expense"
+            columns: ["coa_expense_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts_backup"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cash_receipts_payments: {
         Row: {
@@ -1670,6 +1694,68 @@ export type Database = {
       }
       chart_of_accounts: {
         Row: {
+          account_code: string
+          account_name: string
+          account_type: string
+          created_at: string | null
+          description: string | null
+          entity_id: string | null
+          id: string
+          is_active: boolean | null
+          is_header: boolean | null
+          level: number
+          normal_balance: string | null
+          parent_code: string | null
+          parent_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          account_type: string
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_header?: boolean | null
+          level?: number
+          normal_balance?: string | null
+          parent_code?: string | null
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          account_type?: string
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_header?: boolean | null
+          level?: number
+          normal_balance?: string | null
+          parent_code?: string | null
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_coa_parent_id"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chart_of_accounts_backup: {
+        Row: {
           account_code: string | null
           account_name: string | null
           account_type: string
@@ -1686,6 +1772,7 @@ export type Database = {
           kategori_layanan: string | null
           level: number | null
           normal_balance: string | null
+          parent_code: string | null
           parent_id: string | null
           trans_type: string | null
           updated_at: string | null
@@ -1708,6 +1795,7 @@ export type Database = {
           kategori_layanan?: string | null
           level?: number | null
           normal_balance?: string | null
+          parent_code?: string | null
           parent_id?: string | null
           trans_type?: string | null
           updated_at?: string | null
@@ -1724,77 +1812,6 @@ export type Database = {
           description?: string | null
           flow_type?: string | null
           id?: string
-          is_active?: boolean | null
-          is_header?: boolean | null
-          jenis_layanan?: string | null
-          kategori_layanan?: string | null
-          level?: number | null
-          normal_balance?: string | null
-          parent_id?: string | null
-          trans_type?: string | null
-          updated_at?: string | null
-          usage_role?: string | null
-        }
-        Relationships: []
-      }
-      chart_of_accounts_backup: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          account_type: string | null
-          balance: number | null
-          created_at: string | null
-          created_by: string | null
-          current_balance: number | null
-          description: string | null
-          flow_type: string | null
-          id: string | null
-          is_active: boolean | null
-          is_header: boolean | null
-          jenis_layanan: string | null
-          kategori_layanan: string | null
-          level: number | null
-          normal_balance: string | null
-          parent_code: string | null
-          parent_id: string | null
-          trans_type: string | null
-          updated_at: string | null
-          usage_role: string | null
-        }
-        Insert: {
-          account_code?: string | null
-          account_name?: string | null
-          account_type?: string | null
-          balance?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          current_balance?: number | null
-          description?: string | null
-          flow_type?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          is_header?: boolean | null
-          jenis_layanan?: string | null
-          kategori_layanan?: string | null
-          level?: number | null
-          normal_balance?: string | null
-          parent_code?: string | null
-          parent_id?: string | null
-          trans_type?: string | null
-          updated_at?: string | null
-          usage_role?: string | null
-        }
-        Update: {
-          account_code?: string | null
-          account_name?: string | null
-          account_type?: string | null
-          balance?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          current_balance?: number | null
-          description?: string | null
-          flow_type?: string | null
-          id?: string | null
           is_active?: boolean | null
           is_header?: boolean | null
           jenis_layanan?: string | null
@@ -3897,6 +3914,7 @@ export type Database = {
       }
       finance_transaction_breakdown: {
         Row: {
+          account_code: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -3908,6 +3926,7 @@ export type Database = {
           transaction_id: string | null
         }
         Insert: {
+          account_code?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -3919,6 +3938,7 @@ export type Database = {
           transaction_id?: string | null
         }
         Update: {
+          account_code?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -3979,7 +3999,11 @@ export type Database = {
       }
       finance_transactions: {
         Row: {
+          account_code: string | null
+          account_id: string | null
+          account_name: string | null
           amount: number | null
+          bukti_url: string | null
           category: string | null
           created_at: string | null
           created_by: string | null
@@ -3987,8 +4011,10 @@ export type Database = {
           description: string | null
           employee_id: string | null
           employee_name: string | null
+          entity_id: string | null
           file_url: string | null
           id: string
+          journal_ref: string | null
           merchant: string | null
           ocr_data: Json | null
           ocr_date: string | null
@@ -3997,13 +4023,20 @@ export type Database = {
           ocr_raw: Json | null
           ocr_raw_json: Json | null
           ocr_total: number | null
+          payment_method: string | null
           ppn: number | null
           status: string | null
           total: number | null
+          transaction_date: string | null
+          transaction_type: string | null
           updated_at: string | null
         }
         Insert: {
+          account_code?: string | null
+          account_id?: string | null
+          account_name?: string | null
           amount?: number | null
+          bukti_url?: string | null
           category?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -4011,8 +4044,10 @@ export type Database = {
           description?: string | null
           employee_id?: string | null
           employee_name?: string | null
+          entity_id?: string | null
           file_url?: string | null
           id?: string
+          journal_ref?: string | null
           merchant?: string | null
           ocr_data?: Json | null
           ocr_date?: string | null
@@ -4021,13 +4056,20 @@ export type Database = {
           ocr_raw?: Json | null
           ocr_raw_json?: Json | null
           ocr_total?: number | null
+          payment_method?: string | null
           ppn?: number | null
           status?: string | null
           total?: number | null
+          transaction_date?: string | null
+          transaction_type?: string | null
           updated_at?: string | null
         }
         Update: {
+          account_code?: string | null
+          account_id?: string | null
+          account_name?: string | null
           amount?: number | null
+          bukti_url?: string | null
           category?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -4035,8 +4077,10 @@ export type Database = {
           description?: string | null
           employee_id?: string | null
           employee_name?: string | null
+          entity_id?: string | null
           file_url?: string | null
           id?: string
+          journal_ref?: string | null
           merchant?: string | null
           ocr_data?: Json | null
           ocr_date?: string | null
@@ -4045,9 +4089,12 @@ export type Database = {
           ocr_raw?: Json | null
           ocr_raw_json?: Json | null
           ocr_total?: number | null
+          payment_method?: string | null
           ppn?: number | null
           status?: string | null
           total?: number | null
+          transaction_date?: string | null
+          transaction_type?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -4251,6 +4298,13 @@ export type Database = {
             foreignKeyName: "fk_gl_journal"
             columns: ["journal_id"]
             isOneToOne: false
+            referencedRelation: "view_general_ledger"
+            referencedColumns: ["journal_id"]
+          },
+          {
+            foreignKeyName: "fk_gl_journal"
+            columns: ["journal_id"]
+            isOneToOne: false
             referencedRelation: "vw_cash_flow_report"
             referencedColumns: ["journal_entry_id"]
           },
@@ -4265,7 +4319,7 @@ export type Database = {
             foreignKeyName: "general_ledger_account_code_fkey"
             columns: ["account_code"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["account_code"]
           },
           {
@@ -4274,6 +4328,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "general_ledger_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "view_general_ledger"
+            referencedColumns: ["journal_id"]
           },
           {
             foreignKeyName: "general_ledger_journal_entry_id_fkey"
@@ -4797,6 +4858,7 @@ export type Database = {
           debit: number | null
           debit_account: string | null
           description: string | null
+          disbursement_id: string | null
           entry_date: string | null
           entry_type: string | null
           handled_by_user_id: string | null
@@ -4807,10 +4869,13 @@ export type Database = {
           journal_number: string | null
           journal_ref: string | null
           kategori: string | null
+          keterangan: string | null
           license_plate: string | null
           make: string | null
+          memo: string | null
           model: string | null
           nama: string | null
+          note: string | null
           payee_name: string | null
           payer_name: string | null
           posting_date: string | null
@@ -4851,6 +4916,7 @@ export type Database = {
           debit?: number | null
           debit_account?: string | null
           description?: string | null
+          disbursement_id?: string | null
           entry_date?: string | null
           entry_type?: string | null
           handled_by_user_id?: string | null
@@ -4861,10 +4927,13 @@ export type Database = {
           journal_number?: string | null
           journal_ref?: string | null
           kategori?: string | null
+          keterangan?: string | null
           license_plate?: string | null
           make?: string | null
+          memo?: string | null
           model?: string | null
           nama?: string | null
+          note?: string | null
           payee_name?: string | null
           payer_name?: string | null
           posting_date?: string | null
@@ -4905,6 +4974,7 @@ export type Database = {
           debit?: number | null
           debit_account?: string | null
           description?: string | null
+          disbursement_id?: string | null
           entry_date?: string | null
           entry_type?: string | null
           handled_by_user_id?: string | null
@@ -4915,10 +4985,13 @@ export type Database = {
           journal_number?: string | null
           journal_ref?: string | null
           kategori?: string | null
+          keterangan?: string | null
           license_plate?: string | null
           make?: string | null
+          memo?: string | null
           model?: string | null
           nama?: string | null
+          note?: string | null
           payee_name?: string | null
           payer_name?: string | null
           posting_date?: string | null
@@ -4948,7 +5021,7 @@ export type Database = {
             foreignKeyName: "fk_journal_entries_account"
             columns: ["account_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
@@ -5017,6 +5090,13 @@ export type Database = {
             foreignKeyName: "journal_entry_items_journal_entry_id_fkey"
             columns: ["journal_entry_id"]
             isOneToOne: false
+            referencedRelation: "view_general_ledger"
+            referencedColumns: ["journal_id"]
+          },
+          {
+            foreignKeyName: "journal_entry_items_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
             referencedRelation: "vw_cash_flow_report"
             referencedColumns: ["journal_entry_id"]
           },
@@ -5073,6 +5153,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "view_general_ledger"
+            referencedColumns: ["journal_id"]
           },
           {
             foreignKeyName: "journal_entry_lines_journal_id_fkey"
@@ -7216,21 +7303,21 @@ export type Database = {
             foreignKeyName: "service_items_coa_cogs_id_fkey"
             columns: ["coa_cogs_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "service_items_coa_expense_id_fkey"
             columns: ["coa_expense_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "service_items_coa_sales_id_fkey"
             columns: ["coa_sales_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
         ]
@@ -7789,21 +7876,21 @@ export type Database = {
             foreignKeyName: "stock_cogs_account_id_fkey"
             columns: ["cogs_account_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stock_expense_account_id_fkey"
             columns: ["expense_account_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stock_inventory_account_id_fkey"
             columns: ["inventory_account_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
@@ -7824,7 +7911,7 @@ export type Database = {
             foreignKeyName: "stock_sales_account_id_fkey"
             columns: ["sales_account_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
@@ -8893,7 +8980,7 @@ export type Database = {
             foreignKeyName: "transaction_lines_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
@@ -9034,14 +9121,14 @@ export type Database = {
             foreignKeyName: "fk_credit_coa"
             columns: ["credit_account_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_debit_coa"
             columns: ["debit_account_id"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts"
+            referencedRelation: "chart_of_accounts_backup"
             referencedColumns: ["id"]
           },
           {
@@ -9083,69 +9170,6 @@ export type Database = {
           period_start?: string
           total_credit?: number
           total_debit?: number
-        }
-        Relationships: []
-      }
-      trial_balance_backup: {
-        Row: {
-          account_code: string | null
-          account_name: string | null
-          balance: number | null
-          closing_balance: number | null
-          created_at: string | null
-          credit: number | null
-          credit_balance: number | null
-          debit: number | null
-          debit_balance: number | null
-          id: string | null
-          net_balance: number | null
-          opening_balance: number | null
-          period: string | null
-          period_end: string | null
-          period_start: string | null
-          total_credit: number | null
-          total_debit: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          account_code?: string | null
-          account_name?: string | null
-          balance?: number | null
-          closing_balance?: number | null
-          created_at?: string | null
-          credit?: number | null
-          credit_balance?: number | null
-          debit?: number | null
-          debit_balance?: number | null
-          id?: string | null
-          net_balance?: number | null
-          opening_balance?: number | null
-          period?: string | null
-          period_end?: string | null
-          period_start?: string | null
-          total_credit?: number | null
-          total_debit?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          account_code?: string | null
-          account_name?: string | null
-          balance?: number | null
-          closing_balance?: number | null
-          created_at?: string | null
-          credit?: number | null
-          credit_balance?: number | null
-          debit?: number | null
-          debit_balance?: number | null
-          id?: string | null
-          net_balance?: number | null
-          opening_balance?: number | null
-          period?: string | null
-          period_end?: string | null
-          period_start?: string | null
-          total_credit?: number | null
-          total_debit?: number | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -10114,6 +10138,78 @@ export type Database = {
       }
     }
     Views: {
+      cash_disbursement_with_account_name: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          amount: number | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          attachment_url: string | null
+          bank_account: string | null
+          bank_account_id: string | null
+          bukti: string | null
+          cash_account_id: string | null
+          cash_account_name: string | null
+          category: string | null
+          coa_cash_id: string | null
+          coa_expense_id: string | null
+          coa_id: string | null
+          cost_center_id: string | null
+          created_at: string | null
+          created_by: string | null
+          currency_code: string | null
+          description: string | null
+          document_number: string | null
+          evidence_url: string | null
+          exchange_rate: number | null
+          expense_account_name: string | null
+          id: string | null
+          journal_ref: string | null
+          normalized_amount: number | null
+          notes: string | null
+          ocr_data: Json | null
+          ocr_id: string | null
+          payee_name: string | null
+          payment_method: string | null
+          rejection_reason: string | null
+          status: string | null
+          tax_amount: number | null
+          tax_code: string | null
+          tax_type: string | null
+          transaction_date: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_cd_coa_cash"
+            columns: ["coa_cash_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts_backup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_cd_coa_expense"
+            columns: ["coa_expense_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts_backup"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      view_general_ledger: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          credit: number | null
+          date: string | null
+          debit: number | null
+          journal_id: string | null
+          reference: string | null
+        }
+        Relationships: []
+      }
       vw_all_financial_transactions: {
         Row: {
           approval_status: string | null
@@ -10652,6 +10748,10 @@ export type Database = {
       generate_advance_number: { Args: never; Returns: string }
       generate_booking_reference: { Args: never; Returns: string }
       generate_contract_number: { Args: never; Returns: string }
+      generate_journal: {
+        Args: { disbursement_id: string }
+        Returns: undefined
+      }
       generate_journal_number: { Args: never; Returns: string }
       generate_kas_document_number: { Args: never; Returns: string }
       generate_laba_rugi: {
@@ -10954,7 +11054,10 @@ export type Database = {
           amount: number
         }[]
       }
-      insert_journal_entries: { Args: { entries: Json }; Returns: undefined }
+      insert_journal_entries_disabled: {
+        Args: { entries: Json }
+        Returns: undefined
+      }
       kas_autonumber: { Args: never; Returns: string }
       match_bank_statement: { Args: { p_id: string }; Returns: Json }
       match_documents: {
@@ -10997,6 +11100,7 @@ export type Database = {
         Args: { p_disbursement_id: string }
         Returns: string
       }
+      post_journal_cash_disbursement: { Args: { p_id: string }; Returns: Json }
       post_journal_to_general_ledger: {
         Args: { p_journal_id: string }
         Returns: undefined

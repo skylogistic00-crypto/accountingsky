@@ -2973,9 +2973,9 @@ export default function TransaksiKeuanganForm() {
         normalizedPayment === "bank" || normalizedPayment === "transfer bank";
 
       const hasBank =
-        (normalizedInput.selectedBank && 
-         typeof normalizedInput.selectedBank === 'string' && 
-         normalizedInput.selectedBank.trim() !== "") ||
+        (normalizedInput.selectedBank &&
+          typeof normalizedInput.selectedBank === "string" &&
+          normalizedInput.selectedBank.trim() !== "") ||
         normalizedInput.bank_account ||
         normalizedInput.bank_account_id ||
         normalizedInput.coa_cash_id;
@@ -3003,7 +3003,9 @@ export default function TransaksiKeuanganForm() {
       });
 
       if (isPengeluaranType && isTransferBank && !hasBank) {
-        console.error("❌ VALIDATION FAILED: Bank account required but not found");
+        console.error(
+          "❌ VALIDATION FAILED: Bank account required but not found",
+        );
         throw {
           message:
             "Metode pembayaran Bank dipilih, namun akun bank belum dipilih. Silakan pilih akun bank terlebih dahulu.",
@@ -3858,9 +3860,13 @@ export default function TransaksiKeuanganForm() {
 
             // Legacy fields (only valid schema fields, truncated to avoid DB length issues)
             account_code:
-              (coaExpenseAccountCode || expenseLine?.account_code || null)?.toString().slice(0, 20) || null,
+              (coaExpenseAccountCode || expenseLine?.account_code || null)
+                ?.toString()
+                .slice(0, 20) || null,
             account_name:
-              (coaExpenseAccountName || expenseLine?.account_name || null)?.toString().slice(0, 20) || null,
+              (coaExpenseAccountName || expenseLine?.account_name || null)
+                ?.toString()
+                .slice(0, 20) || null,
 
             // REQUIRED FIXES
             exchange_rate: 1, // wajib > 0
@@ -3871,7 +3877,7 @@ export default function TransaksiKeuanganForm() {
             created_by: user?.id,
 
             // Additional fields
-            document_number: noDokumen || null,
+            document_number: data?.[0]?.id?.substring(0, 8) || null,
             notes: description,
             bukti: uploadedBuktiUrl || null,
             ocr_data: ocrDataPayload,
@@ -3882,6 +3888,15 @@ export default function TransaksiKeuanganForm() {
         if (error) {
           console.error("❌ Cash Disbursement Insert Error:", error);
           throw new Error(`Cash Disbursement: ${error.message}`);
+        }
+
+        // Update document_number with ID after insert
+        if (data?.[0]?.id) {
+          const docNumber = data[0].id.substring(0, 8);
+          await supabase
+            .from("cash_disbursement")
+            .update({ document_number: docNumber })
+            .eq("id", data[0].id);
         }
 
         console.log("✅ ROUTER: Cash disbursement saved successfully:", data);
@@ -4419,6 +4434,7 @@ export default function TransaksiKeuanganForm() {
   };
 
   // Checkout all items in cart
+  console.log("🔥🔥 CHECKOUT EXECUTED AT:", new Date().toISOString());
   const handleCheckoutCart = async () => {
     const selectedItems = cart.filter((item) => item.selected);
 
@@ -4759,18 +4775,22 @@ export default function TransaksiKeuanganForm() {
                 coa_expense_id: batchCoaExpenseId,
 
                 // Legacy fields (only valid schema fields, truncated to avoid DB length issues)
-                account_code:
-                  (batchCoaExpenseAccountCode ||
-                    expenseLine?.account_code ||
-                    "6-1100")
-                    ?.toString()
-                    .slice(0, 20),
-                account_name:
-                  (batchCoaExpenseAccountName || expenseLine?.account_name || "")
-                    ?.toString()
-                    .slice(0, 20),
+                account_code: (
+                  batchCoaExpenseAccountCode ||
+                  expenseLine?.account_code ||
+                  "6-1100"
+                )
+                  ?.toString()
+                  .slice(0, 20),
+                account_name: (
+                  batchCoaExpenseAccountName ||
+                  expenseLine?.account_name ||
+                  ""
+                )
+                  ?.toString()
+                  .slice(0, 20),
 
-                document_number: item.noDokumen || null,
+                document_number: null,
                 notes: item.description,
                 created_by: user?.id,
                 approval_status: "waiting_approval",
@@ -4787,6 +4807,24 @@ export default function TransaksiKeuanganForm() {
               })
               .select();
 
+          if (cashDisbursementError) {
+            console.error(
+              "❌ Cash Disbursement Insert Error:",
+              cashDisbursementError,
+            );
+            throw new Error(
+              `Cash Disbursement: ${cashDisbursementError.message}`,
+            );
+          }
+
+          // Update document_number with ID after insert
+          if (cashDisbursementData?.[0]?.id) {
+            const docNumber = cashDisbursementData[0].id.substring(0, 8);
+            await supabase
+              .from("cash_disbursement")
+              .update({ document_number: docNumber })
+              .eq("id", cashDisbursementData[0].id);
+          }
           if (cashDisbursementError) {
             console.error(
               "❌ Error saving to cash_disbursement:",
@@ -8490,11 +8528,16 @@ export default function TransaksiKeuanganForm() {
                       <div className="max-h-64 overflow-auto">
                         {coa
                           .filter(
-                            (acc) =>
-                              acc.account_type === "revenue" &&
-                              `${acc.account_code} ${acc.description || acc.account_name}`
+                            (acc) => {
+                              // Filter level 3 accounts that belong to revenue hierarchy (4-0000)
+                              const isLevel3 = acc.level === 3;
+                              const belongsToRevenue = acc.account_code?.startsWith('4-');
+                              const matchesSearch = `${acc.account_code} ${acc.description || acc.account_name}`
                                 .toLowerCase()
-                                .includes(bankSearch.toLowerCase()),
+                                .includes(bankSearch.toLowerCase());
+                              
+                              return isLevel3 && belongsToRevenue && matchesSearch;
+                            }
                           )
                           .map((acc) => (
                             <div

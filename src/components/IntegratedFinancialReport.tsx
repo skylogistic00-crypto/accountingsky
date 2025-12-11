@@ -33,6 +33,8 @@ import {
   Search,
   ArrowLeft,
   FileText,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -61,6 +63,23 @@ interface JournalEntry {
   credit_account_name?: string;
 }
 
+interface COAAccount {
+  id: string;
+  account_code: string;
+  account_name: string;
+  level: number;
+  parent_code: string | null;
+  account_type: string;
+}
+
+interface GLTransaction {
+  date: string;
+  description: string;
+  debit: number;
+  credit: number;
+  entry_id: string;
+}
+
 export default function IntegratedFinancialReport() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -68,6 +87,9 @@ export default function IntegratedFinancialReport() {
   const [filteredData, setFilteredData] = useState<FinancialReportData[]>([]);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [loadingJournal, setLoadingJournal] = useState(false);
+  const [coaAccounts, setCOAAccounts] = useState<COAAccount[]>([]);
+  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+  const [loadingGL, setLoadingGL] = useState(false);
 
   const [reportType, setReportType] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,6 +98,7 @@ export default function IntegratedFinancialReport() {
   useEffect(() => {
     fetchReportData();
     fetchJournalEntries();
+    fetchCOAAccounts();
   }, []);
 
   useEffect(() => {
@@ -315,6 +338,172 @@ export default function IntegratedFinancialReport() {
     } finally {
       setLoadingJournal(false);
     }
+  };
+
+  const fetchCOAAccounts = async () => {
+    setLoadingGL(true);
+    try {
+      const { data, error } = await supabase
+        .from("chart_of_accounts")
+        .select("id, account_code, account_name, level, parent_code, account_type")
+        .order("account_code", { ascending: true });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: `Gagal memuat COA: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("COA Accounts loaded:", data);
+      console.log("Level 1 accounts:", data?.filter(acc => acc.level === 1));
+      setCOAAccounts(data || []);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Terjadi kesalahan saat memuat COA",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingGL(false);
+    }
+  };
+
+  const toggleAccount = (accountCode: string) => {
+    const newExpanded = new Set(expandedAccounts);
+    if (newExpanded.has(accountCode)) {
+      newExpanded.delete(accountCode);
+    } else {
+      newExpanded.add(accountCode);
+    }
+    setExpandedAccounts(newExpanded);
+  };
+
+  const getChildAccounts = (parentCode: string | null, level: number) => {
+    console.log(`Looking for children of ${parentCode} at level ${level}`);
+    const children = coaAccounts.filter(
+      (acc) => {
+        const matches = acc.parent_code === parentCode && acc.level === level;
+        if (matches) {
+          console.log(`Found child: ${acc.account_code} - ${acc.account_name}`);
+        }
+        return matches;
+      }
+    );
+    console.log(`Total children found: ${children.length}`);
+    return children;
+  };
+
+  const getTransactionsForAccount = (accountCode: string): GLTransaction[] => {
+    const transactions: GLTransaction[] = [];
+
+    journalEntries.forEach((entry) => {
+      if (entry.debit_account === accountCode) {
+        transactions.push({
+          date: entry.entry_date,
+          description: entry.description || entry.entry_number,
+          debit: entry.debit,
+          credit: 0,
+          entry_id: entry.id,
+        });
+      }
+      if (entry.credit_account === accountCode) {
+        transactions.push({
+          date: entry.entry_date,
+          description: entry.description || entry.entry_number,
+          debit: 0,
+          credit: entry.credit,
+          entry_id: entry.id,
+        });
+      }
+    });
+
+    return transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  };
+
+  const renderGLAccount = (account: COAAccount, level: number) => {
+    const childAccounts = getChildAccounts(account.account_code, level + 1);
+    const hasChildren = childAccounts.length > 0;
+    const isExpanded = expandedAccounts.has(account.account_code);
+    const transactions = level === 3 ? getTransactionsForAccount(account.account_code) : [];
+    const totalDebit = transactions.reduce((sum, t) => sum + t.debit, 0);
+    const totalCredit = transactions.reduce((sum, t) => sum + t.credit, 0);
+
+    return (
+      <div key={account.id}>
+        <div
+          className={`flex items-center py-2 px-4 hover:bg-gray-50 cursor-pointer border-b ${
+            level === 1 ? "bg-blue-50 font-bold" : level === 2 ? "bg-gray-50 font-semibold" : ""
+          }`}
+          style={{ paddingLeft: `${level * 20}px` }}
+          onClick={() => hasChildren && toggleAccount(account.account_code)}
+        >
+          {hasChildren && (
+            <span className="mr-2">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </span>
+          )}
+          {!hasChildren && <span className="mr-2 w-4"></span>}
+          <span className="font-mono mr-4">{account.account_code}</span>
+          <span className="flex-1">{account.account_name}</span>
+          {level === 3 && transactions.length > 0 && (
+            <>
+              <span className="font-mono text-right w-32 mr-4">
+                {formatRupiah(totalDebit)}
+              </span>
+              <span className="font-mono text-right w-32">
+                {formatRupiah(totalCredit)}
+              </span>
+            </>
+          )}
+        </div>
+
+        {level === 3 && isExpanded && transactions.length > 0 && (
+          <div className="bg-gray-50 border-b">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-100">
+                  <TableHead className="w-32">Tanggal</TableHead>
+                  <TableHead>Deskripsi</TableHead>
+                  <TableHead className="text-right w-32">Debit</TableHead>
+                  <TableHead className="text-right w-32">Kredit</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((trans, idx) => (
+                  <TableRow key={`${trans.entry_id}-${idx}`}>
+                    <TableCell className="font-mono text-sm">
+                      {new Date(trans.date).toLocaleDateString("id-ID")}
+                    </TableCell>
+                    <TableCell className="text-sm">{trans.description}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {trans.debit > 0 ? formatRupiah(trans.debit) : "-"}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {trans.credit > 0 ? formatRupiah(trans.credit) : "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {isExpanded && hasChildren && (
+          <div>
+            {childAccounts.map((child) =>
+              renderGLAccount(child, level + 1)
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const formatRupiah = (amount: number) => {
@@ -632,7 +821,7 @@ export default function IntegratedFinancialReport() {
                             </TableCell>
                           </TableRow>
                           <TableRow key={`${entry.id}-credit`}>
-                            <TableCell className="font-mono">
+                            <TableCell className="font-mono pl-8">
                               {entry.credit_account}
                             </TableCell>
                             <TableCell>
@@ -674,6 +863,44 @@ export default function IntegratedFinancialReport() {
                   </TableBody>
                 </Table>
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* General Ledger (Buku Besar) */}
+      <Card className="max-w-7xl mx-auto rounded-2xl shadow-md mt-6">
+        <CardHeader className="p-4">
+          <CardTitle className="text-2xl">General Ledger (Buku Besar)</CardTitle>
+          <CardDescription>
+            Struktur Akun Berdasarkan COA dengan Transaksi per Akun
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
+          {loadingGL ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-gray-100 flex items-center py-2 px-4 font-bold border-b">
+                <span className="mr-2 w-4"></span>
+                <span className="font-mono mr-4 w-32">Kode Akun</span>
+                <span className="flex-1">Nama Akun</span>
+                <span className="text-right w-32 mr-4">Total Debit</span>
+                <span className="text-right w-32">Total Kredit</span>
+              </div>
+              {coaAccounts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Tidak ada data COA
+                </div>
+              ) : (
+                <div>
+                  {coaAccounts.filter(acc => acc.level === 1).map((account) =>
+                    renderGLAccount(account, 1)
+                  )}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

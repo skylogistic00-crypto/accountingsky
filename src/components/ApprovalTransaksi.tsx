@@ -573,7 +573,7 @@ export default function ApprovalTransaksi({
                             )}
                           </TableCell>
                           <TableCell className="font-mono text-sm">
-                            {transaction.journal_ref || "-"}
+                            {transaction.document_number || "-"}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -615,6 +615,7 @@ export default function ApprovalTransaksi({
                             {transaction.coa_cash_code ||
                               transaction.coa_expense_code ||
                               transaction.account_number ||
+                              transaction.account_name ||
                               "-"}
                           </TableCell>
                           <TableCell>
