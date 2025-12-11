@@ -4551,8 +4551,7 @@ export default function TransaksiKeuanganForm() {
         const journalRef = `JRN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
         // Step 4: Create Journal Entries (skip if needs approval)
-        {
-          /*     const mainDebitLine = journalData.lines.find((l) => l.dc === "D");
+        const mainDebitLine = journalData.lines.find((l) => l.dc === "D");
         const mainCreditLine = journalData.lines.find((l) => l.dc === "C");
 
         if (!needsApproval && mainDebitLine && mainCreditLine) {
@@ -4577,12 +4576,9 @@ export default function TransaksiKeuanganForm() {
           });
 
           if (error) throw new Error(`Journal Entry: ${error.message}`);
-        } */
         }
 
         // Step 5: Save HPP entry if exists (for Penjualan) - skip if needs approval
-        {
-          /*
         if (!needsApproval && journalData.lines.length > 2) {
           const hppDebitLine = journalData.lines[2];
           const hppCreditLine = journalData.lines[3];
@@ -4608,8 +4604,6 @@ export default function TransaksiKeuanganForm() {
           });
 
           if (error) throw new Error(`HPP Entry: ${error.message}`);
-        }
-        */
         }
 
         // Step 6: Create Cash Book if needed - skip if needs approval

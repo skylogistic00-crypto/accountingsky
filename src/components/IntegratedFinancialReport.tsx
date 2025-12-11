@@ -129,21 +129,10 @@ export default function IntegratedFinancialReport() {
         coaData?.map((coa) => [coa.account_code, coa]) || [],
       );
 
-      // Fetch from general_ledger with chart_of_accounts join
+      // Fetch from general_ledger without relying on Supabase relationship
       const { data, error } = await supabase
         .from("general_ledger")
-        .select(
-          `
-          *,
-          chart_of_accounts!general_ledger_account_code_fkey (
-            account_name,
-            account_type,
-            parent_id,
-            level,
-            is_header
-          )
-        `,
-        )
+        .select("*")
         .order("account_code", { ascending: true });
 
       if (error) {
