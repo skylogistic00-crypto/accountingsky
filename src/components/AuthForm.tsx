@@ -34,18 +34,21 @@ interface AuthFormContentProps {
 /**
  * SMART MERGE UTILITY
  * Merges newData into oldData without overwriting existing non-empty values in oldData.
- * 
+ *
  * Rules:
  * 1. Jangan timpa field yang sudah terisi
  * 2. Jangan isi field dengan data kosong
  * 3. Tambahkan field baru atau isi field kosong
  * 4. CRITICAL: Jangan pernah mengosongkan nilai yang sudah berhasil diisi dari OCR sebelumnya
- * 
+ *
  * @param oldData - The original data object.
  * @param newData - The new data object to merge.
  * @returns A new object with merged data.
  */
-const smartMerge = (oldData: Record<string, any>, newData: Record<string, any>): Record<string, any> => {
+const smartMerge = (
+  oldData: Record<string, any>,
+  newData: Record<string, any>,
+): Record<string, any> => {
   const merged = { ...oldData };
   Object.keys(newData).forEach((key) => {
     const newValue = newData[key];
@@ -87,25 +90,34 @@ export function AuthFormContent({
   const [ocrScanning, setOcrScanning] = useState(false);
   const [ocrResults, setOcrResults] = useState<Record<string, any>>({});
   const [dynamicFields, setDynamicFields] = useState<any[]>([]);
-  
+
   // Metadata tracking for smart merge protection
-  const [signUpMeta, setSignUpMeta] = useState<Record<string, {
-    source: "user" | "ocr";
-    document_type: string;
-    confidence: number;
-    last_updated_at: string;
-  }>>({});
-  
+  const [signUpMeta, setSignUpMeta] = useState<
+    Record<
+      string,
+      {
+        source: "user" | "ocr";
+        document_type: string;
+        confidence: number;
+        last_updated_at: string;
+      }
+    >
+  >({});
+
   // Workflow suggestions based on scanned documents
-  const [workflowSuggestions, setWorkflowSuggestions] = useState<{
-    type: string;
-    label: string;
-    document_types_required: string[];
-    icon?: string;
-  }[]>([]);
-  
+  const [workflowSuggestions, setWorkflowSuggestions] = useState<
+    {
+      type: string;
+      label: string;
+      document_types_required: string[];
+      icon?: string;
+    }[]
+  >([]);
+
   // Track scanned document types
-  const [scannedDocTypes, setScannedDocTypes] = useState<Set<string>>(new Set());
+  const [scannedDocTypes, setScannedDocTypes] = useState<Set<string>>(
+    new Set(),
+  );
 
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({
@@ -202,11 +214,18 @@ export function AuthFormContent({
     setOcrScanning(true);
     try {
       // Validate supported file types
-      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+      const supportedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+        "application/pdf",
+      ];
       if (!supportedTypes.includes(file.type)) {
         toast({
           title: "Format Tidak Didukung",
-          description: "Hanya file gambar (JPEG, PNG, WEBP) dan PDF yang didukung untuk OCR.",
+          description:
+            "Hanya file gambar (JPEG, PNG, WEBP) dan PDF yang didukung untuk OCR.",
           variant: "destructive",
         });
         setOcrScanning(false);
@@ -218,21 +237,26 @@ export function AuthFormContent({
       const fileName = `ocr_${Date.now()}.${fileExt}`;
 
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('fileName', fileName);
+      formData.append("file", file);
+      formData.append("fileName", fileName);
 
       // Call Edge Function with proper headers
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-upload-ocr-file`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-upload-ocr-file`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: formData,
         },
-        body: formData,
-      });
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData?.error || `Upload failed: ${response.status}`);
+        throw new Error(
+          errorData?.error || `Upload failed: ${response.status}`,
+        );
       }
 
       const uploadResult = await response.json();
@@ -244,16 +268,17 @@ export function AuthFormContent({
       const signedUrl = uploadResult.signedUrl;
 
       // Call Hybrid OCR Processor with file type
-      const { data: ocrData, error: ocrError } = await supabase.functions.invoke(
-        "supabase-functions-hybrid-ocr-processor",
-        {
-          body: { 
-            image_url: signedUrl,
-            file_type: file.type,
-            document_type_hint: documentType 
+      const { data: ocrData, error: ocrError } =
+        await supabase.functions.invoke(
+          "supabase-functions-hybrid-ocr-processor",
+          {
+            body: {
+              image_url: signedUrl,
+              file_type: file.type,
+              document_type_hint: documentType,
+            },
           },
-        }
-      );
+        );
 
       if (ocrError) {
         console.error("OCR Error:", ocrErr);
@@ -264,8 +289,14 @@ export function AuthFormContent({
         throw new Error(ocrData?.error || "OCR processing failed");
       }
 
-      const { ocr_engine, jenis_dokumen, data: structuredData, raw_text, clean_text } = ocrData;
-      
+      const {
+        ocr_engine,
+        jenis_dokumen,
+        data: structuredData,
+        raw_text,
+        clean_text,
+      } = ocrData;
+
       if (!structuredData) {
         throw new Error("No structured data returned from OCR");
       }
@@ -273,23 +304,29 @@ export function AuthFormContent({
       // ========================================
       // A. SMART OCR MERGE ENGINE
       // ========================================
-      
+
       // Determine document type for namespace
       const docTypeMap: Record<string, string> = {
-        "KTP": "ktp",
-        "KK": "kk",
-        "IJAZAH": "ijazah",
-        "SKCK": "skck",
-        "CV": "cv"
+        KTP: "ktp",
+        KK: "kk",
+        IJAZAH: "ijazah",
+        SKCK: "skck",
+        CV: "cv",
       };
       const docTypeForMerge = docTypeMap[jenis_dokumen] || null;
-      
+
       // Skip keys - technical fields that should not be processed
       const skipKeys = [
-        "jenis_dokumen", "raw_text", "clean_text", "ocr_engine", 
-        "id", "created_at", "updated_at", "debug_notes"
+        "jenis_dokumen",
+        "raw_text",
+        "clean_text",
+        "ocr_engine",
+        "id",
+        "created_at",
+        "updated_at",
+        "debug_notes",
       ];
-      
+
       // Filter out skip keys from OCR data
       const cleanedOcrData: Record<string, any> = {};
       Object.entries(structuredData).forEach(([key, value]) => {
@@ -297,12 +334,12 @@ export function AuthFormContent({
           cleanedOcrData[key] = value;
         }
       });
-      
+
       // Build complete update object for signUpData using SMART MERGE
       const updatedSignUpData: Record<string, any> = { ...signUpData };
       const newDynamicFields: any[] = [];
       const existingFormFields = Object.keys(signUpData);
-      
+
       // ========================================
       // NAMESPACE STORAGE: Store document-specific data in details[document_type]
       // ========================================
@@ -310,84 +347,107 @@ export function AuthFormContent({
       if (!updatedSignUpData.details) {
         updatedSignUpData.details = {};
       }
-      
+
       // Store full OCR data in namespace based on document type
       if (docTypeForMerge) {
         // Initialize namespace if not exists
         if (!updatedSignUpData.details[docTypeForMerge]) {
           updatedSignUpData.details[docTypeForMerge] = {};
         }
-        
+
         // Store all cleaned OCR data in the namespace
         Object.entries(cleanedOcrData).forEach(([key, value]) => {
           if (value !== null && value !== undefined && value !== "") {
             // Only add if not already exists in namespace
-            if (!updatedSignUpData.details[docTypeForMerge][key] ||
-                updatedSignUpData.details[docTypeForMerge][key] === "" ||
-                updatedSignUpData.details[docTypeForMerge][key] === null) {
+            if (
+              !updatedSignUpData.details[docTypeForMerge][key] ||
+              updatedSignUpData.details[docTypeForMerge][key] === "" ||
+              updatedSignUpData.details[docTypeForMerge][key] === null
+            ) {
               updatedSignUpData.details[docTypeForMerge][key] = value;
             }
           }
         });
-        
       }
-      
+
       // Special handling for KK documents with anggota_keluarga
-      if (jenis_dokumen === "KK" && structuredData.anggota_keluarga && Array.isArray(structuredData.anggota_keluarga)) {
-        
+      if (
+        jenis_dokumen === "KK" &&
+        structuredData.anggota_keluarga &&
+        Array.isArray(structuredData.anggota_keluarga)
+      ) {
         // SMART MERGE: Only add anggota_keluarga if not already exists
-        if (!updatedSignUpData["anggota_keluarga"] || 
-            updatedSignUpData["anggota_keluarga"] === null || 
-            updatedSignUpData["anggota_keluarga"] === undefined) {
-          updatedSignUpData["anggota_keluarga"] = structuredData.anggota_keluarga;
+        if (
+          !updatedSignUpData["anggota_keluarga"] ||
+          updatedSignUpData["anggota_keluarga"] === null ||
+          updatedSignUpData["anggota_keluarga"] === undefined
+        ) {
+          updatedSignUpData["anggota_keluarga"] =
+            structuredData.anggota_keluarga;
         }
-        
+
         // Add anggota_keluarga as a dynamic field (will be displayed as JSON)
         newDynamicFields.push({
           name: "anggota_keluarga",
           label: "Anggota Keluarga",
           type: "json",
           required: false,
-          value: structuredData.anggota_keluarga
+          value: structuredData.anggota_keluarga,
         });
-        
+
         // ========================================
         // SMART MERGE: Add KK header fields
         // ========================================
         const kkHeaderFields = [
-          "nomor_kk", "nama_kepala_keluarga", "rt_rw", "kelurahan_desa",
-          "kecamatan", "kabupaten_kota", "provinsi", "kode_pos", "tanggal_dikeluarkan"
+          "nomor_kk",
+          "nama_kepala_keluarga",
+          "rt_rw",
+          "kelurahan_desa",
+          "kecamatan",
+          "kabupaten_kota",
+          "provinsi",
+          "kode_pos",
+          "tanggal_dikeluarkan",
         ];
-        
-        kkHeaderFields.forEach(field => {
-          if (structuredData[field] && 
-              structuredData[field] !== null && 
-              structuredData[field] !== undefined && 
-              structuredData[field] !== "") {
+
+        kkHeaderFields.forEach((field) => {
+          if (
+            structuredData[field] &&
+            structuredData[field] !== null &&
+            structuredData[field] !== undefined &&
+            structuredData[field] !== ""
+          ) {
             // SMART MERGE: Only add if field is empty or doesn't exist
-            if (!updatedSignUpData[field] || 
-                updatedSignUpData[field] === "" || 
-                updatedSignUpData[field] === null || 
-                updatedSignUpData[field] === undefined) {
+            if (
+              !updatedSignUpData[field] ||
+              updatedSignUpData[field] === "" ||
+              updatedSignUpData[field] === null ||
+              updatedSignUpData[field] === undefined
+            ) {
               updatedSignUpData[field] = structuredData[field];
-              
+
               // Add to dynamic fields for display
               newDynamicFields.push({
                 name: field,
-                label: field.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+                label: field
+                  .split("_")
+                  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(" "),
                 type: "text",
                 required: false,
-                value: structuredData[field]
+                value: structuredData[field],
               });
             }
           }
         });
-        
+
         // Extract first family member (kepala keluarga) data for main form
-        const kepalaKeluarga = structuredData.anggota_keluarga.find(
-          (a: any) => a.status_hubungan_keluarga?.toUpperCase() === "KEPALA KELUARGA"
-        ) || structuredData.anggota_keluarga[0];
-        
+        const kepalaKeluarga =
+          structuredData.anggota_keluarga.find(
+            (a: any) =>
+              a.status_hubungan_keluarga?.toUpperCase() === "KEPALA KELUARGA",
+          ) || structuredData.anggota_keluarga[0];
+
         if (kepalaKeluarga) {
           // SMART MERGE: Map kepala keluarga fields to main form
           const kepalaKeluargaFields = [
@@ -402,53 +462,73 @@ export function AuthFormContent({
             { source: "status_perkawinan", target: "status_perkawinan" },
             { source: "kewarganegaraan", target: "kewarganegaraan" },
             { source: "nama_ayah", target: "nama_ayah" },
-            { source: "nama_ibu", target: "nama_ibu" }
+            { source: "nama_ibu", target: "nama_ibu" },
           ];
-          
+
           kepalaKeluargaFields.forEach(({ source, target }) => {
-            if (kepalaKeluarga[source] && 
-                kepalaKeluarga[source] !== null && 
-                kepalaKeluarga[source] !== undefined && 
-                kepalaKeluarga[source] !== "") {
+            if (
+              kepalaKeluarga[source] &&
+              kepalaKeluarga[source] !== null &&
+              kepalaKeluarga[source] !== undefined &&
+              kepalaKeluarga[source] !== ""
+            ) {
               // SMART MERGE: Only add if target field is empty or doesn't exist
-              if (!updatedSignUpData[target] || 
-                  updatedSignUpData[target] === "" || 
-                  updatedSignUpData[target] === null || 
-                  updatedSignUpData[target] === undefined) {
+              if (
+                !updatedSignUpData[target] ||
+                updatedSignUpData[target] === "" ||
+                updatedSignUpData[target] === null ||
+                updatedSignUpData[target] === undefined
+              ) {
                 updatedSignUpData[target] = kepalaKeluarga[source];
-                console.log(`✔ SMART MERGE [kepala keluarga]: ${target} = ${kepalaKeluarga[source]}`);
+                console.log(
+                  `✔ SMART MERGE [kepala keluarga]: ${target} = ${kepalaKeluarga[source]}`,
+                );
               } else {
-                console.log(`⊗ SMART MERGE [kepala keluarga]: ${target} already exists, skipping`);
+                console.log(
+                  `⊗ SMART MERGE [kepala keluarga]: ${target} already exists, skipping`,
+                );
               }
             }
           });
-          
+
           console.log("Extracted kepala keluarga data:", kepalaKeluarga.nama);
         }
       }
-      
+
       // Process ALL keys from structuredData with SMART MERGE logic
       // Skip KK header fields if already processed above
-      const kkHeaderFieldsToSkip = jenis_dokumen === "KK" ? [
-        "nomor_kk", "nama_kepala_keluarga", "rt_rw", "kelurahan_desa",
-        "kecamatan", "kabupaten_kota", "provinsi", "kode_pos", "tanggal_dikeluarkan"
-      ] : [];
-      
+      const kkHeaderFieldsToSkip =
+        jenis_dokumen === "KK"
+          ? [
+              "nomor_kk",
+              "nama_kepala_keluarga",
+              "rt_rw",
+              "kelurahan_desa",
+              "kecamatan",
+              "kabupaten_kota",
+              "provinsi",
+              "kode_pos",
+              "tanggal_dikeluarkan",
+            ]
+          : [];
+
       // ========================================
       // UDFM ULTRA: UNIVERSAL DOCUMENT FIELD MAPPER
       // Supports ALL document types with namespace storage
       // ========================================
-      
+
       // Store document data under namespace: signUpData.details.[document_type]
       if (!updatedSignUpData.details) {
         updatedSignUpData.details = {};
       }
-      
+
       // Map document type to namespace key
       const namespaceKey = jenis_dokumen.toLowerCase().replace(/_/g, "_");
       updatedSignUpData.details[namespaceKey] = structuredData;
-      console.log(`✔ UDFM ULTRA: Data stored in signUpData.details.${namespaceKey}`);
-      
+      console.log(
+        `✔ UDFM ULTRA: Data stored in signUpData.details.${namespaceKey}`,
+      );
+
       // Process ALL fields from structuredData with SMART MERGE
       // CRITICAL: Jangan menghapus data dari dokumen sebelumnya
       Object.entries(structuredData).forEach(([sourceKey, value]) => {
@@ -457,86 +537,126 @@ export function AuthFormContent({
           console.log(`⊗ UDFM ULTRA: Skipping array field ${sourceKey}`);
           return;
         }
-        
+
         if (value !== null && value !== undefined && value !== "") {
           const targetKey = sourceKey.replace(/[^a-zA-Z0-9_]/g, "");
-          
+
           // SMART MERGE: Only add if target field is empty or doesn't exist
           // CRITICAL: Jangan menimpa data yang sudah benar (user edit / OCR confidence tinggi)
-          if (!updatedSignUpData[targetKey] || 
-              updatedSignUpData[targetKey] === "" || 
-              updatedSignUpData[targetKey] === null || 
-              updatedSignUpData[targetKey] === undefined) {
+          if (
+            !updatedSignUpData[targetKey] ||
+            updatedSignUpData[targetKey] === "" ||
+            updatedSignUpData[targetKey] === null ||
+            updatedSignUpData[targetKey] === undefined
+          ) {
             updatedSignUpData[targetKey] = value;
-            console.log(`✔ SMART MERGE [${jenis_dokumen}]: ${targetKey} = ${value}`);
+            console.log(
+              `✔ SMART MERGE [${jenis_dokumen}]: ${targetKey} = ${value}`,
+            );
           } else {
-            console.log(`⊗ SMART MERGE [${jenis_dokumen}]: ${targetKey} already exists, skipping`);
+            console.log(
+              `⊗ SMART MERGE [${jenis_dokumen}]: ${targetKey} already exists, skipping`,
+            );
           }
-          
+
           // WAJIB: Semua field hasil OCR harus dimasukkan ke dynamicFields
           // walaupun tidak ada di form awal
-          const existingDynamicField = newDynamicFields.find(f => f.name === targetKey);
-          if (!existingDynamicField && !existingFormFields.includes(targetKey)) {
+          const existingDynamicField = newDynamicFields.find(
+            (f) => f.name === targetKey,
+          );
+          if (
+            !existingDynamicField &&
+            !existingFormFields.includes(targetKey)
+          ) {
             newDynamicFields.push({
               name: targetKey,
-              label: targetKey.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-              type: targetKey.includes("tanggal") || targetKey.includes("date") ? "date" : "text",
+              label: targetKey
+                .split("_")
+                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(" "),
+              type:
+                targetKey.includes("tanggal") || targetKey.includes("date")
+                  ? "date"
+                  : "text",
               required: false,
-              value: value
+              value: value,
             });
-            console.log(`✔ DYNAMIC FIELD [${jenis_dokumen}]: ${targetKey} added to dynamicFields`);
+            console.log(
+              `✔ DYNAMIC FIELD [${jenis_dokumen}]: ${targetKey} added to dynamicFields`,
+            );
           }
         }
       });
-      
-      console.log(`UDFM ULTRA: ${jenis_dokumen} data processed successfully - all fields added to dynamicFields`);
-      
+
+      console.log(
+        `UDFM ULTRA: ${jenis_dokumen} data processed successfully - all fields added to dynamicFields`,
+      );
+
       // Skip fields that were already processed above
-      const processedFieldsToSkip = Object.keys(structuredData).filter(k => !Array.isArray(structuredData[k]));
-      
+      const processedFieldsToSkip = Object.keys(structuredData).filter(
+        (k) => !Array.isArray(structuredData[k]),
+      );
+
       Object.entries(cleanedOcrData).forEach(([key, value]) => {
         // Skip anggota_keluarga (already processed above), KK header fields, and already processed fields
-        if (key === "anggota_keluarga" || kkHeaderFieldsToSkip.includes(key) || processedFieldsToSkip.includes(key)) return;
+        if (
+          key === "anggota_keluarga" ||
+          kkHeaderFieldsToSkip.includes(key) ||
+          processedFieldsToSkip.includes(key)
+        )
+          return;
 
         const normalizedKey = key.replace(/[^a-zA-Z0-9_]/g, "");
-        
+
         // SMART MERGE: Only add if value is not empty AND field is empty or doesn't exist
         if (value !== null && value !== undefined && value !== "") {
-          if (!updatedSignUpData[normalizedKey] || 
-              updatedSignUpData[normalizedKey] === "" || 
-              updatedSignUpData[normalizedKey] === null || 
-              updatedSignUpData[normalizedKey] === undefined) {
+          if (
+            !updatedSignUpData[normalizedKey] ||
+            updatedSignUpData[normalizedKey] === "" ||
+            updatedSignUpData[normalizedKey] === null ||
+            updatedSignUpData[normalizedKey] === undefined
+          ) {
             updatedSignUpData[normalizedKey] = value;
             console.log(`✔ SMART MERGE: ${normalizedKey} = ${value}`);
           } else {
-            console.log(`⊗ SMART MERGE: ${normalizedKey} already exists, skipping`);
+            console.log(
+              `⊗ SMART MERGE: ${normalizedKey} already exists, skipping`,
+            );
           }
         }
-        
+
         // If field doesn't exist in form, add to dynamic fields
-        if (!existingFormFields.includes(normalizedKey) && value !== null && value !== undefined && value !== "") {
+        if (
+          !existingFormFields.includes(normalizedKey) &&
+          value !== null &&
+          value !== undefined &&
+          value !== ""
+        ) {
           newDynamicFields.push({
             name: normalizedKey,
-            label: normalizedKey.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+            label: normalizedKey
+              .split("_")
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(" "),
             type: "text",
             required: false,
-            value: value
+            value: value,
           });
         }
       });
-      
+
       // Single state update with all fields using SMART MERGE
       // CRITICAL: Use smartMerge to prevent overwriting existing data
-      setSignUpData(prev => smartMerge(prev, updatedSignUpData));
-      
+      setSignUpData((prev) => smartMerge(prev, updatedSignUpData));
+
       // ========================================
       // UPDATE METADATA FOR SMART MERGE PROTECTION
       // ========================================
-      setSignUpMeta(prev => {
+      setSignUpMeta((prev) => {
         const updatedMeta = { ...prev };
-        
+
         // Add metadata for all new OCR fields
-        Object.keys(cleanedOcrData).forEach(key => {
+        Object.keys(cleanedOcrData).forEach((key) => {
           const value = cleanedOcrData[key];
           if (value !== null && value !== undefined && value !== "") {
             // Only update meta if field doesn't exist or is from OCR (not user-edited)
@@ -545,165 +665,179 @@ export function AuthFormContent({
                 source: "ocr",
                 document_type: docTypeForMerge || jenis_dokumen,
                 confidence: 0.85,
-                last_updated_at: new Date().toISOString()
+                last_updated_at: new Date().toISOString(),
               };
             }
           }
         });
-        
+
         return updatedMeta;
       });
-      
+
       // ========================================
       // WORKFLOW ROUTING (UDFM v3)
       // ========================================
       // Update scanned document types and generate workflow suggestions
       const currentDocType = docTypeForMerge || jenis_dokumen;
       if (currentDocType) {
-        setScannedDocTypes(prev => {
+        setScannedDocTypes((prev) => {
           const updated = new Set(prev);
           updated.add(currentDocType);
-          
+
           // Generate workflow suggestions based on scanned documents
           const suggestions: typeof workflowSuggestions = [];
-          
+
           // INVOICE workflow
           if (updated.has("INVOICE")) {
             suggestions.push({
               type: "create_purchase_transaction",
-              label: "Buat transaksi pembelian / jurnal akuntansi dari invoice ini",
+              label:
+                "Buat transaksi pembelian / jurnal akuntansi dari invoice ini",
               document_types_required: ["INVOICE"],
-              icon: "📄"
+              icon: "📄",
             });
           }
-          
+
           // STNK / PAJAK_KENDARAAN workflow
           if (updated.has("STNK") || updated.has("PAJAK_KENDARAAN")) {
             suggestions.push({
               type: "create_vehicle_asset",
-              label: "Tambah kendaraan ke master asset / jadwalkan pengingat pajak",
+              label:
+                "Tambah kendaraan ke master asset / jadwalkan pengingat pajak",
               document_types_required: ["STNK", "PAJAK_KENDARAAN"],
-              icon: "🚗"
+              icon: "🚗",
             });
           }
-          
+
           // KTP + KK workflow
           if (updated.has("KTP") && updated.has("KK")) {
             suggestions.push({
               type: "create_employee_master",
               label: "Buat master data karyawan/customer baru",
               document_types_required: ["KTP", "KK"],
-              icon: "👤"
+              icon: "👤",
             });
           } else if (updated.has("KTP")) {
             suggestions.push({
               type: "create_customer_master",
               label: "Buat master data customer dari KTP",
               document_types_required: ["KTP"],
-              icon: "👤"
+              icon: "👤",
             });
           }
-          
+
           // AWB workflow
           if (updated.has("AWB")) {
             suggestions.push({
               type: "create_shipment",
               label: "Buat data shipment / tracking order",
               document_types_required: ["AWB"],
-              icon: "📦"
+              icon: "📦",
             });
           }
-          
+
           // IJAZAH + CV workflow
           if (updated.has("IJAZAH") && updated.has("CV")) {
             suggestions.push({
               type: "create_candidate_profile",
               label: "Buat profil kandidat / karyawan",
               document_types_required: ["IJAZAH", "CV"],
-              icon: "📋"
+              icon: "📋",
             });
           } else if (updated.has("IJAZAH")) {
             suggestions.push({
               type: "add_education_data",
               label: "Tambah data pendidikan ke profil",
               document_types_required: ["IJAZAH"],
-              icon: "🎓"
+              icon: "🎓",
             });
           }
-          
+
           // NPWP workflow
           if (updated.has("NPWP")) {
             suggestions.push({
               type: "add_tax_data",
               label: "Tambah data pajak ke profil",
               document_types_required: ["NPWP"],
-              icon: "📊"
+              icon: "📊",
             });
           }
-          
+
           // SIM workflow
           if (updated.has("SIM")) {
             suggestions.push({
               type: "add_driver_license",
               label: "Tambah data SIM ke profil driver",
               document_types_required: ["SIM"],
-              icon: "🪪"
+              icon: "🪪",
             });
           }
-          
+
           // BPJS workflow
           if (updated.has("BPJS")) {
             suggestions.push({
               type: "add_insurance_data",
               label: "Tambah data BPJS ke profil karyawan",
               document_types_required: ["BPJS"],
-              icon: "🏥"
+              icon: "🏥",
             });
           }
-          
+
           setWorkflowSuggestions(suggestions);
           console.log("✔ Workflow suggestions updated:", suggestions);
-          
+
           return updated;
         });
       }
-      
+
       console.log("Dynamic fields to render:", newDynamicFields);
-      
+
       // ========================================
       // SMART MERGE FOR DYNAMIC FIELDS
       // ========================================
       // Merge newDynamicFields with existing dynamicFields
       // Rule: Jangan pernah mengosongkan nilai yang sudah berhasil diisi dari OCR sebelumnya
-      setDynamicFields(prev => {
+      setDynamicFields((prev) => {
         const mergedFields = [...prev];
-        
-        newDynamicFields.forEach(newField => {
-          const existingFieldIndex = mergedFields.findIndex(f => f.name === newField.name);
-          
+
+        newDynamicFields.forEach((newField) => {
+          const existingFieldIndex = mergedFields.findIndex(
+            (f) => f.name === newField.name,
+          );
+
           if (existingFieldIndex === -1) {
             // Field baru, tambahkan
             mergedFields.push(newField);
-            console.log(`✔ DYNAMIC FIELD ADDED: ${newField.name} = ${newField.value}`);
+            console.log(
+              `✔ DYNAMIC FIELD ADDED: ${newField.name} = ${newField.value}`,
+            );
           } else {
             // Field sudah ada, cek apakah perlu update
             const existingField = mergedFields[existingFieldIndex];
-            
+
             // Jangan timpa jika field lama sudah terisi dan tidak kosong
-            if (existingField.value !== null && 
-                existingField.value !== undefined && 
-                existingField.value !== "") {
-              console.log(`⊗ DYNAMIC FIELD PRESERVED: ${newField.name} (existing value: ${existingField.value})`);
-            } else if (newField.value !== null && 
-                       newField.value !== undefined && 
-                       newField.value !== "") {
+            if (
+              existingField.value !== null &&
+              existingField.value !== undefined &&
+              existingField.value !== ""
+            ) {
+              console.log(
+                `⊗ DYNAMIC FIELD PRESERVED: ${newField.name} (existing value: ${existingField.value})`,
+              );
+            } else if (
+              newField.value !== null &&
+              newField.value !== undefined &&
+              newField.value !== ""
+            ) {
               // Field lama kosong, isi dengan nilai baru
               mergedFields[existingFieldIndex] = newField;
-              console.log(`✔ DYNAMIC FIELD FILLED: ${newField.name} = ${newField.value}`);
+              console.log(
+                `✔ DYNAMIC FIELD FILLED: ${newField.name} = ${newField.value}`,
+              );
             }
           }
         });
-        
+
         console.log("Total dynamic fields after merge:", mergedFields.length);
         return mergedFields;
       });
@@ -711,15 +845,16 @@ export function AuthFormContent({
       // ========================================
       // C. AUTO-CREATE DATABASE COLUMNS
       // ========================================
-      const { data: fieldsData, error: fieldsError } = await supabase.functions.invoke(
-        "supabase-functions-auto-create-user-fields",
-        {
-          body: {
-            structured_data: structuredData,
-            document_type: jenis_dokumen,
+      const { data: fieldsData, error: fieldsError } =
+        await supabase.functions.invoke(
+          "supabase-functions-auto-create-user-fields",
+          {
+            body: {
+              structured_data: structuredData,
+              document_type: jenis_dokumen,
+            },
           },
-        }
-      );
+        );
 
       if (fieldsError) {
         console.error("Auto-create fields error:", fieldsError);
@@ -736,41 +871,58 @@ export function AuthFormContent({
       if (fieldsData?.success && fieldsData?.auto_fields_created?.length > 0) {
         // SMART MERGE: Merge auto_fields_created with existing dynamicFields
         // Rule: Jangan pernah mengosongkan nilai yang sudah berhasil diisi dari OCR sebelumnya
-        setDynamicFields(prev => {
+        setDynamicFields((prev) => {
           const mergedFields = [...prev];
-          
+
           fieldsData.auto_fields_created.forEach((newField: any) => {
-            const existingFieldIndex = mergedFields.findIndex(f => f.name === newField.name);
-            
+            const existingFieldIndex = mergedFields.findIndex(
+              (f) => f.name === newField.name,
+            );
+
             if (existingFieldIndex === -1) {
               // Field baru dari Edge Function, tambahkan
               mergedFields.push(newField);
-              console.log(`✔ EDGE FUNCTION FIELD ADDED: ${newField.name} = ${newField.value}`);
+              console.log(
+                `✔ EDGE FUNCTION FIELD ADDED: ${newField.name} = ${newField.value}`,
+              );
             } else {
               // Field sudah ada, cek apakah perlu update
               const existingField = mergedFields[existingFieldIndex];
-              
+
               // Jangan timpa jika field lama sudah terisi dan tidak kosong
-              if (existingField.value !== null && 
-                  existingField.value !== undefined && 
-                  existingField.value !== "") {
-                console.log(`⊗ EDGE FUNCTION FIELD PRESERVED: ${newField.name} (existing value: ${existingField.value})`);
-              } else if (newField.value !== null && 
-                         newField.value !== undefined && 
-                         newField.value !== "") {
+              if (
+                existingField.value !== null &&
+                existingField.value !== undefined &&
+                existingField.value !== ""
+              ) {
+                console.log(
+                  `⊗ EDGE FUNCTION FIELD PRESERVED: ${newField.name} (existing value: ${existingField.value})`,
+                );
+              } else if (
+                newField.value !== null &&
+                newField.value !== undefined &&
+                newField.value !== ""
+              ) {
                 // Field lama kosong, isi dengan nilai baru
                 mergedFields[existingFieldIndex] = newField;
-                console.log(`✔ EDGE FUNCTION FIELD FILLED: ${newField.name} = ${newField.value}`);
+                console.log(
+                  `✔ EDGE FUNCTION FIELD FILLED: ${newField.name} = ${newField.value}`,
+                );
               }
             }
           });
-          
-          console.log("Total dynamic fields after Edge Function merge:", mergedFields.length);
+
+          console.log(
+            "Total dynamic fields after Edge Function merge:",
+            mergedFields.length,
+          );
           return mergedFields;
         });
-        
-        console.log("Updated dynamicFields from Edge Function with SMART MERGE");
-        
+
+        console.log(
+          "Updated dynamicFields from Edge Function with SMART MERGE",
+        );
+
         if (fieldsData.supabase_columns_created?.length > 0) {
           toast({
             title: "Kolom Baru Dibuat",
@@ -786,17 +938,18 @@ export function AuthFormContent({
       }
 
       // Save document results to appropriate table
-      const { data: saveData, error: saveError } = await supabase.functions.invoke(
-        "supabase-functions-save-document-results",
-        {
-          body: {
-            document_type: jenis_dokumen,
-            structured_data: structuredData,
-            raw_text: raw_text,
-            user_id: null,
+      const { data: saveData, error: saveError } =
+        await supabase.functions.invoke(
+          "supabase-functions-save-document-results",
+          {
+            body: {
+              document_type: jenis_dokumen,
+              structured_data: structuredData,
+              raw_text: raw_text,
+              user_id: null,
+            },
           },
-        }
-      );
+        );
 
       if (saveError) {
         console.error("Save document error:", saveError);
@@ -811,7 +964,8 @@ export function AuthFormContent({
       setOcrResults({ ...ocrResults, [documentType]: structuredData });
     } catch (error) {
       console.error("OCR Error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Gagal memproses dokumen";
+      const errorMessage =
+        error instanceof Error ? error.message : "Gagal memproses dokumen";
       toast({
         title: "OCR Gagal",
         description: errorMessage,
@@ -819,7 +973,10 @@ export function AuthFormContent({
       });
       setOcrResults((prev) => ({
         ...prev,
-        [documentType]: { success: false, error: error instanceof Error ? error.message : "Unknown error" },
+        [documentType]: {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
       }));
     } finally {
       setOcrScanning(false);
@@ -834,7 +991,8 @@ export function AuthFormContent({
       toast({ title: "Success", description: "Signed in successfully" });
       onSuccess?.();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Sign in failed";
+      const errorMessage =
+        error instanceof Error ? error.message : "Sign in failed";
       toast({
         title: "Error",
         description: errorMessage,
@@ -884,7 +1042,7 @@ export function AuthFormContent({
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Frontend validation before sending to Edge Function
     if (!signUpData.email || signUpData.email.trim() === "") {
       toast({
@@ -894,7 +1052,7 @@ export function AuthFormContent({
       });
       return;
     }
-    
+
     if (!signUpData.password || signUpData.password.trim() === "") {
       toast({
         title: "Error",
@@ -903,7 +1061,7 @@ export function AuthFormContent({
       });
       return;
     }
-    
+
     if (signUpData.password.length < 8) {
       toast({
         title: "Error",
@@ -912,7 +1070,7 @@ export function AuthFormContent({
       });
       return;
     }
-    
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(signUpData.email.trim())) {
@@ -923,7 +1081,7 @@ export function AuthFormContent({
       });
       return;
     }
-    
+
     setLoading(true);
     try {
       // Prepare details object based on entity type
@@ -1021,7 +1179,7 @@ export function AuthFormContent({
             fileUrls.ktp_document_url = ktpUrl;
           }
         }
-        
+
         // Upload selfie photo to bucket if provided
         if (signUpData.selfiePhoto) {
           console.log("Uploading selfie photo:", signUpData.selfiePhoto.name);
@@ -1035,7 +1193,7 @@ export function AuthFormContent({
             fileUrls.selfie_url = selfieUrl;
           }
         }
-        
+
         // Upload family card to bucket if provided
         if (signUpData.familyCard) {
           console.log("Uploading family card:", signUpData.familyCard.name);
@@ -1049,7 +1207,7 @@ export function AuthFormContent({
             fileUrls.family_card_url = familyCardUrl;
           }
         }
-        
+
         // Upload SIM document to bucket if provided
         if (signUpData.simDocument) {
           console.log("Uploading SIM document:", signUpData.simDocument.name);
@@ -1063,7 +1221,7 @@ export function AuthFormContent({
             fileUrls.sim_url = simUrl;
           }
         }
-        
+
         // Upload SKCK document to bucket if provided
         if (signUpData.skckDocument) {
           console.log("Uploading SKCK document:", signUpData.skckDocument.name);
@@ -1082,7 +1240,10 @@ export function AuthFormContent({
         if (entityType === "driver_mitra") {
           // Upload STNK document
           if (signUpData.stnkDocument) {
-            console.log("Uploading STNK document:", signUpData.stnkDocument.name);
+            console.log(
+              "Uploading STNK document:",
+              signUpData.stnkDocument.name,
+            );
             const stnkUrl = await uploadFileToBucket(
               signUpData.stnkDocument,
               "stnk",
@@ -1095,7 +1256,10 @@ export function AuthFormContent({
           }
           // Upload vehicle photo
           if (signUpData.vehiclePhoto) {
-            console.log("Uploading vehicle photo:", signUpData.vehiclePhoto.name);
+            console.log(
+              "Uploading vehicle photo:",
+              signUpData.vehiclePhoto.name,
+            );
             const vehiclePhotoUrl = await uploadFileToBucket(
               signUpData.vehiclePhoto,
               "vehicle_photo",
@@ -1111,7 +1275,11 @@ export function AuthFormContent({
 
       // Determine fullName from OCR data or entity form
       // Priority: OCR extracted name > contact_person > entity_name
-      const fullName = signUpData.ktpName || entityFormData.contact_person || entityFormData.entity_name || "";
+      const fullName =
+        signUpData.ktpName ||
+        entityFormData.contact_person ||
+        entityFormData.entity_name ||
+        "";
 
       // ========================================
       // D. INCLUDE ALL DYNAMIC FIELDS IN DETAILS
@@ -1119,19 +1287,31 @@ export function AuthFormContent({
       // Add all dynamic fields from OCR to details object
       dynamicFields.forEach((field) => {
         const fieldValue = signUpData[field.name as keyof typeof signUpData];
-        if (fieldValue !== undefined && fieldValue !== null && fieldValue !== "") {
+        if (
+          fieldValue !== undefined &&
+          fieldValue !== null &&
+          fieldValue !== ""
+        ) {
           details[field.name] = fieldValue;
-          console.log(`✔ Including dynamic field in sign-up: ${field.name} = ${fieldValue}`);
+          console.log(
+            `✔ Including dynamic field in sign-up: ${field.name} = ${fieldValue}`,
+          );
         }
       });
 
       // Also include any other fields from signUpData that aren't already in details
       // Skip keys that are file objects (File instances)
       const fileFieldKeys = [
-        "ktpDocument", "selfiePhoto", "familyCard", "simDocument", "skckDocument",
-        "uploadIjasah", "stnkDocument", "vehiclePhoto"
+        "ktpDocument",
+        "selfiePhoto",
+        "familyCard",
+        "simDocument",
+        "skckDocument",
+        "uploadIjasah",
+        "stnkDocument",
+        "vehiclePhoto",
       ];
-      
+
       Object.entries(signUpData).forEach(([key, value]) => {
         if (
           value !== null &&
@@ -1143,7 +1323,9 @@ export function AuthFormContent({
         ) {
           // Allow arrays and objects (like anggota_keluarga)
           details[key] = value;
-          console.log(`✔ Including additional field in sign-up: ${key} = ${typeof value === "object" ? JSON.stringify(value).substring(0, 100) : value}`);
+          console.log(
+            `✔ Including additional field in sign-up: ${key} = ${typeof value === "object" ? JSON.stringify(value).substring(0, 100) : value}`,
+          );
         }
       });
 
@@ -1152,8 +1334,14 @@ export function AuthFormContent({
       console.log("details.nik:", details.nik);
       console.log("details.nama:", details.nama);
       console.log("details.nomor_kk:", details.nomor_kk);
-      console.log("details.nama_kepala_keluarga:", details.nama_kepala_keluarga);
-      console.log("details.anggota_keluarga:", details.anggota_keluarga ? "EXISTS" : "NOT FOUND");
+      console.log(
+        "details.nama_kepala_keluarga:",
+        details.nama_kepala_keluarga,
+      );
+      console.log(
+        "details.anggota_keluarga:",
+        details.anggota_keluarga ? "EXISTS" : "NOT FOUND",
+      );
       console.log("=== END CRITICAL CHECK ===");
 
       await signUp(
@@ -1188,7 +1376,8 @@ export function AuthFormContent({
       onSuccess?.();
     } catch (error) {
       console.error("Sign up error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to create account";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create account";
       toast({
         title: "Error",
         description: errorMessage,
@@ -1386,7 +1575,10 @@ export function AuthFormContent({
 
                   {/* Ijazah Scanner */}
                   <div className="space-y-1">
-                    <Label htmlFor="ocr-ijazah" className="text-xs cursor-pointer">
+                    <Label
+                      htmlFor="ocr-ijazah"
+                      className="text-xs cursor-pointer"
+                    >
                       <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                         <span className="flex items-center gap-1">
                           <Upload className="w-3 h-3" />
@@ -1411,10 +1603,13 @@ export function AuthFormContent({
                   </div>
 
                   {/* SIM Scanner */}
-                  {(signUpData.roleEntity === "driver_perusahaan" || 
+                  {(signUpData.roleEntity === "driver_perusahaan" ||
                     signUpData.roleEntity === "driver_mitra") && (
                     <div className="space-y-1">
-                      <Label htmlFor="ocr-sim" className="text-xs cursor-pointer">
+                      <Label
+                        htmlFor="ocr-sim"
+                        className="text-xs cursor-pointer"
+                      >
                         <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                           <span className="flex items-center gap-1">
                             <Upload className="w-3 h-3" />
@@ -1442,7 +1637,10 @@ export function AuthFormContent({
                   {/* STNK Scanner */}
                   {signUpData.roleEntity === "driver_mitra" && (
                     <div className="space-y-1">
-                      <Label htmlFor="ocr-stnk" className="text-xs cursor-pointer">
+                      <Label
+                        htmlFor="ocr-stnk"
+                        className="text-xs cursor-pointer"
+                      >
                         <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                           <span className="flex items-center gap-1">
                             <Upload className="w-3 h-3" />
@@ -1469,7 +1667,10 @@ export function AuthFormContent({
 
                   {/* SKCK Scanner */}
                   <div className="space-y-1">
-                    <Label htmlFor="ocr-skck" className="text-xs cursor-pointer">
+                    <Label
+                      htmlFor="ocr-skck"
+                      className="text-xs cursor-pointer"
+                    >
                       <div className="flex items-center justify-between p-2 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                         <span className="flex items-center gap-1">
                           <Upload className="w-3 h-3" />
@@ -1872,7 +2073,9 @@ export function AuthFormContent({
                 </div>
 
                 {/* OCR Scan Summary - Shows all completed scans */}
-                {Object.keys(ocrResults).some(key => ocrResults[key]?.success) && (
+                {Object.keys(ocrResults).some(
+                  (key) => ocrResults[key]?.success,
+                ) && (
                   <div className="space-y-2 bg-green-50 p-3 rounded-lg border border-green-200">
                     <h3 className="text-sm font-medium text-green-700 border-b border-green-200 pb-2 flex items-center gap-2">
                       <CheckCircle2 size={16} />
@@ -1883,14 +2086,18 @@ export function AuthFormContent({
                         <div className="flex items-center gap-2 text-green-700">
                           <CheckCircle2 size={14} />
                           <span className="font-medium">KTP:</span>
-                          <span>{signUpData.ktpNumber || 'Data tersimpan'}</span>
+                          <span>
+                            {signUpData.ktpNumber || "Data tersimpan"}
+                          </span>
                         </div>
                       )}
                       {ocrResults.kk?.success && (
                         <div className="flex items-center gap-2 text-green-700">
                           <CheckCircle2 size={14} />
                           <span className="font-medium">Kartu Keluarga:</span>
-                          <span>{signUpData.familyCardNumber || 'Data tersimpan'}</span>
+                          <span>
+                            {signUpData.familyCardNumber || "Data tersimpan"}
+                          </span>
                         </div>
                       )}
                       {ocrResults.ijazah?.success && (
@@ -1904,7 +2111,9 @@ export function AuthFormContent({
                         <div className="flex items-center gap-2 text-green-700">
                           <CheckCircle2 size={14} />
                           <span className="font-medium">SIM:</span>
-                          <span>{signUpData.licenseNumber || 'Data tersimpan'}</span>
+                          <span>
+                            {signUpData.licenseNumber || "Data tersimpan"}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -1916,43 +2125,74 @@ export function AuthFormContent({
                   <div className="space-y-3 bg-blue-50 p-3 rounded-lg border border-blue-200">
                     <h3 className="text-sm font-medium text-blue-700 border-b border-blue-200 pb-2 flex items-center gap-2">
                       <CheckCircle2 size={16} />
-                      Data Dokumen (Auto-Extracted) - {dynamicFields.length} fields
+                      Data Dokumen (Auto-Extracted) - {
+                        dynamicFields.length
+                      }{" "}
+                      fields
                     </h3>
                     <p className="text-xs text-blue-600 mb-2">
-                      ✓ Semua field dapat diedit. Data akan tersimpan sampai Submit.
+                      ✓ Semua field dapat diedit. Data akan tersimpan sampai
+                      Submit.
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       {dynamicFields.map((field) => {
                         const meta = signUpMeta[field.name];
                         const isUserEdited = meta?.source === "user";
                         const docType = meta?.document_type || "";
-                        
+
                         return (
-                          <div key={field.name} className={`space-y-2 ${field.type === 'json' || field.type === 'jsonb' ? 'col-span-2' : ''}`}>
-                            <Label htmlFor={`dynamic-${field.name}`} className="text-sm flex items-center gap-1 flex-wrap">
+                          <div
+                            key={field.name}
+                            className={`space-y-2 ${field.type === "json" || field.type === "jsonb" ? "col-span-2" : ""}`}
+                          >
+                            <Label
+                              htmlFor={`dynamic-${field.name}`}
+                              className="text-sm flex items-center gap-1 flex-wrap"
+                            >
                               {field.label}
                               {/* Source Badge */}
                               {isUserEdited ? (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">[U]</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">
+                                  [U]
+                                </span>
                               ) : docType ? (
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                                  docType === 'KTP' ? 'bg-green-100 text-green-700' :
-                                  docType === 'KK' ? 'bg-orange-100 text-orange-700' :
-                                  docType === 'IJAZAH' ? 'bg-blue-100 text-blue-700' :
-                                  docType === 'STNK' ? 'bg-red-100 text-red-700' :
-                                  docType === 'SIM' ? 'bg-yellow-100 text-yellow-700' :
-                                  docType === 'NPWP' ? 'bg-indigo-100 text-indigo-700' :
-                                  docType === 'AWB' ? 'bg-cyan-100 text-cyan-700' :
-                                  'bg-slate-100 text-slate-700'
-                                }`}>[{docType}]</span>
+                                <span
+                                  className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                    docType === "KTP"
+                                      ? "bg-green-100 text-green-700"
+                                      : docType === "KK"
+                                        ? "bg-orange-100 text-orange-700"
+                                        : docType === "IJAZAH"
+                                          ? "bg-blue-100 text-blue-700"
+                                          : docType === "STNK"
+                                            ? "bg-red-100 text-red-700"
+                                            : docType === "SIM"
+                                              ? "bg-yellow-100 text-yellow-700"
+                                              : docType === "NPWP"
+                                                ? "bg-indigo-100 text-indigo-700"
+                                                : docType === "AWB"
+                                                  ? "bg-cyan-100 text-cyan-700"
+                                                  : "bg-slate-100 text-slate-700"
+                                  }`}
+                                >
+                                  [{docType}]
+                                </span>
                               ) : (
-                                <span className="text-xs text-blue-500">(editable)</span>
+                                <span className="text-xs text-blue-500">
+                                  (editable)
+                                </span>
                               )}
                             </Label>
-                            {field.type === 'json' || field.type === 'jsonb' ? (
+                            {field.type === "json" || field.type === "jsonb" ? (
                               <div className="bg-white border border-blue-200 rounded-md p-2 max-h-40 overflow-auto">
                                 <pre className="text-xs text-slate-600 whitespace-pre-wrap">
-                                  {JSON.stringify(signUpData[field.name as keyof typeof signUpData] ?? field.value, null, 2)}
+                                  {JSON.stringify(
+                                    signUpData[
+                                      field.name as keyof typeof signUpData
+                                    ] ?? field.value,
+                                    null,
+                                    2,
+                                  )}
                                 </pre>
                               </div>
                             ) : (
@@ -1960,24 +2200,31 @@ export function AuthFormContent({
                                 id={`dynamic-${field.name}`}
                                 type={field.type || "text"}
                                 placeholder={field.label || field.name}
-                                value={signUpData[field.name as keyof typeof signUpData] ?? field.value ?? ''}
+                                value={
+                                  signUpData[
+                                    field.name as keyof typeof signUpData
+                                  ] ??
+                                  field.value ??
+                                  ""
+                                }
                                 onChange={(e) => {
                                   setSignUpData({
                                     ...signUpData,
                                     [field.name]: e.target.value,
                                   });
                                   // Mark as user-edited when user changes the value
-                                  setSignUpMeta(prev => ({
+                                  setSignUpMeta((prev) => ({
                                     ...prev,
                                     [field.name]: {
                                       source: "user",
-                                      document_type: prev[field.name]?.document_type || "",
+                                      document_type:
+                                        prev[field.name]?.document_type || "",
                                       confidence: 1.0,
-                                      last_updated_at: new Date().toISOString()
-                                    }
+                                      last_updated_at: new Date().toISOString(),
+                                    },
                                   }));
                                 }}
-                                className={`bg-white ${isUserEdited ? 'border-purple-300' : 'border-blue-200'}`}
+                                className={`bg-white ${isUserEdited ? "border-purple-300" : "border-blue-200"}`}
                               />
                             )}
                           </div>
@@ -1995,11 +2242,12 @@ export function AuthFormContent({
                       Workflow Suggestions ({workflowSuggestions.length})
                     </h3>
                     <p className="text-xs text-amber-600 mb-2">
-                      Berdasarkan dokumen yang sudah di-scan, Anda dapat melakukan:
+                      Berdasarkan dokumen yang sudah di-scan, Anda dapat
+                      melakukan:
                     </p>
                     <div className="space-y-2">
                       {workflowSuggestions.map((suggestion, idx) => (
-                        <div 
+                        <div
                           key={idx}
                           className="flex items-center gap-2 p-2 bg-white rounded border border-amber-200 hover:bg-amber-100 cursor-pointer transition-colors"
                           onClick={() => {
@@ -2007,11 +2255,16 @@ export function AuthFormContent({
                             // TODO: Implement workflow routing
                           }}
                         >
-                          <span className="text-lg">{suggestion.icon || "📋"}</span>
+                          <span className="text-lg">
+                            {suggestion.icon || "📋"}
+                          </span>
                           <div className="flex-1">
-                            <p className="text-sm text-slate-700">{suggestion.label}</p>
+                            <p className="text-sm text-slate-700">
+                              {suggestion.label}
+                            </p>
                             <p className="text-xs text-slate-500">
-                              Dokumen: {suggestion.document_types_required.join(" + ")}
+                              Dokumen:{" "}
+                              {suggestion.document_types_required.join(" + ")}
                             </p>
                           </div>
                           <span className="text-amber-500">→</span>
@@ -2021,121 +2274,106 @@ export function AuthFormContent({
                   </div>
                 )}
 
-              {/* Vehicle Information - Only for Driver Mitra */}
-              {signUpData.roleEntity === "driver_mitra" && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <h4 className="text-sm font-semibold text-gray-700 border-b pb-2 mb-4">
-                      Informasi Kendaraan
-                    </h4>
+                {/* Vehicle Information - Only for Driver Mitra */}
+                {signUpData.roleEntity === "driver_mitra" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <h4 className="text-sm font-semibold text-gray-700 border-b pb-2 mb-4">
+                        Informasi Kendaraan
+                      </h4>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-vehicle-brand" className="text-sm">
+                        Merk Kendaraan *
+                      </Label>
+                      <Input
+                        id="signup-vehicle-brand"
+                        type="text"
+                        placeholder="Misal: Toyota"
+                        value={signUpData.vehicleBrand}
+                        onChange={(e) =>
+                          setSignUpData({
+                            ...signUpData,
+                            vehicleBrand: e.target.value,
+                          })
+                        }
+                        className="bg-slate-50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-vehicle-model" className="text-sm">
+                        Model Kendaraan *
+                      </Label>
+                      <Input
+                        id="signup-vehicle-model"
+                        type="text"
+                        placeholder="Misal: Avanza"
+                        value={signUpData.vehicleModel}
+                        onChange={(e) =>
+                          setSignUpData({
+                            ...signUpData,
+                            vehicleModel: e.target.value,
+                          })
+                        }
+                        className="bg-slate-50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-plate-number" className="text-sm">
+                        Plate Number *
+                      </Label>
+                      <Input
+                        id="signup-plate-number"
+                        type="text"
+                        placeholder="B 1234 XYZ"
+                        value={signUpData.plateNumber}
+                        onChange={(e) =>
+                          setSignUpData({
+                            ...signUpData,
+                            plateNumber: e.target.value,
+                          })
+                        }
+                        className="bg-slate-50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-vehicle-year" className="text-sm">
+                        Tahun Kendaraan *
+                      </Label>
+                      <Input
+                        id="signup-vehicle-year"
+                        type="text"
+                        placeholder="2020"
+                        value={signUpData.vehicleYear}
+                        onChange={(e) =>
+                          setSignUpData({
+                            ...signUpData,
+                            vehicleYear: e.target.value,
+                          })
+                        }
+                        className="bg-slate-50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-vehicle-color" className="text-sm">
+                        Warna Kendaraan *
+                      </Label>
+                      <Input
+                        id="signup-vehicle-color"
+                        type="text"
+                        placeholder="Hitam"
+                        value={signUpData.vehicleColor}
+                        onChange={(e) =>
+                          setSignUpData({
+                            ...signUpData,
+                            vehicleColor: e.target.value,
+                          })
+                        }
+                        className="bg-slate-50"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="signup-vehicle-brand"
-                      className="text-sm"
-                    >
-                      Merk Kendaraan *
-                    </Label>
-                    <Input
-                      id="signup-vehicle-brand"
-                      type="text"
-                      placeholder="Misal: Toyota"
-                      value={signUpData.vehicleBrand}
-                      onChange={(e) =>
-                        setSignUpData({
-                          ...signUpData,
-                          vehicleBrand: e.target.value,
-                        })
-                      }
-                      className="bg-slate-50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="signup-vehicle-model"
-                      className="text-sm"
-                    >
-                      Model Kendaraan *
-                    </Label>
-                    <Input
-                      id="signup-vehicle-model"
-                      type="text"
-                      placeholder="Misal: Avanza"
-                      value={signUpData.vehicleModel}
-                      onChange={(e) =>
-                        setSignUpData({
-                          ...signUpData,
-                          vehicleModel: e.target.value,
-                        })
-                      }
-                      className="bg-slate-50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="signup-plate-number"
-                      className="text-sm"
-                    >
-                      Plate Number *
-                    </Label>
-                    <Input
-                      id="signup-plate-number"
-                      type="text"
-                      placeholder="B 1234 XYZ"
-                      value={signUpData.plateNumber}
-                      onChange={(e) =>
-                        setSignUpData({
-                          ...signUpData,
-                          plateNumber: e.target.value,
-                        })
-                      }
-                      className="bg-slate-50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="signup-vehicle-year"
-                      className="text-sm"
-                    >
-                      Tahun Kendaraan *
-                    </Label>
-                    <Input
-                      id="signup-vehicle-year"
-                      type="text"
-                      placeholder="2020"
-                      value={signUpData.vehicleYear}
-                      onChange={(e) =>
-                        setSignUpData({
-                          ...signUpData,
-                          vehicleYear: e.target.value,
-                        })
-                      }
-                      className="bg-slate-50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="signup-vehicle-color"
-                      className="text-sm"
-                    >
-                      Warna Kendaraan *
-                    </Label>
-                    <Input
-                      id="signup-vehicle-color"
-                      type="text"
-                      placeholder="Hitam"
-                      value={signUpData.vehicleColor}
-                      onChange={(e) =>
-                        setSignUpData({
-                          ...signUpData,
-                          vehicleColor: e.target.value,
-                        })
-                      }
-                      className="bg-slate-50"
-                    />
-                  </div>
-                </div>
-              )}
+                )}
 
                 {/* Upload Documents - For Karyawan, Driver Perusahaan, Driver Mitra entities */}
                 {(signUpData.roleEntity === "karyawan" ||
@@ -2146,7 +2384,6 @@ export function AuthFormContent({
                       Upload Dokumen Karyawan
                     </h3>
                     <div className="space-y-3">
-
                       {/* STNK and Vehicle Photo - Only for Driver Mitra */}
                       {signUpData.roleEntity === "driver_mitra" && (
                         <>
@@ -2329,7 +2566,10 @@ export function AuthFormContent({
                     <div className="grid grid-cols-3 gap-3">
                       {/* KTP Scanner */}
                       <div className="space-y-1">
-                        <Label htmlFor="ocr-ktp-desktop" className="text-xs cursor-pointer">
+                        <Label
+                          htmlFor="ocr-ktp-desktop"
+                          className="text-xs cursor-pointer"
+                        >
                           <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                             <span className="flex items-center gap-2">
                               <Upload className="w-4 h-4" />
@@ -2355,7 +2595,10 @@ export function AuthFormContent({
 
                       {/* KK Scanner */}
                       <div className="space-y-1">
-                        <Label htmlFor="ocr-kk-desktop" className="text-xs cursor-pointer">
+                        <Label
+                          htmlFor="ocr-kk-desktop"
+                          className="text-xs cursor-pointer"
+                        >
                           <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                             <span className="flex items-center gap-2">
                               <Upload className="w-4 h-4" />
@@ -2381,7 +2624,10 @@ export function AuthFormContent({
 
                       {/* Ijazah Scanner */}
                       <div className="space-y-1">
-                        <Label htmlFor="ocr-ijazah-desktop" className="text-xs cursor-pointer">
+                        <Label
+                          htmlFor="ocr-ijazah-desktop"
+                          className="text-xs cursor-pointer"
+                        >
                           <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                             <span className="flex items-center gap-2">
                               <Upload className="w-4 h-4" />
@@ -2406,10 +2652,13 @@ export function AuthFormContent({
                       </div>
 
                       {/* SIM Scanner */}
-                      {(signUpData.roleEntity === "driver_perusahaan" || 
+                      {(signUpData.roleEntity === "driver_perusahaan" ||
                         signUpData.roleEntity === "driver_mitra") && (
                         <div className="space-y-1">
-                          <Label htmlFor="ocr-sim-desktop" className="text-xs cursor-pointer">
+                          <Label
+                            htmlFor="ocr-sim-desktop"
+                            className="text-xs cursor-pointer"
+                          >
                             <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                               <span className="flex items-center gap-2">
                                 <Upload className="w-4 h-4" />
@@ -2437,7 +2686,10 @@ export function AuthFormContent({
                       {/* STNK Scanner */}
                       {signUpData.roleEntity === "driver_mitra" && (
                         <div className="space-y-1">
-                          <Label htmlFor="ocr-stnk-desktop" className="text-xs cursor-pointer">
+                          <Label
+                            htmlFor="ocr-stnk-desktop"
+                            className="text-xs cursor-pointer"
+                          >
                             <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                               <span className="flex items-center gap-2">
                                 <Upload className="w-4 h-4" />
@@ -2464,7 +2716,10 @@ export function AuthFormContent({
 
                       {/* SKCK Scanner */}
                       <div className="space-y-1">
-                        <Label htmlFor="ocr-skck-desktop" className="text-xs cursor-pointer">
+                        <Label
+                          htmlFor="ocr-skck-desktop"
+                          className="text-xs cursor-pointer"
+                        >
                           <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                             <span className="flex items-center gap-2">
                               <Upload className="w-4 h-4" />
@@ -2490,7 +2745,10 @@ export function AuthFormContent({
 
                       {/* CV Scanner */}
                       <div className="space-y-1">
-                        <Label htmlFor="ocr-cv-desktop" className="text-xs cursor-pointer">
+                        <Label
+                          htmlFor="ocr-cv-desktop"
+                          className="text-xs cursor-pointer"
+                        >
                           <div className="flex items-center justify-between p-3 bg-white rounded border border-green-200 hover:border-green-400 transition-colors">
                             <span className="flex items-center gap-2">
                               <Upload className="w-4 h-4" />
@@ -2531,7 +2789,8 @@ export function AuthFormContent({
                   <div className="space-y-4 bg-white p-4 rounded-lg border border-slate-200">
                     <h3 className="text-sm font-semibold text-slate-700 border-b pb-2">
                       {showEntityForm === "supplier" && "Supplier Information"}
-                      {showEntityForm === "consignee" && "Consignee Information"}
+                      {showEntityForm === "consignee" &&
+                        "Consignee Information"}
                       {showEntityForm === "shipper" && "Shipper Information"}
                     </h3>
 
@@ -3898,7 +4157,9 @@ export function AuthFormContent({
                     </div>
 
                     {/* OCR Scan Summary - Desktop - Shows all completed scans */}
-                    {Object.keys(ocrResults).some(key => ocrResults[key]?.success) && (
+                    {Object.keys(ocrResults).some(
+                      (key) => ocrResults[key]?.success,
+                    ) && (
                       <div className="space-y-3 bg-green-50 p-4 rounded-lg border border-green-200">
                         <h3 className="text-sm font-semibold text-green-700 border-b border-green-200 pb-2 flex items-center gap-2">
                           <CheckCircle2 size={16} />
@@ -3909,14 +4170,21 @@ export function AuthFormContent({
                             <div className="flex items-center gap-2 text-green-700">
                               <CheckCircle2 size={16} />
                               <span className="font-medium">KTP:</span>
-                              <span>{signUpData.ktpNumber || 'Data tersimpan'}</span>
+                              <span>
+                                {signUpData.ktpNumber || "Data tersimpan"}
+                              </span>
                             </div>
                           )}
                           {ocrResults.kk?.success && (
                             <div className="flex items-center gap-2 text-green-700">
                               <CheckCircle2 size={16} />
-                              <span className="font-medium">Kartu Keluarga:</span>
-                              <span>{signUpData.familyCardNumber || 'Data tersimpan'}</span>
+                              <span className="font-medium">
+                                Kartu Keluarga:
+                              </span>
+                              <span>
+                                {signUpData.familyCardNumber ||
+                                  "Data tersimpan"}
+                              </span>
                             </div>
                           )}
                           {ocrResults.ijazah?.success && (
@@ -3930,7 +4198,9 @@ export function AuthFormContent({
                             <div className="flex items-center gap-2 text-green-700">
                               <CheckCircle2 size={16} />
                               <span className="font-medium">SIM:</span>
-                              <span>{signUpData.licenseNumber || 'Data tersimpan'}</span>
+                              <span>
+                                {signUpData.licenseNumber || "Data tersimpan"}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -3942,43 +4212,75 @@ export function AuthFormContent({
                       <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
                         <h3 className="text-sm font-semibold text-blue-700 border-b border-blue-200 pb-2 flex items-center gap-2">
                           <CheckCircle2 size={16} />
-                          Data Dokumen (Auto-Extracted) - {dynamicFields.length} fields
+                          Data Dokumen (Auto-Extracted) - {
+                            dynamicFields.length
+                          }{" "}
+                          fields
                         </h3>
                         <p className="text-xs text-blue-600 mb-2">
-                          ✓ Semua field dapat diedit. Data akan tersimpan sampai Submit.
+                          ✓ Semua field dapat diedit. Data akan tersimpan sampai
+                          Submit.
                         </p>
                         <div className="grid grid-cols-2 gap-3">
                           {dynamicFields.map((field) => {
                             const meta = signUpMeta[field.name];
                             const isUserEdited = meta?.source === "user";
                             const docType = meta?.document_type || "";
-                            
+
                             return (
-                              <div key={field.name} className={`space-y-2 ${field.type === 'json' || field.type === 'jsonb' ? 'col-span-2' : ''}`}>
-                                <Label htmlFor={`dynamic-desktop-${field.name}`} className="text-sm flex items-center gap-1 flex-wrap">
+                              <div
+                                key={field.name}
+                                className={`space-y-2 ${field.type === "json" || field.type === "jsonb" ? "col-span-2" : ""}`}
+                              >
+                                <Label
+                                  htmlFor={`dynamic-desktop-${field.name}`}
+                                  className="text-sm flex items-center gap-1 flex-wrap"
+                                >
                                   {field.label}
                                   {/* Source Badge */}
                                   {isUserEdited ? (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">[U]</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">
+                                      [U]
+                                    </span>
                                   ) : docType ? (
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                                      docType === 'KTP' ? 'bg-green-100 text-green-700' :
-                                      docType === 'KK' ? 'bg-orange-100 text-orange-700' :
-                                      docType === 'IJAZAH' ? 'bg-blue-100 text-blue-700' :
-                                      docType === 'STNK' ? 'bg-red-100 text-red-700' :
-                                      docType === 'SIM' ? 'bg-yellow-100 text-yellow-700' :
-                                      docType === 'NPWP' ? 'bg-indigo-100 text-indigo-700' :
-                                      docType === 'AWB' ? 'bg-cyan-100 text-cyan-700' :
-                                      'bg-slate-100 text-slate-700'
-                                    }`}>[{docType}]</span>
+                                    <span
+                                      className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                        docType === "KTP"
+                                          ? "bg-green-100 text-green-700"
+                                          : docType === "KK"
+                                            ? "bg-orange-100 text-orange-700"
+                                            : docType === "IJAZAH"
+                                              ? "bg-blue-100 text-blue-700"
+                                              : docType === "STNK"
+                                                ? "bg-red-100 text-red-700"
+                                                : docType === "SIM"
+                                                  ? "bg-yellow-100 text-yellow-700"
+                                                  : docType === "NPWP"
+                                                    ? "bg-indigo-100 text-indigo-700"
+                                                    : docType === "AWB"
+                                                      ? "bg-cyan-100 text-cyan-700"
+                                                      : "bg-slate-100 text-slate-700"
+                                      }`}
+                                    >
+                                      [{docType}]
+                                    </span>
                                   ) : (
-                                    <span className="text-xs text-blue-500">(editable)</span>
+                                    <span className="text-xs text-blue-500">
+                                      (editable)
+                                    </span>
                                   )}
                                 </Label>
-                                {field.type === 'json' || field.type === 'jsonb' ? (
+                                {field.type === "json" ||
+                                field.type === "jsonb" ? (
                                   <div className="bg-white border border-blue-200 rounded-md p-2 max-h-48 overflow-auto">
                                     <pre className="text-xs text-slate-600 whitespace-pre-wrap">
-                                      {JSON.stringify(signUpData[field.name as keyof typeof signUpData] ?? field.value, null, 2)}
+                                      {JSON.stringify(
+                                        signUpData[
+                                          field.name as keyof typeof signUpData
+                                        ] ?? field.value,
+                                        null,
+                                        2,
+                                      )}
                                     </pre>
                                   </div>
                                 ) : (
@@ -3986,24 +4288,33 @@ export function AuthFormContent({
                                     id={`dynamic-desktop-${field.name}`}
                                     type={field.type || "text"}
                                     placeholder={field.label || field.name}
-                                    value={signUpData[field.name as keyof typeof signUpData] ?? field.value ?? ''}
+                                    value={
+                                      signUpData[
+                                        field.name as keyof typeof signUpData
+                                      ] ??
+                                      field.value ??
+                                      ""
+                                    }
                                     onChange={(e) => {
                                       setSignUpData({
                                         ...signUpData,
                                         [field.name]: e.target.value,
                                       });
                                       // Mark as user-edited when user changes the value
-                                      setSignUpMeta(prev => ({
+                                      setSignUpMeta((prev) => ({
                                         ...prev,
                                         [field.name]: {
                                           source: "user",
-                                          document_type: prev[field.name]?.document_type || "",
+                                          document_type:
+                                            prev[field.name]?.document_type ||
+                                            "",
                                           confidence: 1.0,
-                                          last_updated_at: new Date().toISOString()
-                                        }
+                                          last_updated_at:
+                                            new Date().toISOString(),
+                                        },
                                       }));
                                     }}
-                                    className={`bg-white ${isUserEdited ? 'border-purple-300' : 'border-blue-200'}`}
+                                    className={`bg-white ${isUserEdited ? "border-purple-300" : "border-blue-200"}`}
                                   />
                                 )}
                               </div>
@@ -4021,23 +4332,34 @@ export function AuthFormContent({
                           Workflow Suggestions ({workflowSuggestions.length})
                         </h3>
                         <p className="text-xs text-amber-600 mb-2">
-                          Berdasarkan dokumen yang sudah di-scan, Anda dapat melakukan:
+                          Berdasarkan dokumen yang sudah di-scan, Anda dapat
+                          melakukan:
                         </p>
                         <div className="grid grid-cols-2 gap-3">
                           {workflowSuggestions.map((suggestion, idx) => (
-                            <div 
+                            <div
                               key={idx}
                               className="flex items-center gap-3 p-3 bg-white rounded-lg border border-amber-200 hover:bg-amber-100 cursor-pointer transition-colors"
                               onClick={() => {
-                                console.log("Workflow triggered:", suggestion.type);
+                                console.log(
+                                  "Workflow triggered:",
+                                  suggestion.type,
+                                );
                                 // TODO: Implement workflow routing
                               }}
                             >
-                              <span className="text-2xl">{suggestion.icon || "📋"}</span>
+                              <span className="text-2xl">
+                                {suggestion.icon || "📋"}
+                              </span>
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-slate-700">{suggestion.label}</p>
+                                <p className="text-sm font-medium text-slate-700">
+                                  {suggestion.label}
+                                </p>
                                 <p className="text-xs text-slate-500">
-                                  Dokumen: {suggestion.document_types_required.join(" + ")}
+                                  Dokumen:{" "}
+                                  {suggestion.document_types_required.join(
+                                    " + ",
+                                  )}
                                 </p>
                               </div>
                               <span className="text-amber-500 text-lg">→</span>

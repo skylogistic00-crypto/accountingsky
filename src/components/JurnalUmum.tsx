@@ -81,6 +81,13 @@ export default function JurnalUmum() {
   const [coaSearchTerms, setCoaSearchTerms] = useState<{ [key: number]: string }>({});
   const [openPopoverIndex, setOpenPopoverIndex] = useState<number | null>(null);
 
+  // Generate reference number
+  function generateReferenceNumber(): string {
+    const timestamp = Date.now().toString().slice(-5);
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `REF-${timestamp}${random}`;
+  }
+
   useEffect(() => {
     async function loadCoa() {
       try {
@@ -102,6 +109,11 @@ export default function JurnalUmum() {
 
     loadCoa();
   }, []); // HANYA SEKALI
+
+  // Generate reference number on mount
+  useEffect(() => {
+    setNomorReferensi(generateReferenceNumber());
+  }, []);
 
   useEffect(() => {
     console.log("AKUN COA LIST UPDATED:", akunCOAList);
@@ -287,7 +299,7 @@ export default function JurnalUmum() {
 
   function resetForm() {
     setTanggalTransaksi("");
-    setNomorReferensi("");
+    setNomorReferensi(generateReferenceNumber());
     setDeskripsiTransaksiUtama("");
     setJurnalRows([
       { akunCOA: "", deskripsiBaris: "", debit: null, kredit: null },
@@ -333,7 +345,7 @@ export default function JurnalUmum() {
       });
 
       const { error: linesError } = await supabase
-        .from("journal_entry_lines")
+        .from("general_journal_lines")
         .insert(lines);
 
       if (linesError) throw linesError;
@@ -386,8 +398,9 @@ export default function JurnalUmum() {
               <Input
                 type="text"
                 value={nomorReferensi}
-                onChange={(e) => setNomorReferensi(e.target.value)}
-                placeholder="Opsional"
+                readOnly
+                disabled
+                className="bg-gray-100 cursor-not-allowed"
               />
             </div>
             <div className="space-y-1 md:col-span-1">

@@ -60,7 +60,9 @@ interface ApprovalTransaksiProps {
   onApprovalComplete?: () => void;
 }
 
-export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransaksiProps = {}) {
+export default function ApprovalTransaksi({
+  onApprovalComplete,
+}: ApprovalTransaksiProps = {}) {
   const [pendingTransactions, setPendingTransactions] = useState<
     PendingTransaction[]
   >([]);
@@ -216,7 +218,7 @@ export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransa
       });
 
       fetchPendingTransactions();
-      
+
       // Call callback to reload parent transactions
       if (onApprovalComplete) {
         onApprovalComplete();
@@ -468,7 +470,7 @@ export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransa
       setRejectionReason("");
       setSelectedTransaction(null);
       fetchPendingTransactions();
-      
+
       // Call callback to reload parent transactions
       if (onApprovalComplete) {
         onApprovalComplete();
@@ -751,7 +753,7 @@ export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransa
                     No. Dokumen
                   </p>
                   <p className="text-base font-mono">
-                    {selectedTransaction.journal_ref || "-"}
+                    {selectedTransaction.document_number || "-"}
                   </p>
                 </div>
                 <div>
@@ -839,6 +841,7 @@ export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransa
                       </p>
                     </div>
                   )}
+
                   {selectedTransaction.payment_type && (
                     <div>
                       <p className="text-sm font-medium text-slate-500">
@@ -849,6 +852,7 @@ export default function ApprovalTransaksi({ onApprovalComplete }: ApprovalTransa
                       </p>
                     </div>
                   )}
+
                   {(selectedTransaction.description ||
                     selectedTransaction.keterangan) && (
                     <div>

@@ -307,13 +307,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_mapping_logs: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          credit_account_id: string | null
+          debit_account_id: string | null
+          id: string
+          matches: Json | null
+          payload: Json | null
+          scope: string | null
+          winner: Json | null
+          winner_reason: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          credit_account_id?: string | null
+          debit_account_id?: string | null
+          id?: string
+          matches?: Json | null
+          payload?: Json | null
+          scope?: string | null
+          winner?: Json | null
+          winner_reason?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          credit_account_id?: string | null
+          debit_account_id?: string | null
+          id?: string
+          matches?: Json | null
+          payload?: Json | null
+          scope?: string | null
+          winner?: Json | null
+          winner_reason?: string | null
+        }
+        Relationships: []
+      }
       ai_mapping_rules: {
         Row: {
           account_id: string
           account_role: string
+          account_value: string | null
           created_at: string | null
           id: string
           match_field: string
+          match_score: number | null
           match_value: string
           priority: number | null
           scope: string
@@ -321,9 +362,11 @@ export type Database = {
         Insert: {
           account_id: string
           account_role: string
+          account_value?: string | null
           created_at?: string | null
           id?: string
           match_field: string
+          match_score?: number | null
           match_value: string
           priority?: number | null
           scope: string
@@ -331,22 +374,16 @@ export type Database = {
         Update: {
           account_id?: string
           account_role?: string
+          account_value?: string | null
           created_at?: string | null
           id?: string
           match_field?: string
+          match_score?: number | null
           match_value?: string
           priority?: number | null
           scope?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "ai_mapping_rules_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ai_query_logs: {
         Row: {
@@ -585,6 +622,27 @@ export type Database = {
         }
         Relationships: []
       }
+      anomalies: {
+        Row: {
+          created_at: string | null
+          id: string
+          payload: Json | null
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payload?: Json | null
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payload?: Json | null
+          reason?: string | null
+        }
+        Relationships: []
+      }
       approval_transaksi: {
         Row: {
           account_number: string | null
@@ -785,6 +843,165 @@ export type Database = {
           resource?: string | null
           target_user_id?: string | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      bank_mutasi_mapping: {
+        Row: {
+          akun: string | null
+          coa_account_code: string | null
+          created_at: string | null
+          dk: string | null
+          id: string
+          is_active: boolean | null
+          kategori: string | null
+          keyword: string | null
+          pic: string | null
+          pos: string | null
+          priority: number | null
+          sub_akun: string | null
+        }
+        Insert: {
+          akun?: string | null
+          coa_account_code?: string | null
+          created_at?: string | null
+          dk?: string | null
+          id?: string
+          is_active?: boolean | null
+          kategori?: string | null
+          keyword?: string | null
+          pic?: string | null
+          pos?: string | null
+          priority?: number | null
+          sub_akun?: string | null
+        }
+        Update: {
+          akun?: string | null
+          coa_account_code?: string | null
+          created_at?: string | null
+          dk?: string | null
+          id?: string
+          is_active?: boolean | null
+          kategori?: string | null
+          keyword?: string | null
+          pic?: string | null
+          pos?: string | null
+          priority?: number | null
+          sub_akun?: string | null
+        }
+        Relationships: []
+      }
+      bank_mutations: {
+        Row: {
+          amount: number | null
+          bank_name: string | null
+          channel: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          processed: boolean | null
+          ref_prefix: string | null
+          reference: string | null
+          transaction_date: string | null
+          type: string | null
+          va_prefix: string | null
+        }
+        Insert: {
+          amount?: number | null
+          bank_name?: string | null
+          channel?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          processed?: boolean | null
+          ref_prefix?: string | null
+          reference?: string | null
+          transaction_date?: string | null
+          type?: string | null
+          va_prefix?: string | null
+        }
+        Update: {
+          amount?: number | null
+          bank_name?: string | null
+          channel?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          processed?: boolean | null
+          ref_prefix?: string | null
+          reference?: string | null
+          transaction_date?: string | null
+          type?: string | null
+          va_prefix?: string | null
+        }
+        Relationships: []
+      }
+      bank_statements: {
+        Row: {
+          account_code: string | null
+          balance: number | null
+          bank_account_id: string | null
+          created_at: string | null
+          created_by: string | null
+          credit: number | null
+          debit: number | null
+          description: string | null
+          id: string
+          is_taxable: boolean | null
+          mapped_coa_credit: string | null
+          mapped_coa_debit: string | null
+          mapped_table: string | null
+          mapping_result: Json | null
+          raw_data: Json | null
+          status: string | null
+          tax_result: Json | null
+          tax_status: string | null
+          transaction_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          balance?: number | null
+          bank_account_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          id?: string
+          is_taxable?: boolean | null
+          mapped_coa_credit?: string | null
+          mapped_coa_debit?: string | null
+          mapped_table?: string | null
+          mapping_result?: Json | null
+          raw_data?: Json | null
+          status?: string | null
+          tax_result?: Json | null
+          tax_status?: string | null
+          transaction_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_code?: string | null
+          balance?: number | null
+          bank_account_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          id?: string
+          is_taxable?: boolean | null
+          mapped_coa_credit?: string | null
+          mapped_coa_debit?: string | null
+          mapped_table?: string | null
+          mapping_result?: Json | null
+          raw_data?: Json | null
+          status?: string | null
+          tax_result?: Json | null
+          tax_status?: string | null
+          transaction_date?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1469,7 +1686,6 @@ export type Database = {
           kategori_layanan: string | null
           level: number | null
           normal_balance: string | null
-          parent_code: string | null
           parent_id: string | null
           trans_type: string | null
           updated_at: string | null
@@ -1492,7 +1708,6 @@ export type Database = {
           kategori_layanan?: string | null
           level?: number | null
           normal_balance?: string | null
-          parent_code?: string | null
           parent_id?: string | null
           trans_type?: string | null
           updated_at?: string | null
@@ -1515,21 +1730,84 @@ export type Database = {
           kategori_layanan?: string | null
           level?: number | null
           normal_balance?: string | null
+          parent_id?: string | null
+          trans_type?: string | null
+          updated_at?: string | null
+          usage_role?: string | null
+        }
+        Relationships: []
+      }
+      chart_of_accounts_backup: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          balance: number | null
+          created_at: string | null
+          created_by: string | null
+          current_balance: number | null
+          description: string | null
+          flow_type: string | null
+          id: string | null
+          is_active: boolean | null
+          is_header: boolean | null
+          jenis_layanan: string | null
+          kategori_layanan: string | null
+          level: number | null
+          normal_balance: string | null
+          parent_code: string | null
+          parent_id: string | null
+          trans_type: string | null
+          updated_at: string | null
+          usage_role: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          account_name?: string | null
+          account_type?: string | null
+          balance?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          current_balance?: number | null
+          description?: string | null
+          flow_type?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_header?: boolean | null
+          jenis_layanan?: string | null
+          kategori_layanan?: string | null
+          level?: number | null
+          normal_balance?: string | null
           parent_code?: string | null
           parent_id?: string | null
           trans_type?: string | null
           updated_at?: string | null
           usage_role?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "chart_of_accounts_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Update: {
+          account_code?: string | null
+          account_name?: string | null
+          account_type?: string | null
+          balance?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          current_balance?: number | null
+          description?: string | null
+          flow_type?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_header?: boolean | null
+          jenis_layanan?: string | null
+          kategori_layanan?: string | null
+          level?: number | null
+          normal_balance?: string | null
+          parent_code?: string | null
+          parent_id?: string | null
+          trans_type?: string | null
+          updated_at?: string | null
+          usage_role?: string | null
+        }
+        Relationships: []
       }
       chat_history: {
         Row: {
@@ -1597,6 +1875,51 @@ export type Database = {
         }
         Relationships: []
       }
+      coa_change_log: {
+        Row: {
+          changed_at: string | null
+          id: string | null
+          new_account_code: string | null
+          note: string | null
+          old_account_code: string | null
+        }
+        Insert: {
+          changed_at?: string | null
+          id?: string | null
+          new_account_code?: string | null
+          note?: string | null
+          old_account_code?: string | null
+        }
+        Update: {
+          changed_at?: string | null
+          id?: string | null
+          new_account_code?: string | null
+          note?: string | null
+          old_account_code?: string | null
+        }
+        Relationships: []
+      }
+      coa_embeddings: {
+        Row: {
+          account_code: string
+          account_name: string
+          embedding: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          embedding?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          embedding?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       coa_mapping: {
         Row: {
           account_code: string
@@ -1618,6 +1941,78 @@ export type Database = {
           category?: string
           created_at?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      coa_normalization_log: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          balance: number | null
+          created_at: string | null
+          created_by: string | null
+          current_balance: number | null
+          description: string | null
+          flow_type: string | null
+          id: string | null
+          is_active: boolean | null
+          is_header: boolean | null
+          jenis_layanan: string | null
+          kategori_layanan: string | null
+          level: number | null
+          normal_balance: string | null
+          parent_code: string | null
+          parent_id: string | null
+          trans_type: string | null
+          updated_at: string | null
+          usage_role: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          account_name?: string | null
+          account_type?: string | null
+          balance?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          current_balance?: number | null
+          description?: string | null
+          flow_type?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_header?: boolean | null
+          jenis_layanan?: string | null
+          kategori_layanan?: string | null
+          level?: number | null
+          normal_balance?: string | null
+          parent_code?: string | null
+          parent_id?: string | null
+          trans_type?: string | null
+          updated_at?: string | null
+          usage_role?: string | null
+        }
+        Update: {
+          account_code?: string | null
+          account_name?: string | null
+          account_type?: string | null
+          balance?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          current_balance?: number | null
+          description?: string | null
+          flow_type?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_header?: boolean | null
+          jenis_layanan?: string | null
+          kategori_layanan?: string | null
+          level?: number | null
+          normal_balance?: string | null
+          parent_code?: string | null
+          parent_id?: string | null
+          trans_type?: string | null
+          updated_at?: string | null
+          usage_role?: string | null
         }
         Relationships: []
       }
@@ -3733,6 +4128,47 @@ export type Database = {
         }
         Relationships: []
       }
+      general_journal_lines: {
+        Row: {
+          account_code: string
+          account_name: string
+          created_at: string | null
+          credit: number | null
+          debit: number | null
+          id: string
+          journal_id: string | null
+          note: string | null
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          created_at?: string | null
+          credit?: number | null
+          debit?: number | null
+          id?: string
+          journal_id?: string | null
+          note?: string | null
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          created_at?: string | null
+          credit?: number | null
+          debit?: number | null
+          id?: string
+          journal_id?: string | null
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "general_journal_lines_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "general_journal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       general_ledger: {
         Row: {
           account_code: string | null
@@ -3824,6 +4260,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_journal_summary"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "general_ledger_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
           },
           {
             foreignKeyName: "general_ledger_journal_entry_id_fkey"
@@ -5730,6 +6173,8 @@ export type Database = {
           is_bank: boolean | null
           is_cash: boolean | null
           is_credit: boolean | null
+          method_name: string | null
+          method_type: string | null
           name: string
         }
         Insert: {
@@ -5741,6 +6186,8 @@ export type Database = {
           is_bank?: boolean | null
           is_cash?: boolean | null
           is_credit?: boolean | null
+          method_name?: string | null
+          method_type?: string | null
           name: string
         }
         Update: {
@@ -5752,6 +6199,8 @@ export type Database = {
           is_bank?: boolean | null
           is_cash?: boolean | null
           is_credit?: boolean | null
+          method_name?: string | null
+          method_type?: string | null
           name?: string
         }
         Relationships: []
@@ -5783,6 +6232,39 @@ export type Database = {
           is_active?: boolean | null
           term_name?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          booking_reference: string | null
+          channel: string | null
+          created_at: string | null
+          id: string
+          payment_method: string | null
+          payment_reference: string | null
+          status: string | null
+        }
+        Insert: {
+          amount: number
+          booking_reference?: string | null
+          channel?: string | null
+          created_at?: string | null
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          status?: string | null
+        }
+        Update: {
+          amount?: number
+          booking_reference?: string | null
+          channel?: string | null
+          created_at?: string | null
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -7848,6 +8330,39 @@ export type Database = {
           },
         ]
       }
+      tax_audit: {
+        Row: {
+          action: string | null
+          changed_by: string | null
+          created_at: string | null
+          id: string
+          new_value: Json | null
+          object_id: string | null
+          object_type: string | null
+          old_value: Json | null
+        }
+        Insert: {
+          action?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_value?: Json | null
+          object_id?: string | null
+          object_type?: string | null
+          old_value?: Json | null
+        }
+        Update: {
+          action?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_value?: Json | null
+          object_id?: string | null
+          object_type?: string | null
+          old_value?: Json | null
+        }
+        Relationships: []
+      }
       tax_config: {
         Row: {
           coa_payable_code: string | null
@@ -7962,6 +8477,39 @@ export type Database = {
           total_pph?: number | null
           total_ppn?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      tax_rules: {
+        Row: {
+          akun_dasar: string | null
+          akun_pajak: string | null
+          created_at: string | null
+          id: string
+          keyword: string | null
+          pajak: string | null
+          priority: number | null
+          tarif: number | null
+        }
+        Insert: {
+          akun_dasar?: string | null
+          akun_pajak?: string | null
+          created_at?: string | null
+          id?: string
+          keyword?: string | null
+          pajak?: string | null
+          priority?: number | null
+          tarif?: number | null
+        }
+        Update: {
+          akun_dasar?: string | null
+          akun_pajak?: string | null
+          created_at?: string | null
+          id?: string
+          keyword?: string | null
+          pajak?: string | null
+          priority?: number | null
+          tarif?: number | null
         }
         Relationships: []
       }
@@ -8381,12 +8929,15 @@ export type Database = {
       transactions: {
         Row: {
           ai_confidence_score: number | null
+          amount: number | null
           bank_name: string | null
           cash_bank_account: string | null
           created_at: string | null
           created_by: string | null
+          credit_account_id: string | null
           customer_id: string | null
           customer_name: string | null
+          debit_account_id: string | null
           description: string | null
           employee_id: string | null
           employee_name: string | null
@@ -8412,12 +8963,15 @@ export type Database = {
         }
         Insert: {
           ai_confidence_score?: number | null
+          amount?: number | null
           bank_name?: string | null
           cash_bank_account?: string | null
           created_at?: string | null
           created_by?: string | null
+          credit_account_id?: string | null
           customer_id?: string | null
           customer_name?: string | null
+          debit_account_id?: string | null
           description?: string | null
           employee_id?: string | null
           employee_name?: string | null
@@ -8443,12 +8997,15 @@ export type Database = {
         }
         Update: {
           ai_confidence_score?: number | null
+          amount?: number | null
           bank_name?: string | null
           cash_bank_account?: string | null
           created_at?: string | null
           created_by?: string | null
+          credit_account_id?: string | null
           customer_id?: string | null
           customer_name?: string | null
+          debit_account_id?: string | null
           description?: string | null
           employee_id?: string | null
           employee_name?: string | null
@@ -8473,6 +9030,20 @@ export type Database = {
           vendor_name?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_credit_coa"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_debit_coa"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_vendor_id_fkey"
             columns: ["vendor_id"]
@@ -9995,10 +10566,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      apply_ai_mapping: {
+        Args: { p_auto_post?: boolean; p_id: string }
+        Returns: Json
+      }
       apply_coa_mapping_to_disbursement: {
         Args: { p_disbursement_id: string }
         Returns: undefined
       }
+      apply_tax_engine: { Args: { p_id: string }; Returns: Json }
       balance_sheet: {
         Args: { report_date: string }
         Returns: {
@@ -10052,7 +10628,10 @@ export type Database = {
         Returns: string
       }
       create_monthly_tax_reminders: { Args: never; Returns: undefined }
+      embedding_coa_match: { Args: { p_text: string }; Returns: Json }
       execute_sql: { Args: { query: string }; Returns: Json }
+      extract_keywords: { Args: { p_text: string }; Returns: string[] }
+      fn_check_large_transactions: { Args: never; Returns: undefined }
       fn_income_statement: {
         Args: { p_end: string; p_start: string }
         Returns: {
@@ -10067,6 +10646,7 @@ export type Database = {
           sort_section: number
         }[]
       }
+      fn_post_monthly_depreciation: { Args: never; Returns: undefined }
       fn_update_coa_balance: { Args: never; Returns: undefined }
       gen_stock_code: { Args: never; Returns: string }
       generate_advance_number: { Args: never; Returns: string }
@@ -10376,6 +10956,7 @@ export type Database = {
       }
       insert_journal_entries: { Args: { entries: Json }; Returns: undefined }
       kas_autonumber: { Args: never; Returns: string }
+      match_bank_statement: { Args: { p_id: string }; Returns: Json }
       match_documents: {
         Args: {
           match_count?: number
@@ -10403,6 +10984,10 @@ export type Database = {
           similarity: number
           sub_category: string
         }[]
+      }
+      post_bank_statement_as_journal: {
+        Args: { p_id: string; p_user?: string }
+        Returns: undefined
       }
       post_cash_disbursement: {
         Args: { disbursement_id: string }
@@ -10436,8 +11021,17 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.repost_gl_for_journal_entry(p_je_id => text), public.repost_gl_for_journal_entry(p_je_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      reset_transaction_tax: {
+        Args: { p_id: string; p_user?: string }
+        Returns: Json
+      }
       reverse_journal: { Args: { journal_id: string }; Returns: undefined }
       set_app_user: { Args: { uid: string }; Returns: undefined }
+      set_transaction_no_tax: {
+        Args: { p_id: string; p_user?: string }
+        Returns: undefined
+      }
+      smart_find_rule: { Args: { p_id: string }; Returns: Json }
       text_to_bytea: { Args: { data: string }; Returns: string }
       trial_balance: {
         Args: { report_date: string }
@@ -10463,6 +11057,7 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      validate_coa: { Args: { p_code: string }; Returns: undefined }
       void_journal_group: {
         Args: { p_group_id: string; p_reason?: string }
         Returns: undefined

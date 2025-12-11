@@ -1820,7 +1820,9 @@ export default function TransaksiKeuanganForm() {
       const { data, error: supabaseError } = await supabase
         .from("chart_of_accounts")
         .select("*")
-        .ilike("account_name", "%bank - %")
+        .eq("usage_role", "cash_and_bank")
+        .eq("is_active", true)
+        .eq("is_header", false)
         .order("account_code");
       if (supabaseError) throw supabaseError;
       console.log("Banks loaded:", data);
@@ -1836,7 +1838,7 @@ export default function TransaksiKeuanganForm() {
       const { data, error: supabaseError } = await supabase
         .from("chart_of_accounts")
         .select("*")
-        .ilike("account_name", "%kas%")
+        .eq("usage_role", "cash")
         .eq("is_active", true)
         .eq("is_header", false)
         .order("account_code");
@@ -2517,10 +2519,12 @@ export default function TransaksiKeuanganForm() {
   /** Choose Mapping Rule - Generate filter strings for COA queries */
   const chooseMappingRule = (normalizedInput: any) => {
     const jenis = normalizedInput.jenisTransaksi;
-    const payment = normalizedInput.paymentType;
     const sumber = normalizedInput.sumberPenerimaan;
     const kategori = normalizedInput.kategoriPengeluaran;
     const accountName = normalizedInput.selectedAccountName;
+
+    const rawPayment = (normalizedInput.paymentType || "").toLowerCase();
+    const payment = rawPayment === "bank" ? "transfer bank" : rawPayment;
 
     let debitFilter: any = null;
     let creditFilter: any = null;
@@ -2575,11 +2579,6 @@ export default function TransaksiKeuanganForm() {
           creditFilter = { account_code: bankCode };
         } else if (payment === "Kredit") {
           creditFilter = { usage_role: "hutang" };
-        } else {
-          creditFilter =
-            payment === "cash"
-              ? { flow_type: "cash" }
-              : { usage_role: "hutang" };
         }
         extras.is_cash_related =
           payment === "cash" || payment === "transfer bank";
@@ -2599,11 +2598,6 @@ export default function TransaksiKeuanganForm() {
           creditFilter = { account_code: bankCode };
         } else if (payment === "Kredit") {
           creditFilter = { usage_role: "hutang" };
-        } else {
-          creditFilter =
-            payment === "cash"
-              ? { flow_type: "cash" }
-              : { usage_role: "hutang" };
         }
         extras.is_cash_related =
           payment === "cash" || payment === "transfer bank";
@@ -2621,8 +2615,6 @@ export default function TransaksiKeuanganForm() {
           debitFilter = { account_code: bankCode };
         } else if (payment === "Kredit") {
           debitFilter = { usage_role: "piutang" };
-        } else {
-          debitFilter = { flow_type: "cash" };
         }
         creditFilter = { usage_role: "pendapatan_jasa" };
         extras.is_cash_related =
@@ -2654,8 +2646,6 @@ export default function TransaksiKeuanganForm() {
           );
           console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
           creditFilter = { account_code: bankCode };
-        } else {
-          creditFilter = { flow_type: "cash" };
         }
         extras.is_cash_related =
           payment === "cash" || payment === "transfer bank";
@@ -2683,8 +2673,6 @@ export default function TransaksiKeuanganForm() {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           debitFilter = { account_code: bankCode };
-        } else {
-          debitFilter = { flow_type: "cash" };
         }
         creditFilter = { trans_type: "equity" };
         extras.is_cash_related = true;
@@ -2701,8 +2689,6 @@ export default function TransaksiKeuanganForm() {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
-        } else {
-          creditFilter = { flow_type: "cash" };
         }
         extras.is_cash_related = true;
         break;
@@ -2719,8 +2705,6 @@ export default function TransaksiKeuanganForm() {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
-        } else {
-          creditFilter = { flow_type: "cash" };
         }
         extras.is_cash_related = true;
         break;
@@ -2736,8 +2720,6 @@ export default function TransaksiKeuanganForm() {
           const bankCode =
             normalizedInput.selectedBank?.split(" — ")[0] || "1-1200";
           debitFilter = { account_code: bankCode };
-        } else {
-          debitFilter = { flow_type: "cash" };
         }
         creditFilter = { usage_role: "piutang" };
         extras.is_cash_related = true;
@@ -2982,45 +2964,126 @@ export default function TransaksiKeuanganForm() {
   const runFinancialEngine = async (normalizedInput: any) => {
     try {
       // PRIORITY 1: Check if user manually selected expense account
+      const normalizedPayment = (
+        normalizedInput.paymentType || ""
+      ).toLowerCase();
+
+      // Normalize "bank" → "transfer bank"
+      const isTransferBank =
+        normalizedPayment === "bank" || normalizedPayment === "transfer bank";
+
+      const hasBank =
+        (normalizedInput.selectedBank && 
+         typeof normalizedInput.selectedBank === 'string' && 
+         normalizedInput.selectedBank.trim() !== "") ||
+        normalizedInput.bank_account ||
+        normalizedInput.bank_account_id ||
+        normalizedInput.coa_cash_id;
+
+      // Check all variations of "Pengeluaran"
+      const jenisLower = (normalizedInput.jenisTransaksi || "").toLowerCase();
+      const isPengeluaranType =
+        normalizedInput.jenisTransaksi === "Pengeluaran" ||
+        normalizedInput.jenisTransaksi === "Pengeluaran Kas" ||
+        jenisLower.includes("pengeluaran") ||
+        jenisLower.includes("expense") ||
+        jenisLower.includes("beban");
+
+      console.log("🔍 Bank Validation Check:", {
+        jenisTransaksi: normalizedInput.jenisTransaksi,
+        isPengeluaranType,
+        isTransferBank,
+        hasBank,
+        selectedBank: normalizedInput.selectedBank,
+        selectedBankType: typeof normalizedInput.selectedBank,
+        selectedBankLength: normalizedInput.selectedBank?.length,
+        bank_account: normalizedInput.bank_account,
+        bank_account_id: normalizedInput.bank_account_id,
+        coa_cash_id: normalizedInput.coa_cash_id,
+      });
+
+      if (isPengeluaranType && isTransferBank && !hasBank) {
+        console.error("❌ VALIDATION FAILED: Bank account required but not found");
+        throw {
+          message:
+            "Metode pembayaran Bank dipilih, namun akun bank belum dipilih. Silakan pilih akun bank terlebih dahulu.",
+        };
+      }
+
       if (normalizedInput.selectedExpenseAccount) {
         console.log(
           "✅ Manual expense account detected - bypassing AI/OCR mapping:",
           normalizedInput.selectedExpenseAccount,
         );
 
-        // Load the manually selected debit account
-        const manualDebitAccount = await supabase
-          .from("chart_of_accounts")
-          .select("*")
-          .eq("id", normalizedInput.selectedExpenseAccount.id)
-          .maybeSingle();
+        // Use the manually selected debit account directly
+        const debitCode = normalizedInput.selectedExpenseAccount.account_code;
+        const debitName = normalizedInput.selectedExpenseAccount.account_name;
+        const debitType = normalizedInput.selectedExpenseAccount.account_type;
 
-        if (manualDebitAccount.data) {
-          console.log(
-            "📊 Using manual debit account:",
-            manualDebitAccount.data,
-          );
+        console.log("📊 Using manual debit account:", {
+          debitCode,
+          debitName,
+          debitType,
+        });
 
-          // Still need to determine credit account (cash/bank)
-          const mappingRule = chooseMappingRule(normalizedInput);
-          console.log(
-            "🔍 Loading Credit COA with filter:",
-            mappingRule.creditFilter,
-          );
-          let creditAccount = await loadCOAByFilter(mappingRule.creditFilter);
-          console.log("📊 Credit Account found:", creditAccount);
+        // Use selectedKas or selectedBank directly for credit account
+        let creditAccount = null;
+        if (normalizedInput.selectedKas) {
+          const parts = normalizedInput.selectedKas.split(" — ");
+          const kasCode = parts[0]?.trim() || "";
+          let kasName = parts[1]?.trim() || "";
 
-          return {
-            debit: manualDebitAccount.data.account_code,
-            credit: creditAccount?.account_code || "",
-            debitName: manualDebitAccount.data.account_name,
-            creditName: creditAccount?.account_name || "",
-            debitType: manualDebitAccount.data.account_type,
-            creditType: creditAccount?.account_type || "",
-            is_cash_related: mappingRule.extras.is_cash_related,
-            hpp_entry: null,
+          // If name is empty, fetch from database
+          if (!kasName && kasCode) {
+            const coaData = await loadCOAByFilter({ account_code: kasCode });
+            kasName = coaData?.account_name || kasCode;
+          }
+
+          creditAccount = {
+            account_code: kasCode,
+            account_name: kasName,
+            account_type: "Aset",
           };
+          console.log("✅ Using selectedKas directly:", creditAccount);
+        } else if (normalizedInput.selectedBank) {
+          const parts = normalizedInput.selectedBank.split(" — ");
+          const bankCode = parts[0]?.trim() || "";
+          let bankName = parts[1]?.trim() || "";
+
+          // If name is empty, fetch from database
+          if (!bankName && bankCode) {
+            const coaData = await loadCOAByFilter({ account_code: bankCode });
+            bankName = coaData?.account_name || bankCode;
+          }
+
+          creditAccount = {
+            account_code: bankCode,
+            account_name: bankName,
+            account_type: "Aset",
+          };
+          console.log("✅ Using selectedBank directly:", {
+            raw: normalizedInput.selectedBank,
+            parts,
+            creditAccount,
+          });
+        } else {
+          // Fallback to loadCOAByFilter
+          const mappingRule = chooseMappingRule(normalizedInput);
+          creditAccount = await loadCOAByFilter(mappingRule.creditFilter);
+          console.log("📊 Credit Account found from DB:", creditAccount);
         }
+
+        return {
+          debit: debitCode,
+          credit: creditAccount?.account_code || "",
+          debitName: debitName,
+          creditName: creditAccount?.account_name || "",
+          debitType: debitType,
+          creditType: creditAccount?.account_type || "",
+          is_cash_related: true,
+          hpp_entry: null,
+        };
       }
 
       // PRIORITY 2: Check if user manually selected revenue account
@@ -3030,39 +3093,70 @@ export default function TransaksiKeuanganForm() {
           normalizedInput.selectedRevenueAccount,
         );
 
-        // Load the manually selected credit account (revenue)
-        const manualCreditAccount = await supabase
-          .from("chart_of_accounts")
-          .select("*")
-          .eq("id", normalizedInput.selectedRevenueAccount.id)
-          .maybeSingle();
+        // Use the manually selected credit account (revenue) directly
+        const creditCode = normalizedInput.selectedRevenueAccount.account_code;
+        const creditName = normalizedInput.selectedRevenueAccount.account_name;
+        const creditType = normalizedInput.selectedRevenueAccount.account_type;
 
-        if (manualCreditAccount.data) {
-          console.log(
-            "📊 Using manual credit account:",
-            manualCreditAccount.data,
-          );
+        console.log("📊 Using manual credit account:", {
+          creditCode,
+          creditName,
+          creditType,
+        });
 
-          // Still need to determine debit account (cash/bank)
-          const mappingRule = chooseMappingRule(normalizedInput);
-          console.log(
-            "🔍 Loading Debit COA with filter:",
-            mappingRule.debitFilter,
-          );
-          let debitAccount = await loadCOAByFilter(mappingRule.debitFilter);
-          console.log("📊 Debit Account found:", debitAccount);
+        // Use selectedKas or selectedBank directly for debit account
+        let debitAccount = null;
+        if (normalizedInput.selectedKas) {
+          const parts = normalizedInput.selectedKas.split(" — ");
+          const kasCode = parts[0]?.trim() || "";
+          let kasName = parts[1]?.trim() || "";
 
-          return {
-            debit: debitAccount?.account_code || "",
-            credit: manualCreditAccount.data.account_code,
-            debitName: debitAccount?.account_name || "",
-            creditName: manualCreditAccount.data.account_name,
-            debitType: debitAccount?.account_type || "",
-            creditType: manualCreditAccount.data.account_type,
-            is_cash_related: mappingRule.extras.is_cash_related,
-            hpp_entry: null,
+          // If name is empty, fetch from database
+          if (!kasName && kasCode) {
+            const coaData = await loadCOAByFilter({ account_code: kasCode });
+            kasName = coaData?.account_name || kasCode;
+          }
+
+          debitAccount = {
+            account_code: kasCode,
+            account_name: kasName,
+            account_type: "Aset",
           };
+          console.log("✅ Using selectedKas directly:", debitAccount);
+        } else if (normalizedInput.selectedBank) {
+          const parts = normalizedInput.selectedBank.split(" — ");
+          const bankCode = parts[0]?.trim() || "";
+          let bankName = parts[1]?.trim() || "";
+
+          // If name is empty, fetch from database
+          if (!bankName && bankCode) {
+            const coaData = await loadCOAByFilter({ account_code: bankCode });
+            bankName = coaData?.account_name || bankCode;
+          }
+
+          debitAccount = {
+            account_code: bankCode,
+            account_name: bankName,
+            account_type: "Aset",
+          };
+          console.log("✅ Using selectedBank directly:", debitAccount);
+        } else {
+          // Fallback to loadCOAByFilter
+          const mappingRule = chooseMappingRule(normalizedInput);
+          debitAccount = await loadCOAByFilter(mappingRule.debitFilter);
+          console.log("📊 Debit Account found from DB:", debitAccount);
         }
+
+        return {
+          debit: debitAccount?.account_code || "",
+          credit: creditCode,
+          debitName: debitAccount?.account_name || "",
+          creditName: creditName,
+          debitType: debitAccount?.account_type || "",
+          creditType: creditType,
+          is_cash_related: true,
+          hpp_entry: null,
+        };
       }
 
       // PRIORITY 3: Check if user manually selected modal account
@@ -3194,7 +3288,7 @@ export default function TransaksiKeuanganForm() {
         hpp_entry: hppEntry,
       };
     } catch (err) {
-      console.error("Error in runFinancialEngine:", err);
+      // console.error("Error in runFinancialEngine:", err);
       throw err;
     }
   };
@@ -3208,13 +3302,11 @@ export default function TransaksiKeuanganForm() {
     if (!form.tanggal) errors.push("tanggal wajib diisi");
 
     // Validate payment method requirements
-    if (paymentType === "Cash" && !selectedKas) {
-      errors.push("Akun Kas wajib dipilih untuk metode pembayaran Cash");
+    if (paymentType === "Kas" && !selectedKas) {
+      errors.push("Akun Kas wajib dipilih untuk metode pembayaran Kas");
     }
-    if (paymentType === "Transfer Bank" && !selectedBank) {
-      errors.push(
-        "Akun Bank wajib dipilih untuk metode pembayaran Transfer Bank",
-      );
+    if (paymentType === "Bank" && !selectedBank) {
+      errors.push("Pilih akun bank terlebih dahulu");
     }
     // For Kredit, accounts are auto-selected, no validation needed
 
@@ -3227,7 +3319,11 @@ export default function TransaksiKeuanganForm() {
   /** Normalize Input */
   const normalizeInput = (form: any) => {
     const jenis = (form.jenisTransaksi || "").trim();
-    const payment = (form.paymentType || "").toLowerCase(); // 'cash' or 'tempo'
+    let paymentType = form.paymentType || "";
+    if (paymentType?.toLowerCase() === "bank") {
+      paymentType = "transfer bank";
+    }
+    let payment = paymentType.toLowerCase();
     const nominalValue = Number(form.nominal || 0);
     const sumber = (form.sumberPenerimaan || "").trim(); // e.g. 'Pinjaman Bank'
     const kategoriPengeluaranValue = (form.kategoriPengeluaran || "").trim();
@@ -3266,8 +3362,8 @@ export default function TransaksiKeuanganForm() {
       selectedAccountName: form.selectedAccountName || "",
       selectedCreditAccountType: form.selectedCreditAccountType || "",
       selectedCreditAccountName: form.selectedCreditAccountName || "",
-      selectedKas: form.selectedKas || "",
-      selectedBank: form.selectedBank || "",
+      selectedKas: form.selectedKas || null,
+      selectedBank: form.selectedBank || null,
       selectedExpenseAccount: form.selectedExpenseAccount || null,
       selectedRevenueAccount: form.selectedRevenueAccount || null,
       selectedModalAccount: form.selectedModalAccount || null,
@@ -3323,6 +3419,8 @@ export default function TransaksiKeuanganForm() {
         selectedAccountName: selectedAccountName,
         selectedCreditAccountType: selectedCreditAccountType,
         selectedCreditAccountName: selectedCreditAccountName,
+        selectedKas: selectedKas,
+        selectedBank: selectedBank,
         selectedExpenseAccount: selectedExpenseAccount,
         selectedRevenueAccount: selectedRevenueAccount,
         selectedModalAccount: selectedModalAccount,
@@ -3380,10 +3478,10 @@ export default function TransaksiKeuanganForm() {
           });
 
           if (!res.ok) {
-            console.error("payment-processor error:", await res.text());
+            // console.error("payment-processor error:", await res.text());
           } else {
             const data = await res.json();
-            console.log("payment-processor success:", data);
+            // console.log("payment-processor success:", data);
           }
         } catch (paymentError) {
           console.error("payment-processor fetch failed:", paymentError);
@@ -3424,30 +3522,31 @@ export default function TransaksiKeuanganForm() {
     const mainDebitLine = previewLines.find((l) => l.dc === "D");
     const mainCreditLine = previewLines.find((l) => l.dc === "C");
 
-    if (transactionType === "Penerimaan" || transactionType === "Pengeluaran") {
-      const payload = {
-        invoice_id: null,
-        booking_id: null,
-        transaction_type: transactionType,
-        amount: amount,
-        notes: notes,
+    if (jenisTransaksi === "Penerimaan" || jenisTransaksi === "Pengeluaran") {
+      // Save to finance_transactions table
+      const { error: financeError } = await supabase
+        .from("finance_transactions")
+        .insert({
+          entity_id: user?.id,
+          transaction_type: jenisTransaksi,
+          amount: Number(nominal),
+          description: description,
+          transaction_date: tanggal,
+          payment_method: paymentType,
+          account_id: selectedExpenseAccount?.id,
+          account_code: selectedExpenseAccount?.account_code,
+          account_name: selectedExpenseAccount?.account_name,
+          bukti_url: uploadedBuktiUrl,
+          journal_ref: journalRef,
+          ocr_data: ocrDataPayload,
+          created_by: user?.id,
+        });
 
-        payment_method_id: selectedPaymentMethod?.id,
-        payment_method_name: selectedPaymentMethod?.method_name,
+      if (financeError) {
+        throw new Error(`Finance Transaction: ${financeError.message}`);
+      }
 
-        debit_account_id: selectedExpenseAccount?.id,
-        debit_account_code: selectedExpenseAccount?.account_code,
-        debit_account_name: selectedExpenseAccount?.account_name,
-      };
-
-      console.log("PAYLOAD → PAYMENT PROCESSOR", payload);
-
-      await fetch(`${supabaseUrl}/functions/v1/payment-processor`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
+      console.log("Finance transaction saved successfully");
       return; // pastikan tidak lanjut ke jalur transaksi lain
     }
 
@@ -3483,7 +3582,7 @@ export default function TransaksiKeuanganForm() {
           total_amount: totalAmount,
           payment_method: paymentType === "cash" ? "Tunai" : "Piutang",
           customer_name: customer || "",
-          coa_cash_code: paymentType === "cash" ? "1-1100" : "1-1200",
+          coa_cash_id: paymentType === "cash" ? "1-1100" : "1-1200",
           coa_revenue_code: mainCreditLine?.account_code || "",
           coa_cogs_code: "5-1100",
           coa_inventory_code: coaSelected || "",
@@ -3527,7 +3626,7 @@ export default function TransaksiKeuanganForm() {
           total_amount: totalAmount,
           payment_method: paymentType === "cash" ? "Tunai" : "Piutang",
           customer_name: customer || "",
-          coa_cash_code: paymentType === "cash" ? "1-1100" : "1-1200",
+          coa_cash_id: paymentType === "cash" ? "1-1100" : "1-1200",
           coa_revenue_code: mainCreditLine?.account_code || "",
           coa_cogs_code: null,
           coa_inventory_code: null,
@@ -3559,7 +3658,7 @@ export default function TransaksiKeuanganForm() {
           total_amount: nominal,
           payment_method: paymentType === "cash" ? "Tunai" : "Hutang",
           coa_inventory_code: mainDebitLine?.account_code || "",
-          coa_cash_code: mainCreditLine?.account_code || "",
+          coa_cash_id: mainCreditLine?.account_code || "",
           account_code: mainDebitLine?.account_code || "",
           account_name: mainDebitLine?.account_name || "",
           notes: description,
@@ -3567,8 +3666,6 @@ export default function TransaksiKeuanganForm() {
           bukti: uploadedBuktiUrl || null,
           ocr_data: ocrDataPayload,
           ocr_id: ocrAppliedData?.ocrId || null,
-          created_by: user?.id,
-          approved_by: null,
         });
 
         if (error) throw new Error(`Purchase Transaction: ${error.message}`);
@@ -3589,7 +3686,7 @@ export default function TransaksiKeuanganForm() {
           total_amount: nominal,
           payment_method: paymentType === "cash" ? "Tunai" : "Hutang",
           coa_inventory_code: mainDebitLine?.account_code || "",
-          coa_cash_code: mainCreditLine?.account_code || "",
+          coa_cash_id: mainCreditLine?.account_code || "",
           account_code: mainDebitLine?.account_code || "",
           account_name: mainDebitLine?.account_name || "",
           notes: description,
@@ -3621,7 +3718,7 @@ export default function TransaksiKeuanganForm() {
             sumberPenerimaan || customer || supplier || "Penerimaan Kas",
           amount: nominal,
           payment_method: paymentType === "cash" ? "Tunai" : "Bank",
-          coa_cash_code: mainDebitLine?.account_code || "1-1100",
+          coa_cash_id: mainDebitLine?.account_code || "1-1100",
           coa_contra_code: mainCreditLine?.account_code || "4-1100",
           account_code: mainDebitLine?.account_code || "",
           account_name: mainDebitLine?.account_name || "",
@@ -3674,6 +3771,66 @@ export default function TransaksiKeuanganForm() {
         console.log("🧾 Expense Line:", expenseLine);
         console.log("💰 Cash Line:", cashLine);
 
+        // ========== RESOLVE COA IDs ==========
+        // Resolve Bank/Kas COA ID
+        let coaCashId: string | null = null;
+        let coaCashAccountCode: string | null = null;
+        let coaCashAccountName: string | null = null;
+        let coaCashAccountType: string | null = null;
+
+        const cashAccountCode = cashLine?.account_code;
+        if (cashAccountCode) {
+          const { data: coaCash, error: errCash } = await supabase
+            .from("chart_of_accounts")
+            .select("id, account_code, account_name, account_type")
+            .eq("account_code", cashAccountCode)
+            .single();
+          if (errCash || !coaCash) {
+            console.error(
+              "❌ COA Bank/Kas tidak ditemukan untuk:",
+              cashAccountCode,
+            );
+            throw new Error(
+              `COA Bank/Kas tidak ditemukan untuk account_code: ${cashAccountCode}`,
+            );
+          }
+          coaCashId = coaCash.id;
+          coaCashAccountCode = coaCash.account_code;
+          coaCashAccountName = coaCash.account_name;
+          coaCashAccountType = coaCash.account_type;
+          console.log("✅ Resolved COA Cash:", coaCash);
+        }
+
+        // Resolve Expense COA ID
+        let coaExpenseId: string | null = null;
+        let coaExpenseAccountCode: string | null = null;
+        let coaExpenseAccountName: string | null = null;
+        let coaExpenseAccountType: string | null = null;
+
+        const expenseAccountCode = expenseLine?.account_code;
+        if (expenseAccountCode) {
+          const { data: coaExpense, error: errExp } = await supabase
+            .from("chart_of_accounts")
+            .select("id, account_code, account_name, account_type")
+            .eq("account_code", expenseAccountCode)
+            .single();
+          if (errExp || !coaExpense) {
+            console.error(
+              "❌ COA Beban tidak ditemukan untuk:",
+              expenseAccountCode,
+            );
+            throw new Error(
+              `COA Beban tidak ditemukan untuk account_code: ${expenseAccountCode}`,
+            );
+          }
+          coaExpenseId = coaExpense.id;
+          coaExpenseAccountCode = coaExpense.account_code;
+          coaExpenseAccountName = coaExpense.account_name;
+          coaExpenseAccountType = coaExpense.account_type;
+          console.log("✅ Resolved COA Expense:", coaExpense);
+        }
+        // ========== END RESOLVE COA IDs ==========
+
         const { data, error } = await supabase
           .from("cash_disbursement")
           .insert({
@@ -3687,14 +3844,23 @@ export default function TransaksiKeuanganForm() {
             description: previewMemo,
             category: kategori,
             amount: nominal,
-            payment_method:
-              jenisPembayaranPengeluaran === "Cash" ? "Tunai" : "Transfer Bank",
+            payment_method: (() => {
+              const pt = (paymentType || "").toLowerCase();
+              if (pt.includes("kas")) return "Tunai";
+              if (pt.includes("bank")) return "Transfer Bank";
+              if (pt.includes("kredit")) return "Kredit";
+              return "Tunai"; // default
+            })(),
 
-            // COA Mapping
-            coa_expense_code: expenseLine?.account_code || "6-1100",
-            coa_cash_code: cashLine?.account_code || "1-1100",
-            account_code: expenseLine?.account_code || null,
-            account_name: expenseLine?.account_name || null,
+            // COA Mapping - NOW WITH RESOLVED UUIDs
+            coa_cash_id: coaCashId,
+            coa_expense_id: coaExpenseId,
+
+            // Legacy fields (only valid schema fields, truncated to avoid DB length issues)
+            account_code:
+              (coaExpenseAccountCode || expenseLine?.account_code || null)?.toString().slice(0, 20) || null,
+            account_name:
+              (coaExpenseAccountName || expenseLine?.account_name || null)?.toString().slice(0, 20) || null,
 
             // REQUIRED FIXES
             exchange_rate: 1, // wajib > 0
@@ -3705,6 +3871,7 @@ export default function TransaksiKeuanganForm() {
             created_by: user?.id,
 
             // Additional fields
+            document_number: noDokumen || null,
             notes: description,
             bukti: uploadedBuktiUrl || null,
             ocr_data: ocrDataPayload,
@@ -4026,7 +4193,7 @@ export default function TransaksiKeuanganForm() {
             } as any);
 
           if (supabaseError) {
-            console.error("Cash Book Error:", supabaseError);
+            // console.error("Cash Book Error:", supabaseError);
             throw new Error(`Cash Book: ${supabaseError.message}`);
           }
           console.log("Cash Book saved successfully");
@@ -4048,7 +4215,7 @@ export default function TransaksiKeuanganForm() {
       // Always refresh transactions list to show new data
       await loadTransactions();
     } catch (err: any) {
-      console.error("❌ handleConfirmSave error:", err);
+      // console.error("❌ handleConfirmSave error:", err);
       toast({
         title: "❌ Error",
         description: err.message || "Gagal menyimpan transaksi",
@@ -4334,6 +4501,11 @@ export default function TransaksiKeuanganForm() {
           selectedExpenseAccount: item.selectedExpenseAccount || null,
           selectedRevenueAccount: item.selectedRevenueAccount || null,
           selectedModalAccount: item.selectedModalAccount || null,
+          // Bank account fields for validation
+          selectedBank: item.selectedBank || null,
+          bank_account: item.bank_account || null,
+          bank_account_id: item.bank_account_id || null,
+          coa_cash_id: item.coa_cash_id || null,
         });
 
         // Step 2: Run Financial Engine
@@ -4361,7 +4533,8 @@ export default function TransaksiKeuanganForm() {
         const journalRef = `JRN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
         // Step 4: Create Journal Entries (skip if needs approval)
-        const mainDebitLine = journalData.lines.find((l) => l.dc === "D");
+        {
+          /*     const mainDebitLine = journalData.lines.find((l) => l.dc === "D");
         const mainCreditLine = journalData.lines.find((l) => l.dc === "C");
 
         if (!needsApproval && mainDebitLine && mainCreditLine) {
@@ -4386,9 +4559,12 @@ export default function TransaksiKeuanganForm() {
           });
 
           if (error) throw new Error(`Journal Entry: ${error.message}`);
+        } */
         }
 
         // Step 5: Save HPP entry if exists (for Penjualan) - skip if needs approval
+        {
+          /*
         if (!needsApproval && journalData.lines.length > 2) {
           const hppDebitLine = journalData.lines[2];
           const hppCreditLine = journalData.lines[3];
@@ -4414,6 +4590,8 @@ export default function TransaksiKeuanganForm() {
           });
 
           if (error) throw new Error(`HPP Entry: ${error.message}`);
+        }
+        */
         }
 
         // Step 6: Create Cash Book if needed - skip if needs approval
@@ -4481,6 +4659,83 @@ export default function TransaksiKeuanganForm() {
           console.log("🧾 Expense Line:", expenseLine);
           console.log("💰 Cash Line:", cashLine);
 
+          // ========== RESOLVE COA IDs FOR BATCH ==========
+          // Resolve Bank/Kas COA ID
+          let batchCoaCashId: string | null = null;
+          let batchCoaCashAccountCode: string | null = null;
+          let batchCoaCashAccountName: string | null = null;
+          let batchCoaCashAccountType: string | null = null;
+
+          const batchCashAccountCode = cashLine?.account_code;
+          if (batchCashAccountCode) {
+            const { data: coaCash, error: errCash } = await supabase
+              .from("chart_of_accounts")
+              .select("id, account_code, account_name, account_type")
+              .eq("account_code", batchCashAccountCode)
+              .single();
+            if (errCash || !coaCash) {
+              console.error(
+                "❌ COA Bank/Kas tidak ditemukan untuk:",
+                batchCashAccountCode,
+              );
+              throw new Error(
+                `COA Bank/Kas tidak ditemukan untuk account_code: ${batchCashAccountCode}`,
+              );
+            }
+            batchCoaCashId = coaCash.id;
+            batchCoaCashAccountCode = coaCash.account_code;
+            batchCoaCashAccountName = coaCash.account_name;
+            batchCoaCashAccountType = coaCash.account_type;
+            console.log("✅ Batch Resolved COA Cash:", coaCash);
+          }
+
+          // Resolve Expense COA ID
+          let batchCoaExpenseId: string | null = null;
+          let batchCoaExpenseAccountCode: string | null = null;
+          let batchCoaExpenseAccountName: string | null = null;
+          let batchCoaExpenseAccountType: string | null = null;
+
+          const batchExpenseAccountCode = expenseLine?.account_code;
+          if (batchExpenseAccountCode) {
+            const { data: coaExpense, error: errExp } = await supabase
+              .from("chart_of_accounts")
+              .select("id, account_code, account_name, account_type")
+              .eq("account_code", batchExpenseAccountCode)
+              .single();
+            if (errExp || !coaExpense) {
+              console.error(
+                "❌ COA Beban tidak ditemukan untuk:",
+                batchExpenseAccountCode,
+              );
+              throw new Error(
+                `COA Beban tidak ditemukan untuk account_code: ${batchExpenseAccountCode}`,
+              );
+            }
+            batchCoaExpenseId = coaExpense.id;
+            batchCoaExpenseAccountCode = coaExpense.account_code;
+            batchCoaExpenseAccountName = coaExpense.account_name;
+            batchCoaExpenseAccountType = coaExpense.account_type;
+            console.log("✅ Batch Resolved COA Expense:", coaExpense);
+          }
+          // ========== END RESOLVE COA IDs FOR BATCH ==========
+
+          // Normalisasi jenis pembayaran agar aman diproses
+          const jenisPembayaran = (
+            item.paymentType ||
+            item.jenisPembayaranPengeluaran ||
+            ""
+          ).toLowerCase();
+
+          let payment_method = "Tunai"; // default
+
+          if (jenisPembayaran.includes("kas")) {
+            payment_method = "Tunai";
+          } else if (jenisPembayaran.includes("bank")) {
+            payment_method = "Transfer Bank";
+          } else if (jenisPembayaran.includes("kredit")) {
+            payment_method = "Kredit";
+          }
+
           const { data: insertedData, error: cashDisbursementError } =
             await supabase
               .from("cash_disbursement")
@@ -4492,23 +4747,36 @@ export default function TransaksiKeuanganForm() {
                   item.supplier ||
                   item.customer ||
                   "Pengeluaran Kas",
+
                 description: journalData.memo,
                 category: item.kategori,
                 amount: normalizedInput.nominal,
-                payment_method:
-                  item.jenisPembayaranPengeluaran === "Cash"
-                    ? "Tunai"
-                    : item.paymentType === "cash"
-                      ? "Tunai"
-                      : "Transfer Bank",
-                coa_expense_code: expenseLine?.account_code || "6-1100",
-                coa_cash_code: cashLine?.account_code || "1-1100",
-                account_code: expenseLine?.account_code || "",
-                account_name: expenseLine?.account_name || "",
+
+                payment_method, // ← mapping sudah aman
+
+                // COA Mapping - NOW WITH RESOLVED UUIDs
+                coa_cash_id: batchCoaCashId,
+                coa_expense_id: batchCoaExpenseId,
+
+                // Legacy fields (only valid schema fields, truncated to avoid DB length issues)
+                account_code:
+                  (batchCoaExpenseAccountCode ||
+                    expenseLine?.account_code ||
+                    "6-1100")
+                    ?.toString()
+                    .slice(0, 20),
+                account_name:
+                  (batchCoaExpenseAccountName || expenseLine?.account_name || "")
+                    ?.toString()
+                    .slice(0, 20),
+
+                document_number: item.noDokumen || null,
                 notes: item.description,
                 created_by: user?.id,
                 approval_status: "waiting_approval",
+
                 bukti: uploadedBuktiUrl || null,
+
                 ocr_data: ocrAppliedData
                   ? {
                       extractedText: ocrAppliedData.extractedText,
@@ -4562,7 +4830,7 @@ export default function TransaksiKeuanganForm() {
                 "Penerimaan Kas",
               amount: normalizedInput.nominal,
               payment_method: item.paymentType === "cash" ? "Tunai" : "Bank",
-              coa_cash_code: debitLine?.account_code || "1-1100",
+              coa_cash_id: debitLine?.account_code || "1-1100",
               coa_contra_code: creditLine?.account_code || "4-1100",
               account_code: debitLine?.account_code || "",
               account_name: debitLine?.account_name || "",
@@ -4629,7 +4897,7 @@ export default function TransaksiKeuanganForm() {
               total_amount: totalAmount,
               payment_method: item.paymentType === "cash" ? "Tunai" : "Piutang",
               customer_name: item.customer || "",
-              coa_cash_code: item.paymentType === "cash" ? "1-1100" : "1-1200",
+              coa_cash_id: item.paymentType === "cash" ? "1-1100" : "1-1200",
               coa_revenue_code: mainCreditLine?.account_code || "",
               coa_cogs_code: "5-1100",
               coa_inventory_code: item.coaSelected || "",
@@ -4664,7 +4932,7 @@ export default function TransaksiKeuanganForm() {
               total_amount: totalAmount,
               payment_method: item.paymentType === "cash" ? "Tunai" : "Piutang",
               customer_name: item.customer || "",
-              coa_cash_code: item.paymentType === "cash" ? "1-1100" : "1-1200",
+              coa_cash_id: item.paymentType === "cash" ? "1-1100" : "1-1200",
               coa_revenue_code: mainCreditLine?.account_code || "",
               coa_cogs_code: null,
               coa_inventory_code: null,
@@ -4721,7 +4989,7 @@ export default function TransaksiKeuanganForm() {
             tax_percentage: Number(item.taxPercentage) || 0,
             tax_amount: Number(item.taxAmount) || 0,
             status: "Aktif",
-            coa_cash_code: mainDebitLine?.account_code || "1-1100",
+            coa_cash_id: mainDebitLine?.account_code || "1-1100",
             coa_loan_code: mainCreditLine?.account_code || "2-2000",
             coa_interest_code: "6-1200",
             purpose: item.description || "Pinjaman",
@@ -4985,11 +5253,11 @@ export default function TransaksiKeuanganForm() {
             ppn_amount: ppnAmount,
             total_amount: totalAmount,
             payment_method: item.paymentType === "cash" ? "Tunai" : "Hutang",
-            coa_cash_code:
+            coa_cash_id:
               item.paymentType === "cash" && mainCreditLine?.account_code
                 ? mainCreditLine.account_code
                 : null,
-            coa_expense_code: mainDebitLine?.account_code || null,
+            coa_expense_id: mainDebitLine?.account_code || null,
             coa_inventory_code: item.coaSelected || null,
             coa_payable_code:
               item.paymentType !== "cash" ? mainCreditLine?.account_code : null,
@@ -5044,11 +5312,11 @@ export default function TransaksiKeuanganForm() {
             ppn_amount: ppnAmount,
             total_amount: totalAmount,
             payment_method: item.paymentType === "cash" ? "Tunai" : "Hutang",
-            coa_cash_code:
+            coa_cash_id:
               item.paymentType === "cash" && mainCreditLine?.account_code
                 ? mainCreditLine.account_code
                 : null,
-            coa_expense_code: mainDebitLine?.account_code || null,
+            coa_expense_id: mainDebitLine?.account_code || null,
             coa_inventory_code: item.coaSelected || null,
             coa_payable_code:
               item.paymentType !== "cash" ? mainCreditLine?.account_code : null,
@@ -7557,10 +7825,8 @@ export default function TransaksiKeuanganForm() {
                           <SelectValue placeholder="-- pilih metode --" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Cash">Cash</SelectItem>
-                          <SelectItem value="Transfer Bank">
-                            Transfer Bank
-                          </SelectItem>
+                          <SelectItem value="Kas">Kas</SelectItem>
+                          <SelectItem value="Bank">Bank</SelectItem>
                           <SelectItem value="Kredit">
                             Kredit (Hutang/Piutang)
                           </SelectItem>
@@ -8020,8 +8286,8 @@ export default function TransaksiKeuanganForm() {
               {/* KAS/BANK ACCOUNT SELECTION */}
               {visibleFields.showKasBank && (
                 <>
-                  {/* Bank Selection - Show only if Transfer Bank */}
-                  {paymentType === "Transfer Bank" && (
+                  {/* Bank Selection - Show only if Bank */}
+                  {paymentType === "Bank" && (
                     <div className="space-y-2">
                       <Label htmlFor="bank">Bank *</Label>
                       <Popover
@@ -8052,30 +8318,30 @@ export default function TransaksiKeuanganForm() {
                                   .toLowerCase()
                                   .includes(bankSearch.toLowerCase()),
                               )
-                              .map((bank) => (
+                              .map((item) => (
                                 <div
-                                  key={bank.account_code}
+                                  key={item.account_code}
                                   className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
                                   onClick={() => {
                                     setSelectedBank(
-                                      `${bank.account_code} — ${bank.account_name}`,
+                                      `${item.account_code} — ${item.account_name}`,
                                     );
                                     setBankPopoverOpen(false);
                                     setBankSearch("");
                                   }}
                                 >
                                   <span className="text-sm">
-                                    {bank.account_code} — {bank.account_name}
+                                    {item.account_code} — {item.account_name}
                                   </span>
                                   {selectedBank ===
-                                    `${bank.account_code} — ${bank.account_name}` && (
+                                    `${item.account_code} — ${item.account_name}` && (
                                     <Check className="h-4 w-4 text-blue-600" />
                                   )}
                                 </div>
                               ))}
                             {bankSearch &&
-                              !banks.some((bank) =>
-                                `${bank.account_code} ${bank.account_name}`
+                              !banks.some((item) =>
+                                `${item.account_code} ${item.account_name}`
                                   .toLowerCase()
                                   .includes(bankSearch.toLowerCase()),
                               ) && (
@@ -8098,8 +8364,8 @@ export default function TransaksiKeuanganForm() {
                     </div>
                   )}
 
-                  {/* Kas Selection - Show only if Cash */}
-                  {paymentType === "Cash" && (
+                  {/* Kas Selection - Show only if Kas */}
+                  {paymentType === "Kas" && (
                     <div className="space-y-2">
                       <Label htmlFor="kas">Kas *</Label>
                       <Popover
@@ -8552,12 +8818,17 @@ export default function TransaksiKeuanganForm() {
                               )}
                             </div>
                           ))}
-                        {namaPengeluaranSearch && 
-                          !users.some(u => u.full_name?.toLowerCase() === namaPengeluaranSearch.toLowerCase()) && (
-                          <div className="p-2 text-sm text-gray-500 italic">
-                            Tekan Enter untuk menggunakan "{namaPengeluaranSearch}" sebagai input manual
-                          </div>
-                        )}
+                        {namaPengeluaranSearch &&
+                          !users.some(
+                            (u) =>
+                              u.full_name?.toLowerCase() ===
+                              namaPengeluaranSearch.toLowerCase(),
+                          ) && (
+                            <div className="p-2 text-sm text-gray-500 italic">
+                              Tekan Enter untuk menggunakan "
+                              {namaPengeluaranSearch}" sebagai input manual
+                            </div>
+                          )}
                       </div>
                     </PopoverContent>
                   </Popover>
