@@ -1510,6 +1510,7 @@ export type Database = {
           category: string | null
           coa_cash_account_code: string | null
           coa_cash_id: string | null
+          coa_expense_account_code: string | null
           coa_expense_id: string | null
           coa_id: string | null
           cost_center_id: string | null
@@ -1551,6 +1552,7 @@ export type Database = {
           category?: string | null
           coa_cash_account_code?: string | null
           coa_cash_id?: string | null
+          coa_expense_account_code?: string | null
           coa_expense_id?: string | null
           coa_id?: string | null
           cost_center_id?: string | null
@@ -1592,6 +1594,7 @@ export type Database = {
           category?: string | null
           coa_cash_account_code?: string | null
           coa_cash_id?: string | null
+          coa_expense_account_code?: string | null
           coa_expense_id?: string | null
           coa_id?: string | null
           cost_center_id?: string | null
@@ -1621,17 +1624,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fk_cd_coa_cash"
-            columns: ["coa_cash_id"]
+            columns: ["coa_cash_account_code"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts_backup"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_cd_coa_expense"
-            columns: ["coa_expense_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts_backup"
-            referencedColumns: ["id"]
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
           },
         ]
       }
@@ -5019,10 +5015,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fk_journal_entries_account"
-            columns: ["account_id"]
+            columns: ["account_code"]
             isOneToOne: false
-            referencedRelation: "chart_of_accounts_backup"
-            referencedColumns: ["id"]
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
           },
           {
             foreignKeyName: "fk_journal_stock_adj"
@@ -10181,22 +10177,7 @@ export type Database = {
           transaction_date: string | null
           updated_at: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_cd_coa_cash"
-            columns: ["coa_cash_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts_backup"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_cd_coa_expense"
-            columns: ["coa_expense_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts_backup"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       view_general_ledger: {
         Row: {
@@ -10407,7 +10388,15 @@ export type Database = {
           journal_ref?: string | null
           transaction_date?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_journal_entries_account"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["account_code"]
+          },
+        ]
       }
       vw_loan_summary: {
         Row: {
@@ -11146,6 +11135,20 @@ export type Database = {
           credit: number
           debit: number
         }[]
+      }
+      update_stock_after_transaction: {
+        Args: {
+          coa_account_code: string
+          coa_account_name: string
+          item_id: string
+          payment_method: string
+          quantity: number
+          total_amount: number
+          transaction_date: string
+          transaction_id: string
+          type: string
+        }
+        Returns: undefined
       }
       urlencode:
         | { Args: { data: Json }; Returns: string }

@@ -1820,9 +1820,10 @@ export default function TransaksiKeuanganForm() {
       const { data, error: supabaseError } = await supabase
         .from("chart_of_accounts")
         .select("*")
-        .eq("usage_role", "cash_and_bank")
+        .eq("level", 3)
         .eq("is_active", true)
         .eq("is_header", false)
+        .like("account_code", "1-1%")
         .order("account_code");
       if (supabaseError) throw supabaseError;
       console.log("Banks loaded:", data);
@@ -1838,9 +1839,10 @@ export default function TransaksiKeuanganForm() {
       const { data, error: supabaseError } = await supabase
         .from("chart_of_accounts")
         .select("*")
-        .eq("usage_role", "cash")
+        .eq("level", 3)
         .eq("is_active", true)
         .eq("is_header", false)
+        .like("account_code", "1-1%")
         .order("account_code");
       if (supabaseError) throw supabaseError;
       console.log("Kas accounts loaded:", data);
@@ -4660,11 +4662,19 @@ export default function TransaksiKeuanganForm() {
         });
 
         if (isPengeluaran) {
-          console.log("💰 BATCH CHECKOUT: Inserting to cash_disbursement...");
+          console.log("💰 BATCH CHECKOUT: Inserting to cash_disbursement (new flow, no external payload)...");
 
           const {
             data: { user },
           } = await supabase.auth.getUser();
+
+          let cashDisbursementData: any[] | null = null;
+          let cashError: any = null;
+
+          if (cashError) {
+            console.error("Error inserting cash disbursement:", cashError);
+            return;
+          }
 
           const expenseLine = journalData.lines.find((l) => l.dc === "D");
           const cashLine = journalData.lines.find((l) => l.dc === "C");
@@ -4825,7 +4835,7 @@ export default function TransaksiKeuanganForm() {
               .update({ document_number: docNumber })
               .eq("id", cashDisbursementData[0].id);
           }
-          if (cashDisbursementError) {
+          if (cashError) {
             console.error(
               "❌ Error saving to cash_disbursement:",
               cashDisbursementError,
@@ -8604,11 +8614,16 @@ export default function TransaksiKeuanganForm() {
                       <div className="max-h-64 overflow-auto">
                         {coa
                           .filter(
-                            (acc) =>
-                              acc.account_type === "expense" &&
-                              `${acc.account_code} ${acc.account_name}`
+                            (acc) => {
+                              // Filter level 3 accounts that belong to expense hierarchy (6-0000)
+                              const isLevel3 = acc.level === 3;
+                              const belongsToExpense = acc.account_code?.startsWith('6-');
+                              const matchesSearch = `${acc.account_code} ${acc.account_name}`
                                 .toLowerCase()
-                                .includes(bankSearch.toLowerCase()),
+                                .includes(bankSearch.toLowerCase());
+                              
+                              return isLevel3 && belongsToExpense && matchesSearch;
+                            }
                           )
                           .map((acc) => (
                             <div
