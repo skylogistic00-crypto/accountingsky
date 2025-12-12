@@ -1138,23 +1138,1423 @@ export default function TransaksiKeuanganForm() {
   const getVisibleFields = () => {
     switch (jenisTransaksi) {
       case "Transfer Bank":
+        return {
+          showBankAsal: true,
+          showBankTujuan: true,
+          showNominal: true,
+          showTanggal: true,
+          showDeskripsi: true,
+          showUploadBukti: true,
+          showItemFields: false,
+          showPaymentMethod: false,
+          showKasBank: false,
+          showCustomer: false,
+          showSupplier: false,
+          showAkunPendapatan: false,
+          showAkunBeban: false,
+          showAkunModal: false,
+          showSumberPenerimaan: false,
+          showSumberPengeluaran: false,
+          showNamaPenerima: false,
+          showNamaPengeluaran: false,
+          showNamaPemilik: false,
+          showNamaPenyumbang: false,
+        };
 
-        if (!normalizedInput.bankAsal) {
-            throw new Error("Bank asal wajib dipilih untuk Transfer Bank.");
+      case "Pendapatan":
+        return {
+          showPaymentMethod: true,
+          showKasBank: true,
+          showAkunPendapatan: true,
+          showSumberPenerimaan: true,
+          showNamaPenerima: true,
+          showNominal: true,
+          showTanggal: true,
+          showDeskripsi: true,
+          showUploadBukti: true,
+          showItemFields: false,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showCustomer: false,
+          showSupplier: false,
+          showAkunBeban: false,
+          showAkunModal: false,
+          showSumberPengeluaran: false,
+          showNamaPengeluaran: false,
+          showNamaPemilik: false,
+          showNamaPenyumbang: false,
+        };
+
+      case "Pengeluaran":
+        return {
+          showPaymentMethod: true,
+          showKasBank: true,
+          showAkunBeban: true,
+          showSumberPengeluaran: true,
+          showNamaPengeluaran: true,
+          showNominal: true,
+          showTanggal: true,
+          showDeskripsi: true,
+          showUploadBukti: true,
+          showItemFields: false,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showCustomer: false,
+          showSupplier: false,
+          showAkunPendapatan: false,
+          showAkunModal: false,
+          showSumberPenerimaan: false,
+          showNamaPenerima: false,
+          showNamaPemilik: false,
+          showNamaPenyumbang: false,
+        };
+
+      case "Penjualan":
+        return {
+          showItemFields: true,
+          showCustomer: true,
+          showPaymentMethod: true,
+          showKasBank: true,
+          showNominal: true,
+          showTanggal: true,
+          showDeskripsi: true,
+          showUploadBukti: true,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showSupplier: false,
+          showAkunPendapatan: false,
+          showAkunBeban: false,
+          showAkunModal: false,
+          showSumberPenerimaan: false,
+          showSumberPengeluaran: false,
+          showNamaPenerima: false,
+          showNamaPengeluaran: false,
+          showNamaPemilik: false,
+          showNamaPenyumbang: false,
+        };
+
+      case "Pembelian":
+        return {
+          showItemFields: true,
+          showSupplier: true,
+          showPaymentMethod: true,
+          showKasBank: true,
+          showAkunBeban: true,
+          showNominal: true,
+          showTanggal: true,
+          showDeskripsi: true,
+          showUploadBukti: true,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showCustomer: false,
+          showAkunPendapatan: false,
+          showAkunModal: false,
+          showSumberPenerimaan: false,
+          showSumberPengeluaran: false,
+          showNamaPenerima: false,
+          showNamaPengeluaran: false,
+          showNamaPemilik: false,
+          showNamaPenyumbang: false,
+        };
+
+      case "Setoran Modal":
+        return {
+          showKasBank: true,
+          showAkunModal: true,
+          showNamaPenyumbang: true,
+          showNominal: true,
+          showTanggal: true,
+          showDeskripsi: true,
+          showUploadBukti: true,
+          showItemFields: false,
+          showPaymentMethod: false,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showCustomer: false,
+          showSupplier: false,
+          showAkunPendapatan: false,
+          showAkunBeban: false,
+          showSumberPenerimaan: false,
+          showSumberPengeluaran: false,
+          showNamaPenerima: false,
+          showNamaPengeluaran: false,
+          showNamaPemilik: false,
+        };
+
+      case "Prive":
+        return {
+          showKasBank: true,
+          showNamaPemilik: true,
+          showNominal: true,
+          showTanggal: true,
+          showDeskripsi: true,
+          showUploadBukti: true,
+          showItemFields: false,
+          showPaymentMethod: false,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showCustomer: false,
+          showSupplier: false,
+          showAkunPendapatan: false,
+          showAkunBeban: false,
+          showAkunModal: false,
+          showSumberPenerimaan: false,
+          showSumberPengeluaran: false,
+          showNamaPenerima: false,
+          showNamaPengeluaran: false,
+          showNamaPenyumbang: false,
+        };
+
+      case "Pelunasan Piutang":
+        return {
+          showCustomer: true,
+          showPaymentMethod: true,
+          showKasBank: true,
+          showNominal: true,
+          showTanggal: true,
+          showDeskripsi: true,
+          showUploadBukti: true,
+          showItemFields: false,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showSupplier: false,
+          showAkunPendapatan: false,
+          showAkunBeban: false,
+          showAkunModal: false,
+          showSumberPenerimaan: false,
+          showSumberPengeluaran: false,
+          showNamaPenerima: false,
+          showNamaPengeluaran: false,
+          showNamaPemilik: false,
+          showNamaPenyumbang: false,
+        };
+
+      case "Pelunasan Hutang":
+        return {
+          showSupplier: true,
+          showPaymentMethod: true,
+          showKasBank: true,
+          showNominal: true,
+          showTanggal: true,
+          showDeskripsi: true,
+          showUploadBukti: true,
+          showItemFields: false,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showCustomer: false,
+          showAkunPendapatan: false,
+          showAkunBeban: false,
+          showAkunModal: false,
+          showSumberPenerimaan: false,
+          showSumberPengeluaran: false,
+          showNamaPenerima: false,
+          showNamaPengeluaran: false,
+          showNamaPemilik: false,
+          showNamaPenyumbang: false,
+        };
+
+      case "Jurnal Umum":
+        return {
+          showJurnalUmum: true,
+          showItemFields: false,
+          showPaymentMethod: false,
+          showKasBank: false,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showCustomer: false,
+          showSupplier: false,
+          showAkunPendapatan: false,
+          showAkunBeban: false,
+          showAkunModal: false,
+          showSumberPenerimaan: false,
+          showSumberPengeluaran: false,
+          showNamaPenerima: false,
+          showNamaPengeluaran: false,
+          showNamaPemilik: false,
+          showNamaPenyumbang: false,
+          showNominal: false,
+          showTanggal: false,
+          showDeskripsi: false,
+          showUploadBukti: false,
+        };
+
+      default:
+        return {
+          showItemFields: false,
+          showPaymentMethod: false,
+          showKasBank: false,
+          showBankAsal: false,
+          showBankTujuan: false,
+          showCustomer: false,
+          showSupplier: false,
+          showAkunPendapatan: false,
+          showAkunBeban: false,
+          showAkunModal: false,
+          showSumberPenerimaan: false,
+          showSumberPengeluaran: false,
+          showNamaPenerima: false,
+          showNamaPengeluaran: false,
+          showNamaPemilik: false,
+          showNamaPenyumbang: false,
+          showNominal: true,
+          showTanggal: true,
+          showDeskripsi: true,
+          showUploadBukti: true,
+        };
+    }
+  };
+
+  const visibleFields = getVisibleFields();
+
+  /** Conditional Logic - Determine field visibility and state */
+  const shouldShowField = (fieldName: string): boolean => {
+    switch (fieldName) {
+      case "kategoriLayanan":
+      case "jenisLayanan":
+        return jenisTransaksi === "Penjualan";
+
+      case "itemBarang":
+      case "description":
+        return ["Penjualan", "Pembelian"].includes(jenisTransaksi);
+
+      case "akunCoa":
+        return ![
+          "Pendapatan",
+          "Pengeluaran",
+          "Mutasi Kas",
+          "Pelunasan Piutang",
+          "Pembayaran Hutang",
+          "Pinjaman Masuk",
+          "Pelunasan Pinjaman",
+        ].includes(jenisTransaksi);
+
+      case "sumberPenerimaan":
+        return jenisTransaksi === "Pendapatan";
+
+      case "kategoriPenerimaan":
+        return false; // Hidden for Pendapatan
+
+      case "kasSumber":
+      case "kasTujuan":
+        return jenisTransaksi === "Mutasi Kas";
+
+      case "kategoriPengeluaran":
+        return false; // Hidden
+
+      default:
+        return true;
+    }
+  };
+
+  const shouldDisableField = (fieldName: string): boolean => {
+    if (fieldName === "paymentType") {
+      return ["Pendapatan", "Pelunasan Piutang", "Pembayaran Hutang"].includes(
+        jenisTransaksi,
+      );
+    }
+    return false;
+  };
+
+  /** Auto-set Payment Type based on Jenis Transaksi */
+  useEffect(() => {
+    if (jenisTransaksi) {
+      const penerimaanTypes = [
+        "Penjualan",
+        "Penjualan",
+        "Pendapatan",
+        "Pinjaman Masuk",
+        "Pendapatan",
+        "Penjualan",
+        "Pelunasan Piutang",
+        "Setoran Modal",
+      ];
+
+      const pengeluaranTypes = [
+        "Pembelian",
+        "Pengeluaran",
+        "Pembayaran Pinjaman",
+        "Pengeluaran",
+        "Pelunasan Hutang",
+        "Prive",
+      ];
+
+      if (penerimaanTypes.includes(jenisTransaksi)) {
+        setPaymentType("Penerimaan");
+      } else if (pengeluaranTypes.includes(jenisTransaksi)) {
+        setPaymentType("Pengeluaran");
+      } else if (jenisTransaksi === "Transfer Bank") {
+        setPaymentType("Transfer");
+      }
+    }
+  }, [jenisTransaksi]);
+
+  // Handle item selection and calculate total
+  useEffect(() => {
+    if (transactionItemType === "Barang" && selectedItemId) {
+      const item = stockItems.find((s) => s.id === selectedItemId);
+      if (item) {
+        setItemPrice(item.unit_price || 0);
+      }
+    } else if (transactionItemType === "Jasa" && selectedItemId) {
+      const item = serviceItems.find((s) => s.id === selectedItemId);
+      if (item) {
+        setItemPrice(item.service_price || 0);
+      }
+    }
+  }, [transactionItemType, selectedItemId, stockItems, serviceItems]);
+
+  useEffect(() => {
+    setItemTotal(itemQty * itemPrice);
+  }, [itemQty, itemPrice]);
+
+  /** Load available categories based on Jenis Transaksi */
+  const loadCategoriesForTransaction = async (transactionType: string) => {
+    try {
+      // Define category mapping based on transaction type
+      let allowedCategories: string[] = [];
+
+      if (transactionType === "Penjualan") {
+        // Service and goods categories
+        allowedCategories = [
+          "Jasa Cargo",
+          "Jasa Gudang",
+          "Jasa Kepabeanan",
+          "Jasa Trucking",
+          "Jasa Lainnya",
+          "Unit Disewakan",
+          "Persediaan",
+          "Barang",
+        ];
+      } else if (
+        transactionType === "Pembelian Barang" ||
+        transactionType === "Pembelian Jasa"
+      ) {
+        // Pembelian barang/persediaan
+        allowedCategories = ["Persediaan", "Barang"];
+      } else if (transactionType === "Pendapatan") {
+        // All income categories
+        allowedCategories = [
+          "Jasa Cargo",
+          "Jasa Gudang",
+          "Jasa Kepabeanan",
+          "Jasa Trucking",
+          "Jasa Lainnya",
+          "Unit Disewakan",
+          "Persediaan",
+          "Barang",
+        ];
+      } else if (transactionType === "Pengeluaran") {
+        // Expense categories
+        allowedCategories = ["Beban"];
+      } else if (
+        transactionType === "Pinjaman Masuk" ||
+        transactionType === "Pembayaran Pinjaman"
+      ) {
+        // Only Pinjaman
+        allowedCategories = ["Pinjaman"];
+      }
+
+      // Fetch categories from database that match allowed list
+      const { data, error: supabaseError } = await supabase
+        .from("coa_category_mapping")
+        .select("service_category")
+        .in("service_category", allowedCategories)
+        .eq("is_active", true);
+
+      if (supabaseError) throw supabaseError;
+
+      const uniqueCategories = Array.from(
+        new Set(data?.map((item) => item.service_category).filter(Boolean)),
+      ) as string[];
+
+      setAvailableCategories(uniqueCategories);
+    } catch (err) {
+      console.error("Error loading categories:", err);
+      setAvailableCategories([]);
+    }
+  };
+
+  /** Load Items & Brands */
+  useEffect(() => {
+    const loadData = async () => {
+      await Promise.all([
+        loadItems(),
+        loadSuppliers(),
+        loadCustomers(),
+        loadConsignees(),
+        loadBanks(),
+        loadKasAccounts(),
+        loadBorrowers(),
+        loadTransactions(),
+      ]);
+    };
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load transactions when showReport is true
+  useEffect(() => {
+    if (showReport) {
+      loadTransactions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showReport]);
+
+  // Debug state changes
+  useEffect(() => {
+    console.log("ðŸ” State Debug:", {
+      customers: customers.length,
+      banks: banks.length,
+      suppliers: suppliers.length,
+    });
+  }, [customers, banks, suppliers]);
+
+  // Refresh loan data when borrower changes or form opens
+  useEffect(() => {
+    const refreshLoanData = async () => {
+      if (selectedBorrower && jenisTransaksi === "Pembayaran Pinjaman") {
+        try {
+          // Load loan details
+          const { data: loans } = await supabase
+            .from("loans")
+            .select("*")
+            .eq("lender_name", selectedBorrower)
+            .eq("status", "Aktif")
+            .order("loan_date", { ascending: false })
+            .limit(1);
+
+          if (loans && loans.length > 0) {
+            const loan = loans[0];
+
+            // Reload installment schedule
+            const { data: installments } = await supabase
+              .from("loan_installments")
+              .select("*")
+              .eq("loan_id", loan.id)
+              .order("installment_number", { ascending: true });
+
+            if (installments && installments.length > 0) {
+              const schedule = installments.map((inst) => ({
+                installment: inst.installment_number,
+                dueDate: inst.due_date,
+                principalAmount: inst.principal_amount,
+                interestAmount: inst.interest_amount,
+                totalPayment: inst.total_amount,
+                remainingBalance: inst.remaining_balance,
+                status: inst.status,
+                paidAmount: inst.paid_amount || 0,
+              }));
+              setInstallmentSchedule(schedule);
+
+              // Find next unpaid installment
+              const nextUnpaid = installments.find(
+                (inst) => inst.status === "Belum Bayar",
+              );
+              if (nextUnpaid) {
+                setPrincipalAmount(
+                  nextUnpaid.principal_amount?.toString() || "0",
+                );
+                setInterestAmount(
+                  nextUnpaid.interest_amount?.toString() || "0",
+                );
+                setTanggal(nextUnpaid.due_date || "");
+              }
+            }
+          }
+        } catch (error) {
+          // Error refreshing loan data
         }
-        if (!normalizedInput.bankTujuan) {
-            throw new Error("Bank tujuan wajib dipilih untuk Transfer Bank.");
+      }
+    };
+
+    refreshLoanData();
+  }, [selectedBorrower, jenisTransaksi, showForm]);
+
+  // Load descriptions when item changes
+  useEffect(() => {
+    if (itemName) {
+      loadDescriptions(itemName);
+    } else {
+      setDescriptions([]);
+      setDescription("");
+    }
+  }, [itemName]);
+
+  // No longer filtering brands by item - show all brands
+  // This allows newly added brands to appear immediately
+  /*useEffect(() => {
+    setFilteredBrands(brands);
+  }, [brands]);
+  */
+
+  const loadItems = async () => {
+    const { data } = await supabase
+      .from("stock")
+      .select("item_name, description, quantity, selling_price")
+      .not("item_name", "is", null);
+
+    const uniqueItems = Array.from(
+      new Set(data?.map((item) => item.item_name) || []),
+    ).map((item_name) => {
+      const match = data.find((d) => d.item_name === item_name);
+      return {
+        item_name,
+        description: match?.description || "",
+        quantity: match?.quantity || 0,
+        selling_price: match?.selling_price || 0,
+      };
+    });
+
+    setItems(uniqueItems);
+  };
+
+  const loadDescriptions = async (selectedItemName: string) => {
+    if (!selectedItemName) {
+      setDescriptions([]);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("stock")
+      .select("description")
+      .eq("item_name", selectedItemName)
+      .not("description", "is", null);
+
+    const uniqueDescriptions = Array.from(
+      new Set(data?.map((item) => item.description) || []),
+    ).map((description) => ({ description }));
+
+    setDescriptions(uniqueDescriptions);
+  };
+
+  // Fetch stock information when item and description are selected
+  const fetchStockInfo = async (itemName: string, description: string) => {
+    if (!itemName || !description) {
+      setStockInfo(null);
+      return;
+    }
+
+    setLoadingStock(true);
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from("stock")
+        .select(
+          `
+          *,
+          warehouses!warehouse_id(name, code, address)
+        `,
+        )
+        .eq("item_name", itemName)
+        .eq("description", description)
+        .maybeSingle();
+
+      if (supabaseError) throw supabaseError;
+
+      setStockInfo(data);
+
+      // Auto-fill harga jual if available
+      if (data?.harga_jual) {
+        setHargaJual(data.harga_jual.toString());
+      }
+    } catch (err) {
+      console.error("Error fetching stock info:", err);
+      setStockInfo(null);
+    } finally {
+      setLoadingStock(false);
+    }
+  };
+
+  // Update stock info when item or description changes
+  useEffect(() => {
+    fetchStockInfo(itemName, description);
+  }, [itemName, description]);
+
+  const loadSuppliers = async (): Promise<void> => {
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from("suppliers")
+        .select("*");
+      if (supabaseError) throw supabaseError;
+      console.log("Suppliers loaded:", data);
+      setSuppliers(data || []);
+    } catch (err) {
+      console.error("Error loading suppliers:", err);
+      setSuppliers([]);
+    }
+  };
+
+  const loadCustomers = async (): Promise<void> => {
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from("customers")
+        .select("*");
+      if (supabaseError) throw supabaseError;
+      console.log("Customers loaded:", data);
+      console.log("Total customers:", data?.length || 0);
+      if (data && data.length > 0) {
+        console.log("Sample customer:", data[0]);
+      }
+      setCustomers(data || []);
+    } catch (err) {
+      console.error("Error loading customers:", err);
+      setCustomers([]);
+    }
+  };
+
+  const loadConsignees = async (): Promise<void> => {
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from("consignees")
+        .select("*");
+      if (supabaseError) throw supabaseError;
+      console.log("Consignees loaded:", data);
+      setConsignees(data || []);
+    } catch (err) {
+      console.error("Error loading consignees:", err);
+      setConsignees([]);
+    }
+  };
+
+  const loadBanks = async (): Promise<void> => {
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from("chart_of_accounts")
+        .select("*")
+        .ilike("account_name", "%bank - %")
+        .order("account_code");
+      if (supabaseError) throw supabaseError;
+      console.log("Banks loaded:", data);
+      setBanks(data || []);
+    } catch (err) {
+      console.error("Error loading banks:", err);
+      setBanks([]);
+    }
+  };
+
+  const loadKasAccounts = async (): Promise<void> => {
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from("chart_of_accounts")
+        .select("*")
+        .ilike("account_name", "%kas%")
+        .eq("is_active", true)
+        .eq("is_header", false)
+        .order("account_code");
+      if (supabaseError) throw supabaseError;
+      console.log("Kas accounts loaded:", data);
+      setKasAccounts(data || []);
+    } catch (err) {
+      console.error("Error loading kas accounts:", err);
+      setKasAccounts([]);
+    }
+  };
+
+  const loadBorrowers = async (): Promise<void> => {
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from("borrowers")
+        .select("*");
+      if (supabaseError) throw supabaseError;
+      setBorrowers(data || []);
+    } catch (err) {
+      setBorrowers([]);
+    }
+  };
+
+  // Load transactions from database - combining all transaction tables
+  const loadTransactions = async () => {
+    try {
+      setLoadingTransactions(true);
+
+      // Load from kas_transaksi (approved, waiting approval, and rejected)
+      const { data: kasData, error: kasError } = await supabase
+        .from("kas_transaksi")
+        .select("*")
+        .or(
+          "approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected,approval_status.is.null",
+        )
+        .order("tanggal", { ascending: false });
+
+      if (kasError) {
+        console.error("Error loading kas_transaksi:", kasError);
+      }
+
+      // Load from cash_disbursement (approved, waiting approval, and rejected)
+      const { data: cashDisbursementData, error: cashDisbursementError } =
+        await supabase
+          .from("cash_disbursement")
+          .select("*")
+          .or(
+            "approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected",
+          )
+          .order("transaction_date", { ascending: false });
+
+      if (cashDisbursementError) {
+        console.error(
+          "âŒ Error loading cash_disbursement:",
+          cashDisbursementError,
+        );
+      }
+
+      // Load from purchase_transactions (approved, waiting approval, and rejected)
+      const { data: purchaseData, error: purchaseError } = await supabase
+        .from("purchase_transactions")
+        .select("*")
+        .or(
+          "approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected,approval_status.is.null",
+        )
+        .order("transaction_date", { ascending: false });
+
+      if (purchaseError) {
+        console.error("Error loading purchase_transactions:", purchaseError);
+      }
+
+      // Load from sales_transactions
+      const { data: salesData, error: salesError } = await supabase
+        .from("sales_transactions")
+        .select("*")
+        .order("transaction_date", { ascending: false });
+
+      if (salesError) {
+        console.error("Error loading sales_transactions:", salesError);
+      }
+
+      // Load from internal_usage
+      const { data: internalData, error: internalError } = await supabase
+        .from("internal_usage")
+        .select("*")
+        .order("usage_date", { ascending: false });
+
+      if (internalError) {
+        console.error("Error loading internal_usage:", internalError);
+      }
+
+      // Load from cash_and_bank_receipts (Penerimaan Kas & Bank)
+      const { data: cashReceiptsData, error: cashReceiptsError } =
+        await supabase
+          .from("cash_and_bank_receipts")
+          .select("*")
+          .order("transaction_date", { ascending: false });
+
+      if (cashReceiptsError) {
+        console.error(
+          "Error loading cash_and_bank_receipts:",
+          cashReceiptsError,
+        );
+      } else {
+        console.log("Cash receipts data loaded:", cashReceiptsData);
+        console.log("First cash receipt bukti:", cashReceiptsData?.[0]?.bukti);
+      }
+
+      // Load from approval_transaksi (Penjualan Jasa, etc - approved, waiting approval, and rejected)
+      const { data: approvalData, error: approvalError } = await supabase
+        .from("approval_transaksi")
+        .select("*")
+        .or(
+          "approval_status.eq.approved,approval_status.eq.waiting_approval,approval_status.eq.rejected",
+        )
+        .order("transaction_date", { ascending: false });
+
+      if (approvalError) {
+        console.error("Error loading approval_transaksi:", approvalError);
+      }
+
+      // Note: expenses and loans tables are not used in this view
+
+      console.log("ðŸ“Š Query results:", {
+        kas: kasData?.length || 0,
+        cashDisbursement: cashDisbursementData?.length || 0,
+        purchase: purchaseData?.length || 0,
+        sales: salesData?.length || 0,
+        internal: internalData?.length || 0,
+        cashReceipts: cashReceiptsData?.length || 0,
+        approval: approvalData?.length || 0,
+      });
+
+      // Combine all transactions with source identifier
+      const allTransactions = [
+        ...(kasData || []).map((t) => ({
+          ...t,
+          source: "kas_transaksi",
+          tanggal: t.tanggal,
+        })),
+        ...(cashDisbursementData || []).map((t) => ({
+          ...t,
+          source: "cash_disbursement",
+          tanggal: t.transaction_date,
+          nominal: t.amount,
+          keterangan: t.description,
+          payment_type: "Pengeluaran Kas",
+          document_number: t.document_number,
+        })),
+        ...(cashReceiptsData || []).map((t) => {
+          const mapped = {
+            ...t,
+            source: "cash_receipts",
+            tanggal: t.transaction_date,
+            nominal: t.amount,
+            keterangan: t.description,
+            payment_type: "Penerimaan Kas",
+            document_number: t.reference_number,
+            approval_status: "approved", // Penerimaan Kas langsung Approved tanpa perlu approval
+            bukti: t.bukti, // Explicitly include bukti field
+          };
+          console.log("ðŸ” Mapped cash receipt:", {
+            id: t.id,
+            bukti: t.bukti,
+            mapped_bukti: mapped.bukti,
+          });
+          return mapped;
+        }),
+        ...(purchaseData || []).map((t) => ({
+          ...t,
+          source: "purchase_transactions",
+          tanggal: t.transaction_date,
+          jenis: "Pembelian",
+          nominal: t.total_amount,
+          created_by: t.created_by,
+          approved_by: t.approved_by,
+        })),
+        ...(salesData || []).map((t) => ({
+          ...t,
+          source: "sales_transactions",
+          tanggal: t.transaction_date,
+          jenis: "Penjualan",
+          nominal: t.total_amount,
+        })),
+        ...(internalData || []).map((t) => ({
+          ...t,
+          source: "internal_usage",
+          tanggal: t.usage_date,
+          jenis: "Pemakaian Internal",
+          nominal: t.total_value,
+        })),
+        ...(approvalData || [])
+          .filter((t) => t.type !== "Penjualan" && t.type !== "Penjualan") // Exclude sales transactions (already in sales_transactions table)
+          .map((t) => ({
+            ...t,
+            source:
+              t.type === "Pembelian"
+                ? "PURCHASE TRANSACTIONS"
+                : "approval_transaksi",
+            tanggal: t.transaction_date,
+            jenis: t.type === "Pembelian" ? "Pembelian" : t.type,
+            nominal: t.total_amount,
+            keterangan: t.description || t.notes,
+            payment_type: t.type,
+            document_number: t.document_number,
+            created_by: t.created_by,
+            approved_by: t.approved_by,
+          })),
+      ];
+
+      // Sort by date descending
+      allTransactions.sort(
+        (a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime(),
+      );
+
+      setTransactions(allTransactions);
+      console.log("Total transactions loaded:", allTransactions.length);
+
+      // Load user mappings for created_by and approved_by
+      const userIds = new Set<string>();
+      allTransactions.forEach((t) => {
+        if (t.created_by) userIds.add(t.created_by);
+        if (t.approved_by) userIds.add(t.approved_by);
+      });
+
+      if (userIds.size > 0) {
+        const { data: usersData } = await supabase
+          .from("users")
+          .select("id, full_name, email")
+          .in("id", Array.from(userIds));
+
+        if (usersData) {
+          const mappings: Record<string, string> = {};
+          usersData.forEach((user) => {
+            mappings[user.id] = user.full_name || user.email || user.id;
+          });
+          setUserMappings(mappings);
+        }
+      }
+
+      if (allTransactions.length === 0) {
+        toast({
+          title: "â„¹ï¸ Tidak Ada Data",
+          description: "Belum ada transaksi. Silakan tambah transaksi baru.",
+        });
+      } else {
+        toast({
+          title: "âœ… Data Loaded",
+          description: `${allTransactions.length} transaksi berhasil dimuat dari semua tabel`,
+        });
+      }
+    } catch (err: any) {
+      console.error("Exception:", err);
+      setTransactions([]);
+      toast({
+        title: "âŒ Error",
+        description: err.message || "Gagal memuat transaksi",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
+  // Handle delete transaction
+  const handleDeleteTransaction = async (transaction: any) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from(transaction.source)
+        .delete()
+        .eq("id", transaction.id);
+
+      if (supabaseError) throw supabaseError;
+
+      toast({
+        title: "âœ… Berhasil",
+        description: "Transaksi berhasil dihapus",
+      });
+
+      // Reload transactions
+      await loadTransactions();
+    } catch (err: any) {
+      toast({
+        title: "âŒ Error",
+        description: err.message || "Gagal menghapus transaksi",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Calculate installment schedule
+  const calculateInstallmentSchedule = () => {
+    if (!nominal || !loanTermMonths || !interestRate || !tanggal) {
+      setInstallmentSchedule([]);
+      return;
+    }
+
+    const principal = Number(nominal);
+    const months = Number(loanTermMonths);
+    const annualRate = Number(interestRate) / 100;
+    const monthlyRate = annualRate / 12;
+
+    const schedule: any[] = [];
+    let remainingPrincipal = principal;
+
+    // Calculate based on payment schedule type
+    if (paymentSchedule === "Bulanan") {
+      // Monthly installment with reducing balance
+      const monthlyPayment =
+        monthlyRate === 0
+          ? principal / months
+          : (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) /
+            (Math.pow(1 + monthlyRate, months) - 1);
+
+      for (let i = 1; i <= months; i++) {
+        const interestPayment = remainingPrincipal * monthlyRate;
+        const principalPayment = monthlyPayment - interestPayment;
+        remainingPrincipal -= principalPayment;
+
+        const dueDate = new Date(tanggal);
+        dueDate.setMonth(dueDate.getMonth() + i);
+
+        schedule.push({
+          installment: i,
+          dueDate: dueDate.toISOString().split("T")[0],
+          principalAmount: principalPayment,
+          interestAmount: interestPayment,
+          totalPayment: monthlyPayment,
+          remainingBalance: Math.max(0, remainingPrincipal),
+        });
+      }
+    } else if (paymentSchedule === "Jatuh Tempo") {
+      // Lump sum at maturity
+      const totalInterest = principal * annualRate * (months / 12);
+      const dueDate = maturityDate || new Date(tanggal);
+
+      schedule.push({
+        installment: 1,
+        dueDate:
+          typeof dueDate === "string"
+            ? dueDate
+            : dueDate.toISOString().split("T")[0],
+        principalAmount: principal,
+        interestAmount: totalInterest,
+        totalPayment: principal + totalInterest,
+        remainingBalance: 0,
+      });
+    }
+
+    setInstallmentSchedule(schedule);
+  };
+
+  // Calculate late fee
+  const calculateLateFee = (
+    dueDate: string,
+    paymentDate: string,
+    amount: number,
+  ) => {
+    const due = new Date(dueDate);
+    const payment = new Date(paymentDate);
+    const daysLate = Math.floor(
+      (payment.getTime() - due.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (daysLate <= 0) return 0;
+
+    // 0.1% per day late (configurable)
+    const dailyPenaltyRate = 0.001;
+    return amount * dailyPenaltyRate * daysLate;
+  };
+
+  // Recalculate schedule when loan parameters change
+  useEffect(() => {
+    if (
+      jenisTransaksi === "Pinjaman Masuk" ||
+      jenisTransaksi === "Pembayaran Pinjaman"
+    ) {
+      calculateInstallmentSchedule();
+    }
+  }, [
+    nominal,
+    loanTermMonths,
+    interestRate,
+    paymentSchedule,
+    tanggal,
+    maturityDate,
+  ]);
+
+  /** Load Service Types when Kategori changes */
+  useEffect(() => {
+    if (kategori) {
+      loadServiceTypes(kategori);
+      setJenisLayanan(""); // Reset jenis layanan
+      setCoaSelected(""); // Reset COA
+    } else {
+      setServiceTypes([]);
+    }
+  }, [kategori]);
+
+  const loadServiceTypes = async (category: string) => {
+    try {
+      // Special handling for "Kas & Bank" category
+      if (category === "Kas & Bank") {
+        const { data, error: supabaseError } = await supabase
+          .from("chart_of_accounts")
+          .select("*")
+          .ilike("account_name", "%kas - %")
+          .order("account_code");
+
+        if (supabaseError) throw supabaseError;
+
+        // Use account names as service types for Kas & Bank
+        const kasAccounts = data?.map((acc) => acc.account_name) || [];
+        setServiceTypes(kasAccounts);
+        console.log("Kas accounts loaded:", kasAccounts);
+      } else {
+        // Normal flow for other categories
+        const { data, error: supabaseError } = await supabase
+          .from("coa_category_mapping")
+          .select("service_type")
+          .eq("service_category", category)
+          .eq("is_active", true);
+
+        if (supabaseError) throw supabaseError;
+
+        const uniqueTypes = Array.from(
+          new Set(data?.map((item) => item.service_type).filter(Boolean)),
+        ) as string[];
+
+        setServiceTypes(uniqueTypes);
+      }
+    } catch (err) {
+      console.error("Error loading service types:", err);
+    }
+  };
+
+  /** Auto-fill COA when Kategori and Jenis Layanan are selected */
+  useEffect(() => {
+    if (kategori && jenisLayanan) {
+      autoFillCOA();
+    }
+  }, [kategori, jenisLayanan, paymentType]);
+
+  const autoFillCOA = async () => {
+    try {
+      // Financial Engine Logic
+      let accountCode = "";
+
+      // Cash Engine - Direct cash transactions
+      if (
+        paymentType === "Penerimaan Kas" ||
+        paymentType === "Pengeluaran Kas"
+      ) {
+        // Get mapping for the selected service
+        const { data: mapping } = await supabase
+          .from("coa_category_mapping")
+          .select("*")
+          .eq("service_category", kategori)
+          .eq("service_type", jenisLayanan)
+          .eq("is_active", true)
+          .single();
+
+        if (mapping) {
+          if (paymentType === "Penerimaan Kas") {
+            // For income: use revenue account
+            accountCode = mapping.revenue_account_code;
+          } else if (paymentType === "Pengeluaran Kas") {
+            // For expense: use COGS/expense account
+            accountCode = mapping.cogs_account_code;
+          }
+        }
+      }
+
+      // Revenue Engine - Sales transactions
+      else if (
+        jenisTransaksi === "Penjualan Jasa" ||
+        jenisTransaksi === "Penjualan"
+      ) {
+        const { data: mapping } = await supabase
+          .from("coa_category_mapping")
+          .select("*")
+          .eq("service_category", kategori)
+          .eq("service_type", jenisLayanan)
+          .eq("is_active", true)
+          .single();
+
+        if (mapping) {
+          // Use revenue account for sales
+          accountCode = mapping.revenue_account_code;
+        }
+      }
+
+      // Expense Engine - Purchase and expense transactions
+      else if (
+        jenisTransaksi === "Pembelian" ||
+        jenisTransaksi === "Beban Operasional"
+      ) {
+        const { data: mapping } = await supabase
+          .from("coa_category_mapping")
+          .select("*")
+          .eq("service_category", kategori)
+          .eq("service_type", jenisLayanan)
+          .eq("is_active", true)
+          .single();
+
+        if (mapping) {
+          if (jenisTransaksi === "Pembelian") {
+            // For purchases: use asset account (inventory)
+            accountCode =
+              mapping.asset_account_code || mapping.cogs_account_code;
+          } else {
+            // For expenses: use COGS/expense account
+            accountCode = mapping.cogs_account_code;
+          }
+        }
+      }
+
+      // Loan Engine - Loan transactions
+      else if (
+        jenisTransaksi === "Pinjaman Masuk" ||
+        jenisTransaksi === "Pembayaran Pinjaman"
+      ) {
+        // For loans, use specific loan accounts
+        if (jenisTransaksi === "Pinjaman Masuk") {
+          accountCode = "2-2000"; // Hutang Bank
+        } else {
+          accountCode = "2-2000"; // Hutang Bank (debit side)
+        }
+      }
+
+      // Set the selected COA
+      if (accountCode) {
+        setCoaSelected(accountCode);
+
+        // Load the full COA details for display
+        const { data: coaData, error: coaError } = await supabase
+          .from("chart_of_accounts")
+          .select("*")
+          .eq("account_code", accountCode)
+          .maybeSingle();
+
+        if (coaError) {
+          console.error("Error loading COA details:", coaError);
+        } else if (coaData) {
+          setCoa([coaData]);
+        }
+      }
+    } catch (err) {
+      console.error("Error auto-filling COA:", err);
+      // If no mapping found, load all COA
+      loadCOA();
+    }
+  };
+
+  /** Load COA with dynamic filter */
+  useEffect(() => {
+    loadCOA();
+  }, [kategori, jenisLayanan, paymentType]);
+
+  const loadCOA = async () => {
+    const { data } = await supabase
+      .from("chart_of_accounts")
+      .select("*")
+      .eq("is_active", true)
+      .eq("is_header", false)
+      .order("account_code");
+
+    let filtered = data || [];
+
+    if (paymentType === "Penerimaan Kas") {
+      filtered = filtered.filter((c) =>
+        ["Pendapatan", "Aset", "Ekuitas", "Revenue"].includes(c.account_type),
+      );
+    }
+
+    if (paymentType === "Pengeluaran Kas") {
+      filtered = filtered.filter((c) =>
+        ["Beban", "HPP", "Kewajiban"].includes(c.account_type),
+      );
+    }
+
+    if (kategori) {
+      filtered = filtered.filter((c) => c.kategori_layanan === kategori);
+    }
+
+    setCoa(filtered);
+  };
+
+  /** Handle Preview Jurnal */
+  const handlePreview = async () => {
+    try {
+      // Validate Input
+      validateInput({
+        jenisTransaksi,
+        nominal,
+        tanggal,
+      });
+
+      // Normalize Input
+      console.log("ðŸ” Preview - selectedBank:", selectedBank);
+      console.log("ðŸ” Preview - selectedKas:", selectedKas);
+      console.log(
+        "ðŸ” Preview - selectedExpenseAccount:",
+        selectedExpenseAccount,
+      );
+      console.log("ðŸ” Preview - akunBeban:", akunBeban);
+      console.log("ðŸ” Preview - jenisTransaksi:", jenisTransaksi);
+      console.log("ðŸ” Preview - paymentType:", paymentType);
+
+      const normalizedInput = normalizeInput({
+        jenisTransaksi,
+        paymentType,
+        nominal,
+        tanggal,
+        deskripsi: description,
+        sumberPenerimaan: "",
+        kategoriPengeluaran: kategori,
+        kasTujuan: "",
+        kasSumber: "",
+        selectedAccountName: selectedAccountName,
+        selectedCreditAccountType: selectedCreditAccountType,
+        selectedCreditAccountName: selectedCreditAccountName,
+        selectedKas: selectedKas,
+        selectedBank: selectedBank,
+        selectedExpenseAccount: selectedExpenseAccount,
+        selectedRevenueAccount: selectedRevenueAccount,
+        selectedModalAccount: selectedModalAccount,
+      });
+
+      console.log("ðŸ” Normalized Input:", normalizedInput);
+      console.log(
+        "ðŸ” Normalized selectedExpenseAccount:",
+        normalizedInput.selectedExpenseAccount,
+      );
+
+      // Run Financial Engine
+      const result = await runFinancialEngine(normalizedInput);
+
+      // Build Journal Lines
+      const journalData = buildJournalLines(
+        {
+          account_code: result.debit,
+          account_name: result.debitName,
+          account_type: result.debitType,
+        },
+        {
+          account_code: result.credit,
+          account_name: result.creditName,
+          account_type: result.creditType,
+        },
+        normalizedInput.nominal,
+        normalizedInput.deskripsi,
+        normalizedInput.tanggal,
+        result.hpp_entry,
+        normalizedInput.nominal * 0.7,
+      );
+
+      // Show Preview
+      setPreviewLines(journalData.lines);
+      setPreviewMemo(journalData.memo);
+      setPreviewTanggal(journalData.tanggal);
+      setPreviewIsCashRelated(result.is_cash_related);
+      setPreviewOpen(true);
+    } catch (err: any) {
+      toast({
+        title: "âŒ Error",
+        description: err.details ? err.details.join(", ") : err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  /** Choose Mapping Rule - Generate filter strings for COA queries */
+  const chooseMappingRule = (normalizedInput: any) => {
+    const jenis = normalizedInput.jenisTransaksi;
+    const payment = normalizedInput.paymentType;
+    const sumber = normalizedInput.sumberPenerimaan;
+    const kategori = normalizedInput.kategoriPengeluaran;
+    const accountName = normalizedInput.selectedAccountName;
+
+    let debitFilter: any = null;
+    let creditFilter: any = null;
+    let extras = {
+      needs_hpp: false,
+      hppFilter: null as any,
+      is_cash_related: false,
+    };
+
+    switch (jenis) {
+      case "Penjualan":
+        // Debit Kas / Bank / Piutang
+        if (payment === "cash") {
+          debitFilter = {
+            account_code: normalizedInput.selectedKas?.split(" â€” ")[0],
+          };
+        } else if (payment === "transfer bank") {
+          debitFilter = {
+            account_code: normalizedInput.selectedBank?.split(" â€” ")[0],
+          };
+        } else {
+          debitFilter = { usage_role: "piutang" };
         }
 
-        const bankAsalCode = normalizedInput.bankAsal.split(" — ")[0];
-        const bankTujuanCode = normalizedInput.bankTujuan.split(" — ")[0];
+        // Kredit Pendapatan
+        creditFilter = { usage_role: "pendapatan_jasa" };
 
-        console.log("🔁 TRANSFER BANK — asal:", normalizedInput.bankAsal);
-        console.log("🔁 TRANSFER BANK — tujuan:", normalizedInput.bankTujuan);
+        // HPP hanya jika jual stok
+        extras.needs_hpp = normalizedInput.hasStockItem === true;
+        extras.hppFilter = { usage_role: "hpp" };
 
-        debit_account_code = bankTujuanCode;
-        credit_account_code = bankAsalCode;
-
+        // Transaksi penjualan tetap dianggap cash-related jika pakai kas/bank
+        extras.is_cash_related =
+          payment === "cash" || payment === "transfer bank";
         break;
 
       // Pastikan semua transaksi lain override needs_hpp ke false
@@ -1169,20 +2569,10 @@ export default function TransaksiKeuanganForm() {
           const kasCode =
             normalizedInput.selectedKas?.split(" â€” ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if ((payment === "transfer bank" && normalizedInput.selectedBank)) {
-
-          // FIX: Pengeluaran harus pilih akun bank
-          if (!normalizedInput.selectedBank) {
-            throw new Error("Akun bank wajib dipilih untuk metode Transfer Bank (Pengeluaran).");
-          }
-
-          const bankCode = normalizedInput.selectedBank.split(" — ")[0];
-
-          console.log("🔍 PENGELUARAN - selectedBank:", normalizedInput.selectedBank);
-          console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
-
+        } else if (payment === "transfer bank") {
+          const bankCode =
+            normalizedInput.selectedBank?.split(" â€” ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
-};
         } else if (payment === "Kredit") {
           creditFilter = { usage_role: "hutang" };
         } else {
@@ -1192,7 +2582,7 @@ export default function TransaksiKeuanganForm() {
               : { usage_role: "hutang" };
         }
         extras.is_cash_related =
-          payment === "cash" || (payment === "transfer bank" && normalizedInput.selectedBank);
+          payment === "cash" || payment === "transfer bank";
         break;
 
       case "Pembelian Jasa":
@@ -1203,20 +2593,10 @@ export default function TransaksiKeuanganForm() {
           const kasCode =
             normalizedInput.selectedKas?.split(" â€” ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if ((payment === "transfer bank" && normalizedInput.selectedBank)) {
-
-          // FIX: Pengeluaran harus pilih akun bank
-          if (!normalizedInput.selectedBank) {
-            throw new Error("Akun bank wajib dipilih untuk metode Transfer Bank (Pengeluaran).");
-          }
-
-          const bankCode = normalizedInput.selectedBank.split(" — ")[0];
-
-          console.log("🔍 PENGELUARAN - selectedBank:", normalizedInput.selectedBank);
-          console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
-
+        } else if (payment === "transfer bank") {
+          const bankCode =
+            normalizedInput.selectedBank?.split(" â€” ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
-};
         } else if (payment === "Kredit") {
           creditFilter = { usage_role: "hutang" };
         } else {
@@ -1226,7 +2606,7 @@ export default function TransaksiKeuanganForm() {
               : { usage_role: "hutang" };
         }
         extras.is_cash_related =
-          payment === "cash" || (payment === "transfer bank" && normalizedInput.selectedBank);
+          payment === "cash" || payment === "transfer bank";
         break;
 
       case "Pendapatan":
@@ -1235,20 +2615,10 @@ export default function TransaksiKeuanganForm() {
           const kasCode =
             normalizedInput.selectedKas?.split(" â€” ")[0] || "1-1100";
           debitFilter = { account_code: kasCode };
-        } else if ((payment === "transfer bank" && normalizedInput.selectedBank)) {
-
-          // FIX: Pengeluaran harus pilih akun bank
-          if (!normalizedInput.selectedBank) {
-            throw new Error("Akun bank wajib dipilih untuk metode Transfer Bank (Pengeluaran).");
-          }
-
-          const bankCode = normalizedInput.selectedBank.split(" — ")[0];
-
-          console.log("🔍 PENGELUARAN - selectedBank:", normalizedInput.selectedBank);
-          console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
-
-          creditFilter = { account_code: bankCode };
-};
+        } else if (payment === "transfer bank") {
+          const bankCode =
+            normalizedInput.selectedBank?.split(" â€” ")[0] || "1-1200";
+          debitFilter = { account_code: bankCode };
         } else if (payment === "Kredit") {
           debitFilter = { usage_role: "piutang" };
         } else {
@@ -1256,7 +2626,7 @@ export default function TransaksiKeuanganForm() {
         }
         creditFilter = { usage_role: "pendapatan_jasa" };
         extras.is_cash_related =
-          payment === "cash" || (payment === "transfer bank" && normalizedInput.selectedBank);
+          payment === "cash" || payment === "transfer bank";
         break;
 
       case "Pengeluaran":
@@ -1275,45 +2645,49 @@ export default function TransaksiKeuanganForm() {
           const kasCode =
             normalizedInput.selectedKas?.split(" â€” ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if ((payment === "transfer bank" && normalizedInput.selectedBank)) {
-
-          // FIX: Pengeluaran harus pilih akun bank
-          if (!normalizedInput.selectedBank) {
-            throw new Error("Akun bank wajib dipilih untuk metode Transfer Bank (Pengeluaran).");
-          }
-
-          const bankCode = normalizedInput.selectedBank.split(" — ")[0];
-
-          console.log("🔍 PENGELUARAN - selectedBank:", normalizedInput.selectedBank);
-          console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
-
+        } else if (payment === "transfer bank") {
+          const bankCode =
+            normalizedInput.selectedBank?.split(" â€” ")[0] || "1-1200";
+          console.log(
+            "ðŸ” PENGELUARAN - normalizedInput.selectedBank:",
+            normalizedInput.selectedBank,
+          );
+          console.log("ðŸ” PENGELUARAN - bankCode extracted:", bankCode);
           creditFilter = { account_code: bankCode };
-};
         } else {
           creditFilter = { flow_type: "cash" };
         }
         extras.is_cash_related =
-          payment === "cash" || (payment === "transfer bank" && normalizedInput.selectedBank);
+          payment === "cash" || payment === "transfer bank";
         break;
 
       case "Transfer Bank":
+        // Transfer Bank: Debit Bank Tujuan, Kredit Bank Asal
+        const bankTujuanCode =
+          normalizedInput.selectedBank?.split(" â€” ")[0] ||
+          normalizedInput.kasTujuan;
+        return {
+          special: "mutasi",
+          debit_account_code: bankTujuanCode,
+          credit_account_code: normalizedInput.kasSumber,
+          is_cash_related: true,
+        };
 
-        if (!normalizedInput.bankAsal) {
-            throw new Error("Bank asal wajib dipilih untuk Transfer Bank.");
+      case "Setoran Modal":
+        // Setoran Modal: Debit Kas/Bank, Kredit Modal
+        if (payment === "cash") {
+          const kasCode =
+            normalizedInput.selectedKas?.split(" â€” ")[0] || "1-1100";
+          debitFilter = { account_code: kasCode };
+        } else if (payment === "transfer bank") {
+          const bankCode =
+            normalizedInput.selectedBank?.split(" â€” ")[0] || "1-1200";
+          debitFilter = { account_code: bankCode };
+        } else {
+          debitFilter = { flow_type: "cash" };
         }
-        if (!normalizedInput.bankTujuan) {
-            throw new Error("Bank tujuan wajib dipilih untuk Transfer Bank.");
-        }
-
-        const bankAsalCode = normalizedInput.bankAsal.split(" — ")[0];
-        const bankTujuanCode = normalizedInput.bankTujuan.split(" — ")[0];
-
-        console.log("🔁 TRANSFER BANK — asal:", normalizedInput.bankAsal);
-        console.log("🔁 TRANSFER BANK — tujuan:", normalizedInput.bankTujuan);
-
-        debit_account_code = bankTujuanCode;
-        credit_account_code = bankAsalCode;
-
+        creditFilter = { trans_type: "equity" };
+        extras.is_cash_related = true;
         break;
 
       case "Prive":
@@ -1323,20 +2697,10 @@ export default function TransaksiKeuanganForm() {
           const kasCode =
             normalizedInput.selectedKas?.split(" â€” ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if ((payment === "transfer bank" && normalizedInput.selectedBank)) {
-
-          // FIX: Pengeluaran harus pilih akun bank
-          if (!normalizedInput.selectedBank) {
-            throw new Error("Akun bank wajib dipilih untuk metode Transfer Bank (Pengeluaran).");
-          }
-
-          const bankCode = normalizedInput.selectedBank.split(" — ")[0];
-
-          console.log("🔍 PENGELUARAN - selectedBank:", normalizedInput.selectedBank);
-          console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
-
+        } else if (payment === "transfer bank") {
+          const bankCode =
+            normalizedInput.selectedBank?.split(" â€” ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
-};
         } else {
           creditFilter = { flow_type: "cash" };
         }
@@ -1351,20 +2715,10 @@ export default function TransaksiKeuanganForm() {
           const kasCode =
             normalizedInput.selectedKas?.split(" â€” ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if ((payment === "transfer bank" && normalizedInput.selectedBank)) {
-
-          // FIX: Pengeluaran harus pilih akun bank
-          if (!normalizedInput.selectedBank) {
-            throw new Error("Akun bank wajib dipilih untuk metode Transfer Bank (Pengeluaran).");
-          }
-
-          const bankCode = normalizedInput.selectedBank.split(" — ")[0];
-
-          console.log("🔍 PENGELUARAN - selectedBank:", normalizedInput.selectedBank);
-          console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
-
+        } else if (payment === "transfer bank") {
+          const bankCode =
+            normalizedInput.selectedBank?.split(" â€” ")[0] || "1-1200";
           creditFilter = { account_code: bankCode };
-};
         } else {
           creditFilter = { flow_type: "cash" };
         }
@@ -1378,20 +2732,10 @@ export default function TransaksiKeuanganForm() {
           const kasCode =
             normalizedInput.selectedKas?.split(" â€” ")[0] || "1-1100";
           debitFilter = { account_code: kasCode };
-        } else if ((payment === "transfer bank" && normalizedInput.selectedBank)) {
-
-          // FIX: Pengeluaran harus pilih akun bank
-          if (!normalizedInput.selectedBank) {
-            throw new Error("Akun bank wajib dipilih untuk metode Transfer Bank (Pengeluaran).");
-          }
-
-          const bankCode = normalizedInput.selectedBank.split(" — ")[0];
-
-          console.log("🔍 PENGELUARAN - selectedBank:", normalizedInput.selectedBank);
-          console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
-
-          creditFilter = { account_code: bankCode };
-};
+        } else if (payment === "transfer bank") {
+          const bankCode =
+            normalizedInput.selectedBank?.split(" â€” ")[0] || "1-1200";
+          debitFilter = { account_code: bankCode };
         } else {
           debitFilter = { flow_type: "cash" };
         }
@@ -2139,7 +3483,7 @@ export default function TransaksiKeuanganForm() {
           total_amount: totalAmount,
           payment_method: paymentType === "cash" ? "Tunai" : "Piutang",
           customer_name: customer || "",
-          coa_cash_code: paymentType === "cash" ? "1-1100" : null /* FIX: Bank wajib dipilih, tidak ada default COA */,
+          coa_cash_code: paymentType === "cash" ? "1-1100" : "1-1200",
           coa_revenue_code: mainCreditLine?.account_code || "",
           coa_cogs_code: "5-1100",
           coa_inventory_code: coaSelected || "",
@@ -2183,7 +3527,7 @@ export default function TransaksiKeuanganForm() {
           total_amount: totalAmount,
           payment_method: paymentType === "cash" ? "Tunai" : "Piutang",
           customer_name: customer || "",
-          coa_cash_code: paymentType === "cash" ? "1-1100" : null /* FIX: Bank wajib dipilih, tidak ada default COA */,
+          coa_cash_code: paymentType === "cash" ? "1-1100" : "1-1200",
           coa_revenue_code: mainCreditLine?.account_code || "",
           coa_cogs_code: null,
           coa_inventory_code: null,
@@ -3217,7 +4561,7 @@ export default function TransaksiKeuanganForm() {
                 item.supplier ||
                 "Penerimaan Kas",
               amount: normalizedInput.nominal,
-              payment_method: item.paymentType === "cash" ? "Tunai" : (item.selectedBank ? "Bank" : (() => { throw new Error("Akun bank wajib dipilih untuk penerimaan via Bank"); })()),
+              payment_method: item.paymentType === "cash" ? "Tunai" : "Bank",
               coa_cash_code: debitLine?.account_code || "1-1100",
               coa_contra_code: creditLine?.account_code || "4-1100",
               account_code: debitLine?.account_code || "",
@@ -3285,7 +4629,7 @@ export default function TransaksiKeuanganForm() {
               total_amount: totalAmount,
               payment_method: item.paymentType === "cash" ? "Tunai" : "Piutang",
               customer_name: item.customer || "",
-              coa_cash_code: item.paymentType === "cash" ? "1-1100" : null /* FIX: Bank wajib dipilih, tidak ada default COA */,
+              coa_cash_code: item.paymentType === "cash" ? "1-1100" : "1-1200",
               coa_revenue_code: mainCreditLine?.account_code || "",
               coa_cogs_code: "5-1100",
               coa_inventory_code: item.coaSelected || "",
@@ -3320,7 +4664,7 @@ export default function TransaksiKeuanganForm() {
               total_amount: totalAmount,
               payment_method: item.paymentType === "cash" ? "Tunai" : "Piutang",
               customer_name: item.customer || "",
-              coa_cash_code: item.paymentType === "cash" ? "1-1100" : null /* FIX: Bank wajib dipilih, tidak ada default COA */,
+              coa_cash_code: item.paymentType === "cash" ? "1-1100" : "1-1200",
               coa_revenue_code: mainCreditLine?.account_code || "",
               coa_cogs_code: null,
               coa_inventory_code: null,
@@ -10225,4 +11569,3 @@ export default function TransaksiKeuanganForm() {
     </div>
   );
 }
-
