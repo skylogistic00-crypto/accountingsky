@@ -8078,72 +8078,47 @@ export default function TransaksiKeuanganForm() {
 
                   {transactionItemType && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Jenis Barang di kiri, diambil dari stock.jenis_barang */}
                       <div className="space-y-2">
-                        <Label htmlFor="selected_item">Item Name *</Label>
+                        <Label htmlFor="item_detail">Jenis Barang *</Label>
                         <Select
                           value={selectedItemId}
                           onValueChange={setSelectedItemId}
                           disabled={isLoadingItems}
                         >
-                          <SelectTrigger id="selected_item">
+                          <SelectTrigger id="item_detail">
                             <SelectValue
                               placeholder={
                                 isLoadingItems
                                   ? "Memuat..."
-                                  : `-- pilih item name --`
+                                  : `-- pilih jenis barang --`
                               }
                             />
                           </SelectTrigger>
                           <SelectContent>
-                            {transactionItemType === "Barang" &&
-                              stockItems.length === 0 &&
-                              !isLoadingItems && (
-                                <div className="px-2 py-1.5 text-sm text-gray-500">
-                                  Tidak ada barang tersedia
-                                </div>
-                              )}
-                            {transactionItemType === "Barang" &&
-                              stockItems.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.item_name}
-                                </SelectItem>
-                              ))}
-                            {transactionItemType === "Jasa" &&
-                              serviceItems.length === 0 &&
-                              !isLoadingItems && (
-                                <div className="px-2 py-1.5 text-sm text-gray-500">
-                                  Tidak ada jasa tersedia
-                                </div>
-                              )}
-                            {transactionItemType === "Jasa" &&
-                              serviceItems.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.item_name}
-                                </SelectItem>
-                              ))}
+                            {stockItems.length === 0 && !isLoadingItems && (
+                              <div className="px-2 py-1.5 text-sm text-gray-500">
+                                Tidak ada barang tersedia
+                              </div>
+                            )}
+                            {stockItems.map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                {item.jenis_barang || item.item_name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
 
+                      {/* Item Penjualan di kanan, mengikuti pilihan jenis barang */}
                       <div className="space-y-2">
-                        <Label htmlFor="item_detail">
-                          {transactionItemType === "Barang"
-                            ? "Jenis Barang"
-                            : "Deskripsi"}{" "}
-                          *
-                        </Label>
+                        <Label htmlFor="selected_item">Item Penjualan *</Label>
                         <Input
-                          id="item_detail"
+                          id="selected_item"
                           type="text"
                           value={selectedItemDetail}
-                          onChange={(e) =>
-                            setSelectedItemDetail(e.target.value)
-                          }
-                          placeholder={
-                            transactionItemType === "Barang"
-                              ? "Jenis barang akan terisi otomatis"
-                              : "Deskripsi akan terisi otomatis"
-                          }
+                          onChange={(e) => setSelectedItemDetail(e.target.value)}
+                          placeholder="Nama item akan mengikuti jenis barang yang dipilih"
                           className="w-full"
                           disabled={isLoadingItems}
                         />
