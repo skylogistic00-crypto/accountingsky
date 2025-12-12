@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Fall back to public Supabase URL and anon key when VITE_ vars are missing
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || (window as any).ENV_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || (window as any).ENV_SUPABASE_ANON_KEY;
 
+// In Tempo, we rely on runtime-provided env vars instead of build-time VITE_ vars.
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
