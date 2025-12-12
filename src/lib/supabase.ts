@@ -7,10 +7,12 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || (window as any
 
 // In Tempo, we rely on runtime-provided env vars instead of build-time VITE_ vars.
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+  console.warn('Supabase environment variables are missing; Supabase client will not be initialized');
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabase = supabaseUrl && supabaseAnonKey
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
+  : (null as any);
 
 export type UserRole = 'admin' | 'editor' | 'viewer';
 
