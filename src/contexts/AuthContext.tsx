@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 
 // WAJIB: pakai client utama
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 // WAJIB: tipe import
 import type { UserProfile } from "../lib/supabase";

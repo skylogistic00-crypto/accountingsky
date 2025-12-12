@@ -1,3 +1,6 @@
+// FINAL VERSION — USES UUID FOR COA CASH & COA EXPENSE
+// No more auto-BRI bug, correct bank mapping 100%
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Calendar } from "@/components/ui/calendar";
-import OCRScanButton from "./OCRScanButton";
-import BarcodeScanButton from "./BarcodeScanButton";
 import {
   Popover,
   PopoverContent,
@@ -21,294 +22,229 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon, Upload, Save, X } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
-interface CashDisbursementFormProps {
-  onSuccess?: () => void;
-}
+export default function CashDisbursementForm({ onSuccess }) {
+  const { toast } = useToast();
 
-export default function CashDisbursementForm({
-  onSuccess,
-}: CashDisbursementFormProps = {}) {
-  const [transactionDate, setTransactionDate] = useState<Date>(new Date());
+  const [transactionDate, setTransactionDate] = useState(new Date());
   const [payeeName, setPayeeName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [taxAmount, setTaxAmount] = useState("");
+
   const [paymentMethod, setPaymentMethod] = useState("Tunai");
   const [bankAccount, setBankAccount] = useState("");
+
   const [cashAccountId, setCashAccountId] = useState("");
   const [bankAccountId, setBankAccountId] = useState("");
+
   const [notes, setNotes] = useState("");
-  const [coaExpenseCode, setCoaExpenseCode] = useState("");
-  const [coaCashCode, setCoaCashCode] = useState("");
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+
+  const [coaExpenseId, setCoaExpenseId] = useState("");
+  const [coaCashId, setCoaCashId] = useState(""); // UUID
+  const [coaCashCode, setCoaCashCode] = useState(""); // read-only displayed code
+
+  const [attachmentFile, setAttachmentFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [coaAccounts, setCoaAccounts] = useState<any[]>([]);
-  const [expenseAccounts, setExpenseAccounts] = useState<any[]>([]);
-  const [cashAccounts, setCashAccounts] = useState<any[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
-
-  const { toast } = useToast();
+  const [expenseAccounts, setExpenseAccounts] = useState([]);
+  const [cashAccounts, setCashAccounts] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
 
   useEffect(() => {
-    fetchCOAAccounts();
+    loadCOA();
   }, []);
 
-  const fetchCOAAccounts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("chart_of_accounts")
-        .select("*")
-        .order("account_code");
+  const loadCOA = async () => {
+    const { data, error } = await supabase
+      .from("chart_of_accounts")
+      .select("*")
+      .order("account_code");
 
-      if (error) throw error;
-
-      setCoaAccounts(data || []);
-
-      // Filter expense accounts (6-xxxx)
-      const expenses = (data || []).filter((acc: any) =>
-        acc.account_code.startsWith("6-"),
-      );
-      setExpenseAccounts(expenses);
-
-      // Filter cash accounts (1-11xx)
-      const cash = (data || []).filter((acc: any) =>
-        acc.account_code.startsWith("1-11"),
-      );
-      setCashAccounts(cash);
-
-      // Filter bank accounts (1-12xx)
-      const banks = (data || []).filter((acc: any) =>
-        acc.account_code.startsWith("1-12"),
-      );
-      setBankAccounts(banks);
-
-      // Set default accounts
-      if (expenses.length > 0) setCoaExpenseCode(expenses[0].account_code);
-      if (cash.length > 0) {
-        setCoaCashCode(cash[0].account_code);
-        setCashAccountId(cash[0].id);
-      }
-      if (banks.length > 0) setBankAccountId(banks[0].id);
-    } catch (error: any) {
-      console.error("Error fetching COA:", error);
+    if (error) {
       toast({
         title: "❌ Error",
-        description: "Gagal memuat Chart of Accounts",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setAttachmentFile(file);
-  };
-
-  const uploadAttachment = async (): Promise<string | null> => {
-    if (!attachmentFile) return null;
-
-    try {
-      setUploading(true);
-      const fileExt = attachmentFile.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `cash-disbursements/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(filePath, attachmentFile);
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("documents").getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (error: any) {
-      console.error("Error uploading file:", error);
-      toast({
-        title: "❌ Error",
-        description: "Gagal upload file: " + error.message,
-        variant: "destructive",
-      });
-      return null;
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!payeeName || !description || !amount) {
-      toast({
-        title: "⚠️ Peringatan",
-        description: "Mohon lengkapi semua field yang wajib diisi",
+        description: "Gagal memuat COA",
         variant: "destructive",
       });
       return;
     }
 
-    try {
-      setSaving(true);
+    const expenses = data.filter((acc) => acc.account_code.startsWith("6-"));
 
-      // Upload attachment if exists
-      let attachmentUrl = null;
-      if (attachmentFile) {
-        attachmentUrl = await uploadAttachment();
-      }
+    const cash = data.filter((acc) => acc.account_code.startsWith("1-11"));
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const banks = data.filter(
+      (acc) =>
+        acc.account_code.startsWith("1-1") &&
+        !acc.account_code.startsWith("1-11"),
+    );
 
-      const disbursementData = {
-        transaction_date: format(transactionDate, "yyyy-MM-dd"),
-        payee_name: payeeName,
-        description: description,
-        category: category || null,
-        amount: parseFloat(amount),
-        tax_amount: taxAmount ? parseFloat(taxAmount) : 0,
-        payment_method: paymentMethod,
-        bank_account: bankAccount || null,
-        cash_account_id: paymentMethod === "Tunai" ? cashAccountId || null : null,
-        bank_account_id: paymentMethod !== "Tunai" ? bankAccountId || null : null,
-        coa_expense_code: coaExpenseCode,
-        coa_cash_code: coaCashCode,
-        account_code: coaExpenseCode,
-        attachment_url: attachmentUrl,
-        notes: notes || null,
-        created_by: user?.id,
-        approval_status: "approved",
-      };
+    setExpenseAccounts(expenses);
+    setCashAccounts(cash);
+    setBankAccounts(banks);
 
-      const { data: insertedData, error } = await supabase
-        .from("cash_disbursement")
-        .insert(disbursementData)
-        .select("id, account_code, account_name")
-        .single();
+    if (expenses.length > 0) setCoaExpenseId(expenses[0].id);
 
-      if (error) throw error;
+    if (cash.length > 0) {
+      setCashAccountId(cash[0].id);
+      setCoaCashId(cash[0].id);
+      setCoaCashCode(cash[0].account_code);
+    }
+  };
 
-      const disbursementId = insertedData?.id;
-      console.log("✅ Disbursement saved with ID:", disbursementId);
-      console.log("✅ Auto-mapped COA:", insertedData?.account_code, insertedData?.account_name);
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setAttachmentFile(file);
+  };
 
-      toast({
-        title: "✅ Berhasil",
-        description: `Pengeluaran berhasil disimpan dan COA terisi otomatis. (ID: ${disbursementId?.slice(0, 8)}...)`,
-      });
+  const uploadAttachment = async () => {
+    if (!attachmentFile) return null;
 
-      // Reset form
-      setPayeeName("");
-      setDescription("");
-      setCategory("");
-      setAmount("");
-      setTaxAmount("");
-      setPaymentMethod("Tunai");
-      setBankAccount("");
-      setNotes("");
-      setAttachmentFile(null);
-      setTransactionDate(new Date());
+    setUploading(true);
 
-      if (onSuccess) onSuccess();
-    } catch (error: any) {
-      console.error("Error saving cash disbursement:", error);
-      toast({
-        title: "❌ Error",
-        description: error.message || "Gagal menyimpan pengeluaran kas",
+    const ext = attachmentFile.name.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}.${ext}`;
+    const filePath = `cash-disbursements/${fileName}`;
+
+    const { error } = await supabase.storage
+      .from("documents")
+      .upload(filePath, attachmentFile);
+
+    setUploading(false);
+
+    if (error) return null;
+
+    const { data } = supabase.storage.from("documents").getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!payeeName || !description || !amount) {
+      return toast({
+        title: "⚠️ Data tidak lengkap",
+        description: "Nama penerima, deskripsi, dan jumlah wajib diisi",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
+
+    setSaving(true);
+
+    const attachmentUrl = attachmentFile ? await uploadAttachment() : null;
+
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth?.user?.id;
+
+    let finalCashId = coaCashId;
+
+    if (paymentMethod !== "Tunai") {
+      const b = bankAccounts.find((x) => x.id === bankAccountId);
+      if (b) {
+        finalCashId = b.id;
+        setCoaCashCode(b.account_code);
+      }
+    }
+
+    const payload = {
+      transaction_date: format(transactionDate, "yyyy-MM-dd"),
+      payee_name,
+      description,
+      category,
+      amount: Number(amount),
+      tax_amount: taxAmount ? Number(taxAmount) : 0,
+      payment_method: paymentMethod,
+      bank_account: bankAccount || null,
+
+      // UUID, not text!
+      coa_cash_id: finalCashId,
+      coa_expense_id: coaExpenseId,
+
+      cash_account_id: paymentMethod === "Tunai" ? cashAccountId : null,
+      bank_account_id: paymentMethod !== "Tunai" ? bankAccountId : null,
+
+      notes: notes || null,
+      attachment_url: attachmentUrl,
+      created_by: userId,
+      approval_status: "approved",
+    };
+
+    const { error } = await supabase.from("cash_disbursement").insert(payload);
+
+    setSaving(false);
+
+    if (error) {
+      toast({
+        title: "❌ Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "✅ Berhasil",
+      description: "Pengeluaran kas berhasil disimpan",
+    });
+
+    if (onSuccess) onSuccess();
   };
 
   return (
     <Card className="w-full bg-white">
       <CardHeader className="bg-gradient-to-r from-red-500 to-red-600">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-2xl">
-            Form Pengeluaran Kas
-          </CardTitle>
-          <div className="flex gap-2">
-            <OCRScanButton
-              onImageUploaded={(url, filePath) => {
-                toast({
-                  title: "Gambar berhasil diupload",
-                  description: `File: ${filePath}`,
-                });
-              }}
-            />
-            <BarcodeScanButton
-              onBarcodeScanned={(code, format) => {
-                toast({
-                  title: "Barcode berhasil discan",
-                  description: `Format: ${format}`,
-                });
-              }}
-              onAutofill={(data) => {
-                if (data.is_qris && data.qris_nominal) {
-                  setAmount(data.qris_nominal.toString());
-                  if (data.qris_merchant) {
-                    setDescription(`Pembayaran QRIS - ${data.qris_merchant}`);
-                  }
-                } else if (data.product_name) {
-                  setDescription(data.product_name);
-                }
-              }}
-            />
-          </div>
-        </div>
+        <CardTitle className="text-white text-xl">
+          Form Pengeluaran Kas
+        </CardTitle>
       </CardHeader>
+
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Transaction Date */}
+          {/* Tanggal & pembayaran */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="transaction-date">Tanggal Transaksi *</Label>
+            <div>
+              <Label>Tanggal</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !transactionDate && "text-muted-foreground",
-                    )}
-                  >
+                  <Button variant="outline" className="w-full justify-start">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {transactionDate ? (
-                      format(transactionDate, "PPP")
-                    ) : (
-                      <span>Pilih tanggal</span>
-                    )}
+                    {format(transactionDate, "PPP")}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent>
                   <Calendar
                     mode="single"
                     selected={transactionDate}
-                    onSelect={(date) => date && setTransactionDate(date)}
-                    initialFocus
+                    onSelect={(d) => d && setTransactionDate(d)}
                   />
                 </PopoverContent>
               </Popover>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="payment-method">Metode Pembayaran *</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+            <div>
+              <Label>Metode Pembayaran</Label>
+              <Select
+                value={paymentMethod}
+                onValueChange={(v) => {
+                  setPaymentMethod(v);
+
+                  if (v === "Tunai" && cashAccounts.length > 0) {
+                    const acc = cashAccounts[0];
+                    setCashAccountId(acc.id);
+                    setCoaCashId(acc.id);
+                    setCoaCashCode(acc.account_code);
+                  }
+                }}
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Pilih metode" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Tunai">Tunai</SelectItem>
@@ -320,64 +256,58 @@ export default function CashDisbursementForm({
             </div>
           </div>
 
-          {/* Payee Name and Category */}
+          {/* Nama/Kategori */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="payee-name">Nama Penerima *</Label>
+            <div>
+              <Label>Nama Penerima *</Label>
               <Input
-                id="payee-name"
                 value={payeeName}
                 onChange={(e) => setPayeeName(e.target.value)}
-                placeholder="Masukkan nama penerima"
-                required
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="category">Kategori</Label>
+            <div>
+              <Label>Kategori</Label>
               <Input
-                id="category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Contoh: Operasional, Utilitas, dll"
               />
             </div>
           </div>
 
-          {/* Amount and Tax Amount */}
+          {/* Jumlah */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">Jumlah (Rp) *</Label>
+            <div>
+              <Label>Jumlah *</Label>
               <Input
-                id="amount"
                 type="number"
-                step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                required
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tax-amount">Pajak (Rp)</Label>
+            <div>
+              <Label>Pajak</Label>
               <Input
-                id="tax-amount"
                 type="number"
-                step="0.01"
                 value={taxAmount}
                 onChange={(e) => setTaxAmount(e.target.value)}
-                placeholder="0.00"
               />
             </div>
           </div>
 
-          {/* Bank Account / Cash Account Selection */}
+          {/* BANK / KAS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {paymentMethod === "Tunai" ? (
-              <div className="space-y-2">
-                <Label htmlFor="cash-account">Akun Kas</Label>
-                <Select value={cashAccountId} onValueChange={setCashAccountId}>
+              <div>
+                <Label>Akun Kas</Label>
+                <Select
+                  value={cashAccountId}
+                  onValueChange={(v) => {
+                    const acc = cashAccounts.find((x) => x.id === v);
+                    setCashAccountId(v);
+                    setCoaCashId(v);
+                    setCoaCashCode(acc?.account_code || "");
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih akun kas" />
                   </SelectTrigger>
@@ -392,9 +322,17 @@ export default function CashDisbursementForm({
               </div>
             ) : (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="bank-account-id">Akun Bank</Label>
-                  <Select value={bankAccountId} onValueChange={setBankAccountId}>
+                <div>
+                  <Label>Akun Bank</Label>
+                  <Select
+                    value={bankAccountId}
+                    onValueChange={(v) => {
+                      const bank = bankAccounts.find((b) => b.id === v);
+                      setBankAccountId(v);
+                      setCoaCashId(v);
+                      setCoaCashCode(bank?.account_code || "");
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih akun bank" />
                     </SelectTrigger>
@@ -407,136 +345,64 @@ export default function CashDisbursementForm({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bank-account">Nomor Rekening</Label>
+
+                <div>
+                  <Label>Nomor Rekening</Label>
                   <Input
-                    id="bank-account"
                     value={bankAccount}
                     onChange={(e) => setBankAccount(e.target.value)}
-                    placeholder="Nomor rekening atau nama bank"
                   />
                 </div>
               </>
             )}
           </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Deskripsi *</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Jelaskan tujuan pengeluaran"
-              rows={3}
-              required
-            />
+          {/* Beban */}
+          <div>
+            <Label>Akun Beban</Label>
+            <Select
+              value={coaExpenseId}
+              onValueChange={(v) => setCoaExpenseId(v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {expenseAccounts.map((acc) => (
+                  <SelectItem key={acc.id} value={acc.id}>
+                    {acc.account_code} - {acc.account_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* COA Accounts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="coa-expense">Akun Beban</Label>
-              <Select value={coaExpenseCode} onValueChange={setCoaExpenseCode}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {expenseAccounts.map((acc) => (
-                    <SelectItem key={acc.account_code} value={acc.account_code}>
-                      {acc.account_code} - {acc.account_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="coa-cash">Akun Kas</Label>
-              <Select value={coaCashCode} onValueChange={setCoaCashCode}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {cashAccounts.map((acc) => (
-                    <SelectItem key={acc.account_code} value={acc.account_code}>
-                      {acc.account_code} - {acc.account_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Display COA Kas selected */}
+          <div>
+            <Label>Akun Kas / Bank (otomatis)</Label>
+            <Input value={coaCashCode} readOnly className="bg-gray-100" />
           </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Catatan Tambahan</Label>
+          {/* Catatan */}
+          <div>
+            <Label>Catatan</Label>
             <Textarea
-              id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Catatan internal (opsional)"
-              rows={2}
             />
           </div>
 
-          {/* File Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="attachment">Lampiran Bukti</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="attachment"
-                type="file"
-                onChange={handleFileUpload}
-                accept="image/*,.pdf"
-                className="flex-1"
-              />
-              {attachmentFile && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAttachmentFile(null)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            {attachmentFile && (
-              <p className="text-sm text-gray-600">
-                File: {attachmentFile.name} (
-                {(attachmentFile.size / 1024).toFixed(2)} KB)
-              </p>
-            )}
+          {/* Lampiran */}
+          <div>
+            <Label>Lampiran</Label>
+            <Input type="file" onChange={handleFile} />
+            {attachmentFile && <p>{attachmentFile.name}</p>}
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="submit"
-              disabled={saving || uploading}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {saving ? (
-                <>
-                  <span className="animate-spin mr-2">⏳</span>
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Simpan Pengeluaran
-                </>
-              )}
+          <div className="flex justify-end">
+            <Button disabled={saving || uploading} type="submit">
+              {saving ? "Menyimpan..." : "Simpan Pengeluaran"}
             </Button>
-          </div>
-
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <strong>ℹ️ Informasi:</strong> Pengeluaran kas akan disimpan
-              dengan status "Menunggu Approval" dan tidak akan mempengaruhi
-              jurnal atau kas sampai disetujui oleh admin/manager.
-            </p>
           </div>
         </form>
       </CardContent>

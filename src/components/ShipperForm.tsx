@@ -766,11 +766,13 @@ export default function ShipperForm() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">Semua Kategori</SelectItem>
-                    {uniqueCategories.filter((cat) => cat).map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
+                    {uniqueCategories
+                      .filter((cat) => cat)
+                      .map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

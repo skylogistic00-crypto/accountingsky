@@ -33,6 +33,8 @@ import {
   Search,
   ArrowLeft,
   FileText,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -61,6 +63,23 @@ interface JournalEntry {
   credit_account_name?: string;
 }
 
+interface COAAccount {
+  id: string;
+  account_code: string;
+  account_name: string;
+  level: number;
+  parent_code: string | null;
+  account_type: string;
+}
+
+interface GLTransaction {
+  date: string;
+  description: string;
+  debit: number;
+  credit: number;
+  entry_id: string;
+}
+
 export default function IntegratedFinancialReport() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -68,6 +87,9 @@ export default function IntegratedFinancialReport() {
   const [filteredData, setFilteredData] = useState<FinancialReportData[]>([]);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [loadingJournal, setLoadingJournal] = useState(false);
+  const [coaAccounts, setCOAAccounts] = useState<COAAccount[]>([]);
+  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+  const [loadingGL, setLoadingGL] = useState(false);
 
   const [reportType, setReportType] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,6 +98,7 @@ export default function IntegratedFinancialReport() {
   useEffect(() => {
     fetchReportData();
     fetchJournalEntries();
+    fetchCOAAccounts();
   }, []);
 
   useEffect(() => {
@@ -106,21 +129,10 @@ export default function IntegratedFinancialReport() {
         coaData?.map((coa) => [coa.account_code, coa]) || [],
       );
 
-      // Fetch from general_ledger with chart_of_accounts join
+      // Fetch from general_ledger without relying on Supabase relationship
       const { data, error } = await supabase
         .from("general_ledger")
-        .select(
-          `
-          *,
-          chart_of_accounts!general_ledger_account_code_fkey (
-            account_name,
-            account_type,
-            parent_id,
-            level,
-            is_header
-          )
-        `,
-        )
+        .select("*")
         .order("account_code", { ascending: true });
 
       if (error) {
@@ -264,6 +276,7 @@ export default function IntegratedFinancialReport() {
       const { data: journalData, error: journalError } = await supabase
         .from("journal_entries")
         .select("*")
+        .order("journal_ref", { ascending: false })
         .order("entry_date", { ascending: false });
 
       if (journalError) {
@@ -315,6 +328,296 @@ export default function IntegratedFinancialReport() {
     } finally {
       setLoadingJournal(false);
     }
+  };
+
+  const fetchCOAAccounts = async () => {
+    setLoadingGL(true);
+    try {
+      const { data, error } = await supabase
+        .from("chart_of_accounts")
+        .select("id, account_code, account_name, level, parent_code, account_type")
+        .order("account_code", { ascending: true });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: `Gagal memuat COA: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("COA Accounts loaded:", data);
+      console.log("Level 1 accounts:", data?.filter(acc => acc.level === 1));
+      setCOAAccounts(data || []);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Terjadi kesalahan saat memuat COA",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingGL(false);
+    }
+  };
+
+  const toggleAccount = (accountCode: string) => {
+    const newExpanded = new Set(expandedAccounts);
+    if (newExpanded.has(accountCode)) {
+      newExpanded.delete(accountCode);
+    } else {
+      newExpanded.add(accountCode);
+    }
+    setExpandedAccounts(newExpanded);
+  };
+
+  const getChildAccounts = (parentCode: string | null, level: number) => {
+    console.log(`Looking for children of ${parentCode} at level ${level}`);
+    const children = coaAccounts.filter(
+      (acc) => {
+        const matches = acc.parent_code === parentCode && acc.level === level;
+        if (matches) {
+          console.log(`Found child: ${acc.account_code} - ${acc.account_name}`);
+        }
+        return matches;
+      }
+    );
+    console.log(`Total children found: ${children.length}`);
+    return children;
+  };
+
+  const getTransactionsForAccount = (accountCode: string): GLTransaction[] => {
+    const transactions: GLTransaction[] = [];
+
+    journalEntries.forEach((entry) => {
+      if (entry.debit_account === accountCode) {
+        transactions.push({
+          date: entry.entry_date,
+          description: entry.description || entry.entry_number,
+          debit: entry.debit,
+          credit: 0,
+          entry_id: entry.id,
+        });
+      }
+      if (entry.credit_account === accountCode) {
+        transactions.push({
+          date: entry.entry_date,
+          description: entry.description || entry.entry_number,
+          debit: 0,
+          credit: entry.credit,
+          entry_id: entry.id,
+        });
+      }
+    });
+
+    return transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  };
+
+  // Helper function to calculate total debit/credit for an account and all its children
+  const calculateAccountTotals = (accountCode: string, level: number): { totalDebit: number; totalCredit: number } => {
+    if (level === 3) {
+      // Level 3: get direct transactions
+      const transactions = getTransactionsForAccount(accountCode);
+      return {
+        totalDebit: transactions.reduce((sum, t) => sum + t.debit, 0),
+        totalCredit: transactions.reduce((sum, t) => sum + t.credit, 0)
+      };
+    } else {
+      // Level 1 or 2: sum up all child accounts
+      const children = getChildAccounts(accountCode, level + 1);
+      let totalDebit = 0;
+      let totalCredit = 0;
+      
+      children.forEach(child => {
+        const childTotals = calculateAccountTotals(child.account_code, level + 1);
+        totalDebit += childTotals.totalDebit;
+        totalCredit += childTotals.totalCredit;
+      });
+      
+      return { totalDebit, totalCredit };
+    }
+  };
+
+  const renderGLAccount = (account: COAAccount, level: number) => {
+    const childAccounts = getChildAccounts(account.account_code, level + 1);
+    const hasChildren = childAccounts.length > 0;
+    const isExpanded = expandedAccounts.has(account.account_code);
+    const transactions = level === 3 ? getTransactionsForAccount(account.account_code) : [];
+    
+    // Calculate totals for this account (including children for level 1 & 2)
+    const { totalDebit, totalCredit } = calculateAccountTotals(account.account_code, level);
+    
+    // Calculate balance based on account type
+    // ASET (1): Debit - Credit (bisa minus jika kredit > debit)
+    // KEWAJIBAN (2): Credit - Debit (bisa minus jika debit > kredit)
+    // EKUITAS (3): Credit - Debit (bisa minus jika debit > kredit)
+    // PENDAPATAN (4): Credit - Debit (bisa minus jika debit > kredit)
+    // BEBAN POKOK PENJUALAN (5): Debit - Credit (bisa minus jika kredit > debit)
+    // BEBAN OPERASIONAL (6): Debit - Credit (bisa minus jika kredit > debit)
+    // PENDAPATAN & BEBAN LAIN-LAIN (7): Credit - Debit (bisa minus jika debit > kredit)
+    const accountPrefix = account.account_code.charAt(0);
+    let balance = 0;
+    
+    if (accountPrefix === '1') {
+      // ASET: Debit - Credit (minus jika kredit > debit)
+      balance = totalDebit - totalCredit;
+    } else if (accountPrefix === '5') {
+      // BEBAN POKOK PENJUALAN: Debit - Credit (minus jika kredit > debit)
+      balance = totalDebit - totalCredit;
+    } else if (accountPrefix === '2') {
+      // KEWAJIBAN: Credit - Debit (minus jika debit > kredit)
+      balance = totalCredit - totalDebit;
+    } else if (accountPrefix === '3') {
+      // EKUITAS: Credit - Debit (minus jika debit > kredit)
+      balance = totalCredit - totalDebit;
+    } else if (accountPrefix === '4') {
+      // PENDAPATAN: Credit - Debit (minus jika debit > kredit)
+      balance = totalCredit - totalDebit;
+    } else if (accountPrefix === '6') {
+      // BEBAN OPERASIONAL: Debit - Credit (minus jika kredit > debit)
+      balance = totalDebit - totalCredit;
+    } else if (accountPrefix === '7') {
+      // PENDAPATAN & BEBAN LAIN-LAIN: Credit - Debit (minus jika debit > kredit)
+      balance = totalCredit - totalDebit;
+    } else {
+      // Default: Debit - Credit
+      balance = totalDebit - totalCredit;
+    }
+
+    return (
+      <div key={account.id}>
+        <div
+          className={`flex items-center py-2 px-4 hover:bg-gray-50 cursor-pointer border-b ${
+            level === 1 ? "bg-blue-50 font-bold" : level === 2 ? "bg-gray-50 font-semibold" : ""
+          }`}
+          style={{ paddingLeft: `${level * 20}px` }}
+          onClick={() => hasChildren && toggleAccount(account.account_code)}
+        >
+          {hasChildren && (
+            <span className="mr-2">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </span>
+          )}
+          {!hasChildren && <span className="mr-2 w-4"></span>}
+          <span className="font-mono mr-4">{account.account_code}</span>
+          <span className="flex-1">{account.account_name}</span>
+          {(totalDebit > 0 || totalCredit > 0) && (
+            <>
+              {level === 1 ? (
+                <>
+                  <span className="font-mono text-right w-32 mr-4"></span>
+                  <span className="font-mono text-right w-32 mr-4"></span>
+                  <span className={`font-mono text-right w-32 ${balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {balance < 0 ? '-' : ''}{formatRupiah(Math.abs(balance))}
+                  </span>
+                </>
+              ) : level === 3 ? (
+                <>
+                  <span className="font-mono text-right w-32 mr-4">
+                    {formatRupiah(totalDebit)}
+                  </span>
+                  <span className="font-mono text-right w-32 mr-4">
+                    {formatRupiah(totalCredit)}
+                  </span>
+                  <span className={`font-mono text-right w-32 ${balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {balance < 0 ? '-' : ''}{formatRupiah(Math.abs(balance))}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="font-mono text-right w-32 mr-4"></span>
+                  <span className="font-mono text-right w-32 mr-4"></span>
+                  <span className="font-mono text-right w-32"></span>
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {level === 3 && isExpanded && transactions.length > 0 && (
+          <div className="bg-gray-50 border-b">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-100">
+                  <TableHead className="w-32">Tanggal</TableHead>
+                  <TableHead>Deskripsi</TableHead>
+                  <TableHead className="text-right w-32">Debit</TableHead>
+                  <TableHead className="text-right w-32">Kredit</TableHead>
+                  <TableHead className="text-right w-32">Saldo</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((trans, idx) => {
+                  // Calculate running balance
+                  const previousTransactions = transactions.slice(0, idx + 1);
+                  const runningDebit = previousTransactions.reduce((sum, t) => sum + t.debit, 0);
+                  const runningCredit = previousTransactions.reduce((sum, t) => sum + t.credit, 0);
+                  
+                  const accountPrefix = account.account_code.charAt(0);
+                  let runningBalance = 0;
+                  
+                  if (accountPrefix === '1') {
+                    // ASET: Debit - Credit (minus jika kredit > debit)
+                    runningBalance = runningDebit - runningCredit;
+                  } else if (accountPrefix === '5') {
+                    // BEBAN POKOK PENJUALAN: Debit - Credit (minus jika kredit > debit)
+                    runningBalance = runningDebit - runningCredit;
+                  } else if (accountPrefix === '2') {
+                    // KEWAJIBAN: Credit - Debit (minus jika debit > kredit)
+                    runningBalance = runningCredit - runningDebit;
+                  } else if (accountPrefix === '3') {
+                    // EKUITAS: Credit - Debit (minus jika debit > kredit)
+                    runningBalance = runningCredit - runningDebit;
+                  } else if (accountPrefix === '4') {
+                    // PENDAPATAN: Credit - Debit (minus jika debit > kredit)
+                    runningBalance = runningCredit - runningDebit;
+                  } else if (accountPrefix === '6') {
+                    // BEBAN OPERASIONAL: Debit - Credit (minus jika kredit > debit)
+                    runningBalance = runningDebit - runningCredit;
+                  } else if (accountPrefix === '7') {
+                    // PENDAPATAN & BEBAN LAIN-LAIN: Credit - Debit (minus jika debit > kredit)
+                    runningBalance = runningCredit - runningDebit;
+                  } else {
+                    // Default: Debit - Credit
+                    runningBalance = runningDebit - runningCredit;
+                  }
+                  
+                  return (
+                    <TableRow key={`${trans.entry_id}-${idx}`}>
+                      <TableCell className="font-mono text-sm">
+                        {new Date(trans.date).toLocaleDateString("id-ID")}
+                      </TableCell>
+                      <TableCell className="text-sm">{trans.description}</TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {trans.debit > 0 ? formatRupiah(trans.debit) : "-"}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {trans.credit > 0 ? formatRupiah(trans.credit) : "-"}
+                      </TableCell>
+                      <TableCell className={`text-right font-mono text-sm ${runningBalance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {runningBalance < 0 ? '-' : ''}{formatRupiah(Math.abs(runningBalance))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {isExpanded && hasChildren && (
+          <div>
+            {childAccounts.map((child) =>
+              renderGLAccount(child, level + 1)
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const formatRupiah = (amount: number) => {
@@ -598,8 +901,10 @@ export default function IntegratedFinancialReport() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-100">
+                      <TableHead>Tanggal</TableHead>
                       <TableHead>Kode Akun</TableHead>
                       <TableHead>Nama Akun</TableHead>
+                      <TableHead>Deskripsi</TableHead>
                       <TableHead className="text-right">Debit</TableHead>
                       <TableHead className="text-right">Kredit</TableHead>
                     </TableRow>
@@ -608,72 +913,145 @@ export default function IntegratedFinancialReport() {
                     {journalEntries.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={4}
+                          colSpan={6}
                           className="text-center py-8 text-gray-500"
                         >
                           Tidak ada data
                         </TableCell>
                       </TableRow>
                     ) : (
-                      journalEntries.map((entry) => (
-                        <>
-                          <TableRow key={`${entry.id}-debit`}>
-                            <TableCell className="font-mono">
-                              {entry.debit_account}
-                            </TableCell>
-                            <TableCell>
-                              {entry.debit_account_name || "-"}
-                            </TableCell>
-                            <TableCell className="text-right font-mono">
-                              {formatRupiah(entry.debit || 0)}
-                            </TableCell>
-                            <TableCell className="text-right font-mono">
-                              -
-                            </TableCell>
-                          </TableRow>
-                          <TableRow key={`${entry.id}-credit`}>
-                            <TableCell className="font-mono">
-                              {entry.credit_account}
-                            </TableCell>
-                            <TableCell>
-                              {entry.credit_account_name || "-"}
-                            </TableCell>
-                            <TableCell className="text-right font-mono">
-                              -
-                            </TableCell>
-                            <TableCell className="text-right font-mono">
-                              {formatRupiah(entry.credit || 0)}
-                            </TableCell>
-                          </TableRow>
-                        </>
-                      ))
-                    )}
-                    {journalEntries.length > 0 && (
-                      <TableRow className="bg-gray-100 font-bold border-t-2 border-gray-300">
-                        <TableCell colSpan={2} className="text-right">
-                          Total
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {formatRupiah(
-                            journalEntries.reduce(
-                              (sum, entry) => sum + (entry.debit || 0),
-                              0,
-                            ),
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {formatRupiah(
-                            journalEntries.reduce(
-                              (sum, entry) => sum + (entry.credit || 0),
-                              0,
-                            ),
-                          )}
-                        </TableCell>
-                      </TableRow>
+                      // Group by journal_ref and display debit first, then credit
+                      (() => {
+                        const groupedByRef: Record<string, any[]> = {};
+                        
+                        journalEntries.forEach((entry: any) => {
+                          const ref = entry.journal_ref || 'NO-REF';
+                          if (!groupedByRef[ref]) {
+                            groupedByRef[ref] = [];
+                          }
+                          groupedByRef[ref].push(entry);
+                        });
+
+                        const rows: JSX.Element[] = [];
+                        
+                        Object.entries(groupedByRef).forEach(([ref, entries]) => {
+                          // Find debit and credit entries
+                          const debitEntry = entries.find((e: any) => (e.debit || 0) > 0);
+                          const creditEntry = entries.find((e: any) => (e.credit || 0) > 0);
+                          
+                          // Display debit row first
+                          if (debitEntry) {
+                            rows.push(
+                              <TableRow key={`${ref}-debit`}>
+                                <TableCell className="text-sm">
+                                  {debitEntry.entry_date ? new Date(debitEntry.entry_date).toLocaleDateString('id-ID') : '-'}
+                                </TableCell>
+                                <TableCell className="font-mono">
+                                  {debitEntry.debit_account || '-'}
+                                </TableCell>
+                                <TableCell>
+                                  {debitEntry.debit_account_name || '-'}
+                                </TableCell>
+                                <TableCell className="text-sm">
+                                  {debitEntry.description || '-'}
+                                </TableCell>
+                                <TableCell className="text-right font-mono">
+                                  {formatRupiah(debitEntry.debit || 0)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono">
+                                  -
+                                </TableCell>
+                              </TableRow>
+                            );
+                          }
+                          
+                          // Display credit row second
+                          if (creditEntry) {
+                            rows.push(
+                              <TableRow key={`${ref}-credit`}>
+                                <TableCell className="text-sm">
+                                  {creditEntry.entry_date ? new Date(creditEntry.entry_date).toLocaleDateString('id-ID') : '-'}
+                                </TableCell>
+                                <TableCell className="font-mono">
+                                  {creditEntry.credit_account || '-'}
+                                </TableCell>
+                                <TableCell>
+                                  {creditEntry.credit_account_name || '-'}
+                                </TableCell>
+                                <TableCell className="text-sm">
+                                  {creditEntry.description || '-'}
+                                </TableCell>
+                                <TableCell className="text-right font-mono">
+                                  -
+                                </TableCell>
+                                <TableCell className="text-right font-mono">
+                                  {formatRupiah(creditEntry.credit || 0)}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          }
+                        });
+
+                        return rows;
+                      })()
                     )}
                   </TableBody>
+                  <tfoot>
+                    <TableRow className="bg-gray-50 font-semibold">
+                      <TableCell colSpan={4} className="text-right">Total</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {formatRupiah(
+                          journalEntries.reduce((sum: number, entry: any) => sum + (entry.debit || 0), 0)
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {formatRupiah(
+                          journalEntries.reduce((sum: number, entry: any) => sum + (entry.credit || 0), 0)
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  </tfoot>
                 </Table>
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* General Ledger (Buku Besar) */}
+      <Card className="max-w-7xl mx-auto rounded-2xl shadow-md mt-6">
+        <CardHeader className="p-4">
+          <CardTitle className="text-2xl">General Ledger (Buku Besar)</CardTitle>
+          <CardDescription>
+            Struktur Akun Berdasarkan COA dengan Transaksi per Akun
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
+          {loadingGL ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-gray-100 flex items-center py-2 px-4 font-bold border-b">
+                <span className="mr-2 w-4"></span>
+                <span className="font-mono mr-4 w-32">Kode Akun</span>
+                <span className="flex-1">Nama Akun</span>
+                <span className="text-right w-32 mr-4">Total Debit</span>
+                <span className="text-right w-32 mr-4">Total Kredit</span>
+                <span className="text-right w-32">Saldo</span>
+              </div>
+              {coaAccounts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Tidak ada data COA
+                </div>
+              ) : (
+                <div>
+                  {coaAccounts.filter(acc => acc.level === 1).map((account) =>
+                    renderGLAccount(account, 1)
+                  )}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
