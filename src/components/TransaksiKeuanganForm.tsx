@@ -485,6 +485,14 @@ export default function TransaksiKeuanganForm() {
   const [customer, setCustomer] = useState("");
   const [consignee, setConsignee] = useState("");
   const [supplier, setSupplier] = useState("");
+
+  // Multiple items for Penjualan
+  const [salesItems, setSalesItems] = useState<Array<{
+    id: string;
+    itemName: string;
+    jenisBarang: string;
+    quantity: string;
+  }>>([]);
   const [selectedBank, setSelectedBank] = useState("");
   const [selectedKas, setSelectedKas] = useState("");
 
@@ -8917,7 +8925,7 @@ export default function TransaksiKeuanganForm() {
 
               {/* ROW 2 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {shouldShowField("kategoriLayanan") && (
+                {shouldShowField("kategoriLayanan") && jenisTransaksi !== "Penjualan" && (
                   <div className="space-y-2">
                     <Label>Kategori</Label>
                     <Select
@@ -8954,7 +8962,7 @@ export default function TransaksiKeuanganForm() {
                   </div>
                 )}
 
-                {shouldShowField("jenisLayanan") && (
+                {shouldShowField("jenisLayanan") && jenisTransaksi !== "Penjualan" && (
                   <div className="space-y-2">
                     <Label htmlFor="jenis_layanan">Jenis Layanan</Label>
                     <Select
@@ -8991,7 +8999,7 @@ export default function TransaksiKeuanganForm() {
               </div>
 
               {/* ITEM & DESCRIPTION */}
-              {shouldShowField("itemBarang") && (
+              {shouldShowField("itemBarang") && jenisTransaksi !== "Penjualan" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="item_barang">Item Barang</Label>
@@ -9221,51 +9229,100 @@ export default function TransaksiKeuanganForm() {
               )}
 
               {/* QUANTITY & HARGA JUAL - Only for Penjualan */}
-              {jenisTransaksi === "Penjualan" && itemName && description && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity *</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      value={quantity}
-                      onChange={(e) => {
-                        setQuantity(e.target.value);
-                        // Auto-calculate nominal
-                        if (hargaJual) {
-                          const total =
-                            Number(e.target.value) * Number(hargaJual);
-                          setNominal(total.toString());
-                        }
-                      }}
-                      placeholder="1"
-                    />
-                  </div>
+              {jenisTransaksi === "Penjualan" && (
+                <div className="space-y-4">
+                  {/* Multiple Items Section */}
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">Item Penjualan</Label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          setSalesItems([
+                            ...salesItems,
+                            {
+                              id: Date.now().toString(),
+                              itemName: "",
+                              jenisBarang: "",
+                              quantity: "1",
+                            },
+                          ]);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Tambah Item
+                      </Button>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="harga_jual">Harga Jual per Unit *</Label>
-                    <Input
-                      id="harga_jual"
-                      type="number"
-                      value={hargaJual}
-                      onChange={(e) => {
-                        setHargaJual(e.target.value);
-                        // Auto-calculate nominal
-                        if (quantity) {
-                          const total =
-                            Number(quantity) * Number(e.target.value);
-                          setNominal(total.toString());
-                        }
-                      }}
-                      placeholder="0"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Total: Rp{" "}
-                      {new Intl.NumberFormat("id-ID").format(
-                        Number(quantity || 0) * Number(hargaJual || 0),
-                      )}
-                    </p>
+                    {salesItems.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Klik "Tambah Item" untuk menambahkan item penjualan
+                      </p>
+                    )}
+
+                    {salesItems.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md bg-gray-50"
+                      >
+                        <div className="space-y-2">
+                          <Label>Item Name *</Label>
+                          <Input
+                            value={item.itemName}
+                            onChange={(e) => {
+                              const updated = [...salesItems];
+                              updated[index].itemName = e.target.value;
+                              setSalesItems(updated);
+                            }}
+                            placeholder="Nama item"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Jenis Barang *</Label>
+                          <Input
+                            value={item.jenisBarang}
+                            onChange={(e) => {
+                              const updated = [...salesItems];
+                              updated[index].jenisBarang = e.target.value;
+                              setSalesItems(updated);
+                            }}
+                            placeholder="Jenis barang"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Quantity *</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const updated = [...salesItems];
+                              updated[index].quantity = e.target.value;
+                              setSalesItems(updated);
+                            }}
+                            placeholder="1"
+                          />
+                        </div>
+
+                        <div className="flex items-end">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => {
+                              setSalesItems(
+                                salesItems.filter((_, i) => i !== index)
+                              );
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -9404,39 +9461,7 @@ export default function TransaksiKeuanganForm() {
                 )}
 
               {/* CONSIGNEE ONLY - Customer removed */}
-              {(jenisTransaksi === "Penjualan" ||
-                jenisTransaksi === "Penjualan Jasa") && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="consignee">Consignee</Label>
-                    <Select value={consignee} onValueChange={setConsignee}>
-                      <SelectTrigger id="consignee">
-                        <SelectValue placeholder="-- pilih consignee --" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {consignees.length === 0 ? (
-                          <SelectItem value="no-data" disabled>
-                            Tidak ada data consignee
-                          </SelectItem>
-                        ) : (
-                          consignees
-                            .filter((c) => c.consignee_name)
-                            .map((c) => (
-                              <SelectItem key={c.id} value={c.consignee_name}>
-                                {c.consignee_name}
-                              </SelectItem>
-                            ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {consignees.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Silakan tambahkan consignee terlebih dahulu
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
+              {/* Removed for Penjualan */}
 
               {(jenisTransaksi === "Pembelian Barang" ||
                 jenisTransaksi === "Pembelian Jasa") && (
