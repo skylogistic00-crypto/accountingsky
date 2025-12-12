@@ -8048,8 +8048,8 @@ export default function TransaksiKeuanganForm() {
                 </div>
               )}
 
-              {/* ITEM FIELDS - For Penjualan & Pembelian */}
-              {visibleFields.showItemFields && (
+              {/* ITEM FIELDS - For Pembelian only, removed from Penjualan */}
+              {visibleFields.showItemFields && jenisTransaksi !== "Penjualan" && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
