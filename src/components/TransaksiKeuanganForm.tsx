@@ -798,11 +798,6 @@ export default function TransaksiKeuanganForm() {
   };
 
 
-  // Load service items from service_items table
-  const loadServiceItems = async () => {
-    // This function is now replaced by fetchTransactionItems
-  };
-
   // Fetch items dynamically based on transaction type
   const fetchTransactionItems = async (tipeItemTransaksi: string) => {
     if (!tipeItemTransaksi || !["Barang", "Jasa"].includes(tipeItemTransaksi)) {
