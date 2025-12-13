@@ -492,6 +492,9 @@ export default function TransaksiKeuanganForm() {
     itemName: string;
     jenisBarang: string;
     quantity: string;
+    nominal?: string;
+    stockId?: string;
+    sellingPrice?: number;
   }>>([]);
   const [selectedBank, setSelectedBank] = useState("");
   const [selectedKas, setSelectedKas] = useState("");
@@ -503,6 +506,7 @@ export default function TransaksiKeuanganForm() {
   const [kasSearch, setKasSearch] = useState("");
   const [namaPenerimaSearch, setNamaPenerimaSearch] = useState("");
   const [namaPengeluaranSearch, setNamaPengeluaranSearch] = useState("");
+  const [stockItemSearch, setStockItemSearch] = useState("");
 
   // Additional fields for dynamic form
   const [bankAsal, setBankAsal] = useState("");
@@ -793,10 +797,6 @@ export default function TransaksiKeuanganForm() {
     }
   };
 
-  // Load stock items from stock table
-  const loadStockItems = async () => {
-    // This function is now replaced by fetchTransactionItems
-  };
 
   // Load service items from service_items table
   const loadServiceItems = async () => {
@@ -1594,6 +1594,8 @@ export default function TransaksiKeuanganForm() {
         loadKasAccounts(),
         loadBorrowers(),
         loadTransactions(),
+        loadStockItems(),
+        loadServiceItems(),
       ]);
     };
     loadData();
@@ -1870,6 +1872,37 @@ export default function TransaksiKeuanganForm() {
       setBorrowers(data || []);
     } catch (err) {
       setBorrowers([]);
+    }
+  };
+
+  const loadStockItems = async (): Promise<void> => {
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from("stock")
+        .select("id, item_name, jenis_barang, selling_price, quantity")
+        .gt("quantity", 0)
+        .order("item_name");
+      if (supabaseError) throw supabaseError;
+      console.log("Stock items loaded:", data);
+      setStockItems(data || []);
+    } catch (err) {
+      console.error("Error loading stock items:", err);
+      setStockItems([]);
+    }
+  };
+
+  const loadServiceItems = async (): Promise<void> => {
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from("service_items")
+        .select("id, service_name, service_type, price")
+        .order("service_name");
+      if (supabaseError) throw supabaseError;
+      console.log("Service items loaded:", data);
+      setServiceItems(data || []);
+    } catch (err) {
+      console.error("Error loading service items:", err);
+      setServiceItems([]);
     }
   };
 
@@ -8048,8 +8081,8 @@ export default function TransaksiKeuanganForm() {
                 </div>
               )}
 
-              {/* ITEM FIELDS - For Pembelian only, removed from Penjualan */}
-              {visibleFields.showItemFields && jenisTransaksi !== "Penjualan" && (
+              {/* ITEM FIELDS - For Pembelian and Penjualan */}
+              {visibleFields.showItemFields && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -8076,68 +8109,7 @@ export default function TransaksiKeuanganForm() {
                     </div>
                   </div>
 
-                  {transactionItemType && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Jenis Barang di kiri, diambil dari stock.jenis_barang */}
-                      <div className="space-y-2">
-                        <Label htmlFor="item_detail">Jenis Barang *</Label>
-                        <Select
-                          value={selectedItemId}
-                          onValueChange={setSelectedItemId}
-                          disabled={isLoadingItems}
-                        >
-                          <SelectTrigger id="item_detail">
-                            <SelectValue
-                              placeholder={
-                                isLoadingItems
-                                  ? "Memuat..."
-                                  : `-- pilih jenis barang --`
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {stockItems.length === 0 && !isLoadingItems && (
-                              <div className="px-2 py-1.5 text-sm text-gray-500">
-                                Tidak ada barang tersedia
-                              </div>
-                            )}
-                            {stockItems.map((item) => (
-                              <SelectItem key={item.id} value={item.id}>
-                                {item.jenis_barang || item.item_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
 
-                      {/* Item Penjualan di kanan, mengikuti pilihan jenis barang */}
-                      <div className="space-y-2">
-                        <Label htmlFor="selected_item">Item Penjualan *</Label>
-                        <Input
-                          id="selected_item"
-                          type="text"
-                          value={selectedItemDetail}
-                          onChange={(e) => setSelectedItemDetail(e.target.value)}
-                          placeholder="Nama item akan mengikuti jenis barang yang dipilih"
-                          className="w-full"
-                          disabled={isLoadingItems}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="item_qty">Qty *</Label>
-                        <Input
-                          id="item_qty"
-                          type="number"
-                          min="1"
-                          value={itemQty}
-                          onChange={(e) =>
-                            setItemQty(parseInt(e.target.value) || 1)
-                          }
-                        />
-                      </div>
-                    </div>
-                  )}
 
                   {transactionItemType && selectedItemId && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -9221,6 +9193,9 @@ export default function TransaksiKeuanganForm() {
                               itemName: "",
                               jenisBarang: "",
                               quantity: "1",
+                              nominal: "0",
+                              stockId: "",
+                              sellingPrice: 0,
                             },
                           ]);
                         }}
@@ -9239,31 +9214,83 @@ export default function TransaksiKeuanganForm() {
                     {salesItems.map((item, index) => (
                       <div
                         key={item.id}
-                        className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md bg-gray-50"
+                        className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-md bg-gray-50"
                       >
                         <div className="space-y-2">
                           <Label>Item Name *</Label>
-                          <Input
-                            value={item.itemName}
-                            onChange={(e) => {
-                              const updated = [...salesItems];
-                              updated[index].itemName = e.target.value;
-                              setSalesItems(updated);
-                            }}
-                            placeholder="Nama item"
-                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between"
+                              >
+                                {item.itemName || "-- pilih atau ketik item --"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-2">
+                              <Input
+                                placeholder="Cari atau ketik item..."
+                                value={stockItemSearch}
+                                onChange={(e) => setStockItemSearch(e.target.value)}
+                                className="mb-2"
+                              />
+                              <div className="max-h-64 overflow-auto">
+                                {(transactionItemType === "Barang" ? stockItems : serviceItems)
+                                  .filter((itemData) => {
+                                    const searchName = transactionItemType === "Barang" 
+                                      ? (itemData.item_name ?? "")
+                                      : (itemData.service_name ?? "");
+                                    return searchName
+                                      .toLowerCase()
+                                      .includes((stockItemSearch ?? "").toLowerCase());
+                                  })
+                                  .map((itemData) => (
+                                    <div
+                                      key={itemData.id}
+                                      className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
+                                      onClick={() => {
+                                        const updated = [...salesItems];
+                                        updated[index].stockId = itemData.id;
+                                        
+                                        if (transactionItemType === "Barang") {
+                                          updated[index].itemName = itemData.item_name || "";
+                                          updated[index].jenisBarang = itemData.jenis_barang || "";
+                                          updated[index].sellingPrice = itemData.selling_price || 0;
+                                        } else {
+                                          // Jasa
+                                          updated[index].itemName = itemData.service_name || "";
+                                          updated[index].jenisBarang = itemData.service_type || "";
+                                          updated[index].sellingPrice = itemData.price || 0;
+                                        }
+                                        
+                                        const qty = parseInt(updated[index].quantity) || 1;
+                                        updated[index].nominal = ((updated[index].sellingPrice || 0) * qty).toString();
+                                        setSalesItems(updated);
+                                        setStockItemSearch("");
+                                      }}
+                                    >
+                                      <span className="text-sm">
+                                        {transactionItemType === "Barang" ? itemData.item_name : itemData.service_name}
+                                      </span>
+                                      {item.stockId === itemData.id && (
+                                        <Check className="h-4 w-4 text-blue-600" />
+                                      )}
+                                    </div>
+                                  ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         </div>
 
                         <div className="space-y-2">
                           <Label>Jenis Barang *</Label>
                           <Input
-                            value={item.jenisBarang}
-                            onChange={(e) => {
-                              const updated = [...salesItems];
-                              updated[index].jenisBarang = e.target.value;
-                              setSalesItems(updated);
-                            }}
-                            placeholder="Jenis barang"
+                            value={item.jenisBarang || ""}
+                            disabled
+                            placeholder="Auto-filled"
+                            className="bg-gray-100"
                           />
                         </div>
 
@@ -9276,9 +9303,25 @@ export default function TransaksiKeuanganForm() {
                             onChange={(e) => {
                               const updated = [...salesItems];
                               updated[index].quantity = e.target.value;
+                              // Recalculate nominal
+                              const qty = parseInt(e.target.value) || 1;
+                              const price = updated[index].sellingPrice || 0;
+                              updated[index].nominal = (price * qty).toString();
                               setSalesItems(updated);
                             }}
                             placeholder="1"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Nominal *</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.nominal || ""}
+                            disabled
+                            placeholder="Auto-calculated"
+                            className="bg-gray-100"
                           />
                         </div>
 
