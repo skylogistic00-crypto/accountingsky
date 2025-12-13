@@ -2375,10 +2375,7 @@ export default function TransaksiKeuanganForm() {
       }
 
       // Expense Engine - Purchase and expense transactions
-      else if (
-        jenisTransaksi === "Pembelian" ||
-        jenisTransaksi === "Beban Operasional"
-      ) {
+      else if (jenisTransaksi === "Pembelian") {
         const { data: mapping } = await supabase
           .from("coa_category_mapping")
           .select("*")
@@ -2388,14 +2385,8 @@ export default function TransaksiKeuanganForm() {
           .single();
 
         if (mapping) {
-          if (jenisTransaksi === "Pembelian") {
-            // For purchases: use asset account (inventory)
-            accountCode =
-              mapping.asset_account_code || mapping.cogs_account_code;
-          } else {
-            // For expenses: use COGS/expense account
-            accountCode = mapping.cogs_account_code;
-          }
+          // For purchases: use asset account (inventory)
+          accountCode = mapping.asset_account_code || mapping.cogs_account_code;
         }
       }
 
@@ -2913,6 +2904,7 @@ export default function TransaksiKeuanganForm() {
     hppEntry: any,
     hppAmount: number = 0,
   ) => {
+    // Always enforce exactly 2 lines: 1 debit, 1 credit
     const lines: any[] = [
       {
         account_code: debitAccount.account_code,
@@ -2930,23 +2922,7 @@ export default function TransaksiKeuanganForm() {
       },
     ];
 
-    // Add HPP lines if needed (for Penjualan)
-    if (hppEntry) {
-      lines.push({
-        account_code: hppEntry.debit,
-        account_name: hppEntry.debitName || "HPP",
-        account_type: hppEntry.debitType || "Beban",
-        dc: "D",
-        amount: hppAmount,
-      });
-      lines.push({
-        account_code: hppEntry.credit,
-        account_name: hppEntry.creditName || "Persediaan",
-        account_type: hppEntry.creditType || "Aset",
-        dc: "C",
-        amount: hppAmount,
-      });
-    }
+    // Ignore any additional HPP or OCR-based lines to keep journal clean
 
     return { lines, memo, tanggal };
   };
@@ -3001,7 +2977,7 @@ export default function TransaksiKeuanganForm() {
   /** Financial Engine - Determine Debit/Credit Accounts using filter-based mapping */
   const runFinancialEngine = async (normalizedInput: any) => {
     try {
-      // PRIORITY 1: Check if user manually selected expense account
+      // PRIORITY 1: Check if user manually selected manual accounts first
       const normalizedPayment = (
         normalizedInput.paymentType || ""
       ).toLowerCase();
@@ -3241,7 +3217,7 @@ export default function TransaksiKeuanganForm() {
         }
       }
 
-      // PRIORITY 4: Use AI/OCR mapping if no manual selection
+      // PRIORITY 4: Use AI/OCR mapping only if NO manual account is selected
       console.log("🤖 No manual account selection - using AI/OCR mapping");
 
       // Step 1: Choose mapping rule
