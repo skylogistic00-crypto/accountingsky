@@ -148,11 +148,12 @@ export default function PurchaseRequestList() {
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(
-        (req) =>
-          req.(name ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          req.item_(name ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
-      );
+      filtered = filtered.filter((req) => {
+        const safeName = (req.name ?? "").toLowerCase();
+        const safeItemName = (req.item_name ?? "").toLowerCase();
+        const term = searchTerm.toLowerCase();
+        return safeName.includes(term) || safeItemName.includes(term);
+      });
     }
 
     setFilteredRequests(filtered);

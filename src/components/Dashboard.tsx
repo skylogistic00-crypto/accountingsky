@@ -601,7 +601,9 @@ export default function Dashboard() {
                 </div>
               </div>
             </>
-          ) : currentView === "create-permohonan" ? (
+          ) : null}
+
+          {currentView === "create-permohonan" ? (
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-white">
