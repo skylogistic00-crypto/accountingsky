@@ -1140,10 +1140,7 @@ export default function TransaksiKeuanganForm() {
   /** Dynamic Field Visibility Logic */
   const getVisibleFields = () => {
     switch (jenisTransaksi) {
-      case "Transfer Bank":
-
-        }
-
+      case "Transfer Bank": {
         const bankAsalCode = normalizedInput.bankAsal.split(" — ")[0];
         const bankTujuanCode = normalizedInput.bankTujuan.split(" — ")[0];
 
@@ -1154,8 +1151,10 @@ export default function TransaksiKeuanganForm() {
         credit_account_code = bankAsalCode;
 
         break;
+      }
 
       // Pastikan semua transaksi lain override needs_hpp ke false
+      // (blok lama di bawah ini dihapus karena menyebabkan syntax error)
       // (blok lama di bawah ini dihapus karena menyebabkan syntax error)
 
       case "Pembelian":
@@ -1167,20 +1166,14 @@ export default function TransaksiKeuanganForm() {
           const kasCode =
             normalizedInput.selectedKas?.split(" â€” ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if ((payment === "transfer bank" && normalizedInput.selectedBank)) {
-
+        } else if (payment === "transfer bank" && normalizedInput.selectedBank) {
           // FIX: Pengeluaran harus pilih akun bank
-          if (!normalizedInput.selectedBank) {
-            throw new Error("Akun bank wajib dipilih untuk metode Transfer Bank (Pengeluaran).");
-          }
-
           const bankCode = normalizedInput.selectedBank.split(" — ")[0];
 
           console.log("🔍 PENGELUARAN - selectedBank:", normalizedInput.selectedBank);
           console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
 
           creditFilter = { account_code: bankCode };
-};
         } else if (payment === "Kredit") {
           creditFilter = { usage_role: "hutang" };
         }
@@ -1196,20 +1189,14 @@ export default function TransaksiKeuanganForm() {
           const kasCode =
             normalizedInput.selectedKas?.split(" â€” ")[0] || "1-1100";
           creditFilter = { account_code: kasCode };
-        } else if ((payment === "transfer bank" && normalizedInput.selectedBank)) {
-
+        } else if (payment === "transfer bank" && normalizedInput.selectedBank) {
           // FIX: Pengeluaran harus pilih akun bank
-          if (!normalizedInput.selectedBank) {
-            throw new Error("Akun bank wajib dipilih untuk metode Transfer Bank (Pengeluaran).");
-          }
-
           const bankCode = normalizedInput.selectedBank.split(" — ")[0];
 
           console.log("🔍 PENGELUARAN - selectedBank:", normalizedInput.selectedBank);
           console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
 
           creditFilter = { account_code: bankCode };
-};
         } else if (payment === "Kredit") {
           creditFilter = { usage_role: "hutang" };
         }
@@ -1236,7 +1223,6 @@ export default function TransaksiKeuanganForm() {
           console.log("🔍 PENGELUARAN - bankCode extracted:", bankCode);
 
           creditFilter = { account_code: bankCode };
-};
         } else if (payment === "Kredit") {
           debitFilter = { usage_role: "piutang" };
         }

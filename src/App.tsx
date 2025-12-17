@@ -154,16 +154,6 @@ function HomePage() {
 }
 
 function AppRoutesContent() {
-  const { loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600">
-        <div className="text-lg">Loading aplikasi...</div>
-      </div>
-    );
-  }
-
   return (
     <Routes>
       <Route path="/auth/confirm" element={<EmailConfirm />} />

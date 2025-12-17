@@ -195,7 +195,7 @@ export function AuthFormContent({
       .order("role_name", { ascending: true });
 
     if (error) {
-      console.error("Error loading roles:", err);
+      console.error("Error loading roles:", error);
     } else {
       setRoles(data || []);
     }
